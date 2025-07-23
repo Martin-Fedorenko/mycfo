@@ -1,2 +1,2 @@
 # mycfo
-MyCFO
+MyCFO App
