@@ -3,7 +3,7 @@ name: Notificar a Discord en push
 on:
   push:
     branches:
-      - main  # o la rama que vos quieras
+      - main
 
 jobs:
   notify:
@@ -13,7 +13,6 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          curl -H "Content-Type: application/json" \
-               -X POST \
-               -d "{\"content\": \"🚀 $GITHUB_ACTOR hizo un push en main!\"}" \
-               $DISCORD_WEBHOOK
+          curl -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"🚀 Push hecho por $GITHUB_ACTOR en $GITHUB_REPOSITORY.\n🔗 https://github.com/$GITHUB_REPOSITORY/commits/$GITHUB_SHA\"}"
