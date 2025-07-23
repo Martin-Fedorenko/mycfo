@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>mycfo</groupId>
-	<artifactId>mycfo</artifactId>
+	<artifactId>administracion</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>mycfo</name>
-	<description>MyCFO</description>
+	<name>administracion</name>
+	<description>Servicio de Administración de Roles</description>
 	<url/>
 	<licenses>
 		<license/>

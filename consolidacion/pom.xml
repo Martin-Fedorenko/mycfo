@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>mycfo</groupId>
-	<artifactId>mycfo</artifactId>
+	<artifactId>consolidacion</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>mycfo</name>
-	<description>MyCFO</description>
+	<name>consolidacion</name>
+	<description>Servicio de Consolidación Bancaria</description>
 	<url/>
 	<licenses>
 		<license/>

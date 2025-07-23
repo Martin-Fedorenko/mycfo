@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>mycfo</groupId>
-	<artifactId>mycfo</artifactId>
+	<artifactId>notificacion</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>mycfo</name>
-	<description>MyCFO</description>
+	<name>notificacion</name>
+	<description>Servicio de Notificación</description>
 	<url/>
 	<licenses>
 		<license/>
