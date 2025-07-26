@@ -3,17 +3,26 @@ name: Notificar a Discord en push
 on:
   push:
     branches:
-      - main  # o la rama que vos quieras
+      - main
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Enviar mensaje a Discord
+      - name: Checkout del repositorio
+        uses: actions/checkout@v3
+
+      - name: Obtener datos y enviar a Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
+          AUTHOR=${{ github.actor }}
+          BRANCH=${GITHUB_REF##*/}
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s")
+          COMMIT_URL=https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d "{\"content\": \"🚀 $GITHUB_ACTOR hizo un push en main!\"}" \
+               -d "{\"content\": \"🚀 **$AUTHOR** hizo un push en la rama **$BRANCH**.\n📝 Último commit: $COMMIT_MESSAGE\n🔗 Link al commit: <$COMMIT_URL>\"}" \
                $DISCORD_WEBHOOK
+
