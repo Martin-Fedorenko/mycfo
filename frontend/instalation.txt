@@ -1,0 +1,20 @@
+Descargar e instalar Node.js
+
+https://nodejs.org/es/download
+
+(No instalar Chocolatey)
+
+Abrir CMD de Windows en la carpeta donde esta el Proyecto React (mycfo/frontend):
+
+Escribir estos comandos para verificar que Node.js esta instalado:
+
+node -v 
+npm -v 
+
+Escribir este comando para instalar dependencias necesarias para correr el proyecto:
+
+npm install @mui/material @mui/icons-material @emotion/styled @emotion/react @mui/x-charts @mui/x-date-pickers @mui/x-data-grid @mui/x-tree-view @react-spring/web dayjs
+
+Escribir este comando para ejecutar el proyecto:
+
+npm start
