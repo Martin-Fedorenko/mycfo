@@ -9,20 +9,38 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout del repositorio
+      - name: Checkout del repo
         uses: actions/checkout@v3
 
-      - name: Obtener datos y enviar a Discord
+      - name: Enviar mensaje a Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          AUTHOR=${{ github.actor }}
-          BRANCH=${GITHUB_REF##*/}
+          AUTHOR_NAME="${{ github.actor }}"
+          BRANCH="${GITHUB_REF##*/}"
+          REPO="${{ github.repository }}"
+          COMMIT_HASH=$(git rev-parse --short HEAD)
           COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s")
-          COMMIT_URL=https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+          COMMIT_URL="https://github.com/${REPO}/commit/${GITHUB_SHA}"
+
+          JSON_PAYLOAD=$(jq -n \
+            --arg author "$AUTHOR_NAME" \
+            --arg branch "$BRANCH" \
+            --arg repo "$REPO" \
+            --arg hash "$COMMIT_HASH" \
+            --arg message "$COMMIT_MESSAGE" \
+            --arg url "$COMMIT_URL" \
+            '{
+              "embeds": [
+                {
+                  "title": "[" + $repo + ":" + $branch + "] 1 nuevo commit",
+                  "url": $url,
+                  "description": "`" + $hash + "` " + $message + " - " + $author
+                }
+              ]
+            }')
 
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d "{\"content\": \"🚀 **$AUTHOR** hizo un push en la rama **$BRANCH**.\n📝 Último commit: $COMMIT_MESSAGE\n🔗 Link al commit: <$COMMIT_URL>\"}" \
+               -d "$JSON_PAYLOAD" \
                $DISCORD_WEBHOOK
-
