@@ -15,7 +15,7 @@ import CardAlert from './CardAlert';
 function SideMenuMobile({ open, toggleDrawer }) {
   return (
     <Drawer
-      anchor="right"
+      anchor="top"
       open={open}
       onClose={toggleDrawer(false)}
       sx={{
@@ -28,7 +28,7 @@ function SideMenuMobile({ open, toggleDrawer }) {
     >
       <Stack
         sx={{
-          maxWidth: '70dvw',
+          maxWidth: '100dvw',
           height: '100%',
         }}
       >
