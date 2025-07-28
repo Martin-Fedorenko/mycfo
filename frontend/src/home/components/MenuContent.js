@@ -47,8 +47,8 @@ export default function MenuContent() {
       <List dense>
         {menuItems.map((item, index) => {
           const isParentActive =
-            item.path && isActive(item.path) ||
-            item.children?.some((child) => isActive(child.path));
+           (item.path && isActive(item.path)) ||
+            (item.children?.some((child) => isActive(child.path)));
 
           return (
             <React.Fragment key={index}>
