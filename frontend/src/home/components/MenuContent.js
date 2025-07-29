@@ -17,16 +17,40 @@ import StorageIcon from '@mui/icons-material/Storage';
 
 const menuItems = [
   {
-    label: 'Dashboard',
-    icon: <DashboardIcon />,
-    path: '/dashboard',
-  },
-  {
     label: 'Carga de Datos',
     icon: <StorageIcon />,
     children: [
       { label: 'Carga Manual', path: '/carga-manual', icon: <DescriptionIcon /> },
-      { label: 'Carga Documento', path: '/carga-documento', icon: <DescriptionIcon /> },
+      { label: 'Carga mediante Documento', path: '/carga-documento', icon: <DescriptionIcon /> },
+      { label: 'Carga mediante Audio',  icon: <DescriptionIcon /> },
+      { label: 'Carga mediante Imagen',  icon: <DescriptionIcon /> },
+      { label: 'Carga mediante API',  icon: <DescriptionIcon /> },
+    ],
+  },
+  {
+    label: 'Consolidación Bancaria',
+    icon: <StorageIcon />,
+    children: [
+      { label: 'Carga de movimientos',  icon: <DescriptionIcon /> },
+      { label: 'Ver movimientos consolidados',  icon: <DescriptionIcon /> },
+    ],
+  },
+  {
+    label: 'Reportes',
+    icon: <StorageIcon />,
+    children: [
+      { label: 'Reporte mensual',  icon: <DescriptionIcon /> },
+      { label: 'Cash Flow', icon: <DescriptionIcon /> },
+      { label: 'Profit & Loss', icon: <DescriptionIcon /> },
+    ],
+  },
+  {
+    label: 'Pronóstico',
+    icon: <StorageIcon />,
+    children: [
+      { label: 'Presupuesto',  icon: <DescriptionIcon /> },
+      { label: 'Cash Flow Forecast', icon: <DescriptionIcon /> },
+      { label: 'Rolling Forecast', icon: <DescriptionIcon /> },
     ],
   },
 ];
@@ -60,6 +84,7 @@ export default function MenuContent() {
                       : () => navigate(item.path)
                   }
                   selected={isParentActive}
+                  sx={{ mb: 0.5 }} 
                 >
                   <ListItemIcon>{item.icon}</ListItemIcon>
                   <ListItemText primary={item.label} />
@@ -70,7 +95,7 @@ export default function MenuContent() {
               </ListItem>
 
               {item.children && (
-                <Collapse in={openMenus[item.label]} timeout="auto" unmountOnExit>
+                <Collapse in={openMenus[item.label]} timeout="auto" unmountOnExit >
                   <List component="div" disablePadding>
                     {item.children.map((child, childIndex) => (
                       <ListItem key={childIndex} disablePadding sx={{ display: 'block' }}>

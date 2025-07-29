@@ -10,7 +10,7 @@ import MenuContent from './MenuContent';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import OptionsMenu from './OptionsMenu';
 
-const drawerWidth = 240;
+const drawerWidth = 320;
 
 const Drawer = styled(MuiDrawer)({
   width: drawerWidth,
