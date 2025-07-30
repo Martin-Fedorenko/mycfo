@@ -1,2 +1,0 @@
-# mycfo
-MyCFO App
