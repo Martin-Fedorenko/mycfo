@@ -32,7 +32,6 @@ export default function TablaDetalle() {
     <Box sx={{ width: '100%', p: 2 }}>
       {/* Mes actual */}
       <Typography variant="h6" gutterBottom>
-        Resumen mensual - Julio 2025
       </Typography>
 
       {/* Resumen general */}
