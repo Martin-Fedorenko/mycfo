@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import * as React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   List,
   ListItem,
@@ -7,51 +7,68 @@ import {
   ListItemIcon,
   ListItemText,
   Collapse,
-} from '@mui/material';
-import Stack from '@mui/material/Stack';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import DescriptionIcon from '@mui/icons-material/Description';
-import StorageIcon from '@mui/icons-material/Storage';
+} from "@mui/material";
+import Stack from "@mui/material/Stack";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import DescriptionIcon from "@mui/icons-material/Description";
+import StorageIcon from "@mui/icons-material/Storage";
 
 const menuItems = [
   {
-    label: 'Carga de Datos',
+    label: "Carga de Datos",
     icon: <StorageIcon />,
     children: [
-      { label: 'Carga Manual', path: '/carga-manual', icon: <DescriptionIcon /> },
-      { label: 'Carga mediante Documento', path: '/carga-documento', icon: <DescriptionIcon /> },
-      { label: 'Carga mediante Audio',  icon: <DescriptionIcon /> },
-      { label: 'Carga mediante Imagen',  icon: <DescriptionIcon /> },
-      { label: 'Carga mediante API',  icon: <DescriptionIcon /> },
+      {
+        label: "Carga Manual",
+        path: "/carga-manual",
+        icon: <DescriptionIcon />,
+      },
+      {
+        label: "Carga mediante Documento",
+        path: "/carga-documento",
+        icon: <DescriptionIcon />,
+      },
+      { label: "Carga mediante Audio", icon: <DescriptionIcon /> },
+      { label: "Carga mediante Imagen", icon: <DescriptionIcon /> },
+      { label: "Carga mediante API", icon: <DescriptionIcon /> },
+      {
+        label: "Carga mediante Excel",
+        path: "/carga-excel",
+        icon: <DescriptionIcon />,
+      },
     ],
   },
   {
-    label: 'Consolidación Bancaria',
+    label: "Consolidación Bancaria",
     icon: <StorageIcon />,
     children: [
-      { label: 'Carga de movimientos',  icon: <DescriptionIcon /> },
-      { label: 'Ver movimientos consolidados',  icon: <DescriptionIcon /> },
+      { label: "Carga de movimientos", icon: <DescriptionIcon /> },
+      { label: "Ver movimientos consolidados", icon: <DescriptionIcon /> },
     ],
   },
   {
-    label: 'Reportes',
+    label: "Reportes",
     icon: <StorageIcon />,
     children: [
-      { label: 'Reporte mensual', path: '/reporte-mensual', icon: <DescriptionIcon /> },
-      { label: 'Reporte diario',  icon: <DescriptionIcon /> },
-      { label: 'Cash Flow', path: '/cash-flow', icon: <DescriptionIcon /> },
-      { label: 'Profit & Loss', icon: <DescriptionIcon /> },
+      {
+        label: "Reporte mensual",
+        path: "/reporte-mensual",
+        icon: <DescriptionIcon />,
+      },
+      { label: "Reporte diario", icon: <DescriptionIcon /> },
+      { label: "Cash Flow", path: "/cash-flow", icon: <DescriptionIcon /> },
+      { label: "Profit & Loss", icon: <DescriptionIcon /> },
     ],
   },
   {
-    label: 'Pronóstico',
+    label: "Pronóstico",
     icon: <StorageIcon />,
     children: [
-      { label: 'Presupuesto',  icon: <DescriptionIcon /> },
-      { label: 'Cash Flow Forecast', icon: <DescriptionIcon /> },
-      { label: 'Rolling Forecast', icon: <DescriptionIcon /> },
+      { label: "Presupuesto", icon: <DescriptionIcon /> },
+      { label: "Cash Flow Forecast", icon: <DescriptionIcon /> },
+      { label: "Rolling Forecast", icon: <DescriptionIcon /> },
     ],
   },
 ];
@@ -68,16 +85,16 @@ export default function MenuContent() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <Stack sx={{ flexGrow: 1, p: 1, justifyContent: 'space-between' }}>
+    <Stack sx={{ flexGrow: 1, p: 1, justifyContent: "space-between" }}>
       <List dense>
         {menuItems.map((item, index) => {
           const isParentActive =
-           (item.path && isActive(item.path)) ||
-            (item.children?.some((child) => isActive(child.path)));
+            (item.path && isActive(item.path)) ||
+            item.children?.some((child) => isActive(child.path));
 
           return (
             <React.Fragment key={index}>
-              <ListItem disablePadding sx={{ display: 'block' }}>
+              <ListItem disablePadding sx={{ display: "block" }}>
                 <ListItemButton
                   onClick={
                     item.children
@@ -85,21 +102,33 @@ export default function MenuContent() {
                       : () => navigate(item.path)
                   }
                   selected={isParentActive}
-                  sx={{ mb: 0.5 }} 
+                  sx={{ mb: 0.5 }}
                 >
                   <ListItemIcon>{item.icon}</ListItemIcon>
                   <ListItemText primary={item.label} />
                   {item.children ? (
-                    openMenus[item.label] ? <ExpandLess /> : <ExpandMore />
+                    openMenus[item.label] ? (
+                      <ExpandLess />
+                    ) : (
+                      <ExpandMore />
+                    )
                   ) : null}
                 </ListItemButton>
               </ListItem>
 
               {item.children && (
-                <Collapse in={openMenus[item.label]} timeout="auto" unmountOnExit >
+                <Collapse
+                  in={openMenus[item.label]}
+                  timeout="auto"
+                  unmountOnExit
+                >
                   <List component="div" disablePadding>
                     {item.children.map((child, childIndex) => (
-                      <ListItem key={childIndex} disablePadding sx={{ display: 'block' }}>
+                      <ListItem
+                        key={childIndex}
+                        disablePadding
+                        sx={{ display: "block" }}
+                      >
                         <ListItemButton
                           sx={{ pl: 4 }}
                           onClick={() => navigate(child.path)}
