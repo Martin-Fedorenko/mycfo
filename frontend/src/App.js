@@ -6,7 +6,11 @@ import Dashboard from './template/dashboard/Dashboard';
 import Home from './home/Home';
 import CargaManual from './registro/carga-manual/CargaManual';
 import CargaDocumento from './registro/carga-documento/CargaDocumento';
+import ReporteMensual from './reportes/reporte-mensual/ReporteMensual';
+import CashFlow from './reportes/cash-flow/CashFlow';
 
+
+import './App.css'
 function App() {
   return (
     <Router>
@@ -14,6 +18,8 @@ function App() {
         <Route path="/" element={<Home />}>
           <Route path="carga-manual" element={<CargaManual />} />
           <Route path="carga-documento" element={<CargaDocumento />} />
+          <Route path="reporte-mensual" element={<ReporteMensual />} />
+          <Route path="cash-flow" element={<CashFlow />} />
         </Route>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />

@@ -39,8 +39,9 @@ const menuItems = [
     label: 'Reportes',
     icon: <StorageIcon />,
     children: [
-      { label: 'Reporte mensual',  icon: <DescriptionIcon /> },
-      { label: 'Cash Flow', icon: <DescriptionIcon /> },
+      { label: 'Reporte mensual', path: '/reporte-mensual', icon: <DescriptionIcon /> },
+      { label: 'Reporte diario',  icon: <DescriptionIcon /> },
+      { label: 'Cash Flow', path: '/cash-flow', icon: <DescriptionIcon /> },
       { label: 'Profit & Loss', icon: <DescriptionIcon /> },
     ],
   },
