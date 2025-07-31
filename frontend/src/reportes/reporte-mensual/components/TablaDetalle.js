@@ -28,12 +28,19 @@ export default function TablaDetalle() {
   const totalEgresos = egresos.reduce((acc, item) => acc + item.monto, 0);
   const balance = totalIngresos - totalEgresos;
 
+  const tableRowStyle = {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+  };
+
+  const tableCellStyle = {
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+  };
+
   return (
     <Box sx={{ width: '100%', p: 2 }}>
-      {/* Mes actual */}
-      <Typography variant="h6" gutterBottom>
-      </Typography>
-
       {/* Resumen general */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={4}>
@@ -70,19 +77,19 @@ export default function TablaDetalle() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>N°</TableCell>
-              <TableCell>Categoría</TableCell>
-              <TableCell>Fecha</TableCell>
-              <TableCell align="right">Monto</TableCell>
+              <TableCell sx={tableCellStyle}>N°</TableCell>
+              <TableCell sx={tableCellStyle}>Categoría</TableCell>
+              <TableCell sx={tableCellStyle}>Fecha</TableCell>
+              <TableCell align="right" sx={tableCellStyle}>Monto</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {ingresos.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>{row.id}</TableCell>
-                <TableCell>{row.categoria}</TableCell>
-                <TableCell>{row.fecha}</TableCell>
-                <TableCell align="right">${row.monto.toLocaleString()}</TableCell>
+              <TableRow key={row.id} sx={tableRowStyle}>
+                <TableCell sx={tableCellStyle}>{row.id}</TableCell>
+                <TableCell sx={tableCellStyle}>{row.categoria}</TableCell>
+                <TableCell sx={tableCellStyle}>{row.fecha}</TableCell>
+                <TableCell align="right" sx={tableCellStyle}>${row.monto.toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -97,19 +104,19 @@ export default function TablaDetalle() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>N°</TableCell>
-              <TableCell>Categoría</TableCell>
-              <TableCell>Fecha</TableCell>
-              <TableCell align="right">Monto</TableCell>
+              <TableCell sx={tableCellStyle}>N°</TableCell>
+              <TableCell sx={tableCellStyle}>Categoría</TableCell>
+              <TableCell sx={tableCellStyle}>Fecha</TableCell>
+              <TableCell align="right" sx={tableCellStyle}>Monto</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {egresos.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>{row.id}</TableCell>
-                <TableCell>{row.categoria}</TableCell>
-                <TableCell>{row.fecha}</TableCell>
-                <TableCell align="right">${row.monto.toLocaleString()}</TableCell>
+              <TableRow key={row.id} sx={tableRowStyle}>
+                <TableCell sx={tableCellStyle}>{row.id}</TableCell>
+                <TableCell sx={tableCellStyle}>{row.categoria}</TableCell>
+                <TableCell sx={tableCellStyle}>{row.fecha}</TableCell>
+                <TableCell align="right" sx={tableCellStyle}>${row.monto.toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
