@@ -9,6 +9,7 @@ import CargaDocumento from "./registro/carga-documento/CargaDocumento";
 import ReporteMensual from "./reportes/reporte-mensual/ReporteMensual";
 import CashFlow from "./reportes/cash-flow/CashFlow";
 import CargaExcel from "./registro/carga-excel/CargaExcel";
+import Notificaciones from "./notificaciones/listado-notificaciones/Notificaciones";
 
 import "./App.css";
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="reporte-mensual" element={<ReporteMensual />} />
           <Route path="carga-excel" element={<CargaExcel />} />
           <Route path="cash-flow" element={<CashFlow />} />
+          <Route path="listado-notificaciones" element={<Notificaciones />} />
         </Route>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />

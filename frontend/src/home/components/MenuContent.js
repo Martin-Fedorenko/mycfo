@@ -71,6 +71,17 @@ const menuItems = [
       { label: "Rolling Forecast", icon: <DescriptionIcon /> },
     ],
   },
+  {
+    label: "Notificaciones",
+    icon: <StorageIcon />,
+    children: [
+      {
+        label: "Notificaciones",
+        path: "/listado-notificaciones",
+        icon: <DescriptionIcon />,
+      },
+    ],
+  },
 ];
 
 export default function MenuContent() {
