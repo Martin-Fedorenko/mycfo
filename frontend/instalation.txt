@@ -22,3 +22,9 @@ npm install gh-pages --save-dev
 Escribir este comando para ejecutar el proyecto:
 
 npm start
+
+
+
+
+para cuadros
+npm install recharts 
