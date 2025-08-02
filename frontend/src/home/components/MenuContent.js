@@ -66,7 +66,7 @@ const menuItems = [
     label: "Pronóstico",
     icon: <StorageIcon />,
     children: [
-      { label: "Presupuesto", icon: <DescriptionIcon /> },
+      { label: "Presupuesto", path: "/presupuesto", icon: <DescriptionIcon /> },
       { label: "Cash Flow Forecast", icon: <DescriptionIcon /> },
       { label: "Rolling Forecast", icon: <DescriptionIcon /> },
     ],
