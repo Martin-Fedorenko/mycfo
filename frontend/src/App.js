@@ -13,6 +13,8 @@ import Notificaciones from "./notificaciones/listado-notificaciones/Notificacion
 import Presupuesto from "./pronostico/presupuesto/Presupuesto";
 import PresupuestoNuevo from "./pronostico/presupuesto/components/PresupuestoNuevo";
 import PresupuestoDetalle from "./pronostico/presupuesto/components/PresupuestoDetalle";
+import CashFlowForecast from "./pronostico/cash-flow-forecast/CashFlowForecast";
+import RollingForecast from "./pronostico/rolling-forecast/RollingForecast";
 
 import "./App.css";
 function App() {
@@ -30,6 +32,10 @@ function App() {
           <Route path="presupuesto" element={<Presupuesto />} />
           <Route path="presupuesto/nuevo" element={<PresupuestoNuevo />} />
           <Route path="presupuesto/:id" element={<PresupuestoDetalle />} />
+
+          <Route path="cash-flow-forecast" element={<CashFlowForecast />} />
+          <Route path="rolling-forecast" element={<RollingForecast />} />
+          
         </Route>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
