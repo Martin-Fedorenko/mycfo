@@ -1,4 +1,4 @@
-package dtos;
+package reporte.dtos;
 
 public class ResumenMensualDTO {
     private int ingresos;

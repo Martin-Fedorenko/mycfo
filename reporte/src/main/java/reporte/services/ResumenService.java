@@ -1,6 +1,6 @@
-package services;
+package reporte.services;
 
-import dtos.ResumenMensualDTO;
+import reporte.dtos.ResumenMensualDTO;
 import org.springframework.stereotype.Service;
 
 @Service
