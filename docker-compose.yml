@@ -1,0 +1,106 @@
+
+services:
+  administracion:
+    container_name: administracion
+    build: ./administracion
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+      - ADMINISTRACION_URL=http://administracion:8081
+      - CONSOLIDACION_URL=http://consolidacion:8082
+      - IA_URL=http://ia:8083
+      - NOTIFICACION_URL=http://notificacion:8084
+      - PRONOSTICO_URL=http://pronostico:8085
+      - REGISTRO_URL=http://registro:8086
+      - REPORTE_URL=http://reporte:8087
+
+  consolidacion:
+    container_name: consolidacion
+    build: ./consolidacion
+    ports:
+      - "8082:8082"
+    environment:
+      - SERVER_PORT=8082
+      - ADMINISTRACION_URL=http://administracion:8081
+      - CONSOLIDACION_URL=http://consolidacion:8082
+      - IA_URL=http://ia:8083
+      - NOTIFICACION_URL=http://notificacion:8084
+      - PRONOSTICO_URL=http://pronostico:8085
+      - REGISTRO_URL=http://registro:8086
+      - REPORTE_URL=http://reporte:8087
+
+  ia:
+    container_name: ia
+    build: ./ia
+    ports:
+      - "8083:8083"
+    environment:
+      - SERVER_PORT=8083
+      - ADMINISTRACION_URL=http://administracion:8081
+      - CONSOLIDACION_URL=http://consolidacion:8082
+      - IA_URL=http://ia:8083
+      - NOTIFICACION_URL=http://notificacion:8084
+      - PRONOSTICO_URL=http://pronostico:8085
+      - REGISTRO_URL=http://registro:8086
+      - REPORTE_URL=http://reporte:8087
+
+  notificacion:
+    container_name: notificacion
+    build: ./notificacion
+    ports:
+      - "8084:8084"
+    environment:
+      - SERVER_PORT=8084
+      - ADMINISTRACION_URL=http://administracion:8081
+      - CONSOLIDACION_URL=http://consolidacion:8082
+      - IA_URL=http://ia:8083
+      - NOTIFICACION_URL=http://notificacion:8084
+      - PRONOSTICO_URL=http://pronostico:8085
+      - REGISTRO_URL=http://registro:8086
+      - REPORTE_URL=http://reporte:8087
+
+  pronostico:
+    container_name: pronostico
+    build: ./pronostico
+    ports:
+      - "8085:8085"
+    environment:
+      - SERVER_PORT=8085
+      - ADMINISTRACION_URL=http://administracion:8081
+      - CONSOLIDACION_URL=http://consolidacion:8082
+      - IA_URL=http://ia:8083
+      - NOTIFICACION_URL=http://notificacion:8084
+      - PRONOSTICO_URL=http://pronostico:8085
+      - REGISTRO_URL=http://registro:8086
+      - REPORTE_URL=http://reporte:8087
+
+  registro:
+    container_name: registro
+    build: ./registro
+    ports:
+      - "8086:8086"
+    environment:
+      - SERVER_PORT=8086
+      - ADMINISTRACION_URL=http://administracion:8081
+      - CONSOLIDACION_URL=http://consolidacion:8082
+      - IA_URL=http://ia:8083
+      - NOTIFICACION_URL=http://notificacion:8084
+      - PRONOSTICO_URL=http://pronostico:8085
+      - REGISTRO_URL=http://registro:8086
+      - REPORTE_URL=http://reporte:8087
+
+  reporte:
+    container_name: reporte
+    build: ./reporte
+    ports:
+      - "8087:8087"
+    environment:
+      - SERVER_PORT=8087
+      - ADMINISTRACION_URL=http://administracion:8081
+      - CONSOLIDACION_URL=http://consolidacion:8082
+      - IA_URL=http://ia:8083
+      - NOTIFICACION_URL=http://notificacion:8084
+      - PRONOSTICO_URL=http://pronostico:8085
+      - REGISTRO_URL=http://registro:8086
+      - REPORTE_URL=http://reporte:8087
