@@ -66,9 +66,20 @@ const menuItems = [
     label: "Pronóstico",
     icon: <StorageIcon />,
     children: [
-      { label: "Presupuesto", icon: <DescriptionIcon /> },
-      { label: "Cash Flow Forecast", icon: <DescriptionIcon /> },
-      { label: "Rolling Forecast", icon: <DescriptionIcon /> },
+      { label: "Presupuesto", path: "/presupuesto", icon: <DescriptionIcon /> },
+      { label: "Cash Flow Forecast", path: "/cash-flow-forecast", icon: <DescriptionIcon /> },
+      { label: "Rolling Forecast", path: "/rolling-forecast", icon: <DescriptionIcon /> },
+    ],
+  },
+  {
+    label: "Notificaciones",
+    icon: <StorageIcon />,
+    children: [
+      {
+        label: "Notificaciones",
+        path: "/listado-notificaciones",
+        icon: <DescriptionIcon />,
+      },
     ],
   },
 ];

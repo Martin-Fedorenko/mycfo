@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+      - Fede
+      - Pancho
+      - Tincho
+      - Erik
 
 jobs:
   notify:
