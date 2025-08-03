@@ -4,38 +4,18 @@ import SignIn from "./sign-in/SignIn";
 import SignUp from "./sign-up/SignUp";
 import Dashboard from "./template/dashboard/Dashboard";
 import Home from "./home/Home";
-import CargaManual from "./registro/carga-manual/CargaManual";
-import CargaDocumento from "./registro/carga-documento/CargaDocumento";
-import ReporteMensual from "./reportes/reporte-mensual/ReporteMensual";
-import CashFlow from "./reportes/cash-flow/CashFlow";
-import CargaExcel from "./registro/carga-excel/CargaExcel";
-import Notificaciones from "./notificaciones/listado-notificaciones/Notificaciones";
-import Presupuesto from "./pronostico/presupuesto/Presupuesto";
-import PresupuestoNuevo from "./pronostico/presupuesto/components/PresupuestoNuevo";
-import PresupuestoDetalle from "./pronostico/presupuesto/components/PresupuestoDetalle";
-import CashFlowForecast from "./pronostico/cash-flow-forecast/CashFlowForecast";
-import RollingForecast from "./pronostico/rolling-forecast/RollingForecast";
-
+import routeConfig from './config/routes';
 import "./App.css";
+
+
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />}>
-          <Route path="carga-manual" element={<CargaManual />} />
-          <Route path="carga-documento" element={<CargaDocumento />} />
-          <Route path="reporte-mensual" element={<ReporteMensual />} />
-          <Route path="carga-excel" element={<CargaExcel />} />
-          <Route path="cash-flow" element={<CashFlow />} />
-          <Route path="listado-notificaciones" element={<Notificaciones />} />
-
-          <Route path="presupuesto" element={<Presupuesto />} />
-          <Route path="presupuesto/nuevo" element={<PresupuestoNuevo />} />
-          <Route path="presupuesto/:id" element={<PresupuestoDetalle />} />
-
-          <Route path="cash-flow-forecast" element={<CashFlowForecast />} />
-          <Route path="rolling-forecast" element={<RollingForecast />} />
-          
+        <Route path="/" element={<Home routeConfig = {routeConfig}/>}>
+          {routeConfig.map(({ path, element }, idx) => (
+            <Route key={idx} path={path} element={element} />
+          ))}
         </Route>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
@@ -46,3 +26,4 @@ function App() {
 }
 
 export default App;
+export { routeConfig };

@@ -14,6 +14,7 @@ import Header from './components/Header';
 
 
 export default function Home(props) {
+  const { routeConfig } = props;
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
@@ -40,7 +41,7 @@ export default function Home(props) {
               mt: { xs: 8, md: 0 },
             }}
           >
-          <Header />
+          <Header routeConfig = {routeConfig}/>
           <Outlet />
           </Stack>
         </Box>
