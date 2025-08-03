@@ -4,11 +4,8 @@ import {
   Box, Typography, Paper, Table, TableHead, TableRow,
   TableCell, TableBody, Grid
 } from '@mui/material';
-//import Exportador from '../../../reportes/reporte-mensual/components/Exportador';
-import Exportador from '../../../shared-components/Exportador';
+import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 
-
-// ⚠️ Datos simulados (harcodeados por ahora)
 const presupuestoData = [
   { categoria: 'Alquiler', tipo: 'Egreso', sugerido: 100000, monto: 100000 },
   { categoria: 'Sueldos', tipo: 'Egreso', sugerido: 150000, monto: 120000 },
@@ -38,7 +35,7 @@ export default function PresupuestoDetalle() {
     .reduce((acc, r) => acc + r.monto, 0);
 
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', p: 3, position: 'relative' }}>
+    <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Detalle del presupuesto #{id}
       </Typography>
@@ -46,8 +43,16 @@ export default function PresupuestoDetalle() {
         Visualizá los ingresos y egresos registrados en este presupuesto
       </Typography>
 
+      {/* ✅ Exportador simple arriba del cuadro */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+        <ExportadorSimple
+          onExportPdf={() => { /* lógica exportar PDF */ }}
+          onExportExcel={() => { /* lógica exportar Excel */ }}
+        />
+      </Box>
+
       {/* 🟨 Tabla */}
-      <Paper sx={{ mt: 2, width: '100%', overflowX: 'auto'}}>
+      <Paper sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
@@ -93,16 +98,6 @@ export default function PresupuestoDetalle() {
           </Grid>
         </Grid>
       </Box>
-
-        {/* 🟩 Botón de exportación */}
-        <Box sx={{ position: 'absolute', bottom: 16, right: 16 }}>
-            <Exportador
-                onExportPdf={() => { /* lógica para exportar pdf de esta pantalla */ }}
-                onExportExcel={() => { /* lógica para exportar excel de esta pantalla */ }}
-                sx={{ position: 'fixed', bottom: 20, right: 20 }}  // podés cambiar posición si querés
-                label="Exportar datos del presupuesto"
-            />
-        </Box>
     </Box>
   );
 }

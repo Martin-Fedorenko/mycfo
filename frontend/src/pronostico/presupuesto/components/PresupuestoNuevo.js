@@ -86,7 +86,7 @@ export default function MainGrid() {
               <TableCell sx={tableCellStyle}>Categoría</TableCell>
               <TableCell sx={tableCellStyle}>Tipo</TableCell>
               <TableCell sx={tableCellStyle}>Monto sugerido</TableCell>
-              <TableCell sx={tableCellStyle}>Monto editable</TableCell>
+              <TableCell sx={tableCellStyle}>Monto</TableCell>
               <TableCell sx={tableCellStyle}></TableCell>
             </TableRow>
           </TableHead>
