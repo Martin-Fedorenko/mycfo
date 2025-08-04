@@ -6,10 +6,15 @@ import Divider from '@mui/material/Divider';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
-import MenuButton from './MenuButton';
 import MenuContent from './MenuContent';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import MenuButton from './MenuButton';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import { Box } from '@mui/material';
+import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 
 function SideMenuMobile({ open, toggleDrawer }) {
   return (
@@ -22,48 +27,78 @@ function SideMenuMobile({ open, toggleDrawer }) {
         [`& .${drawerClasses.paper}`]: {
           backgroundImage: 'none',
           backgroundColor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         },
       }}
     >
-      <Stack
-        sx={{
-          maxWidth: '100dvw',
-          height: '100%',
-        }}
-      >
-        <Stack direction="row" sx={{ p: 2, pb: 0, gap: 1 }}>
+      <Stack sx={{ width: '100%', p: 2, gap: 2 }}>
+        {/* Header similar al AppBar */}
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: 'center',
+            width: '100%',
+            gap: 1,
+          }}
+        >
+          {/* Icono + Título */}
           <Stack
             direction="row"
-            sx={{ gap: 1, alignItems: 'center', flexGrow: 1, p: 1 }}
+            spacing={1}
+            sx={{ justifyContent: 'center', alignItems: 'center', mr: 'auto' }}
           >
-            <Avatar
-              sizes="small"
-              alt="Riley Carter"
-              src="/static/images/avatar/7.jpg"
-              sx={{ width: 24, height: 24 }}
-            />
-            <Typography component="p" variant="h6">
-              Riley Carter
+            <CustomIcon />
+            <Typography variant="h4" component="h1" sx={{ color: 'text.primary' }}>
+              MyCFO
             </Typography>
           </Stack>
-          <MenuButton showBadge>
-            <NotificationsRoundedIcon />
+
+          {/* Tus propios botones: Perfil y Logout */}
+          <Tooltip title="Perfil">
+            <IconButton size="small" color="primary" onClick={() => console.log("Perfil")}>
+              <PersonRoundedIcon />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Cerrar sesión">
+            <IconButton size="small" color="primary" onClick={() => console.log("Logout")}>
+              <LogoutRoundedIcon />
+            </IconButton>
+          </Tooltip>
+
+          {/* Cerrar menú (como botón de hamburguesa invertido) */}
+          <MenuButton aria-label="cerrar menú" onClick={toggleDrawer(false)}>
+            <MenuRoundedIcon />
           </MenuButton>
         </Stack>
+
         <Divider />
+
+        {/* Avatar + nombre (opcional si querés mantenerlo aparte) */}
+        <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+          <Avatar
+            sizes="small"
+            alt="Riley Carter"
+            src="/static/images/avatar/7.jpg"
+            sx={{ width: 24, height: 24 }}
+          />
+          <Typography component="p" variant="h6">
+            Riley Carter
+          </Typography>
+        </Stack>
+
+        <Divider />
+
+        {/* Menú navegable */}
         <Stack sx={{ flexGrow: 1 }}>
           <MenuContent />
-          <Divider />
-        </Stack>
-        <Stack sx={{ p: 2 }}>
-          <Button variant="outlined" fullWidth startIcon={<LogoutRoundedIcon />}>
-            Logout
-          </Button>
         </Stack>
       </Stack>
     </Drawer>
   );
 }
+
 
 SideMenuMobile.propTypes = {
   open: PropTypes.bool,
@@ -71,3 +106,28 @@ SideMenuMobile.propTypes = {
 };
 
 export default SideMenuMobile;
+
+function CustomIcon() {
+  return (
+    <Box
+      sx={{
+        width: '1.5rem',
+        height: '1.5rem',
+        bgcolor: 'black',
+        borderRadius: '999px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        alignSelf: 'center',
+        backgroundImage:
+          'linear-gradient(135deg, hsl(210, 98%, 60%) 0%, hsl(210, 100%, 35%) 100%)',
+        color: 'hsla(210, 100%, 95%, 0.9)',
+        border: '1px solid',
+        borderColor: 'hsl(210, 100%, 55%)',
+        boxShadow: 'inset 0 2px 5px rgba(255, 255, 255, 0.3)',
+      }}
+    >
+      <DashboardRoundedIcon color="inherit" sx={{ fontSize: '1rem' }} />
+    </Box>
+  );
+}

@@ -8,7 +8,12 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import MenuContent from './MenuContent';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
-import OptionsMenu from './OptionsMenu';
+
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+
 
 const drawerWidth = 320;
 
@@ -81,7 +86,18 @@ export default function SideMenu() {
             riley@email.com
           </Typography>
         </Box>
-        <OptionsMenu />
+        <Tooltip title="Perfil">
+          <IconButton size="small" color="primary" onClick={() => console.log("Ir al perfil")}>
+            <PersonRoundedIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Cerrar sesión">
+          <IconButton size="small" color="primary" onClick={() => console.log("Logout")}>
+            <LogoutRoundedIcon />
+          </IconButton>
+        </Tooltip>
+
       </Stack>
     </Drawer>
   );

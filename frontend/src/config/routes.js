@@ -12,6 +12,7 @@ import PresupuestoNuevo from '../pronostico/presupuesto/components/PresupuestoNu
 import PresupuestoDetalle from '../pronostico/presupuesto/components/PresupuestoDetalle';
 import CashFlowForecast from '../pronostico/rolling-forecast/RollingForecast';
 import RollingForecast from '../pronostico/cash-flow-forecast/CashFlowForecast';
+import Administracion from '../administracion/administracion';
 
 const routeConfig = [
   {
@@ -101,6 +102,29 @@ const routeConfig = [
         path: "/rolling-forecast",
         icon: <DescriptionIcon />,
         element: <RollingForecast />
+      },
+    ],
+  },
+  {
+    label: "Administración",
+    icon: <StorageIcon />,
+    path: "/administracion",
+    element: <Administracion />,
+    children: [
+      {
+        label: "Invitaciones",
+        path: "/invitaciones",
+        icon: <DescriptionIcon />,
+      },
+      {
+        label: "Roles",
+        path: "/roles",
+        icon: <DescriptionIcon />,
+      },
+      {
+        label: "Historial de cambios",
+        path: "/Historial",
+        icon: <DescriptionIcon />,
       },
     ],
   },

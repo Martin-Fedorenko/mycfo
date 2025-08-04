@@ -6,24 +6,12 @@ import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import NavbarBreadcrumbs from "./NavbarBreadcrumbs";
 import ColorModeIconDropdown from "../../shared-theme/ColorModeIconDropdown";
 import NotificationDrawer from "../../notificaciones/notification-drawer/NotificationDrawer";
+import NotificationButton from '../../notificaciones/notification-button/NotificationButton';
+
 
 export default function Header() {
   
   const [openDrawer, setOpenDrawer] = React.useState(false);
-
-  // Notificaciones simuladas
-  const notificaciones = [
-    {
-      titulo: "Vencimiento de monotributo",
-      fecha: "01/08/2025",
-      tipo: "Recordatorio",
-    },
-    {
-      titulo: "Ingreso detectado en cuenta bancaria",
-      fecha: "31/07/2025",
-      tipo: "Movimiento",
-    },
-  ];
 
   return (
     <>
@@ -41,27 +29,12 @@ export default function Header() {
       >
         <NavbarBreadcrumbs />
         <Stack direction="row" sx={{ gap: 1 }}>
-          <IconButton
-            aria-label="Open notifications"
-            color="inherit"
-            onClick={() => setOpenDrawer(true)}
-          >
-            <Badge
-              variant={notificaciones.length > 0 ? "dot" : "standard"}
-              color="error"
-            >
-              <NotificationsRoundedIcon />
-            </Badge>
-          </IconButton>
+          <NotificationButton />
           <ColorModeIconDropdown />
         </Stack>
       </Stack>
 
-      <NotificationDrawer
-        open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-        alerts={notificaciones}
-      />
+      
     </>
   );
 }

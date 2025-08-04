@@ -11,6 +11,9 @@ import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import SideMenuMobile from './SideMenuMobile';
 import MenuButton from './MenuButton';
 import ColorModeIconDropdown from '../../shared-theme/ColorModeIconDropdown';
+import NotificationButton from '../../notificaciones/notification-button/NotificationButton';
+
+
 
 const Toolbar = styled(MuiToolbar)({
   width: '100%',
@@ -68,6 +71,9 @@ export default function AppNavbar() {
               MyCFO
             </Typography>
           </Stack>
+          <MenuButton>
+            <NotificationButton />
+          </MenuButton>
           <ColorModeIconDropdown />
           <MenuButton aria-label="menu" onClick={toggleDrawer(true)}>
             <MenuRoundedIcon />
