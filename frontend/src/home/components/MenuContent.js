@@ -24,8 +24,10 @@ export default function MenuContent() {
   const location = useLocation();
 
   const handleToggle = (label) => {
-    setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
-  };
+  setOpenMenus((prev) => ({
+    [label]: !prev[label] || false, // abre el clickeado si no estaba abierto
+  }));
+};
 
   const isActive = (path) => location.pathname === path;
 
