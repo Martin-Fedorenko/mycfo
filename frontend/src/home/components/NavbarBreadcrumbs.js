@@ -3,9 +3,10 @@ import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import Breadcrumbs, { breadcrumbsClasses } from '@mui/material/Breadcrumbs';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
-import { useLocation, Link as RouterLink } from 'react-router-dom';
+import { useLocation, Link as RouterLink, matchPath } from 'react-router-dom';
 import Link from '@mui/material/Link';
 
+import routeConfig from '../../config/routes';
 
 const StyledBreadcrumbs = styled(Breadcrumbs)(({ theme }) => ({
   margin: theme.spacing(1, 0),
@@ -18,7 +19,30 @@ const StyledBreadcrumbs = styled(Breadcrumbs)(({ theme }) => ({
   },
 }));
 
-export default function NavbarBreadcrumbs({ routeConfig }) {
+function findMatchingRoute(path) {
+  function search(routes) {
+    for (const route of routes) {
+      if (route.path) {
+        const match = matchPath({ path: route.path, end: true }, path);
+        if (match) {
+          return { route, params: match.params };
+        }
+      }
+      if (route.children) {
+        const found = search(route.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return search(routeConfig);
+}
+
+function capitalizeFirst(text = '') {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export default function NavbarBreadcrumbs() {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
@@ -27,64 +51,41 @@ export default function NavbarBreadcrumbs({ routeConfig }) {
       aria-label="breadcrumb"
       separator={<NavigateNextRoundedIcon fontSize="small" />}
     >
-      {pathnames.length === 0 ? (
-        <Typography
-          variant="body1"
-          sx={{ color: 'text.primary', fontWeight: 600 }}
-        >
-          MyCFO
-        </Typography>
-      ) : (
-        <Link
-          component={RouterLink}
-          to="/"
-          variant="body1"
-          sx={{
-            color: 'text.primary',
-            fontWeight: 600,
-            textDecoration: 'none',
-            '&:hover': {
-              textDecoration: 'none',
-              color: 'text.primary',
-            },
-            '&:active': {
-              textDecoration: 'none',
-              color: 'text.primary',
-            },
-          }}
-        >
-          MyCFO
-        </Link>
-      )}
+      {/* Primer breadcrumb fijo */}
+      <Link
+        component={RouterLink}
+        to="/"
+        variant="body1"
+        sx={{
+          color: 'text.primary',
+          fontWeight: 600,
+          textDecoration: 'none',
+          '&:hover': { textDecoration: 'none', color: 'text.primary' },
+          '&:active': { textDecoration: 'none', color: 'text.primary' },
+        }}
+      >
+        MyCFO
+      </Link>
 
+      {/* Resto de los breadcrumbs dinámicos */}
       {pathnames.map((value, index) => {
         const to = `/${pathnames.slice(0, index + 1).join('/')}`;
         const isLast = index === pathnames.length - 1;
 
-        const partialPath = pathnames.slice(0, index + 1).join('/');
-
-        const matchedRoute = routeConfig.find((route) => {
-          const routeSegments = route.path.split('/');
-          const pathSegments = partialPath.split('/');
-
-          if (routeSegments.length !== pathSegments.length) return false;
-
-          return routeSegments.every((seg, i) =>
-            seg.startsWith(':') || seg === pathSegments[i]
-          );
-        });
-
+        const matchResult = findMatchingRoute(to);
         let label;
 
-        if (matchedRoute) {
-          if (matchedRoute.label === 'Detalle') {
+        if (matchResult) {
+          const { route, params } = matchResult;
+          const paramValues = params && Object.values(params);
 
-            label = `Detalle ${value}`;
+          if (paramValues.length > 0) {
+            label = capitalizeFirst(paramValues[0]); // mostrar ID
           } else {
-            label = matchedRoute.label;
+            label = capitalizeFirst(route.label || value); // usar label si está
           }
         } else {
-          label = value.charAt(0).toUpperCase() + value.slice(1);
+          label = capitalizeFirst(value); // fallback
         }
 
         return isLast ? (
@@ -104,14 +105,8 @@ export default function NavbarBreadcrumbs({ routeConfig }) {
               color: 'text.primary',
               fontWeight: 600,
               textDecoration: 'none',
-              '&:hover': {
-                textDecoration: 'none',
-                color: 'text.primary',
-              },
-              '&:active': {
-                textDecoration: 'none',
-                color: 'text.primary',
-              },
+              '&:hover': { textDecoration: 'none', color: 'text.primary' },
+              '&:active': { textDecoration: 'none', color: 'text.primary' },
             }}
             key={to}
           >
