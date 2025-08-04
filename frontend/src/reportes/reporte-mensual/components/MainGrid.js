@@ -7,6 +7,17 @@ import Filtros from './Filtros';
 export default function MainGrid() {
   const [selectedMonth, setSelectedMonth] = React.useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
+  const [data, setData] = React.useState({ ingresos: [], egresos: [] });
+
+  React.useEffect(() => {
+    fetch('http://localhost:8087/resumen')
+      .then(response => {
+        if (!response.ok) throw new Error('Error al obtener los datos del backend');
+        return response.json();
+      })
+      .then(json => setData(json))
+      .catch(error => console.error('Error:', error));
+  }, []);
 
   const handleMonthChange = (event) => {
     setSelectedMonth(event.target.value);
@@ -30,7 +41,6 @@ export default function MainGrid() {
         Resumen mensual de ingresos y egresos
       </Typography>
 
-      {/* Filtros */}
       <Filtros
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
@@ -38,15 +48,17 @@ export default function MainGrid() {
         onYearChange={handleYearChange}
       />
 
-      {/* Título dinámico */}
       <Typography component="h3" variant="h6" sx={{ mb: 2 }}>
         Resumen mensual - {getNombreMes(selectedMonth)} {selectedYear}
       </Typography>
 
-      {/* Tablas */}
-      <TablaDetalle />
+      <TablaDetalle
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        ingresos={data.ingresos}
+        egresos={data.egresos}
+      />
 
-      {/* Botón fijo abajo a la derecha */}
       <Box sx={{ position: 'absolute', bottom: 16, right: 16 }}>
         <Exportador />
       </Box>
