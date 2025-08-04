@@ -37,7 +37,7 @@ export default function PresupuestoDetalle() {
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Detalle del presupuesto #{id}
+        Detalle del presupuesto de {id}
       </Typography>
       <Typography variant="subtitle1" gutterBottom>
         Visualizá los ingresos y egresos registrados en este presupuesto

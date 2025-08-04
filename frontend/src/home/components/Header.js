@@ -8,6 +8,7 @@ import ColorModeIconDropdown from "../../shared-theme/ColorModeIconDropdown";
 import NotificationDrawer from "../../notificaciones/notification-drawer/NotificationDrawer";
 
 export default function Header() {
+  
   const [openDrawer, setOpenDrawer] = React.useState(false);
 
   // Notificaciones simuladas
@@ -38,7 +39,7 @@ export default function Header() {
         }}
         spacing={2}
       >
-        <NavbarBreadcrumbs variable="Home" />
+        <NavbarBreadcrumbs />
         <Stack direction="row" sx={{ gap: 1 }}>
           <IconButton
             aria-label="Open notifications"
