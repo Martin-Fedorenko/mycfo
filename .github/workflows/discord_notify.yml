@@ -8,6 +8,7 @@ on:
       - Pancho
       - Tincho
       - Erik
+      - gh-pages
 
 jobs:
   notify:
