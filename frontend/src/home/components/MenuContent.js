@@ -15,74 +15,8 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 import DescriptionIcon from "@mui/icons-material/Description";
 import StorageIcon from "@mui/icons-material/Storage";
 
-const menuItems = [
-  {
-    label: "Carga de Datos",
-    icon: <StorageIcon />,
-    children: [
-      {
-        label: "Carga Manual",
-        path: "/carga-manual",
-        icon: <DescriptionIcon />,
-      },
-      {
-        label: "Carga mediante Documento",
-        path: "/carga-documento",
-        icon: <DescriptionIcon />,
-      },
-      { label: "Carga mediante Audio", icon: <DescriptionIcon /> },
-      { label: "Carga mediante Imagen", icon: <DescriptionIcon /> },
-      { label: "Carga mediante API", icon: <DescriptionIcon /> },
-      {
-        label: "Carga mediante Excel",
-        path: "/carga-excel",
-        icon: <DescriptionIcon />,
-      },
-    ],
-  },
-  {
-    label: "Consolidación Bancaria",
-    icon: <StorageIcon />,
-    children: [
-      { label: "Carga de movimientos", icon: <DescriptionIcon /> },
-      { label: "Ver movimientos consolidados", icon: <DescriptionIcon /> },
-    ],
-  },
-  {
-    label: "Reportes",
-    icon: <StorageIcon />,
-    children: [
-      {
-        label: "Reporte mensual",
-        path: "/reporte-mensual",
-        icon: <DescriptionIcon />,
-      },
-      { label: "Reporte diario", icon: <DescriptionIcon /> },
-      { label: "Cash Flow", path: "/cash-flow", icon: <DescriptionIcon /> },
-      { label: "Profit & Loss", icon: <DescriptionIcon /> },
-    ],
-  },
-  {
-    label: "Pronóstico",
-    icon: <StorageIcon />,
-    children: [
-      { label: "Presupuesto", path: "/presupuesto", icon: <DescriptionIcon /> },
-      { label: "Cash Flow Forecast", path: "/cash-flow-forecast", icon: <DescriptionIcon /> },
-      { label: "Rolling Forecast", path: "/rolling-forecast", icon: <DescriptionIcon /> },
-    ],
-  },
-  {
-    label: "Notificaciones",
-    icon: <StorageIcon />,
-    children: [
-      {
-        label: "Notificaciones",
-        path: "/listado-notificaciones",
-        icon: <DescriptionIcon />,
-      },
-    ],
-  },
-];
+import routeConfig from '../../config/routes';
+
 
 export default function MenuContent() {
   const [openMenus, setOpenMenus] = React.useState({});
@@ -98,7 +32,7 @@ export default function MenuContent() {
   return (
     <Stack sx={{ flexGrow: 1, p: 1, justifyContent: "space-between" }}>
       <List dense>
-        {menuItems.map((item, index) => {
+        {routeConfig.map((item, index) => {
           const isParentActive =
             (item.path && isActive(item.path)) ||
             item.children?.some((child) => isActive(child.path));

@@ -28,8 +28,8 @@ export default function PresupuestoList() {
   const navigate = useNavigate();
 
   const presupuestos = [
-    { id: 1, nombre: 'Presupuesto Julio 2025', fecha: '2025-07-01' },
-    { id: 2, nombre: 'Presupuesto Junio 2025', fecha: '2025-06-01' },
+    { id: 'julio', nombre: 'Presupuesto Julio 2025', fecha: '2025-07-01' },
+    { id: 'junio', nombre: 'Presupuesto Junio 2025', fecha: '2025-06-01' },
   ];
 
   return (

@@ -18,7 +18,7 @@ export default function Home(props) {
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <Box sx={{ display: 'flex' }}>
-        <SideMenu />
+        <SideMenu/>
         <AppNavbar />
         {/* Main content */}
         <Box
@@ -40,7 +40,7 @@ export default function Home(props) {
               mt: { xs: 8, md: 0 },
             }}
           >
-          <Header />
+          <Header/>
           <Outlet />
           </Stack>
         </Box>
