@@ -8,9 +8,19 @@
 		<version>3.5.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+	<modules>
+		<module>administracion</module>
+		<module>consolidacion</module>
+		<module>ia</module>
+		<module>notificacion</module>
+		<module>pronostico</module>
+		<module>registro</module>
+		<module>reporte</module>
+	</modules>
 	<groupId>mycfo</groupId>
 	<artifactId>mycfo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<name>mycfo</name>
 	<description>MyCFO</description>
 	<url/>
@@ -40,6 +50,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
