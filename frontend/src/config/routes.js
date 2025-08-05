@@ -12,7 +12,9 @@ import PresupuestoNuevo from '../pronostico/presupuesto/components/PresupuestoNu
 import PresupuestoDetalle from '../pronostico/presupuesto/components/PresupuestoDetalle';
 import CashFlowForecast from '../pronostico/rolling-forecast/RollingForecast';
 import RollingForecast from '../pronostico/cash-flow-forecast/CashFlowForecast';
-import Administracion from '../administracion/administracion';
+import HistorialCambios from '../administracion/historial-cambios/HistorialCambios';
+import Roles from '../administracion/roles/Roles';
+import Invitaciones from '../administracion/invitaciones/Invitaciones';
 
 const routeConfig = [
   {
@@ -109,22 +111,24 @@ const routeConfig = [
     label: "Administración",
     icon: <StorageIcon />,
     path: "/administracion",
-    element: <Administracion />,
     children: [
       {
         label: "Invitaciones",
         path: "/invitaciones",
         icon: <DescriptionIcon />,
+        element: <Invitaciones />
       },
       {
         label: "Roles",
         path: "/roles",
         icon: <DescriptionIcon />,
+        element: <Roles />
       },
       {
         label: "Historial de cambios",
         path: "/Historial",
         icon: <DescriptionIcon />,
+        element: <HistorialCambios />
       },
     ],
   },

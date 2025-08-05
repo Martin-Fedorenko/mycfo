@@ -9,6 +9,7 @@ import Home from "./home/Home";
 import routeConfig from "./config/routes"; // tu estructura jerárquica
 
 import "./App.css";
+import Checkout from "./template/checkout/Checkout";
 
 // Función para aplanar configRoutes en lista plana con path y element
 function flattenRoutes(routes) {
@@ -31,6 +32,7 @@ const routes = flattenRoutes(routeConfig);
 
 function App() {
   return (
+
     <Router>
       <Routes>
         <Route path="/" element={<Home />}>
@@ -42,6 +44,7 @@ function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/checkout" element={<Checkout />} />
       </Routes>
     </Router>
   );
