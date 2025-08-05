@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export default function Administracion(props) {
+export default function Invitaciones(props) {
   return (
     <>
 

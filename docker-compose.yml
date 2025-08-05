@@ -104,3 +104,9 @@ services:
       - PRONOSTICO_URL=http://pronostico:8085
       - REGISTRO_URL=http://registro:8086
       - REPORTE_URL=http://reporte:8087
+#  frontend:
+#    container_name: frontend
+#    build: ./frontend
+#    ports:
+      - "3000:80" # El 3000 es para acceder desde el navegador, el 80 es el puerto interno de nginx
+

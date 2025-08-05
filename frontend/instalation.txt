@@ -13,7 +13,7 @@ npm -v
 
 Escribir este comando para instalar dependencias necesarias para correr el proyecto:
 
-npm install @mui/material @mui/icons-material @emotion/styled @emotion/react @mui/x-charts @mui/x-date-pickers @mui/x-data-grid @mui/x-tree-view @react-spring/web dayjs react-router-dom @mui/x-data-grid-pro recharts
+npm install @mui/material @mui/icons-material @emotion/styled @emotion/react @mui/x-charts @mui/x-date-pickers @mui/x-data-grid @mui/x-tree-view @react-spring/web dayjs react-router-dom @mui/x-data-grid-pro recharts react-dropzone
 
 Para utilizar Github Pages:
 
