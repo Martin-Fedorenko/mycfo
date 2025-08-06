@@ -71,9 +71,10 @@ export default function AppNavbar() {
               MyCFO
             </Typography>
           </Stack>
-          <MenuButton>
+          <Stack direction="row" spacing={1}>
             <NotificationButton />
-          </MenuButton>
+          </Stack>
+
           <ColorModeIconDropdown />
           <MenuButton aria-label="menu" onClick={toggleDrawer(true)}>
             <MenuRoundedIcon />
