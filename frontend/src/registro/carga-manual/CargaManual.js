@@ -16,6 +16,7 @@ import dayjs from 'dayjs';
 import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import axios from 'axios';
 
 export default function CargaManual() {
   const tipos = ['ingreso', 'egreso', 'deuda', 'acreencia'];
@@ -59,7 +60,11 @@ export default function CargaManual() {
     setCategorias(categorias.filter((c) => c !== categoriaABorrar));
   };
 
-  const handleSubmit = () => {
+
+  const URL_REGISTRO = process.env.REACT_APP_URL_REGISTRO;
+  console.log("URL_REGISTRO:", URL_REGISTRO);
+
+  const handleSubmit = async () => {
     const fechaHora = fecha
       .hour(hora.hour())
       .minute(hora.minute())
@@ -74,8 +79,17 @@ export default function CargaManual() {
       tercero,
       comentario,
     };
-    console.log('Datos cargados:', payload);
+
+    try {
+      const response = await axios.post(`${URL_REGISTRO}/registro/registro`, payload);
+      console.log('Datos guardados:', response.data);
+      // Podés limpiar el formulario acá si querés
+    } catch (error) {
+      console.error('Error al guardar los datos:', error);
+    }
   };
+
+  
 
   const montoInvalido = isNaN(monto) || parseFloat(monto) <= 0;
 
@@ -146,7 +160,7 @@ export default function CargaManual() {
             />
           </Grid>
       </LocalizationProvider>
-
+{/*
       <TextareaAutosize
     minRows={1}
     placeholder="Escribí tu comentario..."
@@ -163,7 +177,7 @@ export default function CargaManual() {
     }}
     value={comentario}
     onChange={(e) => setComentario(e.target.value)}
-  />
+  /> */}
 
       {/* Autocomplete para agregar una sola categoría a la vez */}
       <Autocomplete
@@ -235,3 +249,4 @@ export default function CargaManual() {
     </Box>
   );
 }
+
