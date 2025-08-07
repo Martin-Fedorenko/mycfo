@@ -21,7 +21,7 @@ import {
   CartesianGrid,
   ResponsiveContainer
 } from 'recharts';
-import Exportador from '../../../shared-components/Exportador'; // Ajustá el path si es necesario
+import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -34,36 +34,63 @@ const tableCellStyle = {
   border: '1px solid rgba(255, 255, 255, 0.1)',
 };
 
-// Datos de ejemplo
-const rollingData = [
-  { mes: 'Ago 2025', ingresos: 50000, egresos: 30000, saldo: 20000 },
-  { mes: 'Sep 2025', ingresos: 52000, egresos: 31000, saldo: 21000 },
-  { mes: 'Oct 2025', ingresos: 53000, egresos: 32000, saldo: 22000 },
-  { mes: 'Nov 2025', ingresos: 54000, egresos: 33000, saldo: 23000 },
-  { mes: 'Dic 2025', ingresos: 55000, egresos: 34000, saldo: 24000 },
-];
-
 const horizontes = [
   { label: '3 meses', value: '3m' },
   { label: '6 meses', value: '6m' },
   { label: '12 meses', value: '12m' },
 ];
 
+function generarRollingData(horizonte) {
+  const cantidad = horizonte === '3m' ? 3 : horizonte === '6m' ? 6 : 12;
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const data = [];
+
+  const ingresosBase = 50000;
+  const egresosBase = 30000;
+
+  const fluctuacion = (base, delta = 3000) => {
+    return Math.round(base + (Math.random() * 2 - 1) * delta);
+  };
+
+  for (let i = 0; i < cantidad; i++) {
+    const mes = meses[(7 + i) % 12];
+    const year = 2025 + Math.floor((7 + i) / 12);
+    const ingresos = fluctuacion(ingresosBase + i * 500);
+    const egresos = fluctuacion(egresosBase + i * 400);
+    const saldo = ingresos - egresos;
+
+    data.push({
+      mes: `${mes} ${year}`,
+      ingresos,
+      egresos,
+      saldo,
+    });
+  }
+
+  return data;
+}
+
 export default function RollingForecast() {
   const [horizonte, setHorizonte] = React.useState('3m');
+  const [ultimoHorizonteAplicado, setUltimoHorizonteAplicado] = React.useState('3m');
+  const [rollingData, setRollingData] = React.useState(generarRollingData('3m'));
+
+  const handleActualizarForecast = () => {
+    const nuevosDatos = generarRollingData(horizonte);
+    setRollingData(nuevosDatos);
+    setUltimoHorizonteAplicado(horizonte);
+  };
 
   const handleExportPdf = () => {
-    // lógica real para exportar en PDF
     alert('Exportar Rolling Forecast como PDF');
   };
 
   const handleExportExcel = () => {
-    // lógica real para exportar en Excel
     alert('Exportar Rolling Forecast como Excel');
   };
 
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', p: 3, position: 'relative' }}>
+    <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Rolling Forecast
       </Typography>
@@ -72,25 +99,63 @@ export default function RollingForecast() {
         Consultá proyecciones financieras actualizadas dinámicamente mes a mes.
       </Typography>
 
-      {/* Selector de horizonte */}
-      <Box sx={{ display: 'flex', gap: 2, mt: 2, mb: 2 }}>
-        <TextField
-          select
-          label="Horizonte"
-          value={horizonte}
-          onChange={(e) => setHorizonte(e.target.value)}
-          sx={{ minWidth: 200 }}
-        >
-          {horizontes.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </TextField>
+      {/* Selector + botón + exportador alineado arriba de la tabla */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 2,
+          mt: 2,
+          mb: 2,
+          alignItems: 'center',
+          justifyContent: { xs: 'flex-start', sm: 'space-between' },
+        }}
+      >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <TextField
+            select
+            label="Horizonte"
+            value={horizonte}
+            onChange={(e) => setHorizonte(e.target.value)}
+            sx={{ minWidth: 160 }}
+            size="small"
+          >
+            {horizontes.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
 
-        <Button variant="contained" onClick={() => alert('Actualizar forecast')}>
-          Actualizar Forecast
-        </Button>
+          <Button
+            variant="contained"
+            color={horizonte === ultimoHorizonteAplicado ? 'inherit' : 'primary'}
+            onClick={handleActualizarForecast}
+            disabled={horizonte === ultimoHorizonteAplicado}
+            size="medium"
+            sx={{ height: 36 }}
+          >
+            Actualizar Forecast
+          </Button>
+        </Box>
+
+        <Box sx={{ mt: { xs: 1, sm: 0 } }}>
+          <ExportadorSimple
+            onExportPdf={handleExportPdf}
+            onExportExcel={handleExportExcel}
+            sx={{
+              display: 'flex',
+              gap: 1,
+              '& button': {
+                minWidth: 40,
+                padding: '6px 8px',
+                borderRadius: 1,
+                height: 36,
+                fontSize: '0.9rem',
+              },
+            }}
+          />
+        </Box>
       </Box>
 
       {/* Tabla */}
@@ -131,16 +196,6 @@ export default function RollingForecast() {
             <Line type="monotone" dataKey="saldo" stroke="#00bfa5" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
-      </Box>
-
-      {/* Exportador compartido */}
-      <Box sx={{ position: 'absolute', bottom: 16, right: 16 }}>
-        <Exportador
-          onExportPdf={handleExportPdf}
-          onExportExcel={handleExportExcel}
-          sx={{ position: 'fixed', bottom: 20, right: 20 }}
-          label="Exportar Rolling Forecast"
-        />
       </Box>
     </Box>
   );
