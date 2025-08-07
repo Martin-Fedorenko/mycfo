@@ -1,22 +1,34 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Paper, Table, TableHead, TableRow,
-  TableCell, TableBody, Grid
+  Box, Typography, Paper, Table, TableHead,
+  TableRow, TableCell, TableBody, Grid, Button
 } from '@mui/material';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 
-const presupuestoData = [
-  { categoria: 'Alquiler', tipo: 'Egreso', sugerido: 100000, monto: 100000 },
-  { categoria: 'Sueldos', tipo: 'Egreso', sugerido: 150000, monto: 120000 },
-  { categoria: 'Ventas esperadas', tipo: 'Ingreso', sugerido: 300000, monto: 300000 },
+const meses = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
+
+const presupuestosConDatos = {
+  'anual-2025': {
+    nombre: 'Presupuesto Anual 2025',
+    meses: meses.slice(0, 12),
+  },
+  'semestre1-2025': {
+    nombre: 'Primer semestre 2025',
+    meses: meses.slice(0, 6),
+  },
+  'jul2025-mar2026': {
+    nombre: 'Julio 2025 a Marzo 2026',
+    meses: [...meses.slice(6, 12), ...meses.slice(0, 3)],
+  },
+};
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
+  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
 
 const tableCellStyle = {
@@ -25,75 +37,103 @@ const tableCellStyle = {
 
 export default function PresupuestoDetalle() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
-  const totalIngresos = presupuestoData
-    .filter(r => r.tipo === 'Ingreso')
-    .reduce((acc, r) => acc + r.monto, 0);
+  const presupuesto = presupuestosConDatos[id] || { nombre: 'Presupuesto desconocido', meses: [] };
 
-  const totalEgresos = presupuestoData
-    .filter(r => r.tipo === 'Egreso')
-    .reduce((acc, r) => acc + r.monto, 0);
+  const datosMensuales = presupuesto.meses.map((mes, idx) => {
+    const ingresoEst = 90000 + idx * 15000 + (id === 'semestre1-2025' ? 5000 : 0);
+    const ingresoReal = ingresoEst - (idx % 2 === 0 ? 4000 : 0);
+    const egresoEst = 60000 + idx * 10000;
+    const egresoReal = egresoEst + (idx % 3 === 0 ? 6000 : 0);
+    return {
+      mes,
+      ingresoEst,
+      ingresoReal,
+      egresoEst,
+      egresoReal,
+    };
+  });
+
+  const totalIngresoEst = datosMensuales.reduce((acc, m) => acc + m.ingresoEst, 0);
+  const totalIngresoReal = datosMensuales.reduce((acc, m) => acc + m.ingresoReal, 0);
+  const totalEgresoEst = datosMensuales.reduce((acc, m) => acc + m.egresoEst, 0);
+  const totalEgresoReal = datosMensuales.reduce((acc, m) => acc + m.egresoReal, 0);
+
+  const totalEst = totalIngresoEst - totalEgresoEst;
+  const totalReal = totalIngresoReal - totalEgresoReal;
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Detalle del presupuesto de {id}
-      </Typography>
+      <Typography variant="h4" gutterBottom>Detalle de {presupuesto.nombre}</Typography>
       <Typography variant="subtitle1" gutterBottom>
-        Visualizá los ingresos y egresos registrados en este presupuesto
+        Visualizá resumen por mes con sus totales
       </Typography>
 
-      {/* ✅ Exportador simple arriba del cuadro */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
         <ExportadorSimple
-          onExportPdf={() => { /* lógica exportar PDF */ }}
-          onExportExcel={() => { /* lógica exportar Excel */ }}
+          onExportPdf={() => {}}
+          onExportExcel={() => {}}
         />
       </Box>
 
-      {/* 🟨 Tabla */}
-      <Paper sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
+      <Paper sx={{ mt: 2, overflowX: 'auto' }}>
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
-              <TableCell sx={tableCellStyle}>Categoría</TableCell>
-              <TableCell sx={tableCellStyle}>Tipo</TableCell>
-              <TableCell sx={tableCellStyle}>Monto sugerido</TableCell>
-              <TableCell sx={tableCellStyle}>Monto registrado</TableCell>
+              <TableCell sx={tableCellStyle}>Mes</TableCell>
+              <TableCell sx={tableCellStyle}>Ingreso Estimado</TableCell>
+              <TableCell sx={tableCellStyle}>Ingreso Real</TableCell>
+              <TableCell sx={tableCellStyle}>Desvío Ingresos</TableCell>
+              <TableCell sx={tableCellStyle}>Egreso Estimado</TableCell>
+              <TableCell sx={tableCellStyle}>Egreso Real</TableCell>
+              <TableCell sx={tableCellStyle}>Desvío Egresos</TableCell>
+              <TableCell sx={tableCellStyle}>Total Estimado</TableCell>
+              <TableCell sx={tableCellStyle}>Total Real</TableCell>
+              <TableCell sx={tableCellStyle}>Total Desvío</TableCell>
+              <TableCell sx={tableCellStyle}>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {presupuestoData.map((item, idx) => (
+            {datosMensuales.map((mes, idx) => (
               <TableRow key={idx} sx={tableRowStyle}>
-                <TableCell sx={tableCellStyle}>{item.categoria}</TableCell>
-                <TableCell sx={tableCellStyle}>{item.tipo}</TableCell>
-                <TableCell sx={tableCellStyle}>${item.sugerido.toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${item.monto.toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>{mes.mes}</TableCell>
+                <TableCell sx={tableCellStyle}>${mes.ingresoEst.toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${mes.ingresoReal.toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${(mes.ingresoReal - mes.ingresoEst).toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${mes.egresoEst.toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${mes.egresoReal.toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${(mes.egresoReal - mes.egresoEst).toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${(mes.ingresoEst - mes.egresoEst).toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${(mes.ingresoReal - mes.egresoReal).toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>${((mes.ingresoReal - mes.egresoReal) - (mes.ingresoEst - mes.egresoEst)).toLocaleString()}</TableCell>
+                <TableCell sx={tableCellStyle}>
+                  <Button size="small" variant="outlined" onClick={() => navigate(`/presupuesto/${id}/mes/${idx + 1}`)}>Ver mes</Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Paper>
 
-      {/* 🟦 Totales */}
       <Box mt={2}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
             <Paper elevation={1} sx={{ p: 2 }}>
               <Typography variant="subtitle2">Ingresos totales:</Typography>
-              <Typography variant="h6" color="green">${totalIngresos.toLocaleString()}</Typography>
+              <Typography variant="h6" color="green">${totalIngresoReal.toLocaleString()}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} md={4}>
             <Paper elevation={1} sx={{ p: 2 }}>
               <Typography variant="subtitle2">Egresos totales:</Typography>
-              <Typography variant="h6" color="red">${totalEgresos.toLocaleString()}</Typography>
+              <Typography variant="h6" color="red">${totalEgresoReal.toLocaleString()}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} md={4}>
             <Paper elevation={1} sx={{ p: 2 }}>
               <Typography variant="subtitle2">Resultado final:</Typography>
-              <Typography variant="h6" color="blue">${(totalIngresos - totalEgresos).toLocaleString()}</Typography>
+              <Typography variant="h6" color="blue">${totalReal.toLocaleString()}</Typography>
             </Paper>
           </Grid>
         </Grid>

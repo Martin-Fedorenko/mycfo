@@ -1,36 +1,26 @@
 import * as React from 'react';
 import {
-  Box,
-  Typography,
-  Button,
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Grid,
-  TextField,
-  MenuItem,
-  IconButton,
+  Box, Typography, Button, Paper, Table, TableHead, TableRow,
+  TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
+  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
 
 const tableCellStyle = {
   border: '1px solid rgba(255, 255, 255, 0.1)',
 };
 
-export default function MainGrid() {
+export default function PresupuestoNuevo() {
   const navigate = useNavigate();
 
+  const [nombre, setNombre] = React.useState('');
+  const [fechaDesde, setFechaDesde] = React.useState('');
+  const [fechaHasta, setFechaHasta] = React.useState('');
   const [presupuestoData, setPresupuestoData] = React.useState([
     { categoria: 'Alquiler', tipo: 'Egreso', sugerido: 100000, monto: 100000 },
     { categoria: 'Sueldos', tipo: 'Egreso', sugerido: 150000, monto: 120000 },
@@ -38,45 +28,77 @@ export default function MainGrid() {
   ]);
 
   const handleAgregarCategoria = () => {
-    setPresupuestoData([
-      ...presupuestoData,
-      { categoria: '', tipo: 'Egreso', sugerido: 0, monto: 0 },
-    ]);
+    setPresupuestoData([...presupuestoData, { categoria: '', tipo: 'Egreso', sugerido: 0, monto: 0 }]);
   };
 
   const handleEliminarCategoria = (index) => {
-    const nuevaLista = presupuestoData.filter((_, i) => i !== index);
-    setPresupuestoData(nuevaLista);
+    setPresupuestoData(presupuestoData.filter((_, i) => i !== index));
   };
 
   const handleCambioCampo = (index, campo, valor) => {
-    const nuevaLista = [...presupuestoData];
-    nuevaLista[index][campo] = campo === 'sugerido' || campo === 'monto' ? Number(valor) : valor;
-    setPresupuestoData(nuevaLista);
+    const newData = [...presupuestoData];
+    newData[index][campo] = campo === 'sugerido' || campo === 'monto' ? Number(valor) : valor;
+    setPresupuestoData(newData);
   };
 
-  const totalIngresos = presupuestoData
-    .filter(r => r.tipo === 'Ingreso')
-    .reduce((acc, r) => acc + r.monto, 0);
+  const totalIngresos = presupuestoData.filter(r => r.tipo === 'Ingreso').reduce((acc, r) => acc + r.monto, 0);
+  const totalEgresos = presupuestoData.filter(r => r.tipo === 'Egreso').reduce((acc, r) => acc + r.monto, 0);
 
-  const totalEgresos = presupuestoData
-    .filter(r => r.tipo === 'Egreso')
-    .reduce((acc, r) => acc + r.monto, 0);
+  const handleGuardar = () => {
+    if (!nombre || !fechaDesde || !fechaHasta) {
+      alert('Completa el nombre y el rango de fechas');
+      return;
+    }
+    if (new Date(fechaDesde) > new Date(fechaHasta)) {
+      alert('La fecha desde debe ser anterior a la fecha hasta');
+      return;
+    }
+
+    // Aquí guardarías en backend o contexto, por ahora demo con console.log
+    const nuevoPresupuesto = {
+      id: nombre.toLowerCase().replace(/\s+/g, '-'),
+      nombre,
+      desde: fechaDesde,
+      hasta: fechaHasta,
+      categorias: presupuestoData,
+    };
+    console.log('Guardando presupuesto:', nuevoPresupuesto);
+
+    // Luego redirigir al detalle del presupuesto
+    navigate(`/presupuesto/${nuevoPresupuesto.id}`);
+  };
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Nuevo Presupuesto
-      </Typography>
-      <Typography variant="subtitle1" gutterBottom>
-        Planificá tus ingresos y egresos esperados
-      </Typography>
+      <Typography variant="h4" gutterBottom>Nuevo Presupuesto</Typography>
+      <Typography variant="subtitle1" gutterBottom>Planificá tus ingresos y egresos esperados</Typography>
 
-      {/* Botón Nueva Categoría */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <TextField
+          label="Nombre del presupuesto"
+          value={nombre}
+          onChange={e => setNombre(e.target.value)}
+          fullWidth
+          variant="outlined"
+        />
+        <TextField
+          label="Desde"
+          type="date"
+          value={fechaDesde}
+          onChange={e => setFechaDesde(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+        <TextField
+          label="Hasta"
+          type="date"
+          value={fechaHasta}
+          onChange={e => setFechaHasta(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+      </Box>
+
       <Box mt={2} mb={1}>
-        <Button variant="outlined" onClick={handleAgregarCategoria}>
-          + Nueva categoría
-        </Button>
+        <Button variant="outlined" onClick={handleAgregarCategoria}>+ Nueva categoría</Button>
       </Box>
 
       <Paper sx={{ mt: 1, width: '100%', overflowX: 'auto' }}>
@@ -166,7 +188,7 @@ export default function MainGrid() {
       </Box>
 
       <Box mt={4} display="flex" gap={2}>
-        <Button variant="contained" color="primary">Guardar presupuesto</Button>
+        <Button variant="contained" color="primary" onClick={handleGuardar}>Guardar presupuesto</Button>
         <Button variant="outlined" onClick={() => navigate(-1)}>Cancelar</Button>
       </Box>
     </Box>
