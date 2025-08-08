@@ -13,5 +13,15 @@ public class ResumenCargaDTO {
         this.errores = errores;
     }
 
-    // Getters y Setters
+    public int getTotal() {
+        return total;
+    }
+
+    public int getCorrectos() {
+        return correctos;
+    }
+
+    public List<FilaConErrorDTO> getErrores() {
+        return errores;
+    }
 }

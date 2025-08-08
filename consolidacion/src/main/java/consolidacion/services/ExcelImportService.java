@@ -2,16 +2,24 @@ package consolidacion.services;
 
 import consolidacion.dtos.FilaConErrorDTO;
 import consolidacion.dtos.ResumenCargaDTO;
+import consolidacion.models.MovimientoBancario;
 import org.apache.poi.ss.usermodel.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import consolidacion.repositories.MovimientoBancarioRepository;
 
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class ExcelImportService {
+
+    @Autowired
+    private MovimientoBancarioRepository movimientoRepo;
 
     public ResumenCargaDTO procesarArchivo(MultipartFile file, String tipoOrigen) {
         switch (tipoOrigen.toLowerCase()) {
@@ -44,7 +52,43 @@ public class ExcelImportService {
                         throw new RuntimeException("Faltan datos");
                     }
 
-                    // TODO: parsear y guardar en base de datos si es necesario
+                    // Parseo
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    LocalDate fechaLocal;
+
+                    if (fecha.getCellType() == CellType.STRING) {
+                        String fechaStr = fecha.getStringCellValue();
+                        fechaLocal = LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    } else if (fecha.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(fecha)) {
+                        fechaLocal = fecha.getLocalDateTimeCellValue().toLocalDate();
+                    } else {
+                        throw new RuntimeException("Formato de fecha inválido en fila " + (i + 1));
+                    }
+
+                    String descripcionStr = descripcion.getCellType() == CellType.STRING
+                            ? descripcion.getStringCellValue()
+                            : String.valueOf(descripcion.getNumericCellValue());
+
+                    Double montoValor = monto.getCellType() == CellType.NUMERIC
+                            ? monto.getNumericCellValue()
+                            : Double.parseDouble(monto.getStringCellValue());
+
+                    String medioPagoStr = medioPago.getCellType() == CellType.STRING
+                            ? medioPago.getStringCellValue()
+                            : String.valueOf(medioPago.getNumericCellValue());
+
+                    // Crear entidad y guardar
+                    MovimientoBancario mov = new MovimientoBancario();
+                    mov.setFecha(fechaLocal);
+                    mov.setDescripcion(descripcionStr);
+                    mov.setMonto(montoValor);
+                    mov.setMedioPago(medioPagoStr);
+                    mov.setIdReferencia("ID-" + i); // Si no hay columna de ID, podés inventar uno
+
+                    System.out.println("Fila " + i + ": " + fechaLocal + " | " + descripcionStr + " | " + montoValor + " | " + medioPagoStr);
+
+                    movimientoRepo.save(mov);
+
                     correctos++;
 
                 } catch (Exception e) {

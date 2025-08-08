@@ -2,12 +2,19 @@ package consolidacion.dtos;
 
 public class FilaConErrorDTO {
     private int fila;
-    private String motivo;
+    private String mensaje;
 
-    public FilaConErrorDTO(int fila, String motivo) {
+    public FilaConErrorDTO(int fila, String mensaje) {
         this.fila = fila;
-        this.motivo = motivo;
+        this.mensaje = mensaje;
     }
 
-    // Getters y Setters
+    public int getFila() {
+        return fila;
+    }
+
+    public String getMensaje() {
+        return mensaje;
+    }
 }
+
