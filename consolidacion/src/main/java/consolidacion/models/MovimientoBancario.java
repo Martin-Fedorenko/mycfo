@@ -24,6 +24,16 @@ public class MovimientoBancario {
     @Setter
     private String medioPago;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Setter private OrigenMovimiento origen;
+
+    @Setter @Column(columnDefinition = "json") //JSON PUEDE SERVIR EN ALGUN MOMENTO?
+    private String extra;
+
+    public enum OrigenMovimiento { MYCFO, MERCADO_PAGO, SANTANDER }
+
+
     // Getters
     public Long getId() {
         return id;

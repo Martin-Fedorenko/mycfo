@@ -1,7 +1,6 @@
 package consolidacion.controllers;
 
 import consolidacion.dtos.ResumenCargaDTO;
-import consolidacion.repositories.MovimientoBancarioRepository;
 import consolidacion.services.ExcelImportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
