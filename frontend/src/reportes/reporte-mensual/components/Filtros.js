@@ -6,10 +6,8 @@ const Filtros = ({
                      selectedYear,
                      onMonthChange,
                      onYearChange,
-                     selectedTipo,
-                     onTipoChange,
-                     selectedCategoria,
-                     onCategoriaChange
+                     selectedCategoria,     // array
+                     onCategoriaChange,
                  }) => {
     const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -17,20 +15,20 @@ const Filtros = ({
     ];
     const años = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
-    const tipos = ['Ingreso', 'Egreso', 'Deuda', 'Acreencias'];
-
     const categorias = [
-        'Comida', 'Combustible', 'donacion', 'venta', 'compra',
-        'servicio', 'renta', 'impuestos', 'salud', 'Transporte', 'Entretenimiento'
+        'Comida', 'Combustible', 'Donación', 'Venta', 'Compra',
+        'Servicio', 'Renta', 'Impuestos', 'Salud', 'Transporte', 'Entretenimiento'
     ];
 
     return (
         <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-            {/* Mes */}
+            {/* Mes (inicia vacío; label se contrae al elegir) */}
             <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Mes</InputLabel>
+                <InputLabel id="mes-label">Mes</InputLabel>
                 <Select
-                    value={selectedMonth}
+                    labelId="mes-label"
+                    id="mes-select"
+                    value={selectedMonth}      // '' inicialmente
                     onChange={onMonthChange}
                     label="Mes"
                 >
@@ -40,11 +38,13 @@ const Filtros = ({
                 </Select>
             </FormControl>
 
-            {/* Año */}
+            {/* Año (inicia vacío) */}
             <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Año</InputLabel>
+                <InputLabel id="anio-label">Año</InputLabel>
                 <Select
-                    value={selectedYear}
+                    labelId="anio-label"
+                    id="anio-select"
+                    value={selectedYear}       // '' inicialmente
                     onChange={onYearChange}
                     label="Año"
                 >
@@ -54,30 +54,25 @@ const Filtros = ({
                 </Select>
             </FormControl>
 
-            {/* Tipo */}
-            <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Tipo</InputLabel>
+            {/* Categoría (múltiple): si >1 => "Varios"; si 1 => nombre; si 0 => solo label */}
+            <FormControl variant="outlined" size="small" sx={{ minWidth: 180 }}>
+                <InputLabel id="categoria-label">Categoría</InputLabel>
                 <Select
-                    value={selectedTipo || ''}
-                    onChange={onTipoChange}
-                    label="Tipo"
-                >
-                    {tipos.map((tipo, index) => (
-                        <MenuItem key={index} value={tipo}>{tipo}</MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-
-            {/* Categoría */}
-            <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Categoría</InputLabel>
-                <Select
-                    value={selectedCategoria || ''}
+                    labelId="categoria-label"
+                    id="categoria-select"
+                    multiple
+                    value={selectedCategoria}   // [] inicialmente
                     onChange={onCategoriaChange}
                     label="Categoría"
+                    // Importante: no usamos displayEmpty para que, con [], el label quede visible
+                    renderValue={(selected) => {
+                        if (!selected || selected.length === 0) return undefined; // deja solo el label
+                        if (selected.length === 1) return selected[0];
+                        return 'Varios';
+                    }}
                 >
-                    {categorias.map((cat, index) => (
-                        <MenuItem key={index} value={cat}>{cat}</MenuItem>
+                    {categorias.map((cat) => (
+                        <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                     ))}
                 </Select>
             </FormControl>

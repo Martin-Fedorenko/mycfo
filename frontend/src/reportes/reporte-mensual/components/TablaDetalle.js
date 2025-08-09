@@ -4,7 +4,7 @@ import {
     TableContainer, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 
-const TablaDetalle = ({ ingresos, egresos }) => {
+const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
     const totalIngresos = ingresos.reduce((acc, curr) => acc + curr.monto, 0);
     const totalEgresos = egresos.reduce((acc, curr) => acc + curr.monto, 0);
     const balance = totalIngresos - totalEgresos;
@@ -41,6 +41,14 @@ const TablaDetalle = ({ ingresos, egresos }) => {
             <Typography variant="h6" gutterBottom>
                 Detalle de Ingresos
             </Typography>
+
+            {/* Slot: acciones arriba de la PRIMERA tabla, alineadas a la derecha */}
+            {topRightActions && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                    {topRightActions}
+                </Box>
+            )}
+
             <TableContainer component={Paper} sx={{ mb: 4 }}>
                 <Table>
                     <TableHead>
