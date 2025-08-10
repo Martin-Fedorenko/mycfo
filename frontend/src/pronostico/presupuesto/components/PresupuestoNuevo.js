@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
+import axios from 'axios';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -44,29 +45,31 @@ export default function PresupuestoNuevo() {
   const totalIngresos = presupuestoData.filter(r => r.tipo === 'Ingreso').reduce((acc, r) => acc + r.monto, 0);
   const totalEgresos = presupuestoData.filter(r => r.tipo === 'Egreso').reduce((acc, r) => acc + r.monto, 0);
 
-  const handleGuardar = () => {
-    if (!nombre || !fechaDesde || !fechaHasta) {
-      alert('Completa el nombre y el rango de fechas');
-      return;
-    }
-    if (new Date(fechaDesde) > new Date(fechaHasta)) {
-      alert('La fecha desde debe ser anterior a la fecha hasta');
-      return;
-    }
+const handleGuardar = async () => {
+  if (!nombre || !fechaDesde || !fechaHasta) {
+    alert("Completa todos los campos obligatorios");
+    return;
+  }
 
-    // Aquí guardarías en backend o contexto, por ahora demo con console.log
-    const nuevoPresupuesto = {
-      id: nombre.toLowerCase().replace(/\s+/g, '-'),
-      nombre,
-      desde: fechaDesde,
-      hasta: fechaHasta,
-      categorias: presupuestoData,
-    };
-    console.log('Guardando presupuesto:', nuevoPresupuesto);
-
-    // Luego redirigir al detalle del presupuesto
-    navigate(`/presupuesto/${nuevoPresupuesto.id}`);
+  const payload = {
+    nombre,
+    desde: fechaDesde,
+    hasta: fechaHasta,
+    categoriasJson: JSON.stringify(presupuestoData) // ajusta si tu modelo cambia
   };
+
+  try {
+    const res = await axios.post(
+      `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`,
+      payload
+    );
+    const creado = res.data;
+    navigate(`/presupuesto/${creado.id}`);
+  } catch (error) {
+    console.error("Error guardando presupuesto", error);
+    alert("No se pudo guardar el presupuesto");
+  }
+};
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>

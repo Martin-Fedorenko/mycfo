@@ -37,6 +37,12 @@ const tableCellStyle = {
 
 export default function PresupuestoDetalle() {
   const { id } = useParams();
+  React.useEffect(() => {
+    axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${id}`)
+      .then(r => setPresupuesto(r.data))
+      .catch(e => console.error(e));
+  }, [id]);
+  
   const navigate = useNavigate();
 
   const presupuesto = presupuestosConDatos[id] || { nombre: 'Presupuesto desconocido', meses: [] };
