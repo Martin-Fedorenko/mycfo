@@ -5,6 +5,7 @@ import {
   TableRow, TableCell, TableBody, Grid, Button
 } from '@mui/material';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
+import axios from 'axios';
 
 const meses = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -37,41 +38,46 @@ const tableCellStyle = {
 
 export default function PresupuestoDetalle() {
   const { id } = useParams();
-  React.useEffect(() => {
-    axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${id}`)
-      .then(r => setPresupuesto(r.data))
-      .catch(e => console.error(e));
-  }, [id]);
-  
+  const [presupuesto, setPresupuesto] = React.useState({ meses: [] });
   const navigate = useNavigate();
 
-  const presupuesto = presupuestosConDatos[id] || { nombre: 'Presupuesto desconocido', meses: [] };
+  React.useEffect(() => {
+    axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${id}`)
+      .then(r => {
+        // Aseguramos que el objeto tiene meses definido como array
+        setPresupuesto({
+          ...r.data,
+          meses: r.data.detalleMensual ? r.data.detalleMensual.map(m => m.mes) : []
+        });
+      })
+      .catch(e => {
+        console.error(e);
+        // fallback si error
+        setPresupuesto(presupuestosConDatos[id] || { nombre: 'Presupuesto desconocido', meses: [] });
+      });
+  }, [id]);
 
-  const datosMensuales = presupuesto.meses.map((mes, idx) => {
+  // Usamos el presupuesto del backend o fallback
+  const presupuestoData = presupuesto.nombre ? presupuesto : (presupuestosConDatos[id] || { nombre: 'Presupuesto desconocido', meses: [] });
+
+  const datosMensuales = presupuestoData.meses?.map((mes, idx) => {
     const ingresoEst = 90000 + idx * 15000 + (id === 'semestre1-2025' ? 5000 : 0);
     const ingresoReal = ingresoEst - (idx % 2 === 0 ? 4000 : 0);
     const egresoEst = 60000 + idx * 10000;
     const egresoReal = egresoEst + (idx % 3 === 0 ? 6000 : 0);
-    return {
-      mes,
-      ingresoEst,
-      ingresoReal,
-      egresoEst,
-      egresoReal,
-    };
-  });
+    return { mes, ingresoEst, ingresoReal, egresoEst, egresoReal };
+  }) || [];
 
   const totalIngresoEst = datosMensuales.reduce((acc, m) => acc + m.ingresoEst, 0);
   const totalIngresoReal = datosMensuales.reduce((acc, m) => acc + m.ingresoReal, 0);
   const totalEgresoEst = datosMensuales.reduce((acc, m) => acc + m.egresoEst, 0);
   const totalEgresoReal = datosMensuales.reduce((acc, m) => acc + m.egresoReal, 0);
 
-  const totalEst = totalIngresoEst - totalEgresoEst;
   const totalReal = totalIngresoReal - totalEgresoReal;
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
-      <Typography variant="h4" gutterBottom>Detalle de {presupuesto.nombre}</Typography>
+      <Typography variant="h4" gutterBottom>Detalle de {presupuestoData.nombre}</Typography>
       <Typography variant="subtitle1" gutterBottom>
         Visualizá resumen por mes con sus totales
       </Typography>
@@ -112,9 +118,17 @@ export default function PresupuestoDetalle() {
                 <TableCell sx={tableCellStyle}>${(mes.egresoReal - mes.egresoEst).toLocaleString()}</TableCell>
                 <TableCell sx={tableCellStyle}>${(mes.ingresoEst - mes.egresoEst).toLocaleString()}</TableCell>
                 <TableCell sx={tableCellStyle}>${(mes.ingresoReal - mes.egresoReal).toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${((mes.ingresoReal - mes.egresoReal) - (mes.ingresoEst - mes.egresoEst)).toLocaleString()}</TableCell>
                 <TableCell sx={tableCellStyle}>
-                  <Button size="small" variant="outlined" onClick={() => navigate(`/presupuesto/${id}/mes/${idx + 1}`)}>Ver mes</Button>
+                  ${(mes.ingresoReal - mes.egresoReal - (mes.ingresoEst - mes.egresoEst)).toLocaleString()}
+                </TableCell>
+                <TableCell sx={tableCellStyle}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => navigate(`/presupuesto/${id}/mes/${idx + 1}`)}
+                  >
+                    Ver mes
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

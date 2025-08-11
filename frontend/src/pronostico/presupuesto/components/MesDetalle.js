@@ -6,7 +6,6 @@ import {
 } from '@mui/material';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 
-
 const meses = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -26,9 +25,7 @@ const presupuestoData = [
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
+  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
 
 const tableCellStyle = {
@@ -60,8 +57,8 @@ export default function MesDetalle() {
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
         <ExportadorSimple
-          onExportPdf={() => { /* lógica exportar PDF */ }}
-          onExportExcel={() => { /* lógica exportar Excel */ }}
+          onExportPdf={() => {}}
+          onExportExcel={() => {}}
         />
       </Box>
 
@@ -71,7 +68,7 @@ export default function MesDetalle() {
             <TableRow sx={tableRowStyle}>
               <TableCell sx={tableCellStyle}>Categoría</TableCell>
               <TableCell sx={tableCellStyle}>Tipo</TableCell>
-              <TableCell sx={tableCellStyle}>Monto sugerido</TableCell>
+              <TableCell sx={tableCellStyle}>Monto estimado</TableCell>
               <TableCell sx={tableCellStyle}>Monto registrado</TableCell>
             </TableRow>
           </TableHead>

@@ -10,20 +10,32 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PresupuestoDTO {
+
     private Long id;
     private String nombre; // nombre del presupuesto
-    private String desde; // string para evitar problemas de formato
+    private String desde;  // String para evitar problemas de formato en JSON
     private String hasta;
     private String categoriasJson;
-    private List<MesDTO> detalleMensual;
 
-    // Constructor adicional para compatibilidad con código que pasa solo 5 parámetros
+    // Campos opcionales, usados en el detalle
+    private List<MesDTO> detalleMensual;
+    private Double totalIngresos;
+    private Double totalEgresos;
+    private Double resultadoFinal;
+
+    /**
+     * Constructor simplificado para la lista de presupuestos (sin detalle).
+     */
     public PresupuestoDTO(Long id, String nombre, String desde, String hasta, String categoriasJson) {
         this.id = id;
         this.nombre = nombre;
         this.desde = desde;
         this.hasta = hasta;
         this.categoriasJson = categoriasJson;
+        this.detalleMensual = null;
+        this.totalIngresos = null;
+        this.totalEgresos = null;
+        this.resultadoFinal = null;
     }
 
     @Data
@@ -33,7 +45,12 @@ public class PresupuestoDTO {
         private String mes;
         private Double ingresoEst;
         private Double ingresoReal;
+        private Double desvioIngreso;
         private Double egresoEst;
         private Double egresoReal;
+        private Double desvioEgreso;
+        private Double totalEst;
+        private Double totalReal;
+        private Double totalDesvio;
     }
 }

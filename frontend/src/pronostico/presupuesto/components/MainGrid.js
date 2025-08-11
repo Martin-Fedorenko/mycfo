@@ -15,7 +15,7 @@ const tableCellStyle = {
   border: '1px solid rgba(255, 255, 255, 0.1)',
 };
 
-export default function PresupuestoList() {
+export default function MainGrid() {
   const navigate = useNavigate();
   const [presupuestos, setPresupuestos] = React.useState([]);
 
@@ -23,7 +23,7 @@ export default function PresupuestoList() {
     const fetchPresupuestos = async () => {
       try {
         const res = await axios.get(
-          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/`
         );
         console.log("Datos recibidos del backend:", res.data);
         setPresupuestos(res.data);

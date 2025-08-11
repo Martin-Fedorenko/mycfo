@@ -110,7 +110,7 @@ const handleGuardar = async () => {
             <TableRow sx={tableRowStyle}>
               <TableCell sx={tableCellStyle}>Categoría</TableCell>
               <TableCell sx={tableCellStyle}>Tipo</TableCell>
-              <TableCell sx={tableCellStyle}>Monto sugerido</TableCell>
+              <TableCell sx={tableCellStyle}>Monto estimado</TableCell>
               <TableCell sx={tableCellStyle}>Monto</TableCell>
               <TableCell sx={tableCellStyle}></TableCell>
             </TableRow>
