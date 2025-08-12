@@ -23,7 +23,7 @@ export default function MainGrid() {
     const fetchPresupuestos = async () => {
       try {
         const res = await axios.get(
-          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/`
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`
         );
         console.log("Datos recibidos del backend:", res.data);
         setPresupuestos(res.data);
