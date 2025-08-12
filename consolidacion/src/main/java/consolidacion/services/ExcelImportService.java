@@ -20,6 +20,9 @@ public class ExcelImportService {
     @Autowired
     private MovimientoBancarioRepository movimientoRepo;
 
+    @Autowired
+    private NotificationsEventPublisher notifications;
+
     public ResumenCargaDTO procesarArchivo(MultipartFile file, String tipoOrigen) {
         switch (tipoOrigen.toLowerCase()) {
             case "mycfo": return procesarGenerico(file);
@@ -90,6 +93,8 @@ public class ExcelImportService {
                     movimientoRepo.save(mov);
 
                     correctos++;
+
+                    notifications.publishMovement(mov, 1L); // por ahora userId=1
 
                 } catch (Exception e) {
                     errores.add(new FilaConErrorDTO(i + 1, e.getMessage()));
@@ -181,6 +186,8 @@ public class ExcelImportService {
 
                     movimientoRepo.save(mov);
                     correctos++;
+
+                    notifications.publishMovement(mov, 1L); // por ahora userId=1
 
                 } catch (Exception ex) {
                     // i + 1 para que coincida con numeración humana de Excel
