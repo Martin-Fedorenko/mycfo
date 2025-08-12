@@ -18,7 +18,6 @@ public class Presupuesto {
     private LocalDate desde;
     private LocalDate hasta;
 
-    // Para simplificar: guardamos en JSON o crear entidad Categoria si querés normalizar
-    @Lob
-    private String categoriasJson;
+    @OneToMany(mappedBy = "presupuesto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PresupuestoDetalle> detalles;
 }

@@ -26,8 +26,7 @@ public class PresupuestoService {
             p.getId(),
             p.getNombre(),
             p.getDesde() != null ? p.getDesde().toString() : null,
-            p.getHasta() != null ? p.getHasta().toString() : null,
-            p.getCategoriasJson()
+            p.getHasta() != null ? p.getHasta().toString() : null
         )).collect(Collectors.toList());
     }
 
@@ -36,8 +35,7 @@ public class PresupuestoService {
             p.getId(),
             p.getNombre(),
             p.getDesde() != null ? p.getDesde().toString() : null,
-            p.getHasta() != null ? p.getHasta().toString() : null,
-            p.getCategoriasJson()
+            p.getHasta() != null ? p.getHasta().toString() : null
         ));
     }
 }

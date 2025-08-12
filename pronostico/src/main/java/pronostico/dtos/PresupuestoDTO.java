@@ -38,6 +38,13 @@ public class PresupuestoDTO {
         this.resultadoFinal = null;
     }
 
+    public PresupuestoDTO(Long id, String nombre, String desde, String hasta) {
+        this.id = id;
+        this.nombre = nombre;
+        this.desde = desde;
+        this.hasta = hasta;
+    }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -52,5 +59,17 @@ public class PresupuestoDTO {
         private Double totalEst;
         private Double totalReal;
         private Double totalDesvio;
+
+        // NUEVO: lista de categorías para ese mes
+        private List<CategoriaDTO> categorias;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CategoriaDTO {
+        private String categoria;
+        private String tipo; // "INGRESO" o "EGRESO"
+        private Double montoEstimado;
     }
 }
