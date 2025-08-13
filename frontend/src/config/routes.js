@@ -10,6 +10,7 @@ import Notificaciones from '../notificaciones/listado-notificaciones/Notificacio
 import Presupuesto from '../pronostico/presupuesto/Presupuesto';
 import PresupuestoNuevo from '../pronostico/presupuesto/components/PresupuestoNuevo';
 import PresupuestoDetalle from '../pronostico/presupuesto/components/PresupuestoDetalle';
+import MesDetalle from '../pronostico/presupuesto/components/MesDetalle';
 import CashFlowForecast from '../pronostico/rolling-forecast/RollingForecast';
 import RollingForecast from '../pronostico/cash-flow-forecast/CashFlowForecast';
 import HistorialCambios from '../administracion/historial-cambios/HistorialCambios';
@@ -90,6 +91,11 @@ const routeConfig = [
             label: "Detalle",
             path: "/presupuesto/:id",
             element: <PresupuestoDetalle />
+          },
+          {
+          label: (params) => `Mes ${params.mes} - ${params.id}`, // función para generar label dinámico
+          path: "/presupuesto/:id/mes/:mes",
+          element: <MesDetalle />
           },
         ]
       },

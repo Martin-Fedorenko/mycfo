@@ -1,67 +1,76 @@
 import * as React from 'react';
+import axios from 'axios';
 import { Box, Typography } from '@mui/material';
 import TablaDetalle from './TablaDetalle';
-import Exportador from './Exportador';
 import Filtros from './Filtros';
+import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 
 export default function MainGrid() {
-  const [selectedMonth, setSelectedMonth] = React.useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
-  const [data, setData] = React.useState({ ingresos: [], egresos: [] });
+    // Inician vacíos: muestran solo el label hasta que elijas
+    const [selectedMonth, setSelectedMonth] = React.useState('');          // '' | 0..11
+    const [selectedYear, setSelectedYear] = React.useState('');            // '' | number
+    const [selectedCategoria, setSelectedCategoria] = React.useState([]);  // [] | string[]
 
-  React.useEffect(() => {
-    fetch('http://localhost:8087/resumen')
-      .then(response => {
-        if (!response.ok) throw new Error('Error al obtener los datos del backend');
-        return response.json();
-      })
-      .then(json => setData(json))
-      .catch(error => console.error('Error:', error));
-  }, []);
+    const [data, setData] = React.useState({ ingresos: [], egresos: [] });
 
-  const handleMonthChange = (event) => {
-    setSelectedMonth(event.target.value);
-  };
+    React.useEffect(() => {
+        const baseUrl = process.env.REACT_APP_URL_REPORTE;
+        axios.get(`${baseUrl}/resumen`)
+            .then(response => setData(response.data))
+            .catch(error => {
+                console.error('Error al obtener los datos del backend:', error);
+            });
+    }, []);
 
-  const handleYearChange = (event) => {
-    setSelectedYear(event.target.value);
-  };
+    const handleMonthChange = (e) => setSelectedMonth(e.target.value);
+    const handleYearChange = (e) => setSelectedYear(e.target.value);
+    const handleCategoriaChange = (e) => setSelectedCategoria(e.target.value);
 
-  const getNombreMes = (mesIndex) => {
-    const meses = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-    ];
-    return meses[mesIndex];
-  };
+    const getNombreMes = (mesIndex) => {
+        if (mesIndex === '' || mesIndex === null || mesIndex === undefined) return '';
+        const meses = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+        ];
+        return meses[mesIndex];
+    };
 
-  return (
-    <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3, position: 'relative' }}>
-      <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
-        Resumen mensual de ingresos y egresos
-      </Typography>
+    const handleExportPdf = () => console.log('Exportar PDF desde módulo Reportes');
+    const handleExportExcel = () => console.log('Exportar Excel desde módulo Reportes');
 
-      <Filtros
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        onMonthChange={handleMonthChange}
-        onYearChange={handleYearChange}
-      />
+    return (
+        <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
+            <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
+                Resumen mensual de ingresos y egresos
+            </Typography>
 
-      <Typography component="h3" variant="h6" sx={{ mb: 2 }}>
-        Resumen mensual - {getNombreMes(selectedMonth)} {selectedYear}
-      </Typography>
+            <Filtros
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                onMonthChange={handleMonthChange}
+                onYearChange={handleYearChange}
+                selectedCategoria={selectedCategoria}
+                onCategoriaChange={handleCategoriaChange}
+            />
 
-      <TablaDetalle
-        selectedYear={selectedYear}
-        selectedMonth={selectedMonth}
-        ingresos={data.ingresos}
-        egresos={data.egresos}
-      />
+            <Typography component="h3" variant="h6" sx={{ mb: 2 }}>
+                {getNombreMes(selectedMonth) && selectedYear
+                    ? `Resumen mensual - ${getNombreMes(selectedMonth)} ${selectedYear}`
+                    : 'Resumen mensual'}
+            </Typography>
 
-      <Box sx={{ position: 'absolute', bottom: 16, right: 16 }}>
-        <Exportador />
-      </Box>
-    </Box>
-  );
+            <TablaDetalle
+                selectedYear={selectedYear}
+                selectedMonth={selectedMonth}
+                ingresos={data.ingresos}
+                egresos={data.egresos}
+                topRightActions={
+                    <ExportadorSimple
+                        onExportPdf={handleExportPdf}
+                        onExportExcel={handleExportExcel}
+                    />
+                }
+            />
+        </Box>
+    );
 }

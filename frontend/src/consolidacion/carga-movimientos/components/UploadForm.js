@@ -1,6 +1,15 @@
 // src/carga-excel/components/UploadForm.js
 import React, { useState } from "react";
-import { Button, Box, Typography, FormHelperText } from "@mui/material";
+import {
+  Button,
+  Box,
+  Typography,
+  FormHelperText,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+} from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { styled } from "@mui/material/styles";
 
@@ -19,6 +28,7 @@ const VisuallyHiddenInput = styled("input")({
 const UploadForm = ({ onUpload }) => {
   const [archivo, setArchivo] = useState(null);
   const [error, setError] = useState(false);
+  const [tipoOrigen, setTipoOrigen] = useState("");
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
@@ -34,6 +44,7 @@ const UploadForm = ({ onUpload }) => {
           { fila: 2, motivo: "Falta la categoría" },
           { fila: 5, motivo: "Formato de fecha inválido" },
         ],
+        tipoOrigen: tipoOrigen,
       };
       onUpload(resultadoMock);
     } else {
@@ -44,19 +55,37 @@ const UploadForm = ({ onUpload }) => {
 
   return (
     <Box>
-      <Button
-        component="label"
-        variant="contained"
-        startIcon={<CloudUploadIcon />}
-        color={error ? "error" : "primary"}
-      >
-        Subir archivo Excel
-        <VisuallyHiddenInput
-          type="file"
-          accept=".xlsx"
-          onChange={handleFileChange}
-        />
-      </Button>
+      <FormControl fullWidth sx={{ mb: 2 }}>
+        <InputLabel id="tipo-origen-label">Tipo de archivo</InputLabel>
+        <Select
+          labelId="tipo-origen-label"
+          id="tipo-origen"
+          value={tipoOrigen}
+          label="Tipo de archivo"
+          onChange={(e) => setTipoOrigen(e.target.value)}
+        >
+          <MenuItem value="">Seleccione una opción</MenuItem>
+          <MenuItem value="mycfo">MyCFO (plantilla genérica)</MenuItem>
+          <MenuItem value="mercado-pago">Mercado Pago</MenuItem>
+          <MenuItem value="santander">Banco Santander</MenuItem>
+        </Select>
+      </FormControl>
+
+      {tipoOrigen && (
+        <Button
+          component="label"
+          variant="contained"
+          startIcon={<CloudUploadIcon />}
+          color={error ? "error" : "primary"}
+        >
+          Subir archivo Excel
+          <VisuallyHiddenInput
+            type="file"
+            accept=".xlsx"
+            onChange={handleFileChange}
+          />
+        </Button>
+      )}
 
       {archivo && (
         <Typography variant="body2" sx={{ mt: 1 }}>

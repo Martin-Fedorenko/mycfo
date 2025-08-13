@@ -20,8 +20,9 @@ export default function MainGrid() {
       </Typography>
 
       <CamposRequeridos />
-      <UploadForm onUpload={handleUploadResult} />
-
+      <Box mt={3}>
+        <UploadForm onUpload={handleUploadResult} />
+      </Box>
       {resumen && (
         <>
           <ResumenCarga resumen={resumen} />
