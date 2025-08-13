@@ -55,11 +55,11 @@ export default function MesDetalle() {
 
   const totalIngresos = categorias
     .filter(r => r.tipo === 'INGRESO')
-    .reduce((acc, r) => acc + (r.montoEstimado ?? 0), 0);
+    .reduce((acc, r) => acc + (r.montoReal ?? 0), 0);
 
   const totalEgresos = categorias
     .filter(r => r.tipo === 'EGRESO')
-    .reduce((acc, r) => acc + (r.montoEstimado ?? 0), 0);
+    .reduce((acc, r) => acc + (r.montoReal ?? 0), 0);
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
@@ -80,8 +80,8 @@ export default function MesDetalle() {
             <TableRow sx={tableRowStyle}>
               <TableCell sx={tableCellStyle}>Categoría</TableCell>
               <TableCell sx={tableCellStyle}>Tipo</TableCell>
-              <TableCell sx={tableCellStyle}>Monto estimado</TableCell>
-              <TableCell sx={tableCellStyle}>Monto registrado</TableCell>
+              <TableCell sx={tableCellStyle}>Monto Estimado</TableCell>
+              <TableCell sx={tableCellStyle}>Monto Registrado</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
