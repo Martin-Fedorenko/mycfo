@@ -203,7 +203,7 @@ export default function PresupuestoNuevo() {
         `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`,
         payload
       );
-      navigate(`/presupuesto/${res.data.id}`);
+      navigate(`/presupuestos/${res.data.id}`);
     } catch (error) {
       console.error("Error guardando presupuesto", error);
       alert("No se pudo guardar el presupuesto");

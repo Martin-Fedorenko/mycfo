@@ -62,7 +62,7 @@ export default function MainGrid() {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => navigate(`/presupuesto/${p.id}`)}
+                    onClick={() => navigate(`/presupuestos/${p.id}`)}
                   >
                     Ver detalle
                   </Button>
@@ -81,7 +81,7 @@ export default function MainGrid() {
       </Paper>
 
       <Box mt={3}>
-        <Button variant="contained" onClick={() => navigate('/presupuesto/nuevo')}>
+        <Button variant="contained" onClick={() => navigate('/presupuestos/nuevo')}>
           Crear nuevo presupuesto
         </Button>
       </Box>

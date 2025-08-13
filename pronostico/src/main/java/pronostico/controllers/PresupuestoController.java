@@ -58,6 +58,9 @@ public class PresupuestoController {
             List<PresupuestoDTO.MesDTO> meses = new ArrayList<>();
 
             for (PresupuestoDetalle d : detalles) {
+                // LOG para debug: mostramos id y mes del detalle
+                System.out.println("DEBUG PresupuestoDetalle id=" + d.getId() + " mes=" + d.getMes());
+
                 double ingresoEst = safeDouble(d.getIngresoEstimado());
                 double ingresoReal = safeDouble(d.getIngresoReal());
                 double egresoEst = safeDouble(d.getEgresoEstimado());
@@ -75,13 +78,19 @@ public class PresupuestoController {
                         PresupuestoDTO.CategoriaDTO catDTO = new PresupuestoDTO.CategoriaDTO(
                             c.getCategoria(),
                             c.getTipo() != null ? c.getTipo().toString() : null,
-                            safeDouble(c.getMontoEstimado())
+                            safeDouble(c.getMontoEstimado()),
+                            safeDouble(c.getMontoReal())
                         );
                         categoriasDTO.add(catDTO);
                     });
                 }
 
                 PresupuestoDTO.MesDTO mesDto = new PresupuestoDTO.MesDTO();
+
+                // aseguramos setId (y antes lo imprimimos en log)
+                System.out.println(" -> set MesDTO.id = " + d.getId());
+                mesDto.setId(d.getId());
+                System.out.println("DEBUG detalle mensual id=" + d.getId() + " mes=" + d.getMes());
                 mesDto.setMes(d.getMes());
                 mesDto.setIngresoEst(ingresoEst);
                 mesDto.setIngresoReal(ingresoReal);
@@ -109,46 +118,35 @@ public class PresupuestoController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/presupuestos/{id}/mes/{mesId}")
-    public ResponseEntity<Map<String, Object>> getMesDetalle(
-        @PathVariable Long id,
-        @PathVariable int mesId) {
+    @GetMapping("/presupuestos/{presupuestoId}/mes/{detalleId}")
+    public ResponseEntity<?> getMesDetalle(
+        @PathVariable Long presupuestoId,
+        @PathVariable Long detalleId) {
 
-        if (mesId < 1 || mesId > 12) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Mes inválido"));
-        }
+//        Optional<PresupuestoDetalle> detalleOpt = detalleRepo.findById(detalleId);
+//        if (detalleOpt.isEmpty()) {
+//            return ResponseEntity.badRequest().body(Map.of("error", "Detalle mensual no encontrado"));
+//        }
 
-        String mesStr = String.format("%04d-%02d", LocalDate.now().getYear(), mesId);
-
-        Optional<PresupuestoDetalle> detalleOpt = detalleRepo.findByPresupuestoId(id)
-            .stream()
-            .filter(d -> d.getMes() != null && d.getMes().equals(mesStr))
-            .findFirst();
-
+        Optional<PresupuestoDetalle> detalleOpt = detalleRepo.findByIdAndPresupuestoId(detalleId, presupuestoId);
         if (detalleOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Mes no encontrado"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Detalle mensual no encontrado para este presupuesto"));
         }
 
-        PresupuestoDetalle detalle = detalleOpt.get();
+        List<PresupuestoMesCategoria> categorias = categoriaRepo.findByPresupuestoDetalleId(detalleId);
 
-        List<Map<String, Object>> categorias = categoriaRepo.findByPresupuestoDetalleId(detalle.getId())
-            .stream()
-            .map(c -> {
-                Map<String, Object> m = new HashMap<>();
-                m.put("categoria", c.getCategoria());
-                m.put("tipo", c.getTipo() != null ? c.getTipo().toString() : null);
-                m.put("sugerido", safeDouble(c.getMontoEstimado()));
-                m.put("monto", safeDouble(c.getMontoReal()));
-                m.put("desvio", safeDouble(c.getMontoReal()) - safeDouble(c.getMontoEstimado()));
-                return m;
-            })
-            .toList();
+        Map<String, Object> response = Map.of(
+            "presupuestoNombre", detalleOpt.get().getPresupuesto().getNombre(),
+            "mes", detalleOpt.get().getMes(),
+            "categorias", categorias.stream().map(c -> Map.of(
+                "categoria", c.getCategoria(),
+                "tipo", c.getTipo().name(),
+                "montoEstimado", c.getMontoEstimado(),
+                "montoReal", c.getMontoReal()
+            )).toList()
+        );
 
-        return ResponseEntity.ok(Map.of(
-            "mes", detalle.getMes(),
-            "presupuesto", detalle.getPresupuesto() != null ? detalle.getPresupuesto().getNombre() : null,
-            "categorias", categorias
-        ));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/presupuestos")
@@ -186,8 +184,8 @@ public class PresupuestoController {
                                 }
                             }
                         }
-                        c.setMontoEstimado(BigDecimal.valueOf(catDTO.getMontoEstimado() != null ? catDTO.getMontoEstimado() : 0));
-                        c.setMontoReal(BigDecimal.ZERO);
+                        c.setMontoEstimado(BigDecimal.valueOf(catDTO.getMontoEstimadoSafe()));
+                        c.setMontoReal(BigDecimal.valueOf(catDTO.getMontoRealSafe()));
                         categorias.add(c);
                     }
                 }

@@ -1,31 +1,19 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Paper, Table, TableHead,
-  TableRow, TableCell, TableBody, Grid, Button
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Grid,
+  Button,
 } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import axios from 'axios';
-
-const meses = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
-
-const presupuestosConDatos = {
-  'anual-2025': {
-    nombre: 'Presupuesto Anual 2025',
-    meses: meses.slice(0, 12),
-  },
-  'semestre1-2025': {
-    nombre: 'Primer semestre 2025',
-    meses: meses.slice(0, 6),
-  },
-  'jul2025-mar2026': {
-    nombre: 'Julio 2025 a Marzo 2026',
-    meses: [...meses.slice(6, 12), ...meses.slice(0, 3)],
-  },
-};
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -36,57 +24,90 @@ const tableCellStyle = {
   border: '1px solid rgba(255, 255, 255, 0.1)',
 };
 
+// Helper seguro para números
+const safeNumber = (v) =>
+  typeof v === 'number' ? v : v != null && !isNaN(Number(v)) ? Number(v) : 0;
+
 export default function PresupuestoDetalle() {
   const { id } = useParams();
-  const [presupuesto, setPresupuesto] = React.useState({ meses: [] });
+  const [presupuesto, setPresupuesto] = React.useState({
+    nombre: '',
+    detalleMensual: [],
+  });
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${id}`)
-      .then(r => {
-        // Aseguramos que el objeto tiene meses definido como array
-        setPresupuesto({
-          ...r.data,
-          meses: r.data.detalleMensual ? r.data.detalleMensual.map(m => m.mes) : []
-        });
-      })
-      .catch(e => {
-        console.error(e);
-        // fallback si error
-        setPresupuesto(presupuestosConDatos[id] || { nombre: 'Presupuesto desconocido', meses: [] });
-      });
+    let isMounted = true; // Evita setState si el componente se desmonta
+
+    const fetchPresupuesto = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${id}`
+        );
+
+        if (isMounted) {
+          console.log('Presupuesto recibido:', res.data);
+          setPresupuesto(res.data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Error al cargar presupuesto:', error);
+          setPresupuesto({ nombre: 'Presupuesto desconocido', detalleMensual: [] });
+        }
+      }
+    };
+
+    fetchPresupuesto();
+
+    return () => {
+      isMounted = false; // Limpieza
+    };
   }, [id]);
 
-  // Usamos el presupuesto del backend o fallback
-  const presupuestoData = presupuesto.nombre ? presupuesto : (presupuestosConDatos[id] || { nombre: 'Presupuesto desconocido', meses: [] });
+  // Validación segura del array
+  const datosMensuales = Array.isArray(presupuesto.detalleMensual)
+    ? presupuesto.detalleMensual.filter((mes) => mes != null && mes.id != null)
+    : [];
 
-  const datosMensuales = presupuestoData.meses?.map((mes, idx) => {
-    const ingresoEst = 90000 + idx * 15000 + (id === 'semestre1-2025' ? 5000 : 0);
-    const ingresoReal = ingresoEst - (idx % 2 === 0 ? 4000 : 0);
-    const egresoEst = 60000 + idx * 10000;
-    const egresoReal = egresoEst + (idx % 3 === 0 ? 6000 : 0);
-    return { mes, ingresoEst, ingresoReal, egresoEst, egresoReal };
-  }) || [];
-
-  const totalIngresoEst = datosMensuales.reduce((acc, m) => acc + m.ingresoEst, 0);
-  const totalIngresoReal = datosMensuales.reduce((acc, m) => acc + m.ingresoReal, 0);
-  const totalEgresoEst = datosMensuales.reduce((acc, m) => acc + m.egresoEst, 0);
-  const totalEgresoReal = datosMensuales.reduce((acc, m) => acc + m.egresoReal, 0);
-
+  // Totales
+  const totalIngresoEst = datosMensuales.reduce(
+    (acc, mes) => acc + safeNumber(mes.ingresoEst),
+    0
+  );
+  const totalIngresoReal = datosMensuales.reduce(
+    (acc, mes) => acc + safeNumber(mes.ingresoReal),
+    0
+  );
+  const totalEgresoEst = datosMensuales.reduce(
+    (acc, mes) => acc + safeNumber(mes.egresoEst),
+    0
+  );
+  const totalEgresoReal = datosMensuales.reduce(
+    (acc, mes) => acc + safeNumber(mes.egresoReal),
+    0
+  );
   const totalReal = totalIngresoReal - totalEgresoReal;
+
+  const goToMes = (mes) => {
+    if (!mes?.id) {
+      console.error('Intento de abrir mes sin ID:', mes);
+      alert('No se puede abrir el mes: falta el identificador.');
+      return;
+    }
+    navigate(`/presupuestos/${id}/mes/${mes.id}`);
+  };
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
-      <Typography variant="h4" gutterBottom>Detalle de {presupuestoData.nombre}</Typography>
+      <Typography variant="h4" gutterBottom>
+        Detalle de {presupuesto.nombre}
+      </Typography>
       <Typography variant="subtitle1" gutterBottom>
         Visualizá resumen por mes con sus totales
       </Typography>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-        <ExportadorSimple
-          onExportPdf={() => {}}
-          onExportExcel={() => {}}
-        />
+        <ExportadorSimple onExportPdf={() => {}} onExportExcel={() => {}} />
       </Box>
 
       <Paper sx={{ mt: 2, overflowX: 'auto' }}>
@@ -107,31 +128,51 @@ export default function PresupuestoDetalle() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {datosMensuales.map((mes, idx) => (
-              <TableRow key={idx} sx={tableRowStyle}>
-                <TableCell sx={tableCellStyle}>{mes.mes}</TableCell>
-                <TableCell sx={tableCellStyle}>${mes.ingresoEst.toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${mes.ingresoReal.toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${(mes.ingresoReal - mes.ingresoEst).toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${mes.egresoEst.toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${mes.egresoReal.toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${(mes.egresoReal - mes.egresoEst).toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${(mes.ingresoEst - mes.egresoEst).toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>${(mes.ingresoReal - mes.egresoReal).toLocaleString()}</TableCell>
-                <TableCell sx={tableCellStyle}>
-                  ${(mes.ingresoReal - mes.egresoReal - (mes.ingresoEst - mes.egresoEst)).toLocaleString()}
-                </TableCell>
-                <TableCell sx={tableCellStyle}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => navigate(`/presupuesto/${id}/mes/${idx + 1}`)}
-                  >
-                    Ver mes
-                  </Button>
+            {datosMensuales.length > 0 ? (
+              datosMensuales.map((mes) => (
+                <TableRow key={mes.id} sx={tableRowStyle}>
+                  <TableCell sx={tableCellStyle}>{mes.mes ?? '—'}</TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.ingresoEst).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.ingresoReal).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.desvioIngreso).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.egresoEst).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.egresoReal).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.desvioEgreso).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.totalEst).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.totalReal).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    ${safeNumber(mes.totalDesvio).toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={tableCellStyle}>
+                    <Button onClick={() => goToMes(mes)} variant="contained" size="small">
+                      Ver mes
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={11} align="center" sx={{ py: 3 }}>
+                  No hay datos mensuales disponibles.
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </Paper>
@@ -141,19 +182,25 @@ export default function PresupuestoDetalle() {
           <Grid item xs={12} md={4}>
             <Paper elevation={1} sx={{ p: 2 }}>
               <Typography variant="subtitle2">Ingresos totales:</Typography>
-              <Typography variant="h6" color="green">${totalIngresoReal.toLocaleString()}</Typography>
+              <Typography variant="h6" color="green">
+                ${totalIngresoReal.toLocaleString()}
+              </Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} md={4}>
             <Paper elevation={1} sx={{ p: 2 }}>
               <Typography variant="subtitle2">Egresos totales:</Typography>
-              <Typography variant="h6" color="red">${totalEgresoReal.toLocaleString()}</Typography>
+              <Typography variant="h6" color="red">
+                ${totalEgresoReal.toLocaleString()}
+              </Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} md={4}>
             <Paper elevation={1} sx={{ p: 2 }}>
               <Typography variant="subtitle2">Resultado final:</Typography>
-              <Typography variant="h6" color="blue">${totalReal.toLocaleString()}</Typography>
+              <Typography variant="h6" color="blue">
+                ${totalReal.toLocaleString()}
+              </Typography>
             </Paper>
           </Grid>
         </Grid>

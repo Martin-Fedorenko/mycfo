@@ -1,5 +1,6 @@
 package pronostico.dtos;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -49,6 +50,8 @@ public class PresupuestoDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class MesDTO {
+        @JsonProperty("id")
+        private Long id;
         private String mes;
         private Double ingresoEst;
         private Double ingresoReal;
@@ -62,6 +65,35 @@ public class PresupuestoDTO {
 
         // NUEVO: lista de categorías para ese mes
         private List<CategoriaDTO> categorias;
+
+        public Double getIngresoEstSafe() { return ingresoEst != null ? ingresoEst : 0.0; }
+        public Double getIngresoRealSafe() { return ingresoReal != null ? ingresoReal : 0.0; }
+        public Double getEgresoEstSafe() { return egresoEst != null ? egresoEst : 0.0; }
+        public Double getEgresoRealSafe() { return egresoReal != null ? egresoReal : 0.0; }
+    }
+
+    public class PresupuestoDetalleDTO {
+        private Long id;
+        private Double ingresoEstimado;
+        private Double ingresoReal;
+        private Double egresoEstimado;
+        private Double egresoReal;
+
+        public Double getIngresoEstimadoSafe() {
+            return ingresoEstimado != null ? ingresoEstimado : 0.0;
+        }
+
+        public Double getIngresoRealSafe() {
+            return ingresoReal != null ? ingresoReal : 0.0;
+        }
+
+        public Double getEgresoEstimadoSafe() {
+            return egresoEstimado != null ? egresoEstimado : 0.0;
+        }
+
+        public Double getEgresoRealSafe() {
+            return egresoReal != null ? egresoReal : 0.0;
+        }
     }
 
     @Data
@@ -71,5 +103,13 @@ public class PresupuestoDTO {
         private String categoria;
         private String tipo; // "INGRESO" o "EGRESO"
         private Double montoEstimado;
+        private Double montoReal;
+
+        public Double getMontoEstimadoSafe() {
+            return montoEstimado != null ? montoEstimado : 0.0;
+        }
+        public Double getMontoRealSafe() {
+            return montoReal != null ? montoReal : 0.0;
+        }
     }
 }
