@@ -1,37 +1,40 @@
-// ListaNotificaciones.js
-import { Container, Typography } from "@mui/material";
+import { Container, Typography, CircularProgress, Alert } from "@mui/material";
 import NotificationCard from "./NotificationCard";
+import { useNotifications } from "../../hooks/useNotifications";
 
-const notificacionesEjemplo = [
-  {
-    titulo: "Vencimiento de monotributo",
-    fecha: "01/08/2025",
-    tipo: "Recordatorio",
-  },
-  {
-    titulo: "Ingreso detectado en cuenta bancaria",
-    fecha: "31/07/2025",
-    tipo: "Movimiento",
-  },
-  {
-    titulo: "Actualización de presupuesto disponible",
-    fecha: "30/07/2025",
-    tipo: "Presupuesto",
-  },
-];
+export default function ListaNotificaciones({ userId = 1 }) {
+  const { items, unread, loading, error, markOneRead } =
+    useNotifications(userId);
 
-export default function ListaNotificaciones() {
+  if (loading)
+    return (
+      <Container sx={{ mt: 2 }}>
+        <CircularProgress size={22} />
+      </Container>
+    );
+  if (error)
+    return (
+      <Container sx={{ mt: 2 }}>
+        <Alert severity="error">
+          No se pudieron cargar las notificaciones.
+        </Alert>
+      </Container>
+    );
+
   return (
     <Container sx={{ mt: 2 }}>
       <Typography variant="h5" gutterBottom>
-        Notificaciones
+        Notificaciones {unread > 0 ? `(${unread} sin leer)` : ""}
       </Typography>
-      {notificacionesEjemplo.map((notif, idx) => (
+
+      {items.map((n) => (
         <NotificationCard
-          key={idx}
-          titulo={notif.titulo}
-          fecha={notif.fecha}
-          tipo={notif.tipo}
+          key={n.id}
+          titulo={n.title}
+          fecha={new Date(n.date).toLocaleDateString()}
+          tipo={n.badge} // "Movimiento", "Recordatorio", etc.
+          isRead={n.is_read}
+          onClick={() => markOneRead(n.id)}
         />
       ))}
     </Container>

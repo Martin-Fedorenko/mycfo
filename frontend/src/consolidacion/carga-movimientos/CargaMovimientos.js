@@ -56,14 +56,12 @@ export default function CargaMovimientos(props) {
     <Box
       sx={{ width: "100%", maxWidth: { sm: "100%", md: "1700px" }, mx: "auto" }}
     >
-      <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
+      <Typography component="h2" variant="h6" sx={{ mb: 3 }}>
         Carga Excel
       </Typography>
-
-      <CamposRequeridos />
-
+      <CamposRequeridos sx={{ mb: 4 }} /> {/* margen debajo del ejemplo */}
       {/* Desplegable para tipo de archivo */}
-      <FormControl fullWidth sx={{ mb: 2 }}>
+      <FormControl fullWidth sx={{ mb: 4 }}>
         <InputLabel id="tipo-origen-label">Tipo de archivo</InputLabel>
         <Select
           labelId="tipo-origen-label"
@@ -78,7 +76,6 @@ export default function CargaMovimientos(props) {
           <MenuItem value="santander">Banco Santander</MenuItem>
         </Select>
       </FormControl>
-
       {/* Área Drag and Drop solo si hay tipo seleccionado */}
       {tipoOrigen && (
         <>
@@ -86,15 +83,21 @@ export default function CargaMovimientos(props) {
             onFileSelected={handleFileSelected}
             width="100%"
             height={120}
+            sx={{ mb: 3 }}
           />
 
-          <CustomButton width="100%" onClick={procesarArchivo} sx={{ mt: 2 }} />
+          <CustomButton
+            width="100%"
+            onClick={procesarArchivo}
+            sx={{ mt: 1, mb: 4 }}
+          />
         </>
       )}
-
       {resumen && (
-        <Box mt={4}>
-          <ResumenCarga resumen={resumen} />
+        <Box mt={4} mb={4}>
+          {" "}
+          {/* <-- agrega mb aquí para separar de FormControl */}
+          <ResumenCarga resumen={resumen} sx={{ mb: 3 }} />
           {resumen.errores?.length > 0 && (
             <TablaErrores errores={resumen.errores} />
           )}
