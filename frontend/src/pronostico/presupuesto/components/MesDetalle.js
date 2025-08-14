@@ -61,8 +61,54 @@ export default function MesDetalle() {
     .filter(r => r.tipo === 'EGRESO')
     .reduce((acc, r) => acc + (r.montoReal ?? 0), 0);
 
+  const safeNumber = (v) =>
+    typeof v === 'number' ? v : v != null && !isNaN(Number(v)) ? Number(v) : 0;
+  // === EXPORTACIÓN A EXCEL ===
+    const handleExportExcel = () => {
+      const data = [
+        ['Categoría', 'Tipo', 'Monto Estimado', 'Monto Registrado'],
+        ...categorias.map(item => [
+          item.categoria,
+          item.tipo,
+          safeNumber(item.montoEstimado),
+          safeNumber(item.montoReal)
+        ])
+      ];
+
+      // Totales
+      data.push(['', '', '', '']);
+      data.push(['Totales:', '', '', '']);
+      data.push([
+        '',
+        '',
+        '',
+        totalIngresos - totalEgresos
+      ]);
+
+      import('xlsx').then(({ utils, writeFile }) => {
+        const ws = utils.aoa_to_sheet(data);
+        const wb = utils.book_new();
+        utils.book_append_sheet(wb, ws, 'Detalle Mes');
+        writeFile(wb, `Mes_${nombreMes}_${detalleId}.xlsx`);
+      });
+    };
+
+    // === EXPORTACIÓN A PDF ===
+    const handleExportPdf = () => {
+      import('html2pdf.js').then((html2pdf) => {
+        const element = document.getElementById('mes-detalle-content');
+        const opt = {
+          margin: 1,
+          filename: `Mes_${nombreMes}_${detalleId}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf.default().from(element).set(opt).save();
+      });
+    };
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
+    <Box id="mes-detalle-content" sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Detalle de {nombreMes} - {presupuestoNombre}
       </Typography>
@@ -71,7 +117,10 @@ export default function MesDetalle() {
       </Typography>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-        <ExportadorSimple onExportPdf={() => {}} onExportExcel={() => {}} />
+        <ExportadorSimple
+          onExportPdf={handleExportPdf}
+          onExportExcel={handleExportExcel}
+        />
       </Box>
 
       <Paper sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
