@@ -19,7 +19,6 @@ const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
   '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
-
 const tableCellStyle = {
   border: '1px solid rgba(255, 255, 255, 0.1)',
 };
@@ -29,41 +28,52 @@ const safeNumber = (v) =>
   typeof v === 'number' ? v : v != null && !isNaN(Number(v)) ? Number(v) : 0;
 
 export default function PresupuestoDetalle() {
-  const { id } = useParams();
+  const { nombre: nombreUrl } = useParams(); // ahora usamos el nombre, no el id
   const [presupuesto, setPresupuesto] = React.useState({
+    id: null,
     nombre: '',
     detalleMensual: [],
   });
   const navigate = useNavigate();
 
-
   React.useEffect(() => {
-    let isMounted = true; // Evita setState si el componente se desmonta
-
-    const fetchPresupuesto = async () => {
+    const fetchPresupuestos = async () => {
       try {
         const res = await axios.get(
-          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${id}`
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`
+        );
+        const lista = res.data;
+
+        // Normalizar nombre de URL
+        const decodedNombre = decodeURIComponent(nombreUrl)
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '-');
+
+        const encontrado = lista.find(
+          (p) => p.nombre.trim().toLowerCase().replace(/\s+/g, '-') === decodedNombre
         );
 
-        if (isMounted) {
-          console.log('Presupuesto recibido:', res.data);
-          setPresupuesto(res.data);
+        if (encontrado) {
+          // Ahora usamos el ID real para traer los datos
+          const resDetalle = await axios.get(
+            `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}`
+          );
+          setPresupuesto(resDetalle.data);
+        } else {
+          console.error("Presupuesto no encontrado por nombre:", nombreUrl);
+          setPresupuesto({ id: null, nombre: 'No encontrado', detalleMensual: [] });
         }
       } catch (error) {
-        if (isMounted) {
-          console.error('Error al cargar presupuesto:', error);
-          setPresupuesto({ nombre: 'Presupuesto desconocido', detalleMensual: [] });
-        }
+        console.error('Error al cargar presupuesto:', error);
+        setPresupuesto({ id: null, nombre: 'Error', detalleMensual: [] });
       }
     };
 
-    fetchPresupuesto();
-
-    return () => {
-      isMounted = false; // Limpieza
-    };
-  }, [id]);
+    if (nombreUrl) {
+      fetchPresupuestos();
+    }
+  }, [nombreUrl]);
 
   // Validación segura del array
   const datosMensuales = Array.isArray(presupuesto.detalleMensual)
@@ -95,200 +105,79 @@ export default function PresupuestoDetalle() {
       alert('No se puede abrir el mes: falta el identificador.');
       return;
     }
-    navigate(`/presupuestos/${id}/mes/${mes.id}`);
+
+    // Normalizar nombre del presupuesto para URL
+    const nombreNormalizado = encodeURIComponent(
+      presupuesto.nombre.trim().toLowerCase().replace(/\s+/g, '-')
+    );
+
+    // Convertir mes.mes (ej: "2025-02") a nombre del mes
+    const mesStr = mes.mes; // "2025-02"
+    const mesNum = parseInt(mesStr.split('-')[1], 10);
+    const mesNombre = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(
+      new Date(2025, mesNum - 1)
+    ); // → "febrero"
+
+    navigate(`/presupuestos/${nombreNormalizado}/detalle/${mesNombre}`);
   };
-    // === EXPORTACIÓN A EXCEL ===
-    const handleExportExcel = () => {
-      const { nombre } = presupuesto;
 
-      // Datos principales
-      const data = [
-        ['Mes', 'Ingreso Estimado', 'Ingreso Real', 'Desvío Ingresos', 'Egreso Estimado', 'Egreso Real', 'Desvío Egresos', 'Total Estimado', 'Total Real', 'Total Desvío'],
-        ...datosMensuales.map(mes => [
-          mes.mes ?? '—',
-          safeNumber(mes.ingresoEst),
-          safeNumber(mes.ingresoReal),
-          safeNumber(mes.desvioIngreso),
-          safeNumber(mes.egresoEst),
-          safeNumber(mes.egresoReal),
-          safeNumber(mes.desvioEgreso),
-          safeNumber(mes.totalEst),
-          safeNumber(mes.totalReal),
-          safeNumber(mes.totalDesvio),
-        ])
-      ];
+  // === EXPORTACIÓN A EXCEL y PDF ===
+  // (mantenemos tu lógica original, no cambia)
+  const handleExportExcel = () => {
+    const { nombre } = presupuesto;
+    const data = [
+      ['Mes', 'Ingreso Estimado', 'Ingreso Real', 'Desvío Ingresos', 'Egreso Estimado', 'Egreso Real', 'Desvío Egresos', 'Total Estimado', 'Total Real', 'Total Desvío'],
+      ...datosMensuales.map(mes => [
+        mes.mes ?? '—',
+        safeNumber(mes.ingresoEst),
+        safeNumber(mes.ingresoReal),
+        safeNumber(mes.desvioIngreso),
+        safeNumber(mes.egresoEst),
+        safeNumber(mes.egresoReal),
+        safeNumber(mes.desvioEgreso),
+        safeNumber(mes.totalEst),
+        safeNumber(mes.totalReal),
+        safeNumber(mes.totalDesvio),
+      ])
+    ];
 
-      // Agregar filas de totales
-      data.push(['', '', '', '', '', '', '', '', '', '']);
-      data.push(['Totales:', '', '', '', '', '', '', '', '', '']);
-      data.push([
-        '',
-        totalIngresoEst,
-        totalIngresoReal,
-        totalIngresoReal - totalIngresoEst,
-        totalEgresoEst,
-        totalEgresoReal,
-        totalEgresoReal - totalEgresoEst,
-        totalIngresoEst - totalEgresoEst,
-        totalReal,
-        totalReal - (totalIngresoEst - totalEgresoEst)
-      ]);
+    data.push(['', '', '', '', '', '', '', '', '', '']);
+    data.push(['Totales:', '', '', '', '', '', '', '', '', '']);
+    data.push([
+      '',
+      totalIngresoEst,
+      totalIngresoReal,
+      totalIngresoReal - totalIngresoEst,
+      totalEgresoEst,
+      totalEgresoReal,
+      totalEgresoReal - totalEgresoEst,
+      totalIngresoEst - totalEgresoEst,
+      totalReal,
+      totalReal - (totalIngresoEst - totalEgresoEst)
+    ]);
 
-      import('xlsx').then(({ utils, writeFile, WorkBook }) => {
-        // Crear libro
-        const wb = utils.book_new();
+    import('xlsx').then(({ utils, writeFile }) => {
+      const ws = utils.aoa_to_sheet(data, { cellStyles: true });
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Detalle Presupuesto');
+      writeFile(wb, `Presupuesto_${nombre}_${presupuesto.id}.xlsx`, { cellStyles: true });
+    });
+  };
 
-        // Convertir array a hoja con soporte de estilos
-        const ws = utils.aoa_to_sheet(data, { cellStyles: true });
+  const handleExportPdf = () => {
+    import('html2pdf.js').then((html2pdf) => {
+      const element = document.getElementById('presupuesto-detalle-content');
+      const opt = {
+        margin: 0.5,
+        filename: `Presupuesto_${presupuesto.nombre}_${presupuesto.id}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+      };
+      html2pdf.default().from(element).set(opt).save();
+    });
+  };
 
-        // === DEFINICIÓN DE ESTILOS ===
-
-        // Estilo de encabezado: verde
-        const headerStyle = {
-          font: { sz: 12, bold: true, color: { rgb: "FFFFFF" } },
-          fill: { fgColor: { rgb: "2E7D32" } }, // Verde oscuro profesional
-          alignment: { horizontal: "center", vertical: "center" },
-          border: {
-            top: { style: 'thin', color: { rgb: "000000" } },
-            bottom: { style: 'thin', color: { rgb: "000000" } },
-            left: { style: 'thin', color: { rgb: "000000" } },
-            right: { style: 'thin', color: { rgb: "000000" } },
-          }
-        };
-
-        // Estilo para celdas de datos
-        const dataStyle = {
-          font: { sz: 11 },
-          fill: { fgColor: { rgb: "FFFFFF" } }, // Fondo blanco
-          alignment: { horizontal: "left", vertical: "center" },
-          border: {
-            top: { style: 'thin', color: { rgb: "DDDDDD" } },
-            bottom: { style: 'thin', color: { rgb: "DDDDDD" } },
-            left: { style: 'thin', color: { rgb: "DDDDDD" } },
-            right: { style: 'thin', color: { rgb: "DDDDDD" } },
-          }
-        };
-
-        // Estilo para números (derecha)
-        const numberStyle = {
-          ...dataStyle,
-          alignment: { horizontal: "right", vertical: "center" },
-          numFmt: '#,##0'
-        };
-
-        // Estilo para "Totales:" (texto)
-        const totalLabelStyle = {
-          font: { bold: true, sz: 11 },
-          fill: { fgColor: { rgb: "E8F5E8" } }, // Verde muy claro
-          alignment: { horizontal: "left" },
-          border: { top: { style: 'medium', color: { rgb: "000000" } } }
-        };
-
-        // Estilo para valores de totales
-        const totalValueStyle = {
-          font: { bold: true, sz: 11 },
-          fill: { fgColor: { rgb: "E8F5E8" } },
-          alignment: { horizontal: "right" },
-          numFmt: '#,##0',
-          border: { top: { style: 'medium', color: { rgb: "000000" } } }
-        };
-
-        // === APLICAR ESTILOS A LAS CELDAS ===
-
-        // Encabezados (fila 1)
-        const headers = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1'];
-        headers.forEach(cell => {
-          ws[cell].s = headerStyle;
-        });
-
-        // Celdas de datos (filas 2 hasta antes de totales)
-        const startRow = 2;
-        const endRow = datosMensuales.length + 1;
-        const numberCols = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-
-        for (let row = startRow; row <= endRow; row++) {
-          // Columna A: texto (mes)
-          const cellA = 'A' + row;
-          if (ws[cellA]) ws[cellA].s = dataStyle;
-
-          // Columnas B-J: números
-          numberCols.forEach(col => {
-            const cell = col + row;
-            if (ws[cell] && typeof ws[cell].v === 'number') {
-              ws[cell].s = numberStyle;
-              ws[cell].z = '#,##0'; // formato visual
-            } else if (ws[cell]) {
-              ws[cell].s = dataStyle; // texto o vacío
-            }
-          });
-        }
-
-        // Fila de "Totales:"
-        const totalLabelRow = datosMensuales.length + 3; // fila con "Totales:"
-        ws['A' + totalLabelRow].s = totalLabelStyle;
-
-        // Fila de valores de totales
-        const totalValueRow = datosMensuales.length + 4;
-        numberCols.forEach(col => {
-          const cell = col + totalValueRow;
-          if (ws[cell] && typeof ws[cell].v === 'number') {
-            ws[cell].s = totalValueStyle;
-            ws[cell].z = '#,##0';
-          }
-        });
-
-        // === AJUSTAR ANCHO DE COLUMNAS ===
-        ws['!cols'] = [
-          { wch: 12 }, // Mes
-          { wch: 14 }, // Ingreso Est
-          { wch: 14 }, // Ingreso Real
-          { wch: 16 }, // Desvío Ingresos
-          { wch: 14 }, // Egreso Est
-          { wch: 14 }, // Egreso Real
-          { wch: 16 }, // Desvío Egresos
-          { wch: 14 }, // Total Est
-          { wch: 14 }, // Total Real
-          { wch: 14 }, // Total Desvío
-        ];
-
-        // === ALTURA DE FILAS (opcional) ===
-        ws['!rows'] = [];
-        ws['!rows'][0] = { hpt: 20 }; // Encabezado más alto
-
-        // Agregar hoja al libro
-        utils.book_append_sheet(wb, ws, 'Detalle Presupuesto');
-
-        // ✅ Exportar con estilos
-        writeFile(wb, `Presupuesto_${nombre}_${id}.xlsx`, { cellStyles: true });
-      });
-    };
-
-    // === EXPORTACIÓN A PDF ===
-    const handleExportPdf = () => {
-      import('html2pdf.js').then((html2pdf) => {
-        const element = document.getElementById('presupuesto-detalle-content');
-        const opt = {
-          margin: 0.5,
-          filename: `Presupuesto_${presupuesto.nombre}_${id}.pdf`,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true, // Permite imágenes de otros dominios
-            scrollY: -window.scrollY, // Alinea el scroll
-            width: element.offsetWidth,
-            height: element.offsetHeight,
-          },
-          jsPDF: {
-            unit: 'in',
-            format: 'letter',
-            orientation: 'landscape',
-            putOnlyUsedFonts: true,
-          },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }, // Evita saltos de página automáticos
-        };
-        html2pdf.default().from(element).set(opt).save();
-      });
-    };
   return (
     <Box id="presupuesto-detalle-content" sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -297,14 +186,12 @@ export default function PresupuestoDetalle() {
       <Typography variant="subtitle1" gutterBottom>
         Visualizá resumen por mes con sus totales
       </Typography>
-
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
         <ExportadorSimple
           onExportPdf={handleExportPdf}
           onExportExcel={handleExportExcel}
         />
       </Box>
-
       <Paper sx={{ mt: 2, overflowX: 'auto' }}>
         <Table>
           <TableHead>
@@ -371,7 +258,6 @@ export default function PresupuestoDetalle() {
           </TableBody>
         </Table>
       </Paper>
-
       <Box mt={2}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>

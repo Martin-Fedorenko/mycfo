@@ -89,13 +89,13 @@ const routeConfig = [
           },
           {
             label: "Detalle",
-            path: "/presupuestos/:id",
+            path: "/presupuestos/:nombre",
             element: <PresupuestoDetalle />
           },
           {
-          label: (params) => `Mes ${params.mes}`,
-          path: "/presupuestos/:id/mes/:detalleId",
-          element: <MesDetalle />
+            label: (params) => `Mes ${params.mesNombre}`,
+            path: "/presupuestos/:nombre/detalle/:mesNombre",
+            element: <MesDetalle />
           },
         ]
       },

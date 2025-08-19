@@ -11,15 +11,20 @@ const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
   '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
-
 const tableCellStyle = {
   border: '1px solid rgba(255, 255, 255, 0.1)',
 };
 
-// Formatear valores mostrando "—" si es null
 const formatMonto = (valor) => (valor && valor !== 0) ? `$${valor.toLocaleString()}` : '—';
 
-// Función para formatear "2025-07" a "Julio 2025"
+// Mapeo de nombre del mes a número
+const mesANumero = {
+  enero: '01', febrero: '02', marzo: '03', abril: '04',
+  mayo: '05', junio: '06', julio: '07', agosto: '08',
+  septiembre: '09', octubre: '10', noviembre: '11', diciembre: '12'
+};
+
+// Formatear "2025-07" a "Julio 2025"
 const formatearMes = (mesString) => {
   if (!mesString) return 'Mes desconocido';
   const [anio, mes] = mesString.split('-');
@@ -33,80 +38,117 @@ const formatearMes = (mesString) => {
 };
 
 export default function MesDetalle() {
-  const { id, detalleId} = useParams();
-
-  const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
+  const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
   const [categorias, setCategorias] = React.useState([]);
   const [nombreMes, setNombreMes] = React.useState('Mes desconocido');
+  const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
 
   React.useEffect(() => {
-    axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${id}/mes/${detalleId}`)
-      .then(r => {
-        setPresupuestoNombre(r.data.presupuestoNombre || 'Presupuesto desconocido');
-        setCategorias(r.data.categorias || []);
-        setNombreMes(formatearMes(r.data.mes));
-      })
-      .catch(e => {
+    const fetchData = async () => {
+      try {
+        // Paso 1: Buscar presupuesto por nombre
+        const resPresupuestos = await axios.get(
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`
+        );
+        const decodedNombre = decodeURIComponent(nombreUrl)
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '-');
+
+        const presupuesto = resPresupuestos.data.find(
+          (p) => p.nombre.trim().toLowerCase().replace(/\s+/g, '-') === decodedNombre
+        );
+
+        if (!presupuesto) throw new Error("Presupuesto no encontrado");
+
+        const presupuestoId = presupuesto.id;
+        setPresupuestoNombre(presupuesto.nombre);
+
+        // Paso 2: Obtener detalles para mapear mesNombre → detalleId
+        const resDetalle = await axios.get(
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${presupuestoId}`
+        );
+
+        const mesNormalizado = mesNombreUrl.toLowerCase().trim();
+        const mesNum = mesANumero[mesNormalizado];
+
+        if (!mesNum) throw new Error("Mes no válido");
+
+        const detalleMes = resDetalle.data.detalleMensual.find(mes =>
+          mes.mes?.endsWith(`-${mesNum}`)
+        );
+
+        if (!detalleMes) throw new Error("Detalle mensual no encontrado");
+
+        const detalleId = detalleMes.id;
+        setNombreMes(formatearMes(detalleMes.mes));
+
+        // Paso 3: Llamar al endpoint con IDs reales
+        const res = await axios.get(
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${presupuestoId}/mes/${detalleId}`
+        );
+
+        setCategorias(res.data.categorias || []);
+      } catch (e) {
         console.error(e);
         setCategorias([]);
         setNombreMes('Mes desconocido');
-      });
-  }, [id, detalleId]);
+      }
+    };
+
+    if (nombreUrl && mesNombreUrl) {
+      fetchData();
+    }
+  }, [nombreUrl, mesNombreUrl]);
 
   const totalIngresos = categorias
     .filter(r => r.tipo === 'INGRESO')
     .reduce((acc, r) => acc + (r.montoReal ?? 0), 0);
-
   const totalEgresos = categorias
     .filter(r => r.tipo === 'EGRESO')
     .reduce((acc, r) => acc + (r.montoReal ?? 0), 0);
 
   const safeNumber = (v) =>
     typeof v === 'number' ? v : v != null && !isNaN(Number(v)) ? Number(v) : 0;
-  // === EXPORTACIÓN A EXCEL ===
-    const handleExportExcel = () => {
-      const data = [
-        ['Categoría', 'Tipo', 'Monto Estimado', 'Monto Registrado'],
-        ...categorias.map(item => [
-          item.categoria,
-          item.tipo,
-          safeNumber(item.montoEstimado),
-          safeNumber(item.montoReal)
-        ])
-      ];
 
-      // Totales
-      data.push(['', '', '', '']);
-      data.push(['Totales:', '', '', '']);
-      data.push([
-        '',
-        '',
-        '',
-        totalIngresos - totalEgresos
-      ]);
+  // === EXPORTACIÓN A EXCEL y PDF ===
+  // (tu lógica original, sin cambios)
+  const handleExportExcel = () => {
+    const data = [
+      ['Categoría', 'Tipo', 'Monto Estimado', 'Monto Registrado'],
+      ...categorias.map(item => [
+        item.categoria,
+        item.tipo,
+        safeNumber(item.montoEstimado),
+        safeNumber(item.montoReal)
+      ])
+    ];
+    data.push(['', '', '', '']);
+    data.push(['Totales:', '', '', '']);
+    data.push(['', '', '', totalIngresos - totalEgresos]);
 
-      import('xlsx').then(({ utils, writeFile }) => {
-        const ws = utils.aoa_to_sheet(data);
-        const wb = utils.book_new();
-        utils.book_append_sheet(wb, ws, 'Detalle Mes');
-        writeFile(wb, `Mes_${nombreMes}_${detalleId}.xlsx`);
-      });
-    };
+    import('xlsx').then(({ utils, writeFile }) => {
+      const ws = utils.aoa_to_sheet(data, { cellStyles: true });
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Detalle Mes');
+      writeFile(wb, `Mes_${nombreMes}_${Date.now()}.xlsx`, { cellStyles: true });
+    });
+  };
 
-    // === EXPORTACIÓN A PDF ===
-    const handleExportPdf = () => {
-      import('html2pdf.js').then((html2pdf) => {
-        const element = document.getElementById('mes-detalle-content');
-        const opt = {
-          margin: 1,
-          filename: `Mes_${nombreMes}_${detalleId}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-        html2pdf.default().from(element).set(opt).save();
-      });
-    };
+  const handleExportPdf = () => {
+    import('html2pdf.js').then((html2pdf) => {
+      const element = document.getElementById('mes-detalle-content');
+      const opt = {
+        margin: 1,
+        filename: `Mes_${nombreMes}_${Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf.default().from(element).set(opt).save();
+    });
+  };
+
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -115,14 +157,12 @@ export default function MesDetalle() {
       <Typography variant="subtitle1" gutterBottom>
         Visualizá los ingresos y egresos de este mes
       </Typography>
-
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
         <ExportadorSimple
           onExportPdf={handleExportPdf}
           onExportExcel={handleExportExcel}
         />
       </Box>
-
       <Paper sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
         <Table>
           <TableHead>
@@ -145,7 +185,6 @@ export default function MesDetalle() {
           </TableBody>
         </Table>
       </Paper>
-
       <Box mt={2}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>

@@ -62,7 +62,10 @@ export default function MainGrid() {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => navigate(`/presupuestos/${p.id}`)}
+                    onClick={() => {
+                      const nombreUrl = encodeURIComponent(p.nombre.trim().toLowerCase().replace(/\s+/g, '-'));
+                      navigate(`/presupuestos/${nombreUrl}`);
+                    }}
                   >
                     Ver detalle
                   </Button>
