@@ -4,8 +4,9 @@ import registro.models.Registro;
 import registro.services.RegistroService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/registro/registro")
 @CrossOrigin // solo para desarrollo
 public class RegistroController {
 
@@ -15,8 +16,13 @@ public class RegistroController {
         this.registroService = registroService;
     }
 
-    @PostMapping
+    @PostMapping("/registros")
     public Registro crearRegistro(@RequestBody Registro registro) {
         return registroService.guardarRegistro(registro);
+    }
+
+    @GetMapping("/registros")
+    public List<Registro> obtenerTodos() {
+        return registroService.obtenerTodos();
     }
 }

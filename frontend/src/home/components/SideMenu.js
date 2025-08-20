@@ -11,7 +11,7 @@ import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import LogoutButton from './LogoutButton';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 
 
@@ -92,11 +92,7 @@ export default function SideMenu() {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Cerrar sesión">
-          <IconButton size="small" color="primary" onClick={() => console.log("Logout")}>
-            <LogoutRoundedIcon />
-          </IconButton>
-        </Tooltip>
+        <LogoutButton />
 
       </Stack>
     </Drawer>
