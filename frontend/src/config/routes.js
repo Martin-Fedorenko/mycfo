@@ -16,6 +16,7 @@ import RollingForecast from '../pronostico/cash-flow-forecast/CashFlowForecast';
 import HistorialCambios from '../administracion/historial-cambios/HistorialCambios';
 import Roles from '../administracion/roles/Roles';
 import Invitaciones from '../administracion/invitaciones/Invitaciones';
+import MovimientosCargados from '../registro/movimientos-cargados/MovimientosCargados';
 
 const routeConfig = [
   {
@@ -37,6 +38,12 @@ const routeConfig = [
       { label: "Carga mediante Audio", icon: <DescriptionIcon /> },
       { label: "Carga mediante Imagen", icon: <DescriptionIcon /> },
       { label: "Carga mediante API", icon: <DescriptionIcon /> },
+      {
+        label: "Ver movimientos cargados",
+        path: "/movimientos-cargados",
+        icon: <DescriptionIcon />,
+        element: <MovimientosCargados />
+      },
     ],
   },
   {
@@ -62,7 +69,6 @@ const routeConfig = [
         icon: <DescriptionIcon />,
         element: <ReporteMensual />
       },
-      { label: "Reporte diario", icon: <DescriptionIcon /> },
       { 
         label: "Cash Flow",
         path: "/cash-flow",

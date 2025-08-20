@@ -5,6 +5,8 @@ import registro.models.Registro;
 import registro.repositories.RegistroRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class RegistroService {
 
@@ -15,6 +17,11 @@ public class RegistroService {
     }
 
     public Registro guardarRegistro(Registro registro) {
+
         return registroRepository.save(registro);
+    }
+
+    public List<Registro> obtenerTodos() {
+        return registroRepository.findAll();
     }
 }

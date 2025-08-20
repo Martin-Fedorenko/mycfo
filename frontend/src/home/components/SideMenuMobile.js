@@ -1,7 +1,6 @@
 import * as React from 'react';
 import PropTypes from 'prop-types';
 import Avatar from '@mui/material/Avatar';
-import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 import Stack from '@mui/material/Stack';
@@ -9,12 +8,12 @@ import Typography from '@mui/material/Typography';
 import MenuContent from './MenuContent';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import MenuButton from './MenuButton';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { Box } from '@mui/material';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
+import LogoutButton from './LogoutButton';
 
 function SideMenuMobile({ open, toggleDrawer }) {
   return (
@@ -61,11 +60,7 @@ function SideMenuMobile({ open, toggleDrawer }) {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Cerrar sesión">
-            <IconButton size="small" color="primary" onClick={() => console.log("Logout")}>
-              <LogoutRoundedIcon />
-            </IconButton>
-          </Tooltip>
+          <LogoutButton />
 
           {/* Cerrar menú (como botón de hamburguesa invertido) */}
           <MenuButton aria-label="cerrar menú" onClick={toggleDrawer(false)}>

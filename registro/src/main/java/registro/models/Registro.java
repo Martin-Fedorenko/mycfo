@@ -21,6 +21,8 @@ public class Registro {
     private LocalDateTime fecha;
 
     @ElementCollection
+    @CollectionTable(name = "registro_categorias", joinColumns = @JoinColumn(name = "registro_id"))
+    @Column(name = "categoria")
     private List<String> categorias;
 
     private String tercero;
