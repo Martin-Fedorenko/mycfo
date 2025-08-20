@@ -1,21 +1,39 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
 import {
-  Box, Typography, Paper, Table, TableHead, TableRow,
-  TableCell, TableBody, Grid
+  Box,
+  Typography,
+  Paper,
+  Grid,
+  Button,
+  Tabs,
+  Tab,
+  Avatar,
 } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import axios from 'axios';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
-const tableRowStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
-};
-const tableCellStyle = {
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-};
+// Helper seguro para números
+const safeNumber = (v) =>
+  typeof v === 'number' ? v : v != null && !isNaN(Number(v)) ? Number(v) : 0;
 
-const formatMonto = (valor) => (valor && valor !== 0) ? `$${valor.toLocaleString()}` : '—';
+// Colores
+const INGRESO_COLOR = '#4caf50';
+const EGRESO_COLOR = '#f44336';
+const INGRESO_EST_COLOR = '#a5d6a7';
+const EGRESO_EST_COLOR = '#ef9a9a';
 
 // Mapeo de nombre del mes a número
 const mesANumero = {
@@ -39,9 +57,12 @@ const formatearMes = (mesString) => {
 
 export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
+  const navigate = useNavigate();
+
   const [categorias, setCategorias] = React.useState([]);
   const [nombreMes, setNombreMes] = React.useState('Mes desconocido');
   const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
+  const [tab, setTab] = React.useState(0); // 0: resumen, 1: tabla
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -101,18 +122,40 @@ export default function MesDetalle() {
     }
   }, [nombreUrl, mesNombreUrl]);
 
-  const totalIngresos = categorias
-    .filter(r => r.tipo === 'INGRESO')
-    .reduce((acc, r) => acc + (r.montoReal ?? 0), 0);
-  const totalEgresos = categorias
-    .filter(r => r.tipo === 'EGRESO')
-    .reduce((acc, r) => acc + (r.montoReal ?? 0), 0);
+  // Filtrar categorías
+  const ingresos = categorias.filter(c => c.tipo === 'INGRESO');
+  const egresos = categorias.filter(c => c.tipo === 'EGRESO');
 
-  const safeNumber = (v) =>
-    typeof v === 'number' ? v : v != null && !isNaN(Number(v)) ? Number(v) : 0;
+  // Totales
+  const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.montoReal), 0);
+  const totalEgresos = egresos.reduce((acc, c) => acc + safeNumber(c.montoReal), 0);
+  const resultado = totalIngresos - totalEgresos;
 
-  // === EXPORTACIÓN A EXCEL y PDF ===
-  // (tu lógica original, sin cambios)
+  // Datos para gráficos de INGRESOS
+  const pieDataIngresos = ingresos.map(i => ({
+    name: i.categoria,
+    value: safeNumber(i.montoReal),
+  }));
+
+  const barDataIngresos = ingresos.map(i => ({
+    name: i.categoria,
+    estimado: safeNumber(i.montoEstimado),
+    real: safeNumber(i.montoReal),
+  }));
+
+  // Datos para gráficos de EGRESOS
+  const pieDataEgresos = egresos.map(e => ({
+    name: e.categoria,
+    value: safeNumber(e.montoReal),
+  }));
+
+  const barDataEgresos = egresos.map(e => ({
+    name: e.categoria,
+    estimado: safeNumber(e.montoEstimado),
+    real: safeNumber(e.montoReal),
+  }));
+
+  // === EXPORTACIÓN (igual) ===
   const handleExportExcel = () => {
     const data = [
       ['Categoría', 'Tipo', 'Monto Estimado', 'Monto Registrado'],
@@ -150,62 +193,436 @@ export default function MesDetalle() {
   };
 
   return (
-    <Box id="mes-detalle-content" sx={{ width: '100%', minHeight: '100vh', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Detalle de {nombreMes} - {presupuestoNombre}
+    <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
+      <Typography variant="h4" gutterBottom fontWeight="600">
+        📅 {nombreMes}
       </Typography>
-      <Typography variant="subtitle1" gutterBottom>
-        Visualizá los ingresos y egresos de este mes
+      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+        Detalle de {presupuestoNombre}
       </Typography>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-        <ExportadorSimple
-          onExportPdf={handleExportPdf}
-          onExportExcel={handleExportExcel}
-        />
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 1 }}>
+        <Tabs value={tab} onChange={(e, v) => setTab(v)} indicatorColor="primary">
+          <Tab label="Resumen" />
+          <Tab label="Datos brutos" />
+        </Tabs>
+        <ExportadorSimple onExportPdf={handleExportPdf} onExportExcel={handleExportExcel} />
       </Box>
-      <Paper sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={tableRowStyle}>
-              <TableCell sx={tableCellStyle}>Categoría</TableCell>
-              <TableCell sx={tableCellStyle}>Tipo</TableCell>
-              <TableCell sx={tableCellStyle}>Monto Estimado</TableCell>
-              <TableCell sx={tableCellStyle}>Monto Registrado</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {categorias.map((item, idx) => (
-              <TableRow key={idx} sx={tableRowStyle}>
-                <TableCell sx={tableCellStyle}>{item.categoria}</TableCell>
-                <TableCell sx={tableCellStyle}>{item.tipo}</TableCell>
-                <TableCell sx={tableCellStyle}>{formatMonto(item.montoEstimado)}</TableCell>
-                <TableCell sx={tableCellStyle}>{formatMonto(item.montoReal)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
-      <Box mt={2}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <Paper elevation={1} sx={{ p: 2 }}>
-              <Typography variant="subtitle2">Ingresos totales:</Typography>
-              <Typography variant="h6" color="green">{formatMonto(totalIngresos)}</Typography>
-            </Paper>
+
+      {/* === PESTAÑA 0: RESUMEN VISUAL === */}
+      {tab === 0 && (
+        <>
+          {/* KPIs */}
+          <Grid container spacing={3} mb={4}>
+            <Grid item xs={12} sm={6} md={4}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
+                <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
+                <Typography variant="h6">Ingresos</Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  ${totalIngresos.toLocaleString()}
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white' }}>
+                <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
+                <Typography variant="h6">Egresos</Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  ${totalEgresos.toLocaleString()}
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Paper
+                sx={{
+                  p: 3,
+                  textAlign: 'center',
+                  bgcolor: resultado >= 0 ? 'info.light' : 'warning.light',
+                  color: 'white',
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    bgcolor: 'white',
+                    color: resultado >= 0 ? 'info.main' : 'warning.main',
+                    mx: 'auto',
+                    mb: 1,
+                  }}
+                >
+                  {resultado >= 0 ? '✓' : '⚠'}
+                </Avatar>
+                <Typography variant="h6">Resultado</Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  ${resultado.toLocaleString()}
+                </Typography>
+              </Paper>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper elevation={1} sx={{ p: 2 }}>
-              <Typography variant="subtitle2">Egresos totales:</Typography>
-              <Typography variant="h6" color="red">{formatMonto(totalEgresos)}</Typography>
+
+          {/* === GRÁFICO 1: Distribución de Ingresos === */}
+          {pieDataIngresos.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="600">
+                Distribución de Ingresos por Categoría
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieDataIngresos}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {pieDataIngresos.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={INGRESO_COLOR} opacity={0.7 + index * 0.1} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper elevation={1} sx={{ p: 2 }}>
-              <Typography variant="subtitle2">Resultado final:</Typography>
-              <Typography variant="h6" color="blue">{formatMonto(totalIngresos - totalEgresos)}</Typography>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">No hay ingresos registrados este mes.</Typography>
             </Paper>
-          </Grid>
-        </Grid>
+          )}
+
+          {/* === GRÁFICO 2: Ingresos Estimado vs Real por Categoría (fila por fila) === */}
+          {barDataIngresos.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="600">
+                Ingresos: Estimado vs Real por Categoría
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {barDataIngresos.map((item, index) => {
+                  const max = Math.max(item.estimado, item.real) * 1.2;
+                  return (
+                    <Box key={index} sx={{ mb: 3, '&:last-child': { mb: 0 } }}>
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                        {item.name}
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {/* BARRA ESTIMADO */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Typography variant="body2" sx={{ minWidth: 80 }}>Estimado:</Typography>
+                          <Box sx={{ flex: 1, height: 30 }}>
+                            <ResponsiveContainer width="100%" height={30}>
+                              <BarChart
+                                data={[{ name: item.name, valor: item.estimado }]}
+                                layout="vertical"
+                                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                              >
+                                <XAxis type="number" domain={[0, max]} hide />
+                                <YAxis type="category" dataKey="name" hide />
+                                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                                <Bar
+                                  dataKey="valor"
+                                  fill={INGRESO_EST_COLOR}
+                                  radius={[4, 4, 4, 4]}
+                                  label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </Box>
+                        </Box>
+
+                        {/* BARRA REAL */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Typography variant="body2" sx={{ minWidth: 80 }}>Real:</Typography>
+                          <Box sx={{ flex: 1, height: 30 }}>
+                            <ResponsiveContainer width="100%" height={30}>
+                              <BarChart
+                                data={[{ name: item.name, valor: item.real }]}
+                                layout="vertical"
+                                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                              >
+                                <XAxis type="number" domain={[0, max]} hide />
+                                <YAxis type="category" dataKey="name" hide />
+                                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                                <Bar
+                                  dataKey="valor"
+                                  fill={INGRESO_COLOR}
+                                  radius={[4, 4, 4, 4]}
+                                  label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">No hay categorías de ingreso para comparar.</Typography>
+            </Paper>
+          )}
+
+          {/* === GRÁFICO 2: Ingresos Estimado vs Real por Categoría === */}
+{/*          {barDataIngresos.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="600">
+                Ingresos: Estimado vs Real por Categoría
+              </Typography>
+              <Box
+                sx={{
+                  mt: 1,
+                  minWidth: 0,
+                  width: '100%',
+                  '& .recharts-surface': { width: '100% !important' },
+                }}
+              >
+                <ResponsiveContainer width="100%" height={Math.max(300, barDataIngresos.length * 40)}>
+                  <BarChart
+                    data={barDataIngresos}
+                    layout="vertical"
+                    margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+                    barCategoryGap="20%"
+                    barGap={4}
+                  >
+                    <XAxis
+                      type="number"
+                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                      tick={{ fontSize: 12 }}
+                      minTickGap={10}
+                    />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={120}
+                      interval={0}
+                      tick={{ fontSize: 12 }}
+                      minTickGap={10}
+                      padding={{ right: 20 }}
+                    />
+                    <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                    <Legend />
+                    <Bar dataKey="estimado" fill={INGRESO_EST_COLOR} name="Estimado" radius={[0, 4, 4, 0]} label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }} />
+                    <Bar dataKey="real" fill={INGRESO_COLOR} name="Real" radius={[0, 4, 4, 0]} label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">No hay categorías de ingreso para comparar.</Typography>
+            </Paper>
+          )}
+*/}
+          {/* === GRÁFICO 3: Distribución de Egresos === */}
+          {pieDataEgresos.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="600">
+                Distribución de Egresos por Categoría
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieDataEgresos}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {pieDataEgresos.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={EGRESO_COLOR} opacity={0.7 + index * 0.1} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">No hay egresos registrados este mes.</Typography>
+            </Paper>
+          )}
+
+          {/* === GRÁFICO 4: Egresos Estimado vs Real por Categoría (fila por fila) === */}
+          {barDataEgresos.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="600">
+                Egresos: Estimado vs Real por Categoría
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {barDataEgresos.map((item, index) => {
+                  const max = Math.max(item.estimado, item.real) * 1.2;
+                  return (
+                    <Box key={index} sx={{ mb: 3, '&:last-child': { mb: 0 } }}>
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                        {item.name}
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {/* BARRA ESTIMADO */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Typography variant="body2" sx={{ minWidth: 80 }}>Estimado:</Typography>
+                          <Box sx={{ flex: 1, height: 30 }}>
+                            <ResponsiveContainer width="100%" height={30}>
+                              <BarChart
+                                data={[{ name: item.name, valor: item.estimado }]}
+                                layout="vertical"
+                                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                              >
+                                <XAxis type="number" domain={[0, max]} hide />
+                                <YAxis type="category" dataKey="name" hide />
+                                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                                <Bar
+                                  dataKey="valor"
+                                  fill={EGRESO_EST_COLOR}
+                                  radius={[4, 4, 4, 4]}
+                                  label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </Box>
+                        </Box>
+
+                        {/* BARRA REAL */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Typography variant="body2" sx={{ minWidth: 80 }}>Real:</Typography>
+                          <Box sx={{ flex: 1, height: 30 }}>
+                            <ResponsiveContainer width="100%" height={30}>
+                              <BarChart
+                                data={[{ name: item.name, valor: item.real }]}
+                                layout="vertical"
+                                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                              >
+                                <XAxis type="number" domain={[0, max]} hide />
+                                <YAxis type="category" dataKey="name" hide />
+                                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                                <Bar
+                                  dataKey="valor"
+                                  fill={EGRESO_COLOR}
+                                  radius={[4, 4, 4, 4]}
+                                  label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">No hay categorías de egreso para comparar.</Typography>
+            </Paper>
+          )}
+
+          {/* === GRÁFICO 4: Egresos Estimado vs Real por Categoría === */}
+{/*          {barDataEgresos.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="600">
+                Egresos: Estimado vs Real por Categoría
+              </Typography>
+              <Box
+                sx={{
+                  mt: 1,
+                  minWidth: 0,
+                  width: '100%',
+                  '& .recharts-surface': { width: '100% !important' },
+                }}
+              >
+                <ResponsiveContainer width="100%" height={Math.max(300, barDataEgresos.length * 40)}>
+                  <BarChart
+                    data={barDataEgresos}
+                    layout="vertical"
+                    margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+                    barCategoryGap="20%"
+                    barGap={4}
+                  >
+                    <XAxis
+                      type="number"
+                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                      tick={{ fontSize: 12 }}
+                      minTickGap={10}
+                    />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={120}
+                      interval={0}
+                      tick={{ fontSize: 12 }}
+                      minTickGap={10}
+                      padding={{ right: 20 }}
+                    />
+                    <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                    <Legend />
+                    <Bar dataKey="estimado" fill={EGRESO_EST_COLOR} name="Estimado" radius={[0, 4, 4, 0]} label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }} />
+                    <Bar dataKey="real" fill={EGRESO_COLOR} name="Real" radius={[0, 4, 4, 0]} label={{ position: 'right', formatter: (v) => `$${v.toLocaleString()}` }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">No hay categorías de egreso para comparar.</Typography>
+            </Paper>
+          )}
+*/}
+        </>
+      )}
+
+      {/* === PESTAÑA 1: TABLA ORIGINAL === */}
+      {tab === 1 && (
+        <Paper sx={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{
+                backgroundColor: 'background.paper',
+                color: 'text.primary',
+                fontWeight: 'bold',
+                borderBottom: '1px solid',
+                borderColor: 'divider'
+              }}>
+                <th style={{ padding: '12px', borderRight: '1px solid', borderColor: 'divider' }}>Categoría</th>
+                <th style={{ padding: '12px', borderRight: '1px solid', borderColor: 'divider' }}>Tipo</th>
+                <th style={{ padding: '12px', borderRight: '1px solid', borderColor: 'divider' }}>Monto Estimado</th>
+                <th style={{ padding: '12px' }}>Monto Registrado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categorias.length > 0 ? (
+                categorias.map((item, idx) => (
+                  <tr key={idx}>
+                    <td style={{ padding: '12px', border: 'none', borderBottom: '1px solid', borderColor: 'divider', borderRight: '1px solid', borderColor: 'divider' }}>{item.categoria}</td>
+                    <td style={{ padding: '12px', border: 'none', borderBottom: '1px solid', borderColor: 'divider', borderRight: '1px solid', borderColor: 'divider' }}>{item.tipo}</td>
+                    <td style={{ padding: '12px', border: 'none', borderBottom: '1px solid', borderColor: 'divider', borderRight: '1px solid', borderColor: 'divider' }}>${safeNumber(item.montoEstimado).toLocaleString()}</td>
+                    <td style={{ padding: '12px', border: 'none', borderBottom: '1px solid', borderColor: 'divider' }}>${safeNumber(item.montoReal).toLocaleString()}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: 'text.secondary' }}>
+                    No hay datos disponibles.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </Paper>
+      )}
+
+      {/* Botón de volver */}
+      <Box mt={4} display="flex" justifyContent="flex-end">
+        <Button variant="outlined" onClick={() => navigate(-1)}>
+          Volver
+        </Button>
       </Box>
     </Box>
   );
