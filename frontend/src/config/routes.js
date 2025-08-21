@@ -84,24 +84,24 @@ const routeConfig = [
     children: [
       {
         label: "Presupuesto",
-        path: "/presupuesto",
+        path: "/presupuestos",
         icon: <DescriptionIcon />,
         element: <Presupuesto />,
         children: [
           {
             label: "Nuevo",
-            path: "/presupuesto/nuevo",
+            path: "/presupuestos/nuevo",
             element: <PresupuestoNuevo />
           },
           {
             label: "Detalle",
-            path: "/presupuesto/:id",
+            path: "/presupuestos/:nombre",
             element: <PresupuestoDetalle />
           },
           {
-          label: (params) => `Mes ${params.mes} - ${params.id}`, // función para generar label dinámico
-          path: "/presupuesto/:id/mes/:mes",
-          element: <MesDetalle />
+            label: (params) => `Mes ${params.mesNombre}`,
+            path: "/presupuestos/:nombre/detalle/:mesNombre",
+            element: <MesDetalle />
           },
         ]
       },
