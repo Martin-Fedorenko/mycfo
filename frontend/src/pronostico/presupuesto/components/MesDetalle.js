@@ -367,6 +367,7 @@ export default function MesDetalle() {
             </Paper>
           )}
 
+//TODO: ASI TENDRIAN QUE SER LO GRAFICOS DE LA PATALLA DE REPORTES
           {/* === GRÁFICO 2: Ingresos Estimado vs Real por Categoría === */}
 {/*          {barDataIngresos.length > 0 ? (
             <Paper sx={{ p: 3, mb: 4 }}>
