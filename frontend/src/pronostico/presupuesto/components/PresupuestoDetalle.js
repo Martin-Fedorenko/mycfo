@@ -40,7 +40,7 @@ const DEFICIT_COLOR = '#f44336';
 
 // Mapeo de número de mes a nombre corto
 const mesCorto = (num) => {
-  const nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const nombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   return nombres[parseInt(num, 10) - 1] || num;
 };
 
