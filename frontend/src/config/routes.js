@@ -17,6 +17,7 @@ import HistorialCambios from '../administracion/historial-cambios/HistorialCambi
 import Roles from '../administracion/roles/Roles';
 import Invitaciones from '../administracion/invitaciones/Invitaciones';
 import MovimientosCargados from '../registro/movimientos-cargados/MovimientosCargados';
+import CargaGeneral from '../registro/carga-general/CargaGeneral';
 
 const routeConfig = [
   {
@@ -43,6 +44,12 @@ const routeConfig = [
         path: "/movimientos-cargados",
         icon: <DescriptionIcon />,
         element: <MovimientosCargados />
+      },
+      {
+        label: "Carga general",
+        path: "/carga",
+        icon: <DescriptionIcon />,
+        element: <CargaGeneral />
       },
     ],
   },
