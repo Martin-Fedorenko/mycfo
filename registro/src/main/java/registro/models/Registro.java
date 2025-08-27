@@ -4,29 +4,44 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
-@Entity @Getter @Setter
+@Entity
+@Getter
+@Setter
 public class Registro {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String tipo;
+    // Tipo de registro: INGRESO / EGRESO / DEUDA / ACREENCIA
+    @Enumerated(EnumType.STRING)
+    private TipoRegistro tipo;
 
     private Double monto;
 
-    private LocalDateTime fecha;
+    private LocalDate fechaEmision;
+    private LocalDate fechaCreacion;
+    private LocalDate fechaActualizacion;
+
+    private UUID usuario;
 
     @ElementCollection
     @CollectionTable(name = "registro_categorias", joinColumns = @JoinColumn(name = "registro_id"))
     @Column(name = "categoria")
     private List<String> categorias;
 
-    private String tercero;
+    private String tercero;      // Cliente/proveedor
+    private String descripcion;  // Detalle libre
 
-    private String comentario;
+    @Enumerated(EnumType.STRING)
+    private TipoMedioPago medioPago;        // efectivo, transferencia, etc.
 
+    @Enumerated(EnumType.STRING)
+    private TipoMoneda moneda;           // ARS, USD, EUR...
+
+    private String documentoComercial;
 }

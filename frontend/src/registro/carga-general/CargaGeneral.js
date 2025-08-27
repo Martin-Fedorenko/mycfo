@@ -9,6 +9,7 @@ import { CameraAlt, Mic, Description, Edit } from "@mui/icons-material";
 import axios from "axios";
 import CustomButton from "../../shared-components/CustomButton";
 import Webcam from "react-webcam";
+import DropzoneUploader from "../../shared-components/DropzoneUploader";
 
 const FormGrid = styled(Grid)(() => ({
   display: "flex",
@@ -71,6 +72,18 @@ export default function CargaGeneral() {
       foto: "/comprobantes/foto",
       audio: "/comprobantes/audio",
     },
+  };
+
+  // documento
+  const [file, setFile] = React.useState(null);
+  const [resumen, setResumen] = React.useState(null);
+  const [error, setError] = React.useState("");
+
+  const handleFileSelected = (archivo) => {
+    setFile(archivo);
+    setError("");
+    setResumen(null);
+    console.log("Archivo recibido:", archivo);
   };
 
   const handleSubmit = async () => {
@@ -140,23 +153,39 @@ export default function CargaGeneral() {
         return (
           <Box sx={{ mt: 3 }}>
             <Typography variant="h6">Subir documento para {tipoDoc}</Typography>
-            <input type="file" accept=".pdf,.jpg,.png" onChange={(e) => setArchivo(e.target.files[0])} />
+            <DropzoneUploader
+              onFileSelected={handleFileSelected}
+              width="100%"
+              height={140}
+              accept={{
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [],
+                "application/vnd.ms-excel": [],
+              }}
+            />
             <CustomButton label="Subir documento" width="100%" sx={{ mt: 2 }} onClick={handleSubmit} />
           </Box>
         );
 
       case "foto":
         return (
-          <Box sx={{ mt: 3 }}>
+          <Box sx={{ mt: 3, gap: 2,}}>
             <Typography variant="h6">Sacar foto para {tipoDoc}</Typography>
             <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" style={{ width: "100%" }} />
-            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-              <CustomButton label="Capturar foto" onClick={() => {
-                const img = webcamRef.current.getScreenshot();
-                setFoto(img); setArchivo(null);
-              }} />
-              <input type="file" accept="image/*" onChange={(e) => setArchivo(e.target.files[0])} />
-            </Box>
+            
+            <CustomButton label="Capturar foto" width="100%"  onClick={() => {
+              const img = webcamRef.current.getScreenshot();
+              setFoto(img); setArchivo(null);
+            }} />
+
+            <DropzoneUploader
+            onFileSelected={handleFileSelected}
+            width="100%"
+            height={100}
+            accept={{
+              "image/*": []
+            }}
+            />
+
             {foto && <Box sx={{ mt: 2 }}><img src={foto} alt="captura" style={{ maxWidth: "100%" }} /></Box>}
             <CustomButton label="Enviar foto" width="100%" sx={{ mt: 2 }} onClick={handleSubmit} />
           </Box>
@@ -164,12 +193,19 @@ export default function CargaGeneral() {
 
       case "audio":
         return (
-          <Box sx={{ mt: 3 }}>
+          <Box sx={{ mt: 3, gap: 2,}}>
             <Typography variant="h6">Grabar audio para {tipoDoc}</Typography>
-            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-              <CustomButton label={grabando ? "Detener" : "Grabar"} onClick={grabando ? stopRecording : startRecording} />
-              <input type="file" accept="audio/*" onChange={(e) => setArchivo(e.target.files[0])} />
-            </Box>
+            
+            <CustomButton label={grabando ? "Detener" : "Grabar"} width="100%" sx={{ mt: 2 }} onClick={grabando ? stopRecording : startRecording} />
+            <DropzoneUploader
+              onFileSelected={handleFileSelected}
+              width="100%"
+              height={140}
+              accept={{
+                "audio/*": []
+              }}
+            />
+
             {audioUrl && (
               <Box sx={{ mt: 2 }}>
                 <audio controls src={audioUrl} />
