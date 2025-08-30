@@ -21,27 +21,28 @@ public class Registro {
     @Enumerated(EnumType.STRING)
     private TipoRegistro tipo;
 
-    private Double monto;
+    private Double montoTotal; //obligatorio
 
-    private LocalDate fechaEmision;
+    private LocalDate fechaEmision; //obligatorio
+
+    private String categoria;
+    private String origen;
+    private String destino;
+    private String descripcion;  // Detalle libre
+
+    // historial
     private LocalDate fechaCreacion;
     private LocalDate fechaActualizacion;
 
     private UUID usuario;
 
-    @ElementCollection
-    @CollectionTable(name = "registro_categorias", joinColumns = @JoinColumn(name = "registro_id"))
-    @Column(name = "categoria")
-    private List<String> categorias;
-
-    private String tercero;      // Cliente/proveedor
-    private String descripcion;  // Detalle libre
-
     @Enumerated(EnumType.STRING)
     private TipoMedioPago medioPago;        // efectivo, transferencia, etc.
 
     @Enumerated(EnumType.STRING)
-    private TipoMoneda moneda;           // ARS, USD, EUR...
+    private TipoMoneda moneda;           //obligatorio
 
-    private String documentoComercial;
+    @ManyToOne
+    @JoinColumn(name = "id_documento")
+    private DocumentoComercial documentoComercial;
 }

@@ -17,6 +17,7 @@ function ButtonField(props) {
   const pickerContext = usePickerContext();
   const handleRef = useForkRef(pickerContext.triggerRef, pickerContext.rootRef);
   const parsedFormat = useParsedFormat();
+
   const valueStr =
     pickerContext.value == null
       ? parsedFormat
@@ -29,7 +30,7 @@ function ButtonField(props) {
       ref={handleRef}
       size="small"
       startIcon={<CalendarTodayRoundedIcon fontSize="small" />}
-      sx={{ minWidth: 'fit-content', width: '100%' }} // 👉 que ocupe todo
+      sx={{ minWidth: 'fit-content', width: '100%' }}
       onClick={() => pickerContext.setOpen((prev) => !prev)}
     >
       {pickerContext.label ?? valueStr}
@@ -37,22 +38,20 @@ function ButtonField(props) {
   );
 }
 
-export default function CustomDatePicker() {
-  const [value, setValue] = React.useState(dayjs()); // 👉 arranca en hoy
-
+export default function CustomDatePicker({ value, onChange }) {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DatePicker
         value={value}
         label={value == null ? null : value.format('MMM DD, YYYY')}
-        onChange={(newValue) => setValue(newValue)}
+        onChange={onChange}
         slots={{ field: ButtonField }}
         slotProps={{
           nextIconButton: { size: 'small' },
           previousIconButton: { size: 'small' },
         }}
         views={['day', 'month', 'year']}
-        sx={{ width: '100%' }} // 👉 ancho completo
+        sx={{ width: '100%' }}
       />
     </LocalizationProvider>
   );

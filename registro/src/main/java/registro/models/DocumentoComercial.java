@@ -10,23 +10,40 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = InheritanceType.JOINED)
 public abstract class DocumentoComercial {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long idDocumento;
 
+    private String tipoDocumento;
+
     @Column(nullable = false, unique = true)
-    private String numeroDocumento;
-    private LocalDate fechaEmision;
+    private String numeroDocumento; //obligatorio
+
+    private LocalDate fechaEmision; //obligatorio
+
+    private Double montoTotal; //obligatorio
+
+    @Enumerated(EnumType.STRING)
+    private TipoMoneda moneda; //obligatorio
+
+    private String categoria; //obligatorio
+
+    private EstadoDocumentoComercial estadoDocumentoComercial; //obligatorio
+
+
+
+    @Enumerated(EnumType.STRING)
+    private VersionDocumento versionDocumento; //obligatorio
 
     // historial
-    private LocalDate fechaCreacion;
-    private LocalDate fechaActualizacion;
-    private UUID usuario;
+    private LocalDate fechaCreacion; //interno
+    private LocalDate fechaActualizacion; //interno
+    private UUID usuario; //interno
 
     // Datos fiscales comunes
-    private String cae;
-    private LocalDate vencimientoCae;
+    private String cae; //adicional
+    private LocalDate vencimientoCae; //adicional
 }

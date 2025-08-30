@@ -5,31 +5,28 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity @Getter @Setter
 public class Recibo extends DocumentoComercial{
 
     // --- Datos emisor ---
-    private String emisorNombre;
+    private String emisorNombre; //obligatorio
     private String emisorDomicilio;
     private String emisorCuit;
     private String emisorIngresosBrutos;
     private String emisorCondicionIVA;
 
     // --- Datos comprador/pagador ---
-    private String compradorNombre;
+    private String compradorNombre; //obligatorio
     private String compradorCuit;
+    private String CompradorDomicilio;
 
-    // --- Detalle de pago ---
-    private String tipoPago;
-    private Double montoTotal;
-    private String motivoPago;
     private String condicionPago;
     private Double saldoPendiente;
 
-    // --- Datos fiscales ---
-    private String cae;
-    private LocalDate vencimientoCae;
+    @Enumerated(EnumType.STRING)
+    private TipoMedioPago medioPago;
 
     // --- Factura asociada ---
     @ManyToOne

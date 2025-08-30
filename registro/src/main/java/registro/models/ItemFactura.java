@@ -16,7 +16,7 @@ public class ItemFactura {
     private Double precioUnitario;
     private Double subtotalSinIva;
     private Double alicuotaIva;
-    private Double totalItem;
+    private Double montoTotalItem;
 
     @ManyToOne
     @JoinColumn(name = "factura_id")
