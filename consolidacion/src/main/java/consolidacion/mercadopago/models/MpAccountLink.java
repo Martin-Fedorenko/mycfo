@@ -2,29 +2,70 @@ package consolidacion.mercadopago.models;
 
 import consolidacion.mercadopago.config.CryptoConverter;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 
 @Entity @Table(name="mp_account_link")
 public class MpAccountLink {
+
+    @Setter
+    @Getter
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+
+    @Setter
+    @Getter
     @Column(nullable=false) private Long userIdApp;
+
+    @Setter
+    @Getter
     @Column(nullable=false, unique=true) private String mpUserId;
+
+    @Setter
+    @Getter
+    @Column(nullable=false, unique=true) private String nickname;
+
+    @Setter
+    @Getter
     @Column(nullable=false) private String email;
+
+    @Setter
+    @Getter
     @Convert(converter = CryptoConverter.class) @Column(nullable=false, length=2048) private String accessToken;
+
+    @Setter
+    @Getter
     @Convert(converter = CryptoConverter.class) @Column(nullable=false, length=2048) private String refreshToken;
+
+    @Setter
+    @Getter
     private String scope;
+
+    @Setter
+    @Getter
     @Column(nullable=false) private Instant expiresAt;
+
+    @Setter
+    @Getter
     @Column(nullable=false) private Instant createdAt;
+
+    @Setter
+    @Getter
     @Column(nullable=false) private Instant updatedAt;
-    // getters/setters
-    public Long getId(){return id;} public void setId(Long v){this.id=v;}
-    public Long getUserIdApp(){return userIdApp;} public void setUserIdApp(Long v){this.userIdApp=v;}
-    public String getMpUserId(){return mpUserId;} public void setMpUserId(String v){this.mpUserId=v;}
-    public String getEmail(){return email;} public void setEmail(String v){this.email=v;}
-    public String getAccessToken(){return accessToken;} public void setAccessToken(String v){this.accessToken=v;}
-    public String getRefreshToken(){return refreshToken;} public void setRefreshToken(String v){this.refreshToken=v;}
-    public String getScope(){return scope;} public void setScope(String v){this.scope=v;}
-    public Instant getExpiresAt(){return expiresAt;} public void setExpiresAt(Instant v){this.expiresAt=v;}
-    public Instant getCreatedAt(){return createdAt;} public void setCreatedAt(Instant v){this.createdAt=v;}
-    public Instant getUpdatedAt(){return updatedAt;} public void setUpdatedAt(Instant v){this.updatedAt=v;}
+
+    @Setter
+    @Getter
+    @Column private String siteId;
+
+    @Setter
+    @Getter
+    @Column private Boolean liveMode;
+
+    @Lob
+    private byte[] accessTokenEnc;
+
+    @Lob
+    private byte[] refreshTokenEnc;
+
 }

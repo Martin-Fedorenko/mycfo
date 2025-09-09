@@ -1,80 +1,118 @@
+// /mercado-pago/components/MpToolbar.js
 import React from "react";
-import { Box, Stack, TextField, Button, MenuItem } from "@mui/material";
+import {
+  Toolbar,
+  Stack,
+  Chip,
+  TextField,
+  MenuItem,
+  IconButton,
+  Tooltip,
+  Button,
+  Divider,
+  Box,
+} from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import SettingsIcon from "@mui/icons-material/Settings";
+import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import IosShareIcon from "@mui/icons-material/IosShare";
+import { PAYMENT_STATUS } from "../catalogs";
 
 export default function MpToolbar({
-  accountId,
-  from,
-  to,
-  q,
-  onChange,
+  accountLabel,
+  filters,
+  onFiltersChange,
   onOpenImport,
   onOpenConfig,
-  onFacturar,
-  disableFacturar,
+  onUnlink,
+  onRefresh,
+  onExport,
+  onBillSelected,
+  selectedCount = 0,
 }) {
+  const set = (patch) => onFiltersChange({ ...filters, ...patch });
+
   return (
-    <Stack
-      direction="row"
-      spacing={2}
-      alignItems="center"
-      sx={{ my: 2, flexWrap: "wrap" }}
-    >
-      <TextField
-        select
-        label="Cuenta MP"
-        value={accountId ?? ""}
-        onChange={(e) =>
-          onChange({
-            accountId: e.target.value ? Number(e.target.value) : undefined,
-            from,
-            to,
-            q,
-          })
-        }
-        sx={{ minWidth: 220 }}
-      >
-        {/* TODO: poblar con cuentas reales del backend */}
-        <MenuItem value={1}>Cuenta MP (Demo)</MenuItem>
-      </TextField>
+    <Toolbar sx={{ p: 2, gap: 2, flexWrap: "wrap" }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mr: 2 }}>
+        <Chip label={accountLabel} color="primary" variant="outlined" />
+      </Stack>
 
       <TextField
+        size="small"
+        type="date"
         label="Desde"
-        type="date"
-        value={from || ""}
-        onChange={(e) => onChange({ accountId, from: e.target.value, to, q })}
         InputLabelProps={{ shrink: true }}
+        value={filters.from}
+        onChange={(e) => set({ from: e.target.value })}
       />
       <TextField
+        size="small"
+        type="date"
         label="Hasta"
-        type="date"
-        value={to || ""}
-        onChange={(e) => onChange({ accountId, from, to: e.target.value, q })}
         InputLabelProps={{ shrink: true }}
+        value={filters.to}
+        onChange={(e) => set({ to: e.target.value })}
       />
-
       <TextField
+        size="small"
+        select
+        label="Estado"
+        sx={{ minWidth: 160 }}
+        value={filters.payStatus}
+        onChange={(e) => set({ payStatus: e.target.value })}
+      >
+        <MenuItem value="">Todos</MenuItem>
+        {PAYMENT_STATUS.map((s) => (
+          <MenuItem key={s.value} value={s.value}>
+            {s.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        size="small"
         label="Buscar"
-        value={q || ""}
-        onChange={(e) => onChange({ accountId, from, to, q: e.target.value })}
-        placeholder="Número, detalle o comprador"
-        sx={{ minWidth: 280 }}
+        placeholder="ID, comprador, comprobante, detalle…"
+        value={filters.q}
+        onChange={(e) => set({ q: e.target.value })}
+        sx={{ minWidth: 260 }}
       />
 
-      <Box sx={{ flex: 1 }} />
-      <Button variant="outlined" onClick={onOpenConfig}>
-        Configurar
-      </Button>
-      <Button variant="contained" onClick={onOpenImport}>
+      <Box sx={{ flexGrow: 1 }} />
+
+      <Tooltip title="Refrescar">
+        <IconButton onClick={onRefresh}>
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
+
+      <Divider flexItem orientation="vertical" />
+
+      <Button startIcon={<CloudDownloadIcon />} onClick={onOpenImport}>
         Importar
       </Button>
       <Button
-        variant="contained"
-        color="secondary"
-        onClick={onFacturar}
-        disabled={disableFacturar}
+        startIcon={<ReceiptLongIcon />}
+        disabled={!selectedCount}
+        onClick={onBillSelected}
       >
-        Facturar
+        Facturar ({selectedCount})
       </Button>
-    </Stack>
+      <Button startIcon={<IosShareIcon />} onClick={onExport}>
+        Exportar
+      </Button>
+      <Tooltip title="Configuración">
+        <IconButton onClick={onOpenConfig}>
+          <SettingsIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Desvincular">
+        <IconButton color="error" onClick={onUnlink}>
+          <LinkOffIcon />
+        </IconButton>
+      </Tooltip>
+    </Toolbar>
   );
 }

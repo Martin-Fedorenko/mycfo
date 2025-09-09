@@ -1,3 +1,4 @@
+// /mercado-pago/components/MpLinkCard.js
 import React from "react";
 import {
   Card,
@@ -6,45 +7,55 @@ import {
   Button,
   Typography,
   Stack,
+  Alert,
 } from "@mui/material";
-import { mpApi } from "../..//mercado-pago/mpApi";
-import catalogs from "../..//mercado-pago/catalogs";
+import { mpApi } from "../mpApi";
 
 export default function MpLinkCard({ onLinked }) {
-  const onLink = async () => {
-    const { url } = await mpApi.getOauthUrl();
-    window.location.href = url; // redirección a OAuth de MP
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+
+  const startLink = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const url = await mpApi.startOAuth();
+      if (!url) throw new Error("URL de autorización vacía");
+      window.location.href = url;
+    } catch (e) {
+      setErr(e?.message || "No se pudo iniciar la vinculación");
+      setBusy(false);
+    }
   };
 
   React.useEffect(() => {
-    // Si volvés de OAuth con ?linked=1 podés refrescar estado
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("linked") === "1" && onLinked) onLinked();
+    const p = new URLSearchParams(window.location.search);
+    if ((p.get("mp") === "linked" || p.get("linked") === "1") && onLinked)
+      onLinked();
   }, [onLinked]);
 
   return (
-    <Card sx={{ maxWidth: 720, mx: "auto", mt: 6, textAlign: "center", p: 2 }}>
+    <Card sx={{ maxWidth: 720, mx: "auto", mt: 6 }}>
       <CardContent>
-        <Stack spacing={2} alignItems="center">
-          {/* Poné tu logo en /public/assets/mp-logo.svg si querés */}
-          <img
-            src="/assets/mp-logo.svg"
-            alt="Mercado Pago"
-            style={{ height: 40 }}
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-          <Typography variant="h6">{catalogs.labels.vincularTitle}</Typography>
-          <Typography color="text.secondary">
-            {catalogs.labels.vincularDesc}
+        <Stack spacing={1.2}>
+          <Typography variant="h5">
+            Vincular tu cuenta de Mercado Pago
           </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Serás redirigido a Mercado Pago para otorgar permisos. Solo se piden
+            alcances para <strong>leer pagos</strong> e integrar{" "}
+            <strong>facturación</strong>.
+          </Typography>
+          {err && <Alert severity="error">{err}</Alert>}
         </Stack>
       </CardContent>
-      <CardActions sx={{ justifyContent: "center", pb: 2 }}>
-        <Button variant="contained" color="success" onClick={onLink}>
-          {catalogs.labels.iniciarVinculacion}
+      <CardActions sx={{ px: 2, pb: 2 }}>
+        <Button variant="contained" onClick={startLink} disabled={busy}>
+          {busy ? "Redirigiendo..." : "Vincular con Mercado Pago"}
         </Button>
+        <Typography variant="caption" sx={{ ml: 1 }} color="text.secondary">
+          Podrás desvincular cuando quieras desde Configuración.
+        </Typography>
       </CardActions>
     </Card>
   );
