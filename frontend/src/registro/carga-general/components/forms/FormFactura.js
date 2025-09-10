@@ -34,7 +34,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
             onChange={(valor) =>
               setFormData((p) => ({ ...p, versionDocumento: valor }))
             }
-            options={["ORIGINAL", "DUPLICADO"]}
+            options={["Original", "Duplicado"]}
             width="100%"
             error={!!errors.versionDocumento}
           />
@@ -160,7 +160,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
             onChange={(valor) =>
               setFormData((p) => ({ ...p, vendedorCondicionIVA: valor }))
             }
-            options={["RESPONSABLE_INSCRIPTO", "MONOTRIBUTO", "EXENTO"]}
+            options={["Responsable Inscripto", "Monotributo", "Exento"]}
             width="100%"
           />
         </Box>
@@ -212,7 +212,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
             onChange={(valor) =>
               setFormData((p) => ({ ...p, compradorCondicionIVA: valor }))
             }
-            options={["RESPONSABLE_INSCRIPTO", "MONOTRIBUTO", "EXENTO"]}
+            options={["Responsable Inscripto", "Monotributo", "Exento"]}
             width="100%"
           />
         </Box>

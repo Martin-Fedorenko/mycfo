@@ -7,27 +7,67 @@ import FormRecibo from "./forms/FormRecibo";
 import FormPagare from "./forms/FormPagare";
 import FormRegistro from "./forms/FormRegistro";
 
-export default function CargaFormulario({ tipoDoc, endpoint, formData, setFormData, errors, setErrors }) {
+// 📌 Campos obligatorios por tipo de documento
+const requiredFieldsMap = {
+  Factura: [
+    "numeroDocumento",
+    "versionDocumento",
+    "tipoFactura",
+    "fechaEmision",
+    "montoTotal",
+    "moneda",
+    "categoria",
+    "vendedorNombre",
+    "compradorNombre",
+  ],
+  Recibo: [
+    "numeroDocumento",
+    "versionDocumento",
+    "fechaEmision",
+    "montoTotal",
+    "moneda",
+    "medioPago",
+    "categoria",
+  ],
+  Pagare: [
+    "numeroDocumento",
+    "versionDocumento",
+    "fechaEmision",
+    "montoTotal",
+    "moneda",
+    "fechaVencimiento",
+    "beneficiarioNombre",
+    "deudorNombre",
+  ],
+  Ingreso: ["montoTotal", "moneda", "medioPago", "fechaEmision"],
+  Egreso: ["montoTotal", "moneda", "medioPago", "fechaEmision"],
+};
 
+export default function CargaFormulario({
+  tipoDoc,
+  endpoint,
+  formData,
+  setFormData,
+  errors,
+  setErrors,
+}) {
   const handleSubmit = async () => {
     if (!endpoint) return;
 
-    // Validación de campos obligatorios
+    // ✅ Validación dinámica
     const newErrors = {};
-    if (!formData.numeroDocumento) newErrors.numeroDocumento = "Campo obligatorio";
-    if (!formData.versionDocumento) newErrors.versionDocumento = "Campo obligatorio";
-    if (!formData.tipoFactura) newErrors.tipoFactura = "Campo obligatorio";
-    if (!formData.fechaEmision) newErrors.fechaEmision = "Campo obligatorio";
-    if (!formData.montoTotal) newErrors.montoTotal = "Campo obligatorio";
-    if (!formData.moneda) newErrors.moneda = "Campo obligatorio";
-    if (!formData.categoria) newErrors.categoria = "Campo obligatorio";
-    if (!formData.vendedorNombre) newErrors.vendedorNombre = "Campo obligatorio";
-    if (!formData.compradorNombre) newErrors.compradorNombre = "Campo obligatorio";
+    const requiredFields = requiredFieldsMap[tipoDoc] || [];
+
+    requiredFields.forEach((field) => {
+      if (!formData[field]) {
+        newErrors[field] = "Campo obligatorio";
+      }
+    });
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      return; // 🚫 no enviar si hay errores
+      return; // 🚫 No enviar si hay errores
     }
 
     try {
@@ -44,12 +84,30 @@ export default function CargaFormulario({ tipoDoc, endpoint, formData, setFormDa
   const renderFormulario = () => {
     switch (tipoDoc) {
       case "Factura":
-        return <FormFactura formData={formData} setFormData={setFormData} errors={errors} />;
+        return (
+          <FormFactura
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
+        );
       case "Recibo":
-        return <FormRecibo formData={formData} setFormData={setFormData} errors={errors} />;
+        return (
+          <FormRecibo
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
+        );
       case "Pagaré":
       case "Pagare":
-        return <FormPagare formData={formData} setFormData={setFormData} errors={errors} />;
+        return (
+          <FormPagare
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
+        );
       case "Ingreso":
       case "Egreso":
         return (

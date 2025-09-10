@@ -1,7 +1,9 @@
 package registro.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum TipoMedioPago {
-    EFECTIVO,
-    TRANSFERENCIA,
-    CHEQUE
+    Efectivo,
+    Transferencia,
+    Cheque;
 }

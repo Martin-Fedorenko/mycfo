@@ -36,16 +36,16 @@ export default function CargaGeneral() {
       audio: `${API_BASE}/pagares/audio`,
     },
     Ingreso: {
-      formulario: `${API_BASE}/ingresos/formulario`,
-      documento: `${API_BASE}/ingresos/documento`,
-      foto: `${API_BASE}/ingresos/foto`,
-      audio: `${API_BASE}/ingresos/audio`,
+      formulario: `${API_BASE}/registros/formulario`,
+      documento: `${API_BASE}/registros/documento`,
+      foto: `${API_BASE}/registros/foto`,
+      audio: `${API_BASE}/registros/audio`,
     },
     Egreso: {
-      formulario: `${API_BASE}/egresos/formulario`,
-      documento: `${API_BASE}/egresos/documento`,
-      foto: `${API_BASE}/egresos/foto`,
-      audio: `${API_BASE}/egresos/audio`,
+      formulario: `${API_BASE}/registros/formulario`,
+      documento: `${API_BASE}/registros/documento`,
+      foto: `${API_BASE}/registros/foto`,
+      audio: `${API_BASE}/registros/audio`,
     },
   };
 

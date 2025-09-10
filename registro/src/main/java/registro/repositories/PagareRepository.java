@@ -7,5 +7,4 @@ import registro.models.Pagare;
 @Repository
 public interface PagareRepository extends JpaRepository<Pagare, Long> {
 
-    Pagare findByNumeroDocumento(String numeroDocumento);
 }

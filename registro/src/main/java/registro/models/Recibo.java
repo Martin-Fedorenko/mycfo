@@ -3,37 +3,34 @@ package registro.models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.time.LocalDate;
-import java.util.List;
 
-@Entity @Getter @Setter
-public class Recibo extends DocumentoComercial{
-
-    // --- Datos emisor ---
-    private String emisorNombre; //obligatorio
-    private String emisorDomicilio;
-    private String emisorCuit;
-
-    // --- Datos comprador/pagador ---
-    private String compradorNombre; //obligatorio
-    private String compradorCuit;
-    private String CompradorDomicilio;
-
-    private Double saldoPendiente;
+@Entity
+@Getter
+@Setter
+public class Recibo extends DocumentoComercial {
 
     @Enumerated(EnumType.STRING)
-    private TipoMedioPago medioPago;
+    private TipoMedioPago medioPago; // EFECTIVO, TRANSFERENCIA, CHEQUE (obligatorio)
 
-    // --- Factura asociada ---
+    // --- Datos del receptor ---
+    private String receptorNombre; // obligatorio
+    private String receptorCuit;
+    private String receptorCondicionIVA;
+    private String receptorDomicilio;
+
+    // --- Datos del emisor ---
+    private String emisorNombre; // obligatorio
+    private String emisorCuit;
+    private String emisorCondicionIVA;
+    private String emisorDomicilio;
+
+    // --- Documento asociado ---
     @ManyToOne
     @JoinColumn(name = "factura_id")
-    private Factura factura;
+    private Factura factura; // opcional
 
-    // --- Pagare asociado ---
     @ManyToOne
     @JoinColumn(name = "pagare_id")
-    private Pagare pagare;
-
+    private Pagare pagare; // opcional
 }
-

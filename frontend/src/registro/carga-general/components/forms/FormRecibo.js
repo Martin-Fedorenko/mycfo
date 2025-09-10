@@ -1,16 +1,14 @@
-import React, { useState } from "react";
-import { Box, FormLabel } from "@mui/material";
+import React from "react";
+import { Box, FormLabel, FormHelperText } from "@mui/material";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 
-export default function FormRecibo({ formData, setFormData }) {
-  const [showExtras, setShowExtras] = useState(false);
-
+export default function FormRecibo({ formData, setFormData, errors = {} }) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
-
+      
       {/* 1️⃣ Número documento */}
       <Box>
         <FormLabel>Número documento *</FormLabel>
@@ -21,8 +19,11 @@ export default function FormRecibo({ formData, setFormData }) {
           }
           size="small"
           fullWidth
-          required
+          error={!!errors.numeroDocumento}
         />
+        {errors.numeroDocumento && (
+          <FormHelperText error>{errors.numeroDocumento}</FormHelperText>
+        )}
       </Box>
 
       {/* 2️⃣ Versión + Medio de pago + Fecha emisión */}
@@ -36,7 +37,11 @@ export default function FormRecibo({ formData, setFormData }) {
             }
             options={["Original", "Duplicado"]}
             width="100%"
+            error={!!errors.versionDocumento}
           />
+          {errors.versionDocumento && (
+            <FormHelperText error>{errors.versionDocumento}</FormHelperText>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Medio de pago *</FormLabel>
@@ -47,7 +52,11 @@ export default function FormRecibo({ formData, setFormData }) {
             }
             options={["Efectivo", "Transferencia", "Cheque"]}
             width="100%"
+            error={!!errors.medioPago}
           />
+          {errors.medioPago && (
+            <FormHelperText error>{errors.medioPago}</FormHelperText>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Fecha emisión *</FormLabel>
@@ -56,7 +65,11 @@ export default function FormRecibo({ formData, setFormData }) {
             onChange={(fecha) =>
               setFormData((p) => ({ ...p, fechaEmision: fecha }))
             }
+            error={!!errors.fechaEmision}
           />
+          {errors.fechaEmision && (
+            <FormHelperText error>{errors.fechaEmision}</FormHelperText>
+          )}
         </Box>
       </Box>
 
@@ -72,8 +85,11 @@ export default function FormRecibo({ formData, setFormData }) {
             }
             size="small"
             fullWidth
-            required
+            error={!!errors.montoTotal}
           />
+          {errors.montoTotal && (
+            <FormHelperText error>{errors.montoTotal}</FormHelperText>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Moneda *</FormLabel>
@@ -84,7 +100,11 @@ export default function FormRecibo({ formData, setFormData }) {
             }
             options={["ARS", "USD", "EUR"]}
             width="100%"
+            error={!!errors.moneda}
           />
+          {errors.moneda && (
+            <FormHelperText error>{errors.moneda}</FormHelperText>
+          )}
         </Box>
       </Box>
 
@@ -99,8 +119,11 @@ export default function FormRecibo({ formData, setFormData }) {
             }
             size="small"
             fullWidth
-            required
+            error={!!errors.receptorNombre}
           />
+          {errors.receptorNombre && (
+            <FormHelperText error>{errors.receptorNombre}</FormHelperText>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>CUIT receptor</FormLabel>
@@ -115,13 +138,13 @@ export default function FormRecibo({ formData, setFormData }) {
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Condición IVA receptor</FormLabel>
-          <OutlinedInput
+          <CustomSelect
             value={formData.receptorCondicionIVA || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, receptorCondicionIVA: e.target.value }))
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, receptorCondicionIVA: valor }))
             }
-            size="small"
-            fullWidth
+            options={["Responsable Inscripto", "Monotributo", "Exento"]}
+            width="100%"
           />
         </Box>
         <Box sx={{ flex: 1 }}>
@@ -148,8 +171,11 @@ export default function FormRecibo({ formData, setFormData }) {
             }
             size="small"
             fullWidth
-            required
+            error={!!errors.emisorNombre}
           />
+          {errors.emisorNombre && (
+            <FormHelperText error>{errors.emisorNombre}</FormHelperText>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>CUIT emisor</FormLabel>
@@ -164,13 +190,13 @@ export default function FormRecibo({ formData, setFormData }) {
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Condición IVA emisor</FormLabel>
-          <OutlinedInput
+          <CustomSelect
             value={formData.emisorCondicionIVA || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, emisorCondicionIVA: e.target.value }))
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, emisorCondicionIVA: valor }))
             }
-            size="small"
-            fullWidth
+            options={["Responsable Inscripto", "Monotributo", "Exento"]}
+            width="100%"
           />
         </Box>
         <Box sx={{ flex: 1 }}>
@@ -187,17 +213,19 @@ export default function FormRecibo({ formData, setFormData }) {
       </Box>
 
       {/* 6️⃣ Categoría */}
-      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Categoría *</FormLabel>
-          <CustomSingleAutoComplete
-            options={["Productos", "Servicios", "Mantenimiento", "Consultoría"]}
-            value={formData.categoria || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, categoria: valor }))
-            }
-          />
-        </Box>
+      <Box sx={{ flex: 1 }}>
+        <FormLabel>Categoría *</FormLabel>
+        <CustomSingleAutoComplete
+          options={["Productos", "Servicios", "Mantenimiento", "Consultoría"]}
+          value={formData.categoria || ""}
+          onChange={(valor) =>
+            setFormData((p) => ({ ...p, categoria: valor }))
+          }
+          error={!!errors.categoria}
+        />
+        {errors.categoria && (
+          <FormHelperText error>{errors.categoria}</FormHelperText>
+        )}
       </Box>
 
       {/* 7️⃣ Documento asociado */}
@@ -209,7 +237,7 @@ export default function FormRecibo({ formData, setFormData }) {
             onChange={(valor) =>
               setFormData((p) => ({ ...p, documentoAsociado: valor }))
             }
-            options={["Factura", "Pagaré", "Otro"]}
+            options={["Factura", "Pagaré"]}
             width="100%"
           />
         </Box>

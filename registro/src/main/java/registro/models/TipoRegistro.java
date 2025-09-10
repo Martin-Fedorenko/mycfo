@@ -1,8 +1,10 @@
 package registro.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum TipoRegistro {
-    INGRESO,
-    EGRESO,
-    DEUDA,
-    ACREENCIA
+    Ingreso,
+    Egreso,
+    Deuda,
+    Acreencia;
 }
