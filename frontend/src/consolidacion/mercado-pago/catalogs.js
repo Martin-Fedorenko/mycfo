@@ -12,6 +12,12 @@ export const PAYMENT_STATUS = [
   { value: "charged_back", label: "Chargeback" },
 ];
 
+export const UI = {
+  radius: 12,
+  gap: 1.5, // spacing en rem
+  cardVariant: "outlined",
+};
+
 export const statusLabel = (v) =>
   PAYMENT_STATUS.find((s) => s.value === v)?.label || v || "—";
 

@@ -1,4 +1,3 @@
-// /mercado-pago/components/MpConfigDialog.js
 import React from "react";
 import {
   Dialog,
@@ -11,10 +10,16 @@ import {
   FormControlLabel,
   Switch,
   Alert,
+  Grid,
+  Paper,
+  Typography,
+  Tooltip,
+  Skeleton,
 } from "@mui/material";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import { mpApi } from "../mpApi";
 
-export default function MpConfigDialog({ open, onClose, onSaved }) {
+export default function MpConfigDialog({ open, onClose, onSaved, onUnlink }) {
   const [cfg, setCfg] = React.useState({
     autoBill: false,
     timezone: "America/Argentina/Buenos_Aires",
@@ -33,7 +38,7 @@ export default function MpConfigDialog({ open, onClose, onSaved }) {
       setCfg({
         autoBill: !!c?.autoBill,
         timezone: c?.timezone || "America/Argentina/Buenos_Aires",
-        currency: c?.currency || "ARS",
+        currency: (c?.currency || "ARS").toUpperCase(),
       });
     } catch (e) {
       setErr(e?.message || "No se pudo cargar la configuración");
@@ -59,6 +64,27 @@ export default function MpConfigDialog({ open, onClose, onSaved }) {
     }
   };
 
+  // Helpers visuales para fila label-valor
+  const Row = ({ label, hint, control }) => (
+    <Grid container spacing={2} alignItems="center">
+      <Grid item xs={12} sm={4}>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {label}
+          </Typography>
+          {hint && (
+            <Tooltip title={hint}>
+              <InfoOutlined fontSize="small" color="action" />
+            </Tooltip>
+          )}
+        </Stack>
+      </Grid>
+      <Grid item xs={12} sm={8}>
+        {control}
+      </Grid>
+    </Grid>
+  );
+
   return (
     <Dialog
       open={open}
@@ -66,39 +92,127 @@ export default function MpConfigDialog({ open, onClose, onSaved }) {
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>Configuración</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={cfg.autoBill}
-                onChange={(e) => setCfg({ ...cfg, autoBill: e.target.checked })}
+      <DialogTitle sx={{ pb: 1 }}>CONFIGURAR</DialogTitle>
+
+      <DialogContent dividers>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Stack spacing={2}>
+            {err && <Alert severity="error">{err}</Alert>}
+
+            {/* Punto de Venta (visual) -> usamos timezone como ejemplo de campo de texto */}
+            {loading ? (
+              <Skeleton variant="rounded" height={40} />
+            ) : (
+              <Row
+                label="Punto de Venta"
+                hint="Identificador de tu punto de venta."
+                control={
+                  <TextField
+                    size="small"
+                    placeholder="0001"
+                    value={cfg.timezone}
+                    onChange={(e) =>
+                      setCfg({ ...cfg, timezone: e.target.value })
+                    }
+                    disabled={loading}
+                    fullWidth
+                  />
+                }
               />
-            }
-            label="Facturar automáticamente pagos aprobados"
-          />
-          <TextField
-            label="Zona horaria"
-            helperText="Ej.: America/Argentina/Buenos_Aires"
-            value={cfg.timezone}
-            onChange={(e) => setCfg({ ...cfg, timezone: e.target.value })}
-            disabled={loading}
-          />
-          <TextField
-            label="Moneda"
-            value={cfg.currency}
-            onChange={(e) =>
-              setCfg({ ...cfg, currency: e.target.value.toUpperCase() })
-            }
-            disabled={loading}
-            inputProps={{ maxLength: 3 }}
-            helperText="Código ISO (ARS, USD, EUR)"
-          />
-          {err && <Alert severity="error">{err}</Alert>}
-        </Stack>
+            )}
+
+            {/* Depósito (visual) -> usamos currency como ejemplo (ISO) */}
+            {loading ? (
+              <Skeleton variant="rounded" height={40} />
+            ) : (
+              <Row
+                label="Depósito"
+                hint="Depósito por defecto."
+                control={
+                  <TextField
+                    size="small"
+                    placeholder="Depósito Universal"
+                    value={cfg.currency}
+                    onChange={(e) =>
+                      setCfg({ ...cfg, currency: e.target.value.toUpperCase() })
+                    }
+                    inputProps={{ maxLength: 3 }}
+                    disabled={loading}
+                    fullWidth
+                  />
+                }
+              />
+            )}
+
+            {/* Condición de Pago (editable como texto) */}
+            <Row
+              label="Condición de Pago"
+              hint="Solo visual por ahora."
+              control={
+                <TextField
+                  size="small"
+                  placeholder="Cuenta Corriente"
+                  value={cfg.condicionPago || ""}
+                  onChange={(e) =>
+                    setCfg({ ...cfg, condicionPago: e.target.value })
+                  }
+                  disabled={loading}
+                  fullWidth
+                />
+              }
+            />
+
+            {/* Cuenta de cobro (editable como texto) */}
+            <Row
+              label="Cuenta de cobro"
+              hint="Solo visual por ahora."
+              control={
+                <TextField
+                  size="small"
+                  placeholder="Banco Santander"
+                  value={cfg.cuentaCobro || ""}
+                  onChange={(e) =>
+                    setCfg({ ...cfg, cuentaCobro: e.target.value })
+                  }
+                  disabled={loading}
+                  fullWidth
+                />
+              }
+            />
+
+            {/* Enviar botón de pago -> mapeado a autoBill (switch) */}
+            {/* <Row
+              label="Enviar botón de pago"
+              hint="Activa envíos automáticos de botón/factura cuando aplique."
+              control={
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={cfg.autoBill}
+                      onChange={(e) =>
+                        setCfg({ ...cfg, autoBill: e.target.checked })
+                      }
+                      disabled={loading}
+                    />
+                  }
+                  label="Activado"
+                />
+              }
+            /> */}
+          </Stack>
+        </Paper>
       </DialogContent>
-      <DialogActions>
+
+      <DialogActions sx={{ gap: 1 }}>
+        {onUnlink && (
+          <Button
+            color="inherit"
+            onClick={onUnlink}
+            disabled={saving || loading}
+          >
+            Desvincular
+          </Button>
+        )}
         <Button onClick={onClose} disabled={saving}>
           Cerrar
         </Button>

@@ -23,6 +23,7 @@ export default function MainGrid({ status, onRefreshStatus }) {
   const [selected, setSelected] = React.useState([]);
   const [importOpen, setImportOpen] = React.useState(false);
   const [configOpen, setConfigOpen] = React.useState(false);
+  const [unlinking, setUnlinking] = React.useState(false);
   const [snack, setSnack] = React.useState({
     open: false,
     severity: "success",
@@ -45,6 +46,7 @@ export default function MainGrid({ status, onRefreshStatus }) {
         from: filters.from || undefined,
         to: filters.to || undefined,
         q: filters.q || undefined,
+        payStatus: filters.payStatus || undefined,
         page, // 0-based
         pageSize,
       });
@@ -66,12 +68,18 @@ export default function MainGrid({ status, onRefreshStatus }) {
 
   const handleUnlink = async () => {
     if (!window.confirm("¿Desvincular la cuenta de Mercado Pago?")) return;
+    setUnlinking(true);
     try {
       await mpApi.unlink();
+      setRows([]);
+      setSelected([]);
+      setPage(0);
       notify("Cuenta desvinculada");
       onRefreshStatus?.();
     } catch (e) {
       notify(e?.message || "No se pudo desvincular", "error");
+    } finally {
+      setUnlinking(false);
     }
   };
 
@@ -107,41 +115,137 @@ export default function MainGrid({ status, onRefreshStatus }) {
     }
   };
 
+  const handleRefresh = () => {
+    setPage(0);
+    loadPayments();
+  };
+
+  // ===== Exportar a Excel (.xls - XML 2003) =====
   const handleExport = () => {
-    // Export simple a CSV en cliente (podemos mejorar a backend luego)
-    const header = [
-      "fecha",
-      "id",
-      "descripcion",
-      "estado",
-      "monto",
-      "moneda",
-      "orden",
-      "link",
+    // 1) Fuente: seleccionados si hay; si no, filas visibles
+    const data = selected.length
+      ? rows.filter((r) => selected.includes(r.mpPaymentId))
+      : rows;
+
+    if (!data.length) {
+      notify("No hay datos para exportar", "warning");
+      return;
+    }
+
+    // 2) Columnas (mismo orden que la tabla)
+    const headers = [
+      "Fecha",
+      "Payment ID",
+      "Detalle",
+      "Comprador",
+      "Comprobante",
+      "Estado",
+      "Total",
+      "Moneda",
+      "Orden/Referencia",
+      "Link",
     ];
-    const lines = rows.map((r) => [
-      r.date || r.fecha || "",
-      r.id || r.mpId || "",
-      (r.description || r.descripcion || "").toString().replaceAll('"', '""'),
-      r.status || r.estado || "",
-      r.amount ?? r.monto ?? "",
-      r.currency || r.moneda || "",
-      r.orderId || r.externalReference || "",
-      r.permalink || r.init_point || "",
-    ]);
-    const csv = [header, ...lines]
-      .map((cols) => cols.map((c) => `"${c ?? ""}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+    // 3) Helpers
+    const fmtDate = (v) => {
+      if (!v) return "";
+      const d = new Date(v);
+      const hasTime = d.getHours() + d.getMinutes() + d.getSeconds() !== 0;
+      return hasTime
+        ? d.toLocaleString("es-AR")
+        : d.toLocaleDateString("es-AR");
+    };
+    const xmlEscape = (s) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    // 4) Transformar filas a celdas tipadas (Texto vs Número)
+    const rowsXml = data
+      .map((r) => {
+        const cells = [
+          { t: "String", v: fmtDate(r.fecha || r.date) },
+          { t: "String", v: r.mpPaymentId || r.id || "" },
+          { t: "String", v: r.detalle || r.description || "" },
+          { t: "String", v: r.comprador || r.buyer || "" },
+          { t: "String", v: r.comprobante || r.receipt || "" },
+          { t: "String", v: r.estado || r.status || "" },
+          // Total: si es número => Number; si viene string => lo dejamos texto
+          (() => {
+            const n = r.total ?? r.amount;
+            const val = typeof n === "number" ? n : Number(n);
+            return Number.isFinite(val)
+              ? { t: "Number", v: val }
+              : { t: "String", v: n ?? "" };
+          })(),
+          { t: "String", v: r.moneda || r.currency || "ARS" },
+          { t: "String", v: r.externalReference || r.orderId || "" },
+          { t: "String", v: r.permalink || r.init_point || "" },
+        ]
+          .map((c) => {
+            if (c.t === "Number") {
+              return `<Cell><Data ss:Type="Number">${c.v}</Data></Cell>`;
+            }
+            return `<Cell><Data ss:Type="String">${xmlEscape(
+              c.v
+            )}</Data></Cell>`;
+          })
+          .join("");
+        return `<Row>${cells}</Row>`;
+      })
+      .join("");
+
+    // 5) Encabezados XML Spreadsheet 2003
+    const headersXml =
+      "<Row>" +
+      headers
+        .map(
+          (h) => `<Cell><Data ss:Type="String">${xmlEscape(h)}</Data></Cell>`
+        )
+        .join("") +
+      "</Row>";
+
+    const worksheetName = "Pagos_MP";
+    const xml =
+      `<?xml version="1.0"?>` +
+      `<?mso-application progid="Excel.Sheet"?>` +
+      `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ` +
+      `xmlns:o="urn:schemas-microsoft-com:office:office" ` +
+      `xmlns:x="urn:schemas-microsoft-com:office:excel" ` +
+      `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">` +
+      `<Worksheet ss:Name="${xmlEscape(worksheetName)}">` +
+      `<Table>` +
+      headersXml +
+      rowsXml +
+      `</Table>` +
+      `</Worksheet>` +
+      `</Workbook>`;
+
+    // 6) Descargar .xls (Excel abre directo)
+    const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `pagos_mp_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `pagos_mp_${new Date().toISOString().slice(0, 10)}.xls`;
     a.click();
   };
+  // ===== Fin exportar =====
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", mt: 3, px: 2 }}>
-      <Paper sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{
+          mb: 2,
+          borderRadius: 2,
+          p: 1,
+          bgcolor: (t) =>
+            t.palette.mode === "dark"
+              ? "background.default"
+              : "background.paper",
+        }}
+      >
         <MpToolbar
           accountLabel={accountLabel}
           filters={filters}
@@ -149,14 +253,15 @@ export default function MainGrid({ status, onRefreshStatus }) {
           onOpenImport={() => setImportOpen(true)}
           onOpenConfig={() => setConfigOpen(true)}
           onUnlink={handleUnlink}
-          onRefresh={loadPayments}
+          onRefresh={handleRefresh}
           onExport={handleExport}
           onBillSelected={handleBill}
           selectedCount={selected.length}
+          unlinkBusy={unlinking}
         />
       </Paper>
 
-      <Paper>
+      <Paper variant="outlined" sx={{ borderRadius: 2 }}>
         <MpPaymentsTable
           rows={rows}
           loading={loading}
@@ -185,6 +290,8 @@ export default function MainGrid({ status, onRefreshStatus }) {
         onSaved={() => {
           setConfigOpen(false);
           notify("Configuración guardada");
+          setPage(0);
+          loadPayments();
         }}
       />
 

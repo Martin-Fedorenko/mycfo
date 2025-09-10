@@ -11,42 +11,25 @@ import {
   LinearProgress,
   Chip,
   Box,
+  Stack,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
-import { PAGE_SIZE_OPTIONS } from "../catalogs";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import {
+  PAGE_SIZE_OPTIONS,
+  statusChipProps,
+  currencyFormatter,
+} from "../catalogs";
 
-const chipForEstado = (estadoRaw) => {
-  const v = (estadoRaw || "").toString().toLowerCase();
-  if (["approved", "aprobado"].includes(v))
-    return { color: "success", label: "Aprobado", variant: "outlined" };
-  if (["pending", "pendiente", "in_process", "en_proceso"].includes(v))
-    return { color: "warning", label: "Pendiente", variant: "outlined" };
-  if (
-    [
-      "rejected",
-      "rechazado",
-      "cancelled",
-      "cancelado",
-      "charged_back",
-      "chargeback",
-    ].includes(v)
-  )
-    return { color: "error", label: "Rechazado", variant: "outlined" };
-  if (["refunded", "reembolsado"].includes(v))
-    return { color: "info", label: "Reembolsado", variant: "outlined" };
-  return { color: "default", label: estadoRaw || "—", variant: "outlined" };
-};
-
-const fmtCurrency = (n) => {
-  const num = typeof n === "number" ? n : Number(n);
-  if (Number.isNaN(num)) return "—";
-  try {
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-    }).format(num);
-  } catch {
-    return String(n);
-  }
+const formatDate = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  // Solo mostrar la fecha (sin hora)
+  return d.toLocaleDateString("es-AR");
+  // Si algún día quieres mostrar la hora cuando corresponda, descomenta esto:
+  // const hasTime = d.getHours() + d.getMinutes() + d.getSeconds() !== 0;
+  // return hasTime ? d.toLocaleString("es-AR") : d.toLocaleDateString("es-AR");
 };
 
 export default function MpPaymentsTable({
@@ -73,10 +56,15 @@ export default function MpPaymentsTable({
     else onSelectChange([...selected, id]);
   };
 
+  const handleCopy = (text) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(String(text));
+  };
+
   return (
-    <TableContainer>
+    <TableContainer sx={{ borderRadius: 2 }}>
       {loading && <LinearProgress />}
-      <Table size="small">
+      <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
             <TableCell padding="checkbox">
@@ -84,23 +72,29 @@ export default function MpPaymentsTable({
                 checked={allSelected}
                 indeterminate={someSelected}
                 onChange={toggleAll}
+                inputProps={{ "aria-label": "Seleccionar todos" }}
               />
             </TableCell>
-            <TableCell>Fecha</TableCell>
-            <TableCell>Payment ID</TableCell>
-            <TableCell>Detalle</TableCell>
-            <TableCell>Comprador</TableCell>
-            <TableCell>Comprobante</TableCell>
-            <TableCell>Estado</TableCell>
-            <TableCell align="right">Total</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Fecha</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>ID Pago</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Detalle</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Comprador</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Comprobante</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Estado</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}> Total</TableCell>
           </TableRow>
         </TableHead>
+
         <TableBody>
           {rows.length === 0 && !loading && (
             <TableRow>
               <TableCell colSpan={8}>
                 <Box
-                  sx={{ p: 3, textAlign: "center", color: "text.secondary" }}
+                  sx={{
+                    p: 3,
+                    textAlign: "center",
+                    color: "text.secondary",
+                  }}
                 >
                   No hay pagos para mostrar.
                 </Box>
@@ -110,26 +104,56 @@ export default function MpPaymentsTable({
 
           {rows.map((r) => {
             const id = r.mpPaymentId;
-            const fecha = r.fecha
-              ? new Date(r.fecha).toLocaleDateString()
-              : "—";
+            const fecha = formatDate(r.fecha || r.date);
+
             return (
-              <TableRow key={id} hover selected={selected.includes(id)}>
+              <TableRow
+                key={id}
+                hover
+                selected={selected.includes(id)}
+                sx={{
+                  "&.Mui-selected": {
+                    backgroundColor: (t) => t.palette.action.selected,
+                  },
+                  "&:hover": {
+                    backgroundColor: (t) => t.palette.action.hover,
+                  },
+                }}
+              >
                 <TableCell padding="checkbox">
                   <Checkbox
                     checked={selected.includes(id)}
                     onChange={() => toggleOne(id)}
+                    inputProps={{ "aria-label": `Seleccionar ${id}` }}
                   />
                 </TableCell>
+
                 <TableCell>{fecha}</TableCell>
-                <TableCell>{id}</TableCell>
-                <TableCell>{r.detalle || "—"}</TableCell>
-                <TableCell>{r.comprador || "—"}</TableCell>
-                <TableCell>{r.comprobante || "—"}</TableCell>
+
                 <TableCell>
-                  <Chip size="small" {...chipForEstado(r.estado)} />
+                  <Box component="span" sx={{ fontFamily: "monospace" }}>
+                    {id || "—"}
+                  </Box>
                 </TableCell>
-                <TableCell align="right">{fmtCurrency(r.total)}</TableCell>
+
+                <TableCell>{r.detalle || r.description || "—"}</TableCell>
+                <TableCell>{r.comprador || r.buyer || "—"}</TableCell>
+                <TableCell>{r.comprobante || r.receipt || "—"}</TableCell>
+
+                <TableCell>
+                  <Chip
+                    size="small"
+                    {...statusChipProps(r.estado || r.status)}
+                  />
+                </TableCell>
+
+                <TableCell align="right">
+                  {currencyFormatter(
+                    r.total ?? r.amount,
+                    r.moneda || r.currency || "ARS",
+                    "es-AR"
+                  )}
+                </TableCell>
               </TableRow>
             );
           })}

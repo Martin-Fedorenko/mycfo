@@ -1,3 +1,4 @@
+// /mercado-pago/components/MpImportDialog.js
 import React from "react";
 import {
   Dialog,
@@ -8,11 +9,13 @@ import {
   Button,
   Stack,
   Alert,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   MenuItem,
+  Divider,
+  Box,
+  Typography,
+  Paper,
 } from "@mui/material";
+import logoMp from "./logoMPblanconegro.png";
 
 const MONTHS = [
   { v: 1, label: "Enero" },
@@ -31,7 +34,6 @@ const MONTHS = [
 
 export default function MpImportDialog({ open, onClose, onImport }) {
   const now = new Date();
-  const [mode, setMode] = React.useState("period"); // "period" | "id"
   const [month, setMonth] = React.useState(now.getMonth() + 1);
   const [year, setYear] = React.useState(now.getFullYear());
   const [paymentId, setPaymentId] = React.useState("");
@@ -42,34 +44,40 @@ export default function MpImportDialog({ open, onClose, onImport }) {
     if (open) {
       setErr(null);
       setBusy(false);
-      setMode("period");
+      // Reseteo suave: deja por defecto el mes/año actual
+      setPaymentId("");
+      setMonth(now.getMonth() + 1);
+      setYear(now.getFullYear());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const submit = async () => {
     setErr(null);
-    if (mode === "period") {
-      if (!month || !year) {
-        setErr("Seleccioná mes y año");
+
+    const hasId = paymentId.trim().length > 0;
+    if (hasId) {
+      if (!/^\d+$/.test(paymentId.trim())) {
+        setErr("El Payment ID debe ser numérico.");
         return;
       }
     } else {
-      if (!paymentId) {
-        setErr("Ingresá un Payment ID");
-        return;
-      }
-      if (!/^\d+$/.test(paymentId)) {
-        setErr("El Payment ID debe ser numérico");
+      if (!month || !year) {
+        setErr("Seleccioná mes y año para importar por período.");
         return;
       }
     }
 
     setBusy(true);
     try {
-      if (mode === "period") {
-        await onImport?.({ mode, month: Number(month), year: Number(year) });
+      if (hasId) {
+        await onImport?.({ mode: "id", paymentId: Number(paymentId.trim()) });
       } else {
-        await onImport?.({ mode, paymentId: Number(paymentId) });
+        await onImport?.({
+          mode: "period",
+          month: Number(month),
+          year: Number(year),
+        });
       }
     } catch (e) {
       setErr(e?.message || "Error en la importación");
@@ -82,72 +90,113 @@ export default function MpImportDialog({ open, onClose, onImport }) {
     <Dialog
       open={open}
       onClose={busy ? undefined : onClose}
-      maxWidth="xs"
+      maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>Importar pagos</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <RadioGroup
-            row
-            value={mode}
-            onChange={(e) => setMode(e.target.value)}
-          >
-            <FormControlLabel
-              value="period"
-              control={<Radio />}
-              label="Por período"
-            />
-            <FormControlLabel
-              value="id"
-              control={<Radio />}
-              label="Por Payment ID"
-            />
-          </RadioGroup>
+      <DialogContent dividers>
+        <Stack spacing={3} sx={{ mt: 1 }}>
+          {/* Logo centrado */}
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: "action.hover",
+                display: "inline-flex",
+              }}
+            >
+              <img
+                src={logoMp}
+                alt="Mercado Pago"
+                style={{ height: 80, opacity: 0.9 }}
+              />
+            </Box>
+          </Box>
 
-          {mode === "period" ? (
-            <Stack direction="row" spacing={2}>
+          {/* Sección 1: Único pago */}
+          <Divider textAlign="center">
+            <Typography
+              variant="subtitle1"
+              sx={{
+                opacity: 0.8,
+                textTransform: "uppercase",
+                fontWeight: 400,
+                fontSize: "1.1rem",
+              }}
+            >
+              IMPORTAR UN MOVIMIENTO
+            </Typography>
+          </Divider>
+
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+            <Stack spacing={1}>
               <TextField
-                select
-                label="Mes"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
+                size="small"
+                label="Payment ID"
+                value={paymentId}
+                onChange={(e) => setPaymentId(e.target.value.trim())}
+                placeholder="Ej. 124899180987"
+                inputMode="numeric"
                 fullWidth
-              >
-                {MONTHS.map((m) => (
-                  <MenuItem key={m.v} value={m.v}>
-                    {m.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Año"
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                fullWidth
-                inputProps={{ min: 2000, max: 2100, step: 1 }}
               />
             </Stack>
-          ) : (
-            <TextField
-              label="Payment ID"
-              value={paymentId}
-              onChange={(e) => setPaymentId(e.target.value.trim())}
-              fullWidth
-              placeholder="Ej. 1234567890"
-            />
-          )}
+          </Paper>
+
+          {/* Sección 2: Por meses */}
+          <Divider textAlign="center">
+            <Typography
+              variant="subtitle1"
+              sx={{
+                opacity: 0.8,
+                textTransform: "uppercase",
+                fontWeight: 400,
+                fontSize: "1.1rem",
+              }}
+            >
+              IMPORTAR MOVIMIENTOS POR MES
+            </Typography>
+          </Divider>
+
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+            <Stack spacing={1}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  size="small"
+                  select
+                  fullWidth
+                  label="Mes"
+                  value={month}
+                  onChange={(e) => setMonth(e.target.value)}
+                >
+                  {MONTHS.map((m) => (
+                    <MenuItem key={m.v} value={m.v}>
+                      {m.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  size="small"
+                  label="Año"
+                  type="number"
+                  fullWidth
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  inputProps={{ min: 2000, max: 2100, step: 1 }}
+                />
+              </Stack>
+            </Stack>
+          </Paper>
 
           {err && <Alert severity="error">{err}</Alert>}
         </Stack>
       </DialogContent>
+
       <DialogActions>
         <Button onClick={onClose} disabled={busy}>
           Cancelar
         </Button>
         <Button variant="contained" onClick={submit} disabled={busy}>
-          {busy ? "Importando…" : "Importar"}
+          {busy ? "Importando…" : "Aceptar"}
         </Button>
       </DialogActions>
     </Dialog>

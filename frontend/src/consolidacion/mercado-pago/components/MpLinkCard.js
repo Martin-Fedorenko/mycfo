@@ -3,13 +3,14 @@ import React from "react";
 import {
   Card,
   CardContent,
+  CardHeader,
   CardActions,
   Button,
-  Typography,
   Stack,
-  Alert,
+  Box,
 } from "@mui/material";
 import { mpApi } from "../mpApi";
+import logo from "./logoMPblanconegro.png";
 
 export default function MpLinkCard({ onLinked }) {
   const [busy, setBusy] = React.useState(false);
@@ -30,33 +31,64 @@ export default function MpLinkCard({ onLinked }) {
 
   React.useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if ((p.get("mp") === "linked" || p.get("linked") === "1") && onLinked)
+    if ((p.get("mp") === "linked" || p.get("linked") === "1") && onLinked) {
       onLinked();
+    }
   }, [onLinked]);
 
   return (
-    <Card sx={{ maxWidth: 720, mx: "auto", mt: 6 }}>
-      <CardContent>
-        <Stack spacing={1.2}>
-          <Typography variant="h5">
-            Vincular tu cuenta de Mercado Pago
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Serás redirigido a Mercado Pago para otorgar permisos. Solo se piden
-            alcances para <strong>leer pagos</strong> e integrar{" "}
-            <strong>facturación</strong>.
-          </Typography>
-          {err && <Alert severity="error">{err}</Alert>}
-        </Stack>
-      </CardContent>
-      <CardActions sx={{ px: 2, pb: 2 }}>
-        <Button variant="contained" onClick={startLink} disabled={busy}>
-          {busy ? "Redirigiendo..." : "Vincular con Mercado Pago"}
-        </Button>
-        <Typography variant="caption" sx={{ ml: 1 }} color="text.secondary">
-          Podrás desvincular cuando quieras desde Configuración.
-        </Typography>
-      </CardActions>
+    <Card
+      variant="outlined"
+      sx={{
+        maxWidth: 860,
+        mx: "auto",
+        mt: 6,
+        borderRadius: 2,
+        overflow: "hidden",
+      }}
+    >
+      <CardHeader
+        title="Vincular tu cuenta de Mercado Pago"
+        subheader="Conecta tu cuenta para importar pagos y movimientos."
+        sx={{ pb: 0 }}
+      />
+
+      {/* Espacio entre el header y el logo */}
+      <Stack alignItems="center" justifyContent="center" sx={{ mt: 3, mb: 1 }}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            bgcolor: "action.hover",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 96,
+          }}
+        >
+          <img
+            src={logo}
+            alt="Mercado Pago"
+            style={{ height: 80, opacity: 0.9 }}
+          />
+        </Box>
+      </Stack>
+
+      <Stack spacing={3}>
+        <CardContent>
+          {/* Aquí puedes agregar más contenido si lo necesitas */}
+        </CardContent>
+
+        <CardActions sx={{ px: 2, pb: 2 }}>
+          <Box
+            sx={{ width: "100%", display: "flex", justifyContent: "center" }}
+          >
+            <Button variant="contained" onClick={startLink} disabled={busy}>
+              {busy ? "Redirigiendo..." : "Vincular cuenta"}
+            </Button>
+          </Box>
+        </CardActions>
+      </Stack>
     </Card>
   );
 }
