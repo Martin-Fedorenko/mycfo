@@ -68,13 +68,22 @@ export default function CargaAudio({ tipoDoc, endpoint }) {
   return (
     <Box sx={{ mt: 3, textAlign: "center" }}>
       <Typography variant="h6">Grabar audio para {tipoDoc}</Typography>
-      <BigRecordButton recording={grabando ? 1 : 0} onClick={grabando ? stopRecording : startRecording}>
+      <BigRecordButton sx={{mt: 5}} recording={grabando ? 1 : 0} onClick={grabando ? stopRecording : startRecording}>
         {grabando ? <Close /> : <Mic />}
       </BigRecordButton>
 
       {audioUrl && (
         <>
-          <Paper sx={{ mt: 2, p: 2, display: "flex", gap: 2, alignItems: "center" }}>
+          <Paper sx={{ 
+                mt: 1,
+                p: 1.5,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                border: "1px solid",
+                borderColor: "grey.400",
+                borderRadius: 1,
+              }}>
             <audio controls src={audioUrl} />
             <IconButton onClick={eliminarGrabacion} color="error"><Delete /></IconButton>
           </Paper>

@@ -19,22 +19,24 @@ export default function CustomSelect({
 }) {
   return (
     <Box sx={{ width }}>
-      <InputLabel id={`${name}-label`} required>
-        {label}
-      </InputLabel>
+      {label && (
+        <InputLabel sx={{ mb: -0.01 }} id={`${name}-label`}>
+          {label}
+        </InputLabel>
+      )}
       <Select
         labelId={`${name}-label`}
         id={name}
         name={name}
         value={value}
-        onChange={onChange}
+        onChange={(e) => onChange(e.target.value)}
         displayEmpty
         size="small"
         input={<OutlinedInput />}
         sx={{ width: "100%" }}
       >
         <MenuItem value="" disabled>
-          Seleccioná una opción
+          Elegir...
         </MenuItem>
         {options.map((opt, i) => (
           <MenuItem key={i} value={opt}>

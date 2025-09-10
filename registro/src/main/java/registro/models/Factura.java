@@ -24,15 +24,6 @@ public class Factura extends DocumentoComercial{
     private String compradorCondicionIVA;
     private String compradorDomicilio;
 
-    // --- Totales ---
-    private Double subtotalGravado;
-    private Double subtotalNoGravado;
-    private Double totalIVA;
-    private Double otrosImpuestos;
-
-    @Enumerated(EnumType.STRING)
-    private TipoMedioPago medioPago;
-
     // --- Datos fiscales ---
     private String cae;
     private LocalDate vencimientoCae;

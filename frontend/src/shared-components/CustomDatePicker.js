@@ -40,7 +40,7 @@ function ButtonField(props) {
 
 export default function CustomDatePicker({ value, onChange }) {
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider  dateAdapter={AdapterDayjs}>
       <DatePicker
         value={value}
         label={value == null ? null : value.format('MMM DD, YYYY')}

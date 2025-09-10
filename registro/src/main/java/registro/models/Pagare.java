@@ -18,7 +18,6 @@ public class Pagare extends DocumentoComercial{
     private String deudorNombre; //obligatorio
     private String deudorCuit;
 
-    private String motivoPago;
     private Double interesesMora;
     private String clausula; // “a la orden” o “no a la orden”
 

@@ -25,4 +25,6 @@ public class RegistroController {
     public List<Registro> obtenerTodos() {
         return registroService.obtenerTodos();
     }
+
+
 }

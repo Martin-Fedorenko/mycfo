@@ -11,37 +11,41 @@ import CargaAudio from "./components/CargaAudio";
 export default function CargaGeneral() {
   const [tipoDoc, setTipoDoc] = useState("");
   const [modoCarga, setModoCarga] = useState("formulario");
+  const [formData, setFormData] = useState({});
+  const [errors, setErrors] = useState({});
+
+  const API_BASE = process.env.REACT_APP_URL_REGISTRO;
 
   const endpointMap = {
     Factura: {
-      formulario: "/facturas/formulario",
-      documento: "/facturas/documento",
-      foto: "/facturas/foto",
-      audio: "/facturas/audio",
+      formulario: `${API_BASE}/facturas/formulario`,
+      documento: `${API_BASE}/facturas/documento`,
+      foto: `${API_BASE}/facturas/foto`,
+      audio: `${API_BASE}/facturas/audio`,
     },
     Recibo: {
-      formulario: "/recibos/formulario",
-      documento: "/recibos/documento",
-      foto: "/recibos/foto",
-      audio: "/recibos/audio",
+      formulario: `${API_BASE}/recibos/formulario`,
+      documento: `${API_BASE}/recibos/documento`,
+      foto: `${API_BASE}/recibos/foto`,
+      audio: `${API_BASE}/recibos/audio`,
     },
     Pagaré: {
-      formulario: "/pagares/formulario",
-      documento: "/pagares/documento",
-      foto: "/pagares/foto",
-      audio: "/pagares/audio",
+      formulario: `${API_BASE}/pagares/formulario`,
+      documento: `${API_BASE}/pagares/documento`,
+      foto: `${API_BASE}/pagares/foto`,
+      audio: `${API_BASE}/pagares/audio`,
     },
     Ingreso: {
-      formulario: "/ingresos/formulario",
-      documento: "/ingresos/documento",
-      foto: "/ingresos/foto",
-      audio: "/ingresos/audio",
+      formulario: `${API_BASE}/ingresos/formulario`,
+      documento: `${API_BASE}/ingresos/documento`,
+      foto: `${API_BASE}/ingresos/foto`,
+      audio: `${API_BASE}/ingresos/audio`,
     },
     Egreso: {
-      formulario: "/egresos/formulario",
-      documento: "/egresos/documento",
-      foto: "/egresos/foto",
-      audio: "/egresos/audio",
+      formulario: `${API_BASE}/egresos/formulario`,
+      documento: `${API_BASE}/egresos/documento`,
+      foto: `${API_BASE}/egresos/foto`,
+      audio: `${API_BASE}/egresos/audio`,
     },
   };
 
@@ -52,7 +56,16 @@ export default function CargaGeneral() {
     const endpoint = endpointMap[tipoDoc][modoCarga];
     switch (modoCarga) {
       case "formulario":
-        return <CargaFormulario tipoDoc={tipoDoc} endpoint={endpoint} />;
+        return (
+          <CargaFormulario
+            tipoDoc={tipoDoc}
+            endpoint={endpoint}
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+            setErrors={setErrors}
+          />
+        );
       case "documento":
         return <CargaDocumento tipoDoc={tipoDoc} endpoint={endpoint} />;
       case "foto":
@@ -64,16 +77,15 @@ export default function CargaGeneral() {
     }
   };
 
-
   return (
-    <Box sx={{ width: "100%", maxWidth: 720, mx: "auto", mt: 4, p: 3 }}>
+    <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
       {/* Encabezado con botones */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 3,
+          mb: 1,
         }}
       >
         <Box>
@@ -119,19 +131,18 @@ export default function CargaGeneral() {
       </Box>
 
       {/* Selector tipo de documento */}
-
-      <Grid item xs={12} sm={6}>
-        <CustomSelect
-          label="Tipo"
-          name="tipo"
-          value={tipoDoc} 
-          onChange={(e) => setTipoDoc(e.target.value)}
-          options={tipos}
-          // error={!tipoDoc ? "Debe seleccionar un tipo" : ""}
-          width="100%"
-        />
-      </Grid>
-
+      <CustomSelect
+        label="Tipo"
+        name="tipo"
+        value={tipoDoc}
+        onChange={(valor) => {
+          setTipoDoc(valor);
+          setFormData({});  // resetear form
+          setErrors({});    // resetear errores
+        }}
+        options={tipos}
+        width="100%"
+      />
 
       {renderContenido()}
     </Box>

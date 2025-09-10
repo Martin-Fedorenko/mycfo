@@ -20,6 +20,7 @@ export default function CustomSingleAutoComplete({ options, onChange }) {
           {...params}
           placeholder="Seleccioná o escribí una opción"
           variant="outlined"
+         
         />
       )}
     />

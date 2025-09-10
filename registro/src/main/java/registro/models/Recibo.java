@@ -14,15 +14,12 @@ public class Recibo extends DocumentoComercial{
     private String emisorNombre; //obligatorio
     private String emisorDomicilio;
     private String emisorCuit;
-    private String emisorIngresosBrutos;
-    private String emisorCondicionIVA;
 
     // --- Datos comprador/pagador ---
     private String compradorNombre; //obligatorio
     private String compradorCuit;
     private String CompradorDomicilio;
 
-    private String condicionPago;
     private Double saldoPendiente;
 
     @Enumerated(EnumType.STRING)

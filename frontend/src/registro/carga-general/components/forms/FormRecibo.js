@@ -1,252 +1,229 @@
 import React, { useState } from "react";
-import { Grid, FormLabel, FormControlLabel, Checkbox } from "@mui/material";
+import { Box, FormLabel } from "@mui/material";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 
-const FormGrid = ({ children, size = { xs: 12 } }) => (
-  <Grid item {...size} sx={{ display: "flex", flexDirection: "column" }}>
-    {children}
-  </Grid>
-);
-
 export default function FormRecibo({ formData, setFormData }) {
   const [showExtras, setShowExtras] = useState(false);
 
   return (
-    <Grid container spacing={2}>
-      {/* --- OBLIGATORIOS (DocumentoComercial base) --- */}
-      <FormGrid>
-        <FormLabel>Número Documento</FormLabel>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
+
+      {/* 1️⃣ Número documento */}
+      <Box>
+        <FormLabel>Número documento *</FormLabel>
         <OutlinedInput
           value={formData.numeroDocumento || ""}
           onChange={(e) =>
             setFormData((p) => ({ ...p, numeroDocumento: e.target.value }))
           }
           size="small"
+          fullWidth
+          required
         />
-      </FormGrid>
+      </Box>
 
-      <FormGrid>
-        <FormLabel>Fecha Emisión</FormLabel>
-        <CustomDatePicker
-          value={formData.fechaEmision || null}
-          onChange={(fecha) =>
-            setFormData((p) => ({ ...p, fechaEmision: fecha }))
-          }
-        />
-      </FormGrid>
+      {/* 2️⃣ Versión + Medio de pago + Fecha emisión */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Versión *</FormLabel>
+          <CustomSelect
+            value={formData.versionDocumento || ""}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, versionDocumento: valor }))
+            }
+            options={["Original", "Duplicado"]}
+            width="100%"
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Medio de pago *</FormLabel>
+          <CustomSelect
+            value={formData.medioPago || ""}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, medioPago: valor }))
+            }
+            options={["Efectivo", "Transferencia", "Cheque"]}
+            width="100%"
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Fecha emisión *</FormLabel>
+          <CustomDatePicker
+            value={formData.fechaEmision || null}
+            onChange={(fecha) =>
+              setFormData((p) => ({ ...p, fechaEmision: fecha }))
+            }
+          />
+        </Box>
+      </Box>
 
-      <FormGrid>
-        <FormLabel>Monto Total</FormLabel>
-        <OutlinedInput
-          type="number"
-          value={formData.montoTotal || ""}
-          onChange={(e) =>
-            setFormData((p) => ({ ...p, montoTotal: e.target.value }))
-          }
-          size="small"
-        />
-      </FormGrid>
+      {/* 3️⃣ Monto total + Moneda */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Monto total *</FormLabel>
+          <OutlinedInput
+            type="number"
+            value={formData.montoTotal || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, montoTotal: e.target.value }))
+            }
+            size="small"
+            fullWidth
+            required
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Moneda *</FormLabel>
+          <CustomSelect
+            value={formData.moneda || ""}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, moneda: valor }))
+            }
+            options={["ARS", "USD", "EUR"]}
+            width="100%"
+          />
+        </Box>
+      </Box>
 
-      <FormGrid>
-        <FormLabel>Moneda</FormLabel>
-        <CustomSelect
-          onChange={(valor) => setFormData((p) => ({ ...p, moneda: valor }))}
-          options={["ARS", "USD", "EUR"]}
-        />
-      </FormGrid>
+      {/* 4️⃣ Receptor */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Nombre receptor *</FormLabel>
+          <OutlinedInput
+            value={formData.receptorNombre || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, receptorNombre: e.target.value }))
+            }
+            size="small"
+            fullWidth
+            required
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>CUIT receptor</FormLabel>
+          <OutlinedInput
+            value={formData.receptorCuit || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, receptorCuit: e.target.value }))
+            }
+            size="small"
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Condición IVA receptor</FormLabel>
+          <OutlinedInput
+            value={formData.receptorCondicionIVA || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, receptorCondicionIVA: e.target.value }))
+            }
+            size="small"
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Domicilio receptor</FormLabel>
+          <OutlinedInput
+            value={formData.receptorDomicilio || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, receptorDomicilio: e.target.value }))
+            }
+            size="small"
+            fullWidth
+          />
+        </Box>
+      </Box>
 
-      <FormGrid>
-        <FormLabel>Categoría</FormLabel>
-        <OutlinedInput
-          value={formData.categoria || ""}
-          onChange={(e) =>
-            setFormData((p) => ({ ...p, categoria: e.target.value }))
-          }
-          size="small"
-        />
-      </FormGrid>
+      {/* 5️⃣ Emisor */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Nombre emisor *</FormLabel>
+          <OutlinedInput
+            value={formData.emisorNombre || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, emisorNombre: e.target.value }))
+            }
+            size="small"
+            fullWidth
+            required
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>CUIT emisor</FormLabel>
+          <OutlinedInput
+            value={formData.emisorCuit || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, emisorCuit: e.target.value }))
+            }
+            size="small"
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Condición IVA emisor</FormLabel>
+          <OutlinedInput
+            value={formData.emisorCondicionIVA || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, emisorCondicionIVA: e.target.value }))
+            }
+            size="small"
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Domicilio emisor</FormLabel>
+          <OutlinedInput
+            value={formData.emisorDomicilio || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, emisorDomicilio: e.target.value }))
+            }
+            size="small"
+            fullWidth
+          />
+        </Box>
+      </Box>
 
-      <FormGrid>
-        <FormLabel>Estado Documento</FormLabel>
-        <CustomSingleAutoComplete
-          options={["BORRADOR", "PENDIENTE", "CONFIRMADO", "CERRADO"]}
-          onChange={(valor) =>
-            setFormData((p) => ({ ...p, estadoDocumentoComercial: valor }))
-          }
-        />
-      </FormGrid>
-      
-      <FormGrid>
-        <FormLabel>Versión Documento</FormLabel>
-        <CustomSelect
-          onChange={(valor) => setFormData((p) => ({ ...p, versionDocumento: valor }))}
-          options={["ORIGINAL", "COPIA", "DUPLICADO"]}
-        />
-      </FormGrid>
+      {/* 6️⃣ Categoría */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Categoría *</FormLabel>
+          <CustomSingleAutoComplete
+            options={["Productos", "Servicios", "Mantenimiento", "Consultoría"]}
+            value={formData.categoria || ""}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, categoria: valor }))
+            }
+          />
+        </Box>
+      </Box>
 
-      {/* --- OBLIGATORIOS ESPECÍFICOS DE RECIBO --- */}
-      <FormGrid>
-        <FormLabel>Emisor Nombre</FormLabel>
-        <OutlinedInput
-          value={formData.emisorNombre || ""}
-          onChange={(e) =>
-            setFormData((p) => ({ ...p, emisorNombre: e.target.value }))
-          }
-          size="small"
-        />
-      </FormGrid>
-
-      <FormGrid>
-        <FormLabel>Comprador Nombre</FormLabel>
-        <OutlinedInput
-          value={formData.compradorNombre || ""}
-          onChange={(e) =>
-            setFormData((p) => ({ ...p, compradorNombre: e.target.value }))
-          }
-          size="small"
-        />
-      </FormGrid>
-
-      {/* --- TOGGLE --- */}
-      <Grid item xs={12}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={showExtras}
-              onChange={() => setShowExtras(!showExtras)}
-            />
-          }
-          label="Mostrar campos adicionales"
-        />
-      </Grid>
-
-      {/* --- OPCIONALES --- */}
-      {showExtras && (
-        <>
-          <FormGrid>
-            <FormLabel>Emisor CUIT</FormLabel>
-            <OutlinedInput
-              value={formData.emisorCuit || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, emisorCuit: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Emisor Domicilio</FormLabel>
-            <OutlinedInput
-              value={formData.emisorDomicilio || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, emisorDomicilio: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Emisor Ingresos Brutos</FormLabel>
-            <OutlinedInput
-              value={formData.emisorIngresosBrutos || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, emisorIngresosBrutos: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Emisor Condición IVA</FormLabel>
-            <OutlinedInput
-              value={formData.emisorCondicionIVA || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, emisorCondicionIVA: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Comprador CUIT</FormLabel>
-            <OutlinedInput
-              value={formData.compradorCuit || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, compradorCuit: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Comprador Domicilio</FormLabel>
-            <OutlinedInput
-              value={formData.compradorDomicilio || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, compradorDomicilio: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Condición de Pago</FormLabel>
-            <OutlinedInput
-              value={formData.condicionPago || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, condicionPago: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Saldo Pendiente</FormLabel>
-            <OutlinedInput
-              type="number"
-              value={formData.saldoPendiente || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, saldoPendiente: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Medio de Pago</FormLabel>
-            <CustomSingleAutoComplete
-              options={["Efectivo", "Transferencia", "Cheque", "Tarjeta"]}
-              onChange={(valor) =>
-                setFormData((p) => ({ ...p, medioPago: valor }))
-              }
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>CAE</FormLabel>
-            <OutlinedInput
-              value={formData.cae || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, cae: e.target.value }))
-              }
-              size="small"
-            />
-          </FormGrid>
-
-          <FormGrid>
-            <FormLabel>Vencimiento CAE</FormLabel>
-            <CustomDatePicker
-              value={formData.vencimientoCae || null}
-              onChange={(fecha) =>
-                setFormData((p) => ({ ...p, vencimientoCae: fecha }))
-              }
-            />
-          </FormGrid>
-        </>
-      )}
-    </Grid>
+      {/* 7️⃣ Documento asociado */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Documento asociado</FormLabel>
+          <CustomSelect
+            value={formData.documentoAsociado || ""}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, documentoAsociado: valor }))
+            }
+            options={["Factura", "Pagaré", "Otro"]}
+            width="100%"
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Número de documento asociado</FormLabel>
+          <CustomSingleAutoComplete
+            options={["112", "113", "114"]}
+            value={formData.numeroDocumentoAsociado || ""}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, numeroDocumentoAsociado: valor }))
+            }
+          />
+        </Box>
+      </Box>
+    </Box>
   );
 }

@@ -34,7 +34,6 @@ public abstract class DocumentoComercial {
     private EstadoDocumentoComercial estadoDocumentoComercial; //obligatorio
 
 
-
     @Enumerated(EnumType.STRING)
     private VersionDocumento versionDocumento; //obligatorio
 
@@ -43,7 +42,4 @@ public abstract class DocumentoComercial {
     private LocalDate fechaActualizacion; //interno
     private UUID usuario; //interno
 
-    // Datos fiscales comunes
-    private String cae; //adicional
-    private LocalDate vencimientoCae; //adicional
 }
