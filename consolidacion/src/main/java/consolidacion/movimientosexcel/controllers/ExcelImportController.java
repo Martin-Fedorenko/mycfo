@@ -1,7 +1,7 @@
-package consolidacion.controllers;
+package consolidacion.movimientosexcel.controllers;
 
-import consolidacion.dtos.ResumenCargaDTO;
-import consolidacion.services.ExcelImportService;
+import consolidacion.movimientosexcel.dtos.ResumenCargaDTO;
+import consolidacion.movimientosexcel.services.ExcelImportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

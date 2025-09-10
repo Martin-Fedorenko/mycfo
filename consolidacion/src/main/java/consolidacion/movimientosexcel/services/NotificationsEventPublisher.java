@@ -1,14 +1,13 @@
-package consolidacion.services;
+package consolidacion.movimientosexcel.services;
 
-import consolidacion.dtos.MovementEventPayload;
-import consolidacion.models.MovimientoBancario;
+import consolidacion.movimientosexcel.dtos.MovementEventPayload;
+import consolidacion.movimientosexcel.models.MovimientoBancario;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 

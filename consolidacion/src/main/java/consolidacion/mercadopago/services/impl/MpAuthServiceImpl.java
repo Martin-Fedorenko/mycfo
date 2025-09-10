@@ -4,9 +4,12 @@ import consolidacion.mercadopago.config.MpProperties;
 import consolidacion.mercadopago.dtos.OauthStatusDTO;
 import consolidacion.mercadopago.models.MpAccountLink;
 import consolidacion.mercadopago.repositories.MpAccountLinkRepository;
+import consolidacion.mercadopago.repositories.MpPaymentRepository;
+import consolidacion.mercadopago.repositories.MpWalletMovementRepository;
 import consolidacion.mercadopago.services.MpAuthService;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URLEncoder;
@@ -21,16 +24,24 @@ import java.util.UUID;
 public class MpAuthServiceImpl implements MpAuthService {
     private final MpProperties props;
     private final MpAccountLinkRepository repo;
+    private final MpPaymentRepository paymentRepo;
+    private final MpWalletMovementRepository movementRepo;
     private final RestTemplate rest = new RestTemplate();
 
-    public MpAuthServiceImpl(MpProperties props, MpAccountLinkRepository repo) {
+    public MpAuthServiceImpl(
+            MpProperties props,
+            MpAccountLinkRepository repo,
+            MpPaymentRepository paymentRepo,
+            MpWalletMovementRepository movementRepo
+    ) {
         this.props = props;
         this.repo = repo;
+        this.paymentRepo = paymentRepo;
+        this.movementRepo = movementRepo;
     }
 
     @Override
     public String buildAuthorizationUrl(String ignored, Long userIdApp) {
-        // NO usar HttpSession para state  -> OK
         String signedState = buildSignedState(userIdApp);
 
         if (props.getClientId() == null || props.getClientId().isBlank()
@@ -45,9 +56,6 @@ public class MpAuthServiceImpl implements MpAuthService {
                 + "&response_type=code"
                 + "&redirect_uri=" + enc(props.getRedirectUri())
                 + "&state=" + enc(signedState);
-        // Si querés sumar scopes específicos, descomentar:
-        // q += "&scope=" + enc(props.getScope());
-
         return props.getOauthAuthorize() + "?" + q;
     }
 
@@ -58,47 +66,62 @@ public class MpAuthServiceImpl implements MpAuthService {
 
         MpAccountLink l = link.get();
 
-        // Si falta identidad mínima, la enriquecemos con /users/me
         if (isBlank(l.getEmail()) || isBlank(l.getMpUserId())) {
-            try {
-                enrichAccountIdentity(l);
-            } catch (Exception ignored) {
-                // si falla identidad, devolvemos lo que tengamos
-            }
+            try { enrichAccountIdentity(l); } catch (Exception ignored) {}
         }
-
         return new OauthStatusDTO(true, l.getEmail(), l.getMpUserId(), l.getExpiresAt());
     }
 
     @Override
     public void handleCallback(String code, String state, Long userIdApp) {
-        // 1) Validar state firmado (sin sesión)
         if (!verifySignedState(state, userIdApp, 5 * 60_000L)) {
             throw new IllegalArgumentException("invalid state");
         }
-
-        // 2) Intercambiar code -> tokens reales contra MP
         TokenResponse token = exchangeCodeForToken(code);
 
-        // 3) Persistir (usa tus campos actuales del entity)
         MpAccountLink link = repo.findByUserIdApp(userIdApp).orElse(new MpAccountLink());
         link.setUserIdApp(userIdApp);
-        link.setAccessToken(token.getAccessToken());     // si tenés cifrado, aplicar aquí
-        link.setRefreshToken(token.getRefreshToken());   // idem
+        link.setAccessToken(token.getAccessToken());
+        link.setRefreshToken(token.getRefreshToken());
         link.setScope(props.getScope());
         link.setLiveMode(Boolean.TRUE.equals(token.getLiveMode()));
 
-        // expires_at = ahora + expires_in - pequeña guarda
         long sec = token.getExpiresIn() != null ? token.getExpiresIn() : 3600L;
         link.setExpiresAt(Instant.now().plusSeconds(Math.max(0, sec - 60)));
 
         if (link.getCreatedAt() == null) link.setCreatedAt(Instant.now());
         link.setUpdatedAt(Instant.now());
 
-        // 4) Enriquecer identidad (id/nickname/email/site) con /users/me
         enrichAccountIdentity(link);
-
         repo.save(link);
+    }
+
+    /* =========================
+       Desvincular con purge
+       ========================= */
+    @Override
+    @Transactional
+    public void unlink(Long userIdApp) {
+        // Buscamos el link del usuario
+        MpAccountLink link = repo.findByUserIdApp(userIdApp)
+                .orElse(null);
+        if (link == null) {
+            // idempotente: nada para hacer
+            return;
+        }
+        Long linkId = link.getId();
+
+        // 1) Borro pagos NO facturados del link
+        paymentRepo.deleteNotInvoicedByLink(linkId);
+
+        // 2) Borro movimientos de billetera del link (siempre)
+        movementRepo.deleteByAccountLinkId(linkId);
+
+        // 3) Desasocio pagos facturados (SET account_link_id = NULL)
+        paymentRepo.detachInvoicedByLink(linkId);
+
+        // 4) Elimino el link (ya sin dependencias duras)
+        repo.delete(link);
     }
 
     /* =========================
@@ -117,7 +140,7 @@ public class MpAuthServiceImpl implements MpAuthService {
                 + "&client_id=" + enc(props.getClientId())
                 + "&client_secret=" + enc(props.getClientSecret())
                 + "&code=" + enc(code)
-                + "&redirect_uri=" + enc(props.getRedirectUri()); // ¡debe coincidir EXACTO!
+                + "&redirect_uri=" + enc(props.getRedirectUri());
 
         HttpEntity<String> req = new HttpEntity<>(body, headers);
         try {
@@ -130,14 +153,12 @@ public class MpAuthServiceImpl implements MpAuthService {
             return res.getBody();
 
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
-            // Logueamos el cuerpo que devolvió MP (suele decir "redirect_uri mismatch")
             String resp = e.getResponseBodyAsString();
             System.err.println("ERROR intercambiando code->token en MP: " + e.getStatusCode());
             System.err.println("Body: " + resp);
             throw new IllegalStateException("Fallo intercambio code->token: " + e.getStatusCode() + " - " + resp, e);
         }
     }
-
 
     private void enrichAccountIdentity(MpAccountLink link) {
         if (isBlank(link.getAccessToken())) return;
@@ -152,14 +173,13 @@ public class MpAuthServiceImpl implements MpAuthService {
 
         Map<?, ?> body = res.getBody();
 
-        // Campos típicos en /users/me (pueden variar levemente)
         Object id        = body.get("id");
         Object nickname  = body.get("nickname");
         Object email     = body.get("email");
         Object siteId    = body.get("site_id");
         Object liveMode  = body.get("live_mode");
 
-        if (id != null)       link.setMpUserId(String.valueOf(id));     // tu modelo usa String
+        if (id != null)       link.setMpUserId(String.valueOf(id));
         if (nickname != null) link.setNickname(String.valueOf(nickname));
         if (email != null)    link.setEmail(String.valueOf(email));
         if (siteId != null)   link.setSiteId(String.valueOf(siteId));
@@ -201,19 +221,18 @@ public class MpAuthServiceImpl implements MpAuthService {
     private String buildSignedState(Long userId) {
         long ts = System.currentTimeMillis();
         String payload = userId + ":" + ts;
-        String sig = sign(payload, props.getClientSecret()); // o STATE_SIGNING_SECRET dedicado
+        String sig = sign(payload, props.getClientSecret());
         return b64(payload + ":" + sig);
     }
 
-    public void unlink(Long userIdApp) {
+    // (quedó para compatibilidad; ahora hace purge antes de borrar)
+    public void unlinkLegacyDelete(Long userIdApp) {
         repo.findByUserIdApp(userIdApp).ifPresent(repo::delete);
     }
-
 
     private boolean verifySignedState(String stateB64, Long expectedUserId, long maxAgeMs) {
         try {
             String decoded = new String(java.util.Base64.getUrlDecoder().decode(stateB64), StandardCharsets.UTF_8);
-            // formato: userId:ts:sig
             String[] parts = decoded.split(":");
             if (parts.length != 3) return false;
             Long userId = Long.parseLong(parts[0]);
@@ -234,7 +253,6 @@ public class MpAuthServiceImpl implements MpAuthService {
        DTO local para token
        ========================= */
     public static class TokenResponse {
-        // nombres según respuesta de MP
         private String access_token;
         private String refresh_token;
         private Long   expires_in;

@@ -39,19 +39,27 @@ export default function MainGrid({ status, onRefreshStatus }) {
   const notify = (message, severity = "success") =>
     setSnack({ open: true, severity, message });
 
+  // Nueva función para obtener pagos (con cache-buster)
+  const fetchPayments = React.useCallback(async () => {
+    const resp = await mpApi.listPayments({
+      from: filters.from || undefined,
+      to: filters.to || undefined,
+      q: filters.q || undefined,
+      payStatus: filters.payStatus || undefined,
+      page, // 0-based
+      pageSize,
+      ts: Date.now(), // cache-buster
+    });
+    const items = resp?.content || [];
+    const tot = resp?.totalElements ?? items.length;
+    return { items, tot };
+  }, [filters, page, pageSize]);
+
+  // loadPayments ahora usa fetchPayments
   const loadPayments = React.useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await mpApi.listPayments({
-        from: filters.from || undefined,
-        to: filters.to || undefined,
-        q: filters.q || undefined,
-        payStatus: filters.payStatus || undefined,
-        page, // 0-based
-        pageSize,
-      });
-      const items = resp?.content || [];
-      const tot = resp?.totalElements ?? items.length;
+      const { items, tot } = await fetchPayments();
       setRows(items);
       setTotal(tot);
       setSelected([]);
@@ -60,7 +68,7 @@ export default function MainGrid({ status, onRefreshStatus }) {
     } finally {
       setLoading(false);
     }
-  }, [filters, page, pageSize]);
+  }, [fetchPayments]);
 
   React.useEffect(() => {
     loadPayments();
@@ -83,8 +91,39 @@ export default function MainGrid({ status, onRefreshStatus }) {
     }
   };
 
+  // Polling para detectar cambios tras importación
+  const refreshUntilChange = React.useCallback(
+    async (prevTotal) => {
+      const attempts = 6;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          const delay = 800 + i * 800;
+          await new Promise((r) => setTimeout(r, delay));
+          const { items, tot } = await fetchPayments();
+          if (
+            tot !== prevTotal ||
+            (items?.length &&
+              rows?.length &&
+              items[0]?.mpPaymentId !== rows[0]?.mpPaymentId)
+          ) {
+            setRows(items);
+            setTotal(tot);
+            setSelected([]);
+            return true;
+          }
+        } catch {
+          // ignoramos y seguimos intentando
+        }
+      }
+      return false;
+    },
+    [fetchPayments, rows]
+  );
+
+  // handleImport adaptado para usar polling
   const handleImport = async (args) => {
     try {
+      const prevTotal = total;
       if (args.mode === "period") {
         await mpApi.importPaymentsByMonth({
           month: args.month,
@@ -93,10 +132,17 @@ export default function MainGrid({ status, onRefreshStatus }) {
       } else {
         await mpApi.importPaymentById(args.paymentId);
       }
-      notify("Importación solicitada. Actualizando…");
+      notify("Importación solicitada. Buscando cambios…");
       setImportOpen(false);
       setPage(0);
-      loadPayments();
+      await loadPayments();
+      const changed = await refreshUntilChange(prevTotal);
+      if (!changed) {
+        notify(
+          "No se detectaron cambios aún. Probá refrescar en unos segundos.",
+          "warning"
+        );
+      }
     } catch (e) {
       notify(e?.message || "Error al importar pagos", "error");
     }

@@ -1,4 +1,4 @@
-package consolidacion.dtos;
+package consolidacion.movimientosexcel.dtos;
 
 public class FilaConErrorDTO {
     private int fila;

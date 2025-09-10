@@ -1,4 +1,4 @@
-package consolidacion.dtos;
+package consolidacion.movimientosexcel.dtos;
 
 import java.math.BigDecimal;
 import java.time.Instant;

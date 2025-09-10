@@ -1,4 +1,4 @@
-package consolidacion.controllers;
+package consolidacion.movimientosexcel.controllers;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 

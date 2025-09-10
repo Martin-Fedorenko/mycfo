@@ -1,4 +1,4 @@
-package consolidacion.models;
+package consolidacion.movimientosexcel.models;
 
 import jakarta.persistence.*;
 import lombok.Setter;

@@ -1,6 +1,6 @@
-package consolidacion.repositories;
+package consolidacion.movimientosexcel.repositories;
 
-import consolidacion.models.MovimientoBancario;
+import consolidacion.movimientosexcel.models.MovimientoBancario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
