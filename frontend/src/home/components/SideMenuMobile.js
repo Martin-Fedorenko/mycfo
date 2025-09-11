@@ -94,7 +94,6 @@ function SideMenuMobile({ open, toggleDrawer }) {
   );
 }
 
-
 SideMenuMobile.propTypes = {
   open: PropTypes.bool,
   toggleDrawer: PropTypes.func.isRequired,
@@ -102,27 +101,24 @@ SideMenuMobile.propTypes = {
 
 export default SideMenuMobile;
 
+// Aquí está el único cambio real: reemplazar el CustomIcon original con tu versión
 function CustomIcon() {
   return (
     <Box
+      component="img"
+      src={`${process.env.PUBLIC_URL}/logo512.png`}
+      alt="Logo MyCFO"
       sx={{
         width: '1.5rem',
         height: '1.5rem',
-        bgcolor: 'black',
-        borderRadius: '999px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        alignSelf: 'center',
-        backgroundImage:
-          'linear-gradient(135deg, hsl(210, 98%, 60%) 0%, hsl(210, 100%, 35%) 100%)',
-        color: 'hsla(210, 100%, 95%, 0.9)',
-        border: '1px solid',
-        borderColor: 'hsl(210, 100%, 55%)',
-        boxShadow: 'inset 0 2px 5px rgba(255, 255, 255, 0.3)',
+        objectFit: 'cover',
       }}
-    >
-      <DashboardRoundedIcon color="inherit" sx={{ fontSize: '1rem' }} />
-    </Box>
+      onError={(e) => {
+        console.error('Error al cargar logo:', e.target.src);
+        e.target.style.backgroundColor = 'lightcoral';
+        e.target.style.opacity = 0.5;
+        e.target.style.objectFit = 'unset';
+      }}
+    />
   );
 }
