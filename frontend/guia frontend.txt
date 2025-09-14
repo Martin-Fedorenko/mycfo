@@ -34,4 +34,6 @@ npm start
 
 
 para cuadros
-npm install recharts 
+npm install recharts
+
+npm install xlsx html2pdf.js

@@ -4,6 +4,7 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -14,29 +15,25 @@ const tableCellStyle = {
   border: '1px solid rgba(255, 255, 255, 0.1)',
 };
 
-export default function PresupuestoList() {
+export default function MainGrid() {
   const navigate = useNavigate();
+  const [presupuestos, setPresupuestos] = React.useState([]);
 
-  const presupuestos = [
-    {
-      id: 'anual-2025',
-      nombre: 'Presupuesto Anual 2025',
-      desde: '2025-01-01',
-      hasta: '2025-12-31',
-    },
-    {
-      id: 'semestre1-2025',
-      nombre: 'Primer semestre 2025',
-      desde: '2025-01-01',
-      hasta: '2025-06-30',
-    },
-    {
-      id: 'jul2025-mar2026',
-      nombre: 'Julio 2025 a Marzo 2026',
-      desde: '2025-07-01',
-      hasta: '2026-03-31',
-    },
-  ];
+  React.useEffect(() => {
+    const fetchPresupuestos = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`
+        );
+        console.log("Datos recibidos del backend:", res.data);
+        setPresupuestos(res.data);
+      } catch (e) {
+        console.error("Error cargando presupuestos desde el backend:", e);
+        setPresupuestos([]); // Si hay error, queda vacío
+      }
+    };
+    fetchPresupuestos();
+  }, []);
 
   return (
     <Box sx={{ width: '100%', p: 3 }}>
@@ -62,18 +59,32 @@ export default function PresupuestoList() {
                 <TableCell sx={tableCellStyle}>{p.desde}</TableCell>
                 <TableCell sx={tableCellStyle}>{p.hasta}</TableCell>
                 <TableCell sx={{ ...tableCellStyle }} align="right">
-                  <Button variant="outlined" size="small" onClick={() => navigate(`/presupuesto/${p.id}`)}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      const nombreUrl = encodeURIComponent(p.nombre.trim().toLowerCase().replace(/\s+/g, '-'));
+                      navigate(`/presupuestos/${nombreUrl}`);
+                    }}
+                  >
                     Ver detalle
                   </Button>
                 </TableCell>
               </TableRow>
             ))}
+            {presupuestos.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
+                  No hay presupuestos para mostrar.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Paper>
 
       <Box mt={3}>
-        <Button variant="contained" onClick={() => navigate('/presupuesto/nuevo')}>
+        <Button variant="contained" onClick={() => navigate('/presupuestos/nuevo')}>
           Crear nuevo presupuesto
         </Button>
       </Box>

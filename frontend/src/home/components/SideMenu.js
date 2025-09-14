@@ -7,13 +7,10 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import MenuContent from './MenuContent';
-import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
-
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import LogoutButton from './LogoutButton';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
-
 
 const drawerWidth = 320;
 
@@ -27,6 +24,28 @@ const Drawer = styled(MuiDrawer)({
     boxSizing: 'border-box',
   },
 });
+
+// CustomIcon QUE SÍ FUNCIONA
+const CustomIcon = () => {
+  return (
+    <Box
+      component="img"
+      src={`${process.env.PUBLIC_URL}/logo192.png`}
+      alt="Logo MyCFO"
+      sx={{
+        width: '2rem',
+        height: '2rem',
+        objectFit: 'cover',
+      }}
+      onError={(e) => {
+        console.error('Error al cargar logo:', e.target.src);
+        e.target.style.backgroundColor = 'lightcoral';
+        e.target.style.opacity = 0.5;
+        e.target.style.objectFit = 'unset';
+      }}
+    />
+  );
+};
 
 export default function SideMenu() {
   return (
@@ -47,7 +66,7 @@ export default function SideMenu() {
         }}
       >
         <CustomIcon />
-        <Typography variant="h4" component="h1" sx={{ color: 'text.primary', marginLeft: 1}}>
+        <Typography variant="h4" component="h1" sx={{ color: 'text.primary', marginLeft: 1 }}>
           MyCFO
         </Typography>
       </Box>
@@ -60,7 +79,7 @@ export default function SideMenu() {
           flexDirection: 'column',
         }}
       >
-        <MenuContent/>
+        <MenuContent />
       </Box>
       <Stack
         direction="row"
@@ -91,37 +110,8 @@ export default function SideMenu() {
             <PersonRoundedIcon />
           </IconButton>
         </Tooltip>
-
         <LogoutButton />
-
       </Stack>
     </Drawer>
   );
 }
-
-export function CustomIcon() {
-  return (
-    <Box
-      sx={{
-        width: '1.5rem',
-        height: '1.5rem',
-        bgcolor: 'black',
-        borderRadius: '999px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        alignSelf: 'center',
-        backgroundImage:
-          'linear-gradient(135deg, hsl(210, 98%, 60%) 0%, hsl(210, 100%, 35%) 100%)',
-        color: 'hsla(210, 100%, 95%, 0.9)',
-        border: '1px solid',
-        borderColor: 'hsl(210, 100%, 55%)',
-        boxShadow: 'inset 0 2px 5px rgba(255, 255, 255, 0.3)',
-      }}
-    >
-      <DashboardRoundedIcon color="inherit" sx={{ fontSize: '1rem' }} />
-    </Box>
-  );
-}
-
-
