@@ -12,6 +12,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import axios from 'axios';
 import CustomButton from "./../../shared-components/CustomButton";
 import CustomDatePicker from '../../shared-components/CustomDatePicker';
+import EditableText from './components/form';
+import ComentarioEditable from './components/form';
 
 const FormGrid = styled(Grid)(() => ({
   display: 'flex',
@@ -249,6 +251,8 @@ export default function CargaManual() {
             ))}
           </Box>
         </FormGrid>
+
+        <ComentarioEditable></ComentarioEditable>
 
         {/* Guardar */}
         <FormGrid size={{ xs: 12 }}>
