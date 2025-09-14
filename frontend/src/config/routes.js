@@ -1,22 +1,23 @@
-import StorageIcon from '@mui/icons-material/Storage';
-import DescriptionIcon from '@mui/icons-material/Description';
+import StorageIcon from "@mui/icons-material/Storage";
+import DescriptionIcon from "@mui/icons-material/Description";
 
-import CargaManual from '../registro/carga-manual/CargaManual';
-import CargaDocumento from '../registro/carga-documento/CargaDocumento';
-import ReporteMensual from '../reportes/reporte-mensual/ReporteMensual';
-import CargaMovimientos from '../consolidacion/carga-movimientos/CargaMovimientos';
-import CashFlow from '../reportes/cash-flow/CashFlow';
-import Notificaciones from '../notificaciones/listado-notificaciones/Notificaciones';
-import Presupuesto from '../pronostico/presupuesto/Presupuesto';
-import PresupuestoNuevo from '../pronostico/presupuesto/components/PresupuestoNuevo';
-import PresupuestoDetalle from '../pronostico/presupuesto/components/PresupuestoDetalle';
-import MesDetalle from '../pronostico/presupuesto/components/MesDetalle';
-import RollingForecast from '../pronostico/rolling-forecast/RollingForecast';
-import CashFlowForecast from '../pronostico/cash-flow-forecast/CashFlowForecast';
-import HistorialCambios from '../administracion/historial-cambios/HistorialCambios';
-import Roles from '../administracion/roles/Roles';
-import Invitaciones from '../administracion/invitaciones/Invitaciones';
-import MovimientosCargados from '../registro/movimientos-cargados/MovimientosCargados';
+import CargaManual from "../registro/carga-manual/CargaManual";
+import CargaDocumento from "../registro/carga-documento/CargaDocumento";
+import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
+import CargaMovimientos from "../consolidacion/carga-movimientos/CargaMovimientos";
+import CashFlow from "../reportes/cash-flow/CashFlow";
+import Notificaciones from "../notificaciones/listado-notificaciones/Notificaciones";
+import Presupuesto from "../pronostico/presupuesto/Presupuesto";
+import PresupuestoNuevo from "../pronostico/presupuesto/components/PresupuestoNuevo";
+import PresupuestoDetalle from "../pronostico/presupuesto/components/PresupuestoDetalle";
+import MesDetalle from "../pronostico/presupuesto/components/MesDetalle";
+import CashFlowForecast from "../pronostico/rolling-forecast/RollingForecast";
+import RollingForecast from "../pronostico/cash-flow-forecast/CashFlowForecast";
+import HistorialCambios from "../administracion/historial-cambios/HistorialCambios";
+import Roles from "../administracion/roles/Roles";
+import Invitaciones from "../administracion/invitaciones/Invitaciones";
+import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCargados";
+import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
 
 const routeConfig = [
   {
@@ -27,13 +28,13 @@ const routeConfig = [
         label: "Carga Manual",
         path: "/carga-manual",
         icon: <DescriptionIcon />,
-        element: <CargaManual />
+        element: <CargaManual />,
       },
       {
         label: "Carga mediante Documento",
         path: "/carga-documento",
         icon: <DescriptionIcon />,
-        element: <CargaDocumento />
+        element: <CargaDocumento />,
       },
       { label: "Carga mediante Audio", icon: <DescriptionIcon /> },
       { label: "Carga mediante Imagen", icon: <DescriptionIcon /> },
@@ -42,7 +43,7 @@ const routeConfig = [
         label: "Ver movimientos cargados",
         path: "/movimientos-cargados",
         icon: <DescriptionIcon />,
-        element: <MovimientosCargados />
+        element: <MovimientosCargados />,
       },
     ],
   },
@@ -54,7 +55,13 @@ const routeConfig = [
         label: "Carga de movimientos",
         path: "/carga-movimientos",
         icon: <DescriptionIcon />,
-        element: <CargaMovimientos />
+        element: <CargaMovimientos />,
+      },
+      {
+        label: "Mercado Pago",
+        path: "/mercado-pago",
+        icon: <DescriptionIcon />,
+        element: <MercadoPagoPage />,
       },
       { label: "Ver movimientos consolidados", icon: <DescriptionIcon /> },
     ],
@@ -67,13 +74,13 @@ const routeConfig = [
         label: "Reporte mensual",
         path: "/reporte-mensual",
         icon: <DescriptionIcon />,
-        element: <ReporteMensual />
+        element: <ReporteMensual />,
       },
-      { 
+      {
         label: "Cash Flow",
         path: "/cash-flow",
         icon: <DescriptionIcon />,
-        element: <CashFlow />
+        element: <CashFlow />,
       },
       { label: "Profit & Loss", icon: <DescriptionIcon /> },
     ],
@@ -103,19 +110,19 @@ const routeConfig = [
             path: "/presupuestos/:nombre/detalle/:mesNombre",
             element: <MesDetalle />
           },
-        ]
+        ],
       },
       {
         label: "Cash Flow Forecast",
         path: "/cash-flow-forecast",
         icon: <DescriptionIcon />,
-        element: <CashFlowForecast />
+        element: <CashFlowForecast />,
       },
       {
         label: "Rolling Forecast",
         path: "/rolling-forecast",
         icon: <DescriptionIcon />,
-        element: <RollingForecast />
+        element: <RollingForecast />,
       },
     ],
   },
@@ -128,19 +135,19 @@ const routeConfig = [
         label: "Invitaciones",
         path: "/invitaciones",
         icon: <DescriptionIcon />,
-        element: <Invitaciones />
+        element: <Invitaciones />,
       },
       {
         label: "Roles",
         path: "/roles",
         icon: <DescriptionIcon />,
-        element: <Roles />
+        element: <Roles />,
       },
       {
         label: "Historial de cambios",
         path: "/Historial",
         icon: <DescriptionIcon />,
-        element: <HistorialCambios />
+        element: <HistorialCambios />,
       },
     ],
   },
@@ -148,7 +155,7 @@ const routeConfig = [
     label: "Notificaciones",
     icon: <StorageIcon />,
     path: "/listado-notificaciones",
-    element: <Notificaciones />
+    element: <Notificaciones />,
   },
 ];
 
