@@ -76,7 +76,12 @@ export default function CargaDocumento() {
         onFileSelected={handleFileSelected}
         width="100%"
         height={140}
+        accept={{
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [],
+          "application/vnd.ms-excel": [],
+        }}
       />
+
 
       {/* Botón para subir */}
       <CustomButton

@@ -1,28 +1,38 @@
 package registro.controllers;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import registro.models.Registro;
 import registro.services.RegistroService;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@CrossOrigin // solo para desarrollo
+@RequestMapping("/registros")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class RegistroController {
 
     private final RegistroService registroService;
 
-    public RegistroController(RegistroService registroService) {
-        this.registroService = registroService;
+    @PostMapping("/formulario")
+    public ResponseEntity<Registro> crearRegistro(@RequestBody Registro registro) {
+        Registro guardado = registroService.guardarRegistro(registro);
+        return ResponseEntity.ok(guardado);
     }
 
-    @PostMapping("/registros")
-    public Registro crearRegistro(@RequestBody Registro registro) {
-        return registroService.guardarRegistro(registro);
+    @GetMapping
+    public ResponseEntity<List<Registro>> listarRegistros() {
+        return ResponseEntity.ok(registroService.listarRegistros());
     }
 
-    @GetMapping("/registros")
-    public List<Registro> obtenerTodos() {
-        return registroService.obtenerTodos();
+    @GetMapping("/{id}")
+    public ResponseEntity<Registro> obtenerRegistro(@PathVariable Long id) {
+        Registro registro = registroService.obtenerRegistro(id);
+        if (registro == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(registro);
     }
 }

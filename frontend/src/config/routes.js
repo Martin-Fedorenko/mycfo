@@ -1,6 +1,7 @@
 import StorageIcon from "@mui/icons-material/Storage";
 import DescriptionIcon from "@mui/icons-material/Description";
 
+
 import CargaManual from "../registro/carga-manual/CargaManual";
 import CargaDocumento from "../registro/carga-documento/CargaDocumento";
 import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
@@ -18,6 +19,8 @@ import Roles from "../administracion/roles/Roles";
 import Invitaciones from "../administracion/invitaciones/Invitaciones";
 import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCargados";
 import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
+import CargaGeneral from '../registro/carga-general/CargaGeneral';
+
 
 const routeConfig = [
   {
@@ -44,6 +47,12 @@ const routeConfig = [
         path: "/movimientos-cargados",
         icon: <DescriptionIcon />,
         element: <MovimientosCargados />,
+      },
+      {
+        label: "Carga general",
+        path: "/carga",
+        icon: <DescriptionIcon />,
+        element: <CargaGeneral />
       },
     ],
   },
