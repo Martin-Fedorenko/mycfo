@@ -1,30 +1,57 @@
 import * as React from 'react';
-import axios from 'axios';
 import { Box, Typography } from '@mui/material';
 import TablaDetalle from './TablaDetalle';
 import Filtros from './Filtros';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 
 export default function MainGrid() {
-    // Inician vacíos: muestran solo el label hasta que elijas
+    // Inician vacíos
     const [selectedMonth, setSelectedMonth] = React.useState('');          // '' | 0..11
     const [selectedYear, setSelectedYear] = React.useState('');            // '' | number
     const [selectedCategoria, setSelectedCategoria] = React.useState([]);  // [] | string[]
 
-    const [data, setData] = React.useState({ ingresos: [], egresos: [] });
+    // Estructura alineada al backend (evita undefined)
+    const [data, setData] = React.useState({ detalleIngresos: [], detalleEgresos: [] });
 
+    // Llamada al backend cada vez que cambian los filtros
     React.useEffect(() => {
         const baseUrl = process.env.REACT_APP_URL_REPORTE;
-        axios.get(`${baseUrl}/resumen`)
-            .then(response => setData(response.data))
-            .catch(error => {
+        if (!baseUrl) return;
+        if (!(selectedYear && selectedMonth !== '')) return;
+
+        const params = new URLSearchParams();
+        params.set('anio', selectedYear);
+        params.set('mes', Number(selectedMonth) + 1); // selects 0..11 → backend 1..12
+
+        // Solo enviar 'categoria' cuando hay exactamente una elegida
+        if (Array.isArray(selectedCategoria) && selectedCategoria.length === 1) {
+            params.set('categoria', selectedCategoria[0]);
+        }
+
+        fetch(`${baseUrl}/resumen?${params.toString()}`)
+            .then(async (r) => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const json = await r.json();
+                setData({
+                    detalleIngresos: json?.detalleIngresos ?? [],
+                    detalleEgresos: json?.detalleEgresos ?? [],
+                });
+            })
+            .catch((error) => {
                 console.error('Error al obtener los datos del backend:', error);
+                setData({ detalleIngresos: [], detalleEgresos: [] });
             });
-    }, []);
+    }, [selectedYear, selectedMonth, selectedCategoria]);
 
     const handleMonthChange = (e) => setSelectedMonth(e.target.value);
     const handleYearChange = (e) => setSelectedYear(e.target.value);
-    const handleCategoriaChange = (e) => setSelectedCategoria(e.target.value);
+
+    // Garantizar SIEMPRE array (corrige caso string y evita “Varios” con 1 selección)
+    const handleCategoriaChange = (e) => {
+        const v = e.target.value;
+        const arr = Array.isArray(v) ? v : (typeof v === 'string' ? (v ? v.split(',') : []) : []);
+        setSelectedCategoria(arr);
+    };
 
     const getNombreMes = (mesIndex) => {
         if (mesIndex === '' || mesIndex === null || mesIndex === undefined) return '';
@@ -62,8 +89,8 @@ export default function MainGrid() {
             <TablaDetalle
                 selectedYear={selectedYear}
                 selectedMonth={selectedMonth}
-                ingresos={data.ingresos}
-                egresos={data.egresos}
+                ingresos={data.detalleIngresos}
+                egresos={data.detalleEgresos}
                 topRightActions={
                     <ExportadorSimple
                         onExportPdf={handleExportPdf}
