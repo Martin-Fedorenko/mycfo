@@ -42,7 +42,6 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
                 Detalle de Ingresos
             </Typography>
 
-            {/* Slot: acciones arriba de la PRIMERA tabla, alineadas a la derecha */}
             {topRightActions && (
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
                     {topRightActions}

@@ -11,6 +11,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import axios from 'axios';
 import CustomButton from "./../../shared-components/CustomButton";
+import CustomDatePicker from '../../shared-components/CustomDatePicker';
+import EditableText from './components/form';
+import ComentarioEditable from './components/form';
 
 const FormGrid = styled(Grid)(() => ({
   display: 'flex',
@@ -176,65 +179,7 @@ export default function CargaManual() {
           {errores.monto && <FormHelperText error>{errores.monto}</FormHelperText>}
         </FormGrid>
 
-        {/* Fecha */}
-        <FormGrid size={{ xs: 12, sm: 6 }}>
-          <FormLabel htmlFor="fecha" required>
-            Fecha
-          </FormLabel>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DatePicker
-              value={fecha}
-              onChange={(newValue) => newValue && setFecha(newValue)}
-              format="DD/MM/YYYY"
-              slotProps={{
-                textField: {
-                  id: 'fecha',
-                  size: 'medium',
-                  variant: 'outlined',
-                  fullWidth: true,
-                },
-                openPickerButton: {
-                  sx: { marginRight: '-5px' },
-                },
-              }}
-            />
-          </LocalizationProvider>
-          {errores.fecha && <FormHelperText error>{errores.fecha}</FormHelperText>}
-        </FormGrid>
-
-        {/* Hora */}
-        <FormGrid size={{ xs: 12, sm: 6 }}>
-          <FormLabel htmlFor="hora" required>
-            Hora
-          </FormLabel>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <TimePicker
-              value={hora}
-              onChange={(newValue) => newValue && setHora(newValue)}
-              ampm={false}
-              views={['hours', 'minutes']}
-              slotProps={{
-                textField: {
-                  id: 'hora',
-                  size: 'medium',
-                  variant: 'outlined',
-                  fullWidth: true,
-                },
-                openPickerButton: {
-                  sx: { marginRight: '-5px' },
-                },
-                 layout: {
-                    sx: {
-                      '& .MuiPickersLayout-contentWrapper': {
-                        paddingRight: '20px',
-                      },
-                    },
-                  },
-              }}
-            />
-          </LocalizationProvider>
-          {errores.hora && <FormHelperText error>{errores.hora}</FormHelperText>}
-        </FormGrid>
+        <CustomDatePicker/>
 
         {/* Tercero (opcional) */}
         <FormGrid size={{ xs: 12 }}>
@@ -306,6 +251,8 @@ export default function CargaManual() {
             ))}
           </Box>
         </FormGrid>
+
+        <ComentarioEditable></ComentarioEditable>
 
         {/* Guardar */}
         <FormGrid size={{ xs: 12 }}>

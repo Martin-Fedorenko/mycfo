@@ -15,6 +15,7 @@ export default function DropzoneUploader({
   initialFile = null,
   width = "100%",
   height = 100,
+  accept
 }) {
   const theme = useTheme();
   const [file, setFile] = useState(initialFile);
@@ -33,10 +34,7 @@ export default function DropzoneUploader({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
-    accept: {
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [],
-      "application/vnd.ms-excel": [],
-    },
+    accept: accept || undefined
   });
 
   const handleRemove = () => {
