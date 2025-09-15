@@ -41,7 +41,7 @@ export default function CargaDocumento() {
       formData.append("tipoOrigen", tipoOrigen);
 
       const { data } = await axios.post(
-        `${process.env.REACT_APP_URL_CONSOLIDACION}/api/importar-excel`,
+        `${process.env.REACT_APP_URL_REGISTRO}/api/importar-excel`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -77,11 +77,11 @@ export default function CargaDocumento() {
         width="100%"
         height={140}
         accept={{
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [],
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            [],
           "application/vnd.ms-excel": [],
         }}
       />
-
 
       {/* Botón para subir */}
       <CustomButton

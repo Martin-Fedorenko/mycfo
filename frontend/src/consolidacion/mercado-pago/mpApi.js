@@ -1,8 +1,6 @@
 // /mercado-pago/mpApi.js
 const BASE_URL =
-  import.meta?.env?.VITE_API_URL ||
-  process.env.REACT_APP_URL_CONSOLIDACION ||
-  "";
+  import.meta?.env?.VITE_API_URL || process.env.REACT_APP_URL_REGISTRO || "";
 
 async function request(path, { method = "GET", body, headers } = {}) {
   const url = `${BASE_URL}${path}`;
