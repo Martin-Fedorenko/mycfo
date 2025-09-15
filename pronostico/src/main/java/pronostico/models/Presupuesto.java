@@ -1,23 +1,27 @@
 package pronostico.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
-@Getter
-@Setter
+@Table(name = "presupuesto")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@Builder
 public class Presupuesto {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable=false)
     private String nombre;
-    private LocalDate desde;
-    private LocalDate hasta;
 
-    @OneToMany(mappedBy = "presupuesto", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PresupuestoDetalle> detalles;
+    @Column(nullable=false)
+    private LocalDate desde;
+
+    @Column(nullable=false)
+    private LocalDate hasta;
 }
