@@ -35,7 +35,7 @@ export default function CargaMovimientos(props) {
       formData.append("tipoOrigen", tipoOrigen);
 
       const response = await axios.post(
-        `${process.env.REACT_APP_URL_CONSOLIDACION}/api/importar-excel`, // <-- endpoint del back
+        `${process.env.REACT_APP_URL_REGISTRO}/api/importar-excel`, // <-- endpoint del back
         formData,
         {
           headers: {
