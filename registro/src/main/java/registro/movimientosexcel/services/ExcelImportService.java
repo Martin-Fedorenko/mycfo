@@ -44,7 +44,7 @@ public class ExcelImportService {
         try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
             Sheet hoja = workbook.getSheetAt(0);
 
-            for (int i = 1; i <= hoja.getLastRowNum(); i++) { // encabezado en la fila 0
+            for (int i = 1; i <= hoja.getLastRowNum(); i++) {
                 Row fila = hoja.getRow(i);
                 total++;
 
@@ -79,9 +79,8 @@ public class ExcelImportService {
                             ? medioPago.getStringCellValue()
                             : String.valueOf(medioPago.getNumericCellValue());
 
-                    // Crear y persistir Registro
                     Registro reg = new Registro();
-                    reg.setTipo(TipoRegistro.Ingreso); // ajusta si se requiere otro tipo
+                    reg.setTipo(TipoRegistro.Ingreso);
                     reg.setMontoTotal(montoValor);
                     reg.setFechaEmision(fechaLocal);
                     reg.setDescripcion(descripcionStr);
@@ -92,9 +91,7 @@ public class ExcelImportService {
                     reg.setFechaActualizacion(LocalDate.now());
 
                     registroRepository.save(reg);
-
                     correctos++;
-                    //notifications.publishMovement(reg, 1L); // si NotificationsEventPublisher soporta Registro
 
                 } catch (Exception e) {
                     errores.add(new FilaConErrorDTO(i + 1, e.getMessage()));
@@ -110,7 +107,7 @@ public class ExcelImportService {
 
     private static final int HEADER_ROW_INDEX = 3;
 
-    /** Carga de registros desde un archivo de Mercado Pago */
+    /** Carga de registros desde un archivo de Mercado Pago (sin id de referencia) */
     private ResumenCargaDTO procesarMercadoPago(MultipartFile file) {
         int total = 0;
         int correctos = 0;
@@ -131,13 +128,12 @@ public class ExcelImportService {
                 String v = fmt.formatCellValue(header.getCell(c)).trim().toUpperCase(Locale.ROOT);
                 if (v.equals("RELEASE_DATE")) idx.put("FECHA", c);
                 else if (v.equals("TRANSACTION_TYPE")) idx.put("TIPO", c);
-                else if (v.equals("REFERENCE_ID")) idx.put("REF", c);
                 else if (v.equals("TRANSACTION_NET_AMOUNT")) idx.put("MONTO", c);
             }
 
-            if (idx.size() < 4) {
+            if (idx.size() < 3) {
                 errores.add(new FilaConErrorDTO(0,
-                        "Faltan columnas esperadas (RELEASE_DATE, TRANSACTION_TYPE, REFERENCE_ID, TRANSACTION_NET_AMOUNT)."));
+                        "Faltan columnas esperadas (RELEASE_DATE, TRANSACTION_TYPE, TRANSACTION_NET_AMOUNT)."));
                 return new ResumenCargaDTO(total, correctos, errores);
             }
 
@@ -148,10 +144,9 @@ public class ExcelImportService {
                 try {
                     String rawFecha = fmt.formatCellValue(fila.getCell(idx.get("FECHA"))).trim();
                     String rawTipo  = fmt.formatCellValue(fila.getCell(idx.get("TIPO"))).trim();
-                    String rawRef   = fmt.formatCellValue(fila.getCell(idx.get("REF"))).trim();
                     String rawMonto = fmt.formatCellValue(fila.getCell(idx.get("MONTO"))).trim();
 
-                    if (rawFecha.isEmpty() && rawTipo.isEmpty() && rawRef.isEmpty() && rawMonto.isEmpty()) continue;
+                    if (rawFecha.isEmpty() && rawTipo.isEmpty() && rawMonto.isEmpty()) continue;
 
                     total++;
 
@@ -170,12 +165,10 @@ public class ExcelImportService {
                     reg.setMedioPago(parseMedioPago("Mercado Pago"));
                     reg.setMoneda(TipoMoneda.ARS);
                     reg.setOrigen("MERCADO_PAGO");
-                    reg.setCategoria(rawRef.isEmpty() ? "MP-" + (i + 1) : rawRef);
                     reg.setFechaCreacion(LocalDate.now());
                     reg.setFechaActualizacion(LocalDate.now());
 
                     registroRepository.save(reg);
-
                     correctos++;
                     notifications.publishMovement(reg, 1L);
 
@@ -213,7 +206,6 @@ public class ExcelImportService {
             throw new RuntimeException("Monto inválido: " + raw);
         }
     }
-
     private TipoMedioPago parseMedioPago(String raw) {
         if (raw == null) return null;
         String val = raw.toUpperCase(Locale.ROOT);
