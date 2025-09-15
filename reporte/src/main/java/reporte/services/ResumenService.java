@@ -1,12 +1,74 @@
 package reporte.services;
 
-import reporte.dtos.ResumenMensualDTO;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import reporte.dtos.DetalleCategoriaDTO;
+import reporte.dtos.RegistroDTO;
+import reporte.dtos.ResumenMensualDTO;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ResumenService {
-    public ResumenMensualDTO obtenerResumen() {
-        // Datos simulados (luego se conectará a la base de datos)
-        return new ResumenMensualDTO(125000, 98000);
+
+    @Value("${mycfo.registro.url}")
+    private String registroUrl;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    public ResumenMensualDTO obtenerResumenMensual(int anio, int mes, Optional<String> categoriaFiltro) {
+        // Traer registros desde el microservicio de registro
+        String url = registroUrl + "/registros";
+        RegistroDTO[] registros = restTemplate.getForObject(url, RegistroDTO[].class);
+
+        if (registros == null) return new ResumenMensualDTO(0,0,0, List.of(), List.of());
+
+        // Filtrar por mes/año
+        List<RegistroDTO> filtrados = Arrays.stream(registros)
+                .filter(r -> r.getFechaEmision() != null
+                        && r.getFechaEmision().getYear() == anio
+                        && r.getFechaEmision().getMonthValue() == mes)
+                .toList();
+
+        // Aplicar filtro por categoría si viene en el request
+        if (categoriaFiltro.isPresent()) {
+            String filtro = categoriaFiltro.get().toLowerCase();
+            filtrados = filtrados.stream()
+                    .filter(r -> r.getCategoria() != null && r.getCategoria().toLowerCase().equals(filtro))
+                    .toList();
+        }
+
+        // Separar ingresos y egresos
+        List<RegistroDTO> ingresos = filtrados.stream()
+                .filter(r -> "Ingreso".equalsIgnoreCase(r.getTipo()))
+                .toList();
+
+        List<RegistroDTO> egresos = filtrados.stream()
+                .filter(r -> "Egreso".equalsIgnoreCase(r.getTipo()))
+                .toList();
+
+        // Calcular totales
+        double totalIngresos = ingresos.stream().mapToDouble(RegistroDTO::getMontoTotal).sum();
+        double totalEgresos = egresos.stream().mapToDouble(RegistroDTO::getMontoTotal).sum();
+        double balance = totalIngresos - totalEgresos;
+
+        // Agrupar por categoría
+        List<DetalleCategoriaDTO> detalleIngresos = ingresos.stream()
+                .collect(Collectors.groupingBy(RegistroDTO::getCategoria,
+                        Collectors.summingDouble(RegistroDTO::getMontoTotal)))
+                .entrySet().stream()
+                .map(e -> new DetalleCategoriaDTO(e.getKey(), e.getValue()))
+                .toList();
+
+        List<DetalleCategoriaDTO> detalleEgresos = egresos.stream()
+                .collect(Collectors.groupingBy(RegistroDTO::getCategoria,
+                        Collectors.summingDouble(RegistroDTO::getMontoTotal)))
+                .entrySet().stream()
+                .map(e -> new DetalleCategoriaDTO(e.getKey(), e.getValue()))
+                .toList();
+
+        return new ResumenMensualDTO(totalIngresos, totalEgresos, balance, detalleIngresos, detalleEgresos);
     }
 }
