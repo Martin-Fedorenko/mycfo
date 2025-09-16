@@ -6,12 +6,10 @@ import {
 const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-    // Detectar si es el año actual → recortar hasta el mes corriente
     const ahora = new Date();
     const ultimoMes = (year === ahora.getFullYear()) ? ahora.getMonth() : 11;
     const mesesVisibles = meses.slice(0, ultimoMes + 1);
 
-    // Agrupar por categoría y ordenar por total anual
     const agruparYOrdenar = (data) => {
         const map = {};
         data.forEach((tx) => {
@@ -21,8 +19,6 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
             }
             map[tx.categoria][mes] += tx.monto;
         });
-
-        // Ordenar por total anual descendente
         return Object.entries(map)
             .map(([categoria, valores]) => ({
                 categoria,
@@ -35,7 +31,6 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
     const ingresosPorCategoria = agruparYOrdenar(ingresos);
     const egresosPorCategoria = agruparYOrdenar(egresos);
 
-    // Totales generales
     const totalIngresos = Array(12).fill(0);
     const totalEgresos = Array(12).fill(0);
     ingresos.forEach((tx) => totalIngresos[new Date(tx.fecha).getMonth()] += tx.monto);
@@ -44,9 +39,7 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
     const netos = totalIngresos.map((v, i) => v - totalEgresos[i]);
     const saldoFinal = [];
     saldoFinal[0] = saldoInicial + netos[0];
-    for (let i = 1; i < 12; i++) {
-        saldoFinal[i] = saldoFinal[i - 1] + netos[i];
-    }
+    for (let i = 1; i < 12; i++) saldoFinal[i] = saldoFinal[i - 1] + netos[i];
 
     return (
         <Box>
@@ -62,7 +55,6 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {/* Saldo inicial */}
                         <TableRow>
                             <TableCell>Cash on hand (Inicio)</TableCell>
                             {mesesVisibles.map((_, i) => (
@@ -72,12 +64,9 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                             ))}
                         </TableRow>
 
-                        {/* Ingresos */}
                         <TableRow>
                             <TableCell><b>Ingresos</b></TableCell>
-                            {mesesVisibles.map((_, i) => (
-                                <TableCell key={i} />
-                            ))}
+                            {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>
                         {ingresosPorCategoria.map(({ categoria, valores }) => (
                             <TableRow key={categoria}>
@@ -90,12 +79,9 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                             </TableRow>
                         ))}
 
-                        {/* Egresos */}
                         <TableRow>
                             <TableCell><b>Egresos</b></TableCell>
-                            {mesesVisibles.map((_, i) => (
-                                <TableCell key={i} />
-                            ))}
+                            {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>
                         {egresosPorCategoria.map(({ categoria, valores }) => (
                             <TableRow key={categoria}>
@@ -108,7 +94,6 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                             </TableRow>
                         ))}
 
-                        {/* Totales */}
                         <TableRow>
                             <TableCell><b>Total Ingresos</b></TableCell>
                             {mesesVisibles.map((_, i) => (
