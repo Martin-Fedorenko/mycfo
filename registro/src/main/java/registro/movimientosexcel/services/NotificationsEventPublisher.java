@@ -1,12 +1,12 @@
 package registro.movimientosexcel.services;
 
-import registro.movimientosexcel.dtos.MovementEventPayload;
-import registro.movimientosexcel.models.MovimientoBancario;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import registro.cargarDatos.models.Registro;
+import registro.movimientosexcel.dtos.MovementEventPayload;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -26,16 +26,23 @@ public class NotificationsEventPublisher {
         this.baseUrl = baseUrl.replaceAll("/+$", ""); // sin slash final
     }
 
-    public void publishMovement(MovimientoBancario m, Long fallbackUserId) {
-        String refId = m.getIdReferencia() != null ? m.getIdReferencia()
-                : String.valueOf(m.getId());
+    /**
+     * Publica un evento de movimiento a partir de un Registro.
+     * @param registro       Entidad Registro que disparará el evento.
+     * @param fallbackUserId Id de usuario en caso de que el registro no tenga asociado un usuario explícito.
+     */
+    public void publishMovement(Registro registro, Long fallbackUserId) {
+        // Si no hay un identificador de referencia, usamos su ID de base de datos
+        String refId = (registro.getCategoria() != null && !registro.getCategoria().isEmpty())
+                ? registro.getCategoria()
+                : String.valueOf(registro.getId());
 
         MovementEventPayload payload = new MovementEventPayload(
                 fallbackUserId != null ? fallbackUserId : 1L,
                 refId,
-                toInstant(m),                                   // LocalDate → Instant
-                Double.valueOf(m.getMonto()),               // Double → BigDecimal
-                m.getDescripcion()
+                toInstant(registro),                    // LocalDate → Instant
+                registro.getMontoTotal(),               // Double → BigDecimal se maneja en MovementEventPayload
+                registro.getDescripcion()               // descripción libre del registro
         );
 
         String url = baseUrl + "/api/events/movements";
@@ -47,11 +54,16 @@ public class NotificationsEventPublisher {
         }
     }
 
-    private Instant toInstant(MovimientoBancario m) {
-        // Tu fecha es LocalDate según el código
-        return m.getFecha()
+    /**
+     * Convierte la fecha de emisión del registro en Instant, tomando inicio del día
+     * en la zona horaria local.
+     */
+    private Instant toInstant(Registro registro) {
+        if (registro.getFechaEmision() == null) {
+            return Instant.now(); // fallback en caso de no tener fecha
+        }
+        return registro.getFechaEmision()
                 .atStartOfDay(ZoneId.systemDefault())
                 .toInstant();
     }
 }
-

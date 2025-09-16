@@ -3,6 +3,7 @@ package registro.cargarDatos.models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import registro.movimientosexcel.models.MovimientoBancario;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -44,4 +45,5 @@ public class Registro {
     @ManyToOne
     @JoinColumn(name = "id_documento")
     private DocumentoComercial documentoComercial;
+
 }
