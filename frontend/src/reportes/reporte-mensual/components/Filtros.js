@@ -30,7 +30,9 @@ const Filtros = ({
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const data = await r.json();
                 // Si el backend devuelve objetos { id, nombre }, extraemos el nombre
-                const nombres = Array.isArray(data) ? data.map((c) => (c?.nombre ?? c)).filter(Boolean) : [];
+                const nombres = Array.isArray(data)
+                    ? data.map((c) => (c?.nombre ?? c)).filter(Boolean)
+                    : [];
                 setCategoriasExtra(nombres);
             })
             .catch((err) => {
@@ -58,7 +60,11 @@ const Filtros = ({
     // Adaptar value siempre a array (corrige casos donde llega string)
     const handleCategoriaChange = (e) => {
         const v = e.target.value;
-        const arr = Array.isArray(v) ? v : (typeof v === 'string' ? (v ? v.split(',') : []) : []);
+        const arr = Array.isArray(v)
+            ? v
+            : typeof v === 'string'
+                ? (v ? v.split(',') : [])
+                : [];
         onCategoriaChange({ target: { value: arr } });
     };
 
@@ -98,7 +104,7 @@ const Filtros = ({
 
             {/* Categoría (multiple) */}
             <FormControl variant="outlined" size="small" sx={{ minWidth: 180 }}>
-                <InputLabel id="categoria-label">Categoría</InputLabel>
+                <InputLabel id="categoria-label" shrink>Categoría</InputLabel>
                 <Select
                     labelId="categoria-label"
                     id="categoria-select"
