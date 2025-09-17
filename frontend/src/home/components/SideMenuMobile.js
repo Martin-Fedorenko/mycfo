@@ -12,10 +12,28 @@ import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import MenuButton from './MenuButton';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { Box } from '@mui/material';
-import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import LogoutButton from './LogoutButton';
 
 function SideMenuMobile({ open, toggleDrawer }) {
+  // 🔹 Datos de usuario obtenidos de sessionStorage
+  const [userData, setUserData] = React.useState({
+    name: '',
+    familyName: '',
+    email: '',
+  });
+
+  React.useEffect(() => {
+    const storedName = sessionStorage.getItem('name') || '';
+    const storedFamilyName = sessionStorage.getItem('family_name') || '';
+    const storedEmail = sessionStorage.getItem('email') || '';
+
+    setUserData({
+      name: storedName,
+      familyName: storedFamilyName,
+      email: storedEmail,
+    });
+  }, []);
+
   return (
     <Drawer
       anchor="top"
@@ -53,16 +71,17 @@ function SideMenuMobile({ open, toggleDrawer }) {
             </Typography>
           </Stack>
 
-          {/* Tus propios botones: Perfil y Logout */}
+          {/* Botón Perfil */}
           <Tooltip title="Perfil">
             <IconButton size="small" color="primary" onClick={() => console.log("Perfil")}>
               <PersonRoundedIcon />
             </IconButton>
           </Tooltip>
 
+          {/* Logout */}
           <LogoutButton />
 
-          {/* Cerrar menú (como botón de hamburguesa invertido) */}
+          {/* Cerrar menú (hamburguesa invertida) */}
           <MenuButton aria-label="cerrar menú" onClick={toggleDrawer(false)}>
             <MenuRoundedIcon />
           </MenuButton>
@@ -70,17 +89,22 @@ function SideMenuMobile({ open, toggleDrawer }) {
 
         <Divider />
 
-        {/* Avatar + nombre (opcional si querés mantenerlo aparte) */}
+        {/* Avatar + nombre y email del usuario */}
         <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
           <Avatar
             sizes="small"
-            alt="Riley Carter"
+            alt={`${userData.name} ${userData.familyName}`}
             src="/static/images/avatar/7.jpg"
             sx={{ width: 24, height: 24 }}
           />
-          <Typography component="p" variant="h6">
-            Riley Carter
-          </Typography>
+          <Box>
+            <Typography component="p" variant="h6">
+              {userData.name || 'Nombre'} {userData.familyName || ''}
+            </Typography>
+            <Typography component="p" variant="caption" sx={{ color: 'text.secondary' }}>
+              {userData.email || 'correo@ejemplo.com'}
+            </Typography>
+          </Box>
         </Stack>
 
         <Divider />
@@ -101,7 +125,7 @@ SideMenuMobile.propTypes = {
 
 export default SideMenuMobile;
 
-// Aquí está el único cambio real: reemplazar el CustomIcon original con tu versión
+// Logo de la app
 function CustomIcon() {
   return (
     <Box

@@ -20,27 +20,7 @@ const requiredFieldsMap = {
     "vendedorNombre",
     "compradorNombre",
   ],
-  Recibo: [
-    "numeroDocumento",
-    "versionDocumento",
-    "fechaEmision",
-    "montoTotal",
-    "moneda",
-    "medioPago",
-    "categoria",
-  ],
-  Pagare: [
-    "numeroDocumento",
-    "versionDocumento",
-    "fechaEmision",
-    "montoTotal",
-    "moneda",
-    "fechaVencimiento",
-    "beneficiarioNombre",
-    "deudorNombre",
-  ],
-  Ingreso: ["montoTotal", "moneda", "medioPago", "fechaEmision"],
-  Egreso: ["montoTotal", "moneda", "medioPago", "fechaEmision"],
+  Movimiento: ["montoTotal", "moneda", "medioPago", "fechaEmision"],
 };
 
 export default function CargaFormulario({
@@ -64,6 +44,8 @@ export default function CargaFormulario({
       }
     });
 
+
+
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
@@ -73,8 +55,12 @@ export default function CargaFormulario({
     try {
       const payload = { ...formData, tipoDocumento: tipoDoc };
       await axios.post(endpoint, payload);
+
+
+
       alert("✅ Enviado con éxito!");
       setFormData({});
+
     } catch (err) {
       console.error("❌ Error en envío:", err);
       alert("❌ Error al enviar el formulario");
@@ -91,25 +77,7 @@ export default function CargaFormulario({
             errors={errors}
           />
         );
-      case "Recibo":
-        return (
-          <FormRecibo
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
-        );
-      case "Pagaré":
-      case "Pagare":
-        return (
-          <FormPagare
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
-        );
-      case "Ingreso":
-      case "Egreso":
+      case "Movimiento":
         return (
           <FormRegistro
             tipoDoc={tipoDoc}

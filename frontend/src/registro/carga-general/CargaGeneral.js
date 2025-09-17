@@ -23,30 +23,12 @@ export default function CargaGeneral() {
       foto: `${API_BASE}/facturas/foto`,
       audio: `${API_BASE}/facturas/audio`,
     },
-    Recibo: {
-      formulario: `${API_BASE}/recibos/formulario`,
-      documento: `${API_BASE}/recibos/documento`,
-      foto: `${API_BASE}/recibos/foto`,
-      audio: `${API_BASE}/recibos/audio`,
-    },
-    Pagaré: {
-      formulario: `${API_BASE}/pagares/formulario`,
-      documento: `${API_BASE}/pagares/documento`,
-      foto: `${API_BASE}/pagares/foto`,
-      audio: `${API_BASE}/pagares/audio`,
-    },
-    Ingreso: {
+    Movimiento: {
       formulario: `${API_BASE}/registros/formulario`,
       documento: `${API_BASE}/registros/documento`,
       foto: `${API_BASE}/registros/foto`,
       audio: `${API_BASE}/registros/audio`,
-    },
-    Egreso: {
-      formulario: `${API_BASE}/registros/formulario`,
-      documento: `${API_BASE}/registros/documento`,
-      foto: `${API_BASE}/registros/foto`,
-      audio: `${API_BASE}/registros/audio`,
-    },
+    }
   };
 
   const tipos = Object.keys(endpointMap);
@@ -89,9 +71,9 @@ export default function CargaGeneral() {
         }}
       >
         <Box>
-          <Typography variant="h5">Registro de Documentos</Typography>
+          <Typography variant="h5">Registro de Documentos y movimientos</Typography>
           <Typography variant="subtitle1">
-            Elegí el tipo de documento y cómo cargarlo
+            Elegí el tipo de documento o movimiento y cómo cargarlo
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>

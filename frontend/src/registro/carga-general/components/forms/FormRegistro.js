@@ -8,14 +8,15 @@ import CustomSelect from "../../../../shared-components/CustomSelect";
 export default function FormRegistro({ tipoDoc, formData, setFormData, errors = {} }) {
 
   useEffect(() => {
-    if (tipoDoc) {
+    if (tipoDoc === "Movimiento") {
+      const tipo = formData.montoTotal >= 0 ? "Ingreso" : "Egreso";
       setFormData((p) => ({
         ...p,
-        tipo: tipoDoc,
+        tipo: tipo,
       }));
     }
-  }, [tipoDoc, setFormData]);
-
+  }, [tipoDoc, setFormData, formData.montoTotal]);
+  
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
 
@@ -49,7 +50,7 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
           <CustomSelect
             value={formData.medioPago || ""}
             onChange={(valor) => setFormData((p) => ({ ...p, medioPago: valor }))}
-            options={["Efectivo", "Transferencia", "Cheque"]}
+            options={["Efectivo", "Transferencia", "Cheque", "Tarjeta", "MercadoPago", "Otro"]}
             width="100%"
           />
         </Box>
@@ -107,6 +108,16 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
           fullWidth
         />
       </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Número de documento asociado</FormLabel>
+          <CustomSingleAutoComplete
+            options={["112", "113", "114"]}
+            value={formData.numeroDocumentoAsociado || ""}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, numeroDocumentoAsociado: valor }))
+            }
+          />
+        </Box>
     </Box>
   );
 }

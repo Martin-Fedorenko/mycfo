@@ -6,12 +6,13 @@ import SignUp from "./sign-up/SignUp";
 import Dashboard from "./template/dashboard/Dashboard";
 import Home from "./home/Home";
 import ConfirmAccount from "./sign-up/ConfirmAccount";
-import routeConfig from "./config/routes"; // tu estructura jerárquica
+import routeConfig from "./config/routes";
 import Checkout from "./template/checkout/Checkout";
+import Perfil from "./administracion/perfil/Perfil";
 
 import "./App.css";
+import Organizacion from "./administracion/organizacion/Organizacion";
 
-// Función para aplanar configRoutes en lista plana con path y element
 function flattenRoutes(routes) {
   let flatRoutes = [];
 
@@ -22,7 +23,6 @@ function flattenRoutes(routes) {
         element: route.element,
         label: route.label,
       });
-      // elimino slash inicial para evitar conflictos con rutas hijas
     }
     if (route.children) {
       flatRoutes = flatRoutes.concat(flattenRoutes(route.children));
@@ -34,9 +34,8 @@ function flattenRoutes(routes) {
 
 const routes = flattenRoutes(routeConfig);
 
-// ✅ Componente para proteger rutas
 function RequireAuth() {
-  const isLoggedIn = !!sessionStorage.getItem("accessToken"); // 👈 usamos sessionStorage
+  const isLoggedIn = !!sessionStorage.getItem("accessToken");
   return isLoggedIn ? <Outlet /> : <Navigate to="/signin" replace />;
 }
 
@@ -50,13 +49,20 @@ function App() {
 
         {/* Rutas privadas (protegidas con RequireAuth) */}
         <Route element={<RequireAuth />}>
+          {/* Layout principal con Home como contenedor */}
           <Route path="/" element={<Home />}>
+            {/* Ruta por defecto (podrías redirigir a dashboard u otra página) */}
+            
+            
+
+            <Route path="perfil" element={<Perfil />} />
+            <Route path="organizacion" element={<Organizacion />} />
+            
+            {/* Rutas dinámicas desde la configuración */}
             {routes.map(({ path, element }, idx) => (
               <Route key={idx} path={path} element={element} />
             ))}
           </Route>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/checkout" element={<Checkout />} />
         </Route>
 
         {/* Catch-all: redirigir a signin */}

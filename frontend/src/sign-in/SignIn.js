@@ -66,6 +66,7 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
     }),
   },
 }));
+
 export default function SignIn(props) {
   const [formValues, setFormValues] = React.useState({
     email: "",
@@ -120,10 +121,41 @@ export default function SignIn(props) {
         const idToken = result.getIdToken().getJwtToken();
         const refreshToken = result.getRefreshToken().getToken();
 
-        // ✅ Guardar en sessionStorage
+        // ✅ Guardar tokens en sessionStorage
         sessionStorage.setItem("accessToken", accessToken);
         sessionStorage.setItem("idToken", idToken);
         sessionStorage.setItem("refreshToken", refreshToken);
+
+        // ✅ Obtener email, name, family_name y custom:organizacion
+        cognitoUser.getUserAttributes((err, attributes) => {
+          if (err) {
+            console.error("Error obteniendo atributos:", err);
+          } else {
+            const attrMap = {};
+            attributes.forEach((attr) => {
+              attrMap[attr.Name] = attr.Value;
+            });
+
+            // Guardar los atributos si están presentes
+            if (attrMap.email) {
+              sessionStorage.setItem("email", attrMap.email);
+            }
+            if (attrMap.name) {
+              sessionStorage.setItem("name", attrMap.name);
+            }
+            if (attrMap.family_name) {
+              sessionStorage.setItem("family_name", attrMap.family_name);
+            }
+            if (attrMap["custom:organizacion"]) {
+              sessionStorage.setItem(
+                "organizacion",
+                attrMap["custom:organizacion"]
+              );
+            }
+
+            console.log("Atributos del usuario:", attrMap);
+          }
+        });
 
         setGlobalMsg("Login successful!");
 
@@ -160,7 +192,11 @@ export default function SignIn(props) {
             Sign in
           </Typography>
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <FormControl>
               <FormLabel htmlFor="email">Email</FormLabel>
               <TextField
@@ -193,10 +229,16 @@ export default function SignIn(props) {
               />
             </FormControl>
 
-            <FormControlLabel control={<Checkbox value="remember" color="primary" />} label="Remember me" />
+            <FormControlLabel
+              control={<Checkbox value="remember" color="primary" />}
+              label="Remember me"
+            />
 
             {globalMsg && (
-              <Typography sx={{ textAlign: "center" }} color={globalMsg.includes("success") ? "primary" : "error"}>
+              <Typography
+                sx={{ textAlign: "center" }}
+                color={globalMsg.includes("success") ? "primary" : "error"}
+              >
                 {globalMsg}
               </Typography>
             )}
@@ -207,17 +249,33 @@ export default function SignIn(props) {
               {loading ? "Signing in..." : "Sign in"}
             </Button>
 
-            <Link component="button" type="button" onClick={handleClickOpen} variant="body2" sx={{ alignSelf: "center" }}>
+            <Link
+              component="button"
+              type="button"
+              onClick={handleClickOpen}
+              variant="body2"
+              sx={{ alignSelf: "center" }}
+            >
               Forgot your password?
             </Link>
           </Box>
 
           <Divider>or</Divider>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Button fullWidth variant="outlined" onClick={() => alert("Sign in with Google")} startIcon={<GoogleIcon />}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => alert("Sign in with Google")}
+              startIcon={<GoogleIcon />}
+            >
               Sign in with Google
             </Button>
-            <Button fullWidth variant="outlined" onClick={() => alert("Sign in with Facebook")} startIcon={<FacebookIcon />}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => alert("Sign in with Facebook")}
+              startIcon={<FacebookIcon />}
+            >
               Sign in with Facebook
             </Button>
             <Typography sx={{ textAlign: "center" }}>
