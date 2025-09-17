@@ -1,21 +1,48 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import CampoEditable from "../../shared-components/CampoEditable";
 import BotonConsolidar from "../../shared-components/CustomButton";
+import {
+  CognitoUserPool,
+  CognitoUser,
+} from "amazon-cognito-identity-js";
 
 export default function Perfil() {
-  // Datos iniciales hardcodeados
-  const initialData = {
-    nombre: "Martín",
-    apellido: "Fedorenko",
-    organizacion: "MyCFO",
-    telefono: "+54 11 5555-1234",
-    email: "martin@example.com",
-    puesto: "CTO",
-  };
-
-  const [perfil, setPerfil] = useState(initialData);
+  const [perfil, setPerfil] = useState({
+    nombre: "",
+    apellido: "",
+    organizacion: "",
+    telefono: "",
+    email: "",
+    puesto: "",
+  });
   const [editados, setEditados] = useState({}); // campos editados
+
+  // ⚙️ Configuración del pool
+  const poolData = {
+    UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID,
+    ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,
+  };
+  const userPool = new CognitoUserPool(poolData);
+
+  // 🔹 Cargar datos desde sessionStorage
+  useEffect(() => {
+    const nombre = sessionStorage.getItem("name") || "";
+    const apellido = sessionStorage.getItem("family_name") || "";
+    const organizacion = sessionStorage.getItem("organizacion") || "";
+    const telefono = sessionStorage.getItem("phone_number") || "";
+    const email = sessionStorage.getItem("email") || "";
+    const puesto = sessionStorage.getItem("custom:puesto") || "";
+
+    setPerfil({
+      nombre,
+      apellido,
+      organizacion,
+      telefono,
+      email,
+      puesto,
+    });
+  }, []);
 
   const handleChange = (campo, valor) => {
     setPerfil((prev) => ({ ...prev, [campo]: valor }));
@@ -24,8 +51,50 @@ export default function Perfil() {
 
   const handleConsolidar = () => {
     console.log("Datos enviados:", perfil);
-    alert("Cambios guardados con éxito");
-    setEditados({});
+
+    // 🔹 Guardar en sessionStorage
+    sessionStorage.setItem("name", perfil.nombre);
+    sessionStorage.setItem("family_name", perfil.apellido);
+    sessionStorage.setItem("organizacion", perfil.organizacion);
+    sessionStorage.setItem("phone_number", perfil.telefono);
+    sessionStorage.setItem("email", perfil.email);
+    sessionStorage.setItem("custom:puesto", perfil.puesto);
+
+    // 🔹 Actualizar en Cognito
+    const cognitoUser = userPool.getCurrentUser();
+    if (!cognitoUser) {
+      alert("No hay usuario autenticado en Cognito.");
+      return;
+    }
+
+    cognitoUser.getSession((err, session) => {
+      if (err || !session.isValid()) {
+        console.error("Error obteniendo sesión:", err);
+        alert("La sesión no es válida, vuelve a iniciar sesión.");
+        return;
+      }
+
+      // Mapeo de atributos a formato de Cognito
+      const attributes = [
+        { Name: "name", Value: perfil.nombre },
+        { Name: "family_name", Value: perfil.apellido },
+        { Name: "custom:organizacion", Value: perfil.organizacion },
+        { Name: "phone_number", Value: perfil.telefono },
+        { Name: "email", Value: perfil.email },
+        { Name: "custom:puesto", Value: perfil.puesto },
+      ];
+
+      cognitoUser.updateAttributes(attributes, (err, result) => {
+        if (err) {
+          console.error("Error actualizando atributos:", err);
+          alert("Hubo un error al actualizar en Cognito.");
+        } else {
+          console.log("Atributos actualizados en Cognito:", result);
+          alert("Cambios guardados con éxito en Cognito ✅");
+          setEditados({});
+        }
+      });
+    });
   };
 
   const hayCambios = Object.keys(editados).length > 0;

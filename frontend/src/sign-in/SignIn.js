@@ -136,22 +136,23 @@ export default function SignIn(props) {
               attrMap[attr.Name] = attr.Value;
             });
 
-            // Guardar los atributos si están presentes
-            if (attrMap.email) {
-              sessionStorage.setItem("email", attrMap.email);
-            }
-            if (attrMap.name) {
-              sessionStorage.setItem("name", attrMap.name);
-            }
-            if (attrMap.family_name) {
-              sessionStorage.setItem("family_name", attrMap.family_name);
-            }
-            if (attrMap["custom:organizacion"]) {
-              sessionStorage.setItem(
-                "organizacion",
-                attrMap["custom:organizacion"]
-              );
-            }
+          // Guardar los atributos si están presentes
+          if (attrMap.name) {
+            sessionStorage.setItem("name", attrMap.name);
+          }
+          if (attrMap.family_name) {
+            sessionStorage.setItem("family_name", attrMap.family_name);
+          }
+          if (attrMap["custom:organizacion"]) {
+            sessionStorage.setItem("organizacion", attrMap["custom:organizacion"]);
+          }
+          if (attrMap.phone_number) {
+            sessionStorage.setItem("phone_number", attrMap.phone_number);
+          }
+          if (attrMap["custom:puesto"]) {
+            sessionStorage.setItem("custom:puesto", attrMap["custom:puesto"]);
+          }
+
 
             console.log("Atributos del usuario:", attrMap);
           }

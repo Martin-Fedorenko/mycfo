@@ -157,7 +157,7 @@ public class MpController {
 
         Specification<Registro> spec = (root, query, cb) -> {
             List<Predicate> ands = new ArrayList<>();
-            ands.add(cb.equal(root.get("usuario"), UUID.fromString("00000000-0000-0000-0000-000000000001"))); // adaptar a tu auth real
+            //ands.add(cb.equal(root.get("usuario"), UUID.fromString("00000000-0000-0000-0000-000000000001"))); // adaptar a tu auth real
 
             if (from != null) {
                 ands.add(cb.greaterThanOrEqualTo(root.get("fechaEmision"), from));

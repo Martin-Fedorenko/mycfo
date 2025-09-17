@@ -110,16 +110,7 @@ export default function MovimientosCargados() {
         </Box>
       </Box>
 
-      {/* Selector de vista */}
-      <ToggleButtonGroup
-        value={vista}
-        exclusive
-        onChange={(e, nuevaVista) => nuevaVista && setVista(nuevaVista)}
-        size="small"
-      >
-        <ToggleButton value="tabla">Tabla</ToggleButton>
-        <ToggleButton value="grafico">Gráfico</ToggleButton>
-      </ToggleButtonGroup>
+      
 
       {error && <Typography color="error">{error}</Typography>}
 

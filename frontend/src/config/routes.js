@@ -20,6 +20,8 @@ import Invitaciones from "../administracion/invitaciones/Invitaciones";
 import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCargados";
 import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
 import CargaGeneral from '../registro/carga-general/CargaGeneral';
+import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
+import TablaRegistros from "../registro/movimientos-cargados/TablaRegistros";
 
 
 const routeConfig = [
@@ -28,6 +30,12 @@ const routeConfig = [
     path: "/carga",
     icon: <DescriptionIcon />,
     element: <CargaGeneral />
+  },
+  {
+    label: "Ver movimientos",
+    path: "/ver-movimientos",
+    icon: <DescriptionIcon />,
+    element: <TablaRegistros />
   }, 
   {
     label: "Consolidación Bancaria",
