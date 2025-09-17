@@ -22,13 +22,13 @@ public class ResumenController {
     public ResumenMensualDTO obtenerResumen(
             @RequestParam int anio,
             @RequestParam int mes,
-            // Soporta: ?categoria=A&categoria=B  y también ?categoria=A,B
+            // Soporta: ?categoria=A&categoria=B o ?categoria=A,B
             @RequestParam(required = false, name = "categoria") List<String> categoriaParam
     ) {
         List<String> categorias = (categoriaParam == null ? Collections.emptyList() :
                 categoriaParam.stream()
                         .filter(Objects::nonNull)
-                        .flatMap(s -> Arrays.stream(s.split(","))) // aplana CSV
+                        .flatMap(s -> Arrays.stream(s.split(",")))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
                         .distinct()

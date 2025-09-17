@@ -20,13 +20,9 @@ export default function MainGrid() {
         params.set('anio', selectedYear);
         params.set('mes', Number(selectedMonth) + 1);
 
-        // Enviar categorías como multi-param: &categoria=A&categoria=B
-        // (Filtros ya pone [] cuando el usuario selecciona TODAS → no enviamos nada)
+        // Enviar categorías solo si hay alguna y no son todas
         if (Array.isArray(selectedCategoria) && selectedCategoria.length > 0) {
-            selectedCategoria
-                .map((c) => (typeof c === 'string' ? c.trim() : c))
-                .filter(Boolean)
-                .forEach((c) => params.append('categoria', c));
+            selectedCategoria.forEach((c) => params.append('categoria', c));
         }
 
         fetch(`${baseUrl}/resumen?${params.toString()}`)

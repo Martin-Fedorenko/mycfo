@@ -6,19 +6,13 @@ const Filtros = ({
                      selectedYear,
                      onMonthChange,
                      onYearChange,
-                     selectedCategoria,     // array
+                     selectedCategoria,
                      onCategoriaChange,
                  }) => {
-    const meses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-    ];
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const años = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
-    // Categorías base hardcodeadas (sin "Alimentos")
     const categoriasBase = ['Transporte', 'Entretenimiento', 'Educación', 'Ocio'];
-
-    // Categorías traídas desde backend
     const [categoriasExtra, setCategoriasExtra] = useState([]);
 
     useEffect(() => {
@@ -34,29 +28,22 @@ const Filtros = ({
                     : [];
                 setCategoriasExtra(nombres);
             })
-            .catch((err) => {
-                console.error('Error al cargar categorías desde registro:', err);
-                setCategoriasExtra([]);
-            });
+            .catch(() => setCategoriasExtra([]));
     }, []);
 
-    // Catálogo final (sin duplicados)
     const categorias = useMemo(
         () => Array.from(new Set([...categoriasBase, ...categoriasExtra])),
         [categoriasExtra]
     );
 
-    // Sanear selección si hay valores que ya no existen
     useEffect(() => {
         const actual = Array.isArray(selectedCategoria) ? selectedCategoria : [];
         const saneada = actual.filter((c) => categorias.includes(c));
         if (saneada.length !== actual.length) {
             onCategoriaChange({ target: { value: saneada } });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [categorias]);
 
-    // 👉 Si el usuario marca TODAS, mandamos [] al padre para que no se envíe 'categoria' en la query
     const handleCategoriaChange = (e) => {
         const v = e.target.value;
         const arr = Array.isArray(v)
@@ -64,10 +51,8 @@ const Filtros = ({
             : typeof v === 'string'
                 ? (v ? v.split(',') : [])
                 : [];
-
         const unique = Array.from(new Set(arr));
         const allSelected = unique.length === categorias.length;
-
         onCategoriaChange({ target: { value: allSelected ? [] : unique } });
     };
 
@@ -76,13 +61,7 @@ const Filtros = ({
             {/* Mes */}
             <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
                 <InputLabel id="mes-label">Mes</InputLabel>
-                <Select
-                    labelId="mes-label"
-                    id="mes-select"
-                    value={selectedMonth}
-                    onChange={onMonthChange}
-                    label="Mes"
-                >
+                <Select labelId="mes-label" id="mes-select" value={selectedMonth} onChange={onMonthChange} label="Mes">
                     {meses.map((mes, index) => (
                         <MenuItem key={index} value={index}>{mes}</MenuItem>
                     ))}
@@ -92,20 +71,14 @@ const Filtros = ({
             {/* Año */}
             <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
                 <InputLabel id="anio-label">Año</InputLabel>
-                <Select
-                    labelId="anio-label"
-                    id="anio-select"
-                    value={selectedYear}
-                    onChange={onYearChange}
-                    label="Año"
-                >
+                <Select labelId="anio-label" id="anio-select" value={selectedYear} onChange={onYearChange} label="Año">
                     {años.map((año) => (
                         <MenuItem key={año} value={año}>{año}</MenuItem>
                     ))}
                 </Select>
             </FormControl>
 
-            {/* Categoría (multiple) */}
+            {/* Categoría */}
             <FormControl variant="outlined" size="small" sx={{ minWidth: 180 }}>
                 <InputLabel id="categoria-label" shrink>Categoría</InputLabel>
                 <Select

@@ -19,8 +19,7 @@ public class ResumenService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public ResumenMensualDTO obtenerResumenMensual(int anio, int mes, Optional<String> categoriaFiltro) {
-        // Traer registros desde el microservicio de registro
+    public ResumenMensualDTO obtenerResumenMensual(int anio, int mes, List<String> categoriasFiltro) {
         String url = registroUrl + "/registros";
         RegistroDTO[] registros = restTemplate.getForObject(url, RegistroDTO[].class);
 
@@ -33,19 +32,19 @@ public class ResumenService {
                         && r.getFechaEmision().getMonthValue() == mes)
                 .toList();
 
-        // ---- Filtro por categorías (INCLUSIVO) ----
-        if (categoriaFiltro.isPresent() && !categoriaFiltro.get().isBlank()) {
-            Set<String> filtros = Arrays.stream(categoriaFiltro.get().split(","))
+        // Filtro por categorías (OR inclusivo)
+        if (categoriasFiltro != null && !categoriasFiltro.isEmpty()) {
+            Set<String> filtrosNorm = categoriasFiltro.stream()
                     .map(this::normalize)
                     .filter(s -> !s.isBlank())
                     .collect(Collectors.toSet());
 
-            if (!filtros.isEmpty()) {
+            if (!filtrosNorm.isEmpty()) {
                 filtrados = filtrados.stream()
                         .filter(r -> {
                             String cat = r.getCategoria();
                             if (cat == null) return false;
-                            return filtros.contains(normalize(cat));
+                            return filtrosNorm.contains(normalize(cat));
                         })
                         .toList();
             }
@@ -83,11 +82,10 @@ public class ResumenService {
         return new ResumenMensualDTO(totalIngresos, totalEgresos, balance, detalleIngresos, detalleEgresos);
     }
 
-    // Normaliza: minúsculas, sin tildes, sin espacios sobrantes
     private String normalize(String input) {
         if (input == null) return "";
         String lower = input.trim().toLowerCase(Locale.ROOT);
         String normalized = Normalizer.normalize(lower, Normalizer.Form.NFD);
-        return normalized.replaceAll("\\p{M}", ""); // quita acentos
+        return normalized.replaceAll("\\p{M}", ""); // quita tildes
     }
 }
