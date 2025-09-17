@@ -23,16 +23,22 @@ function SideMenuMobile({ open, toggleDrawer }) {
   });
 
   React.useEffect(() => {
-    const storedName = sessionStorage.getItem('name') || '';
-    const storedFamilyName = sessionStorage.getItem('family_name') || '';
-    const storedEmail = sessionStorage.getItem('email') || '';
-
+  const loadData = () => {
     setUserData({
-      name: storedName,
-      familyName: storedFamilyName,
-      email: storedEmail,
+      name: sessionStorage.getItem('name') || '',
+      familyName: sessionStorage.getItem('family_name') || '',
+      email: sessionStorage.getItem('email') || '',
     });
+  };
+
+  loadData(); // lectura inicial
+
+  const onStorageChange = () => loadData();
+  window.addEventListener('storage', onStorageChange);
+
+  return () => window.removeEventListener('storage', onStorageChange);
   }, []);
+
 
   return (
     <Drawer
