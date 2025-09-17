@@ -11,8 +11,10 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import LogoutButton from './LogoutButton';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import ApartmentIcon from '@mui/icons-material/Apartment';
+import { useNavigate } from 'react-router-dom';
 
-const drawerWidth = 320;
+const drawerWidth = 380;
 
 const Drawer = styled(MuiDrawer)({
   width: drawerWidth,
@@ -25,7 +27,7 @@ const Drawer = styled(MuiDrawer)({
   },
 });
 
-// CustomIcon QUE SÍ FUNCIONA
+// Icono de la marca (funciona)
 const CustomIcon = () => {
   return (
     <Box
@@ -48,6 +50,28 @@ const CustomIcon = () => {
 };
 
 export default function SideMenu() {
+  const navigate = useNavigate();
+
+  // 🔹 Datos de usuario obtenidos del sessionStorage
+  const [userData, setUserData] = React.useState({
+    name: '',
+    familyName: '',
+    email: '',
+  });
+
+  React.useEffect(() => {
+    // Leer los valores guardados en sessionStorage por SignIn.js
+    const storedName = sessionStorage.getItem('name') || '';
+    const storedFamilyName = sessionStorage.getItem('family_name') || '';
+    const storedEmail = sessionStorage.getItem('email') || '';
+
+    setUserData({
+      name: storedName,
+      familyName: storedFamilyName,
+      email: storedEmail,
+    });
+  }, []);
+
   return (
     <Drawer
       variant="permanent"
@@ -66,7 +90,11 @@ export default function SideMenu() {
         }}
       >
         <CustomIcon />
-        <Typography variant="h4" component="h1" sx={{ color: 'text.primary', marginLeft: 1 }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ color: 'text.primary', marginLeft: 1 }}
+        >
           MyCFO
         </Typography>
       </Box>
@@ -81,6 +109,8 @@ export default function SideMenu() {
       >
         <MenuContent />
       </Box>
+
+      {/* Pie con datos del usuario */}
       <Stack
         direction="row"
         sx={{
@@ -93,20 +123,36 @@ export default function SideMenu() {
       >
         <Avatar
           sizes="small"
-          alt="Riley Carter"
+          alt={`${userData.name} ${userData.familyName}`}
           src="/static/images/avatar/7.jpg"
           sx={{ width: 36, height: 36 }}
         />
         <Box sx={{ mr: 'auto' }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: '16px' }}>
-            Riley Carter
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 500, lineHeight: '16px' }}
+          >
+            {userData.name || 'Nombre'} {userData.familyName || ''}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            riley@email.com
+            {userData.email || 'correo@ejemplo.com'}
           </Typography>
         </Box>
+        <Tooltip title="Organización">
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => navigate('/organizacion')}
+          >
+            <ApartmentIcon />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Perfil">
-          <IconButton size="small" color="primary" onClick={() => console.log("Ir al perfil")}>
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => navigate('/perfil')}
+          >
             <PersonRoundedIcon />
           </IconButton>
         </Tooltip>

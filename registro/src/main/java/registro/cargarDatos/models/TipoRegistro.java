@@ -4,5 +4,6 @@ public enum TipoRegistro {
     Ingreso,
     Egreso,
     Deuda,
-    Acreencia;
+    Acreencia,
+    Movimiento;
 }

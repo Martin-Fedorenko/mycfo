@@ -24,38 +24,11 @@ import CargaGeneral from '../registro/carga-general/CargaGeneral';
 
 const routeConfig = [
   {
-    label: "Carga de Datos",
-    icon: <StorageIcon />,
-    children: [
-      {
-        label: "Carga Manual",
-        path: "/carga-manual",
-        icon: <DescriptionIcon />,
-        element: <CargaManual />,
-      },
-      {
-        label: "Carga mediante Documento",
-        path: "/carga-documento",
-        icon: <DescriptionIcon />,
-        element: <CargaDocumento />,
-      },
-      { label: "Carga mediante Audio", icon: <DescriptionIcon /> },
-      { label: "Carga mediante Imagen", icon: <DescriptionIcon /> },
-      { label: "Carga mediante API", icon: <DescriptionIcon /> },
-      {
-        label: "Ver movimientos cargados",
-        path: "/movimientos-cargados",
-        icon: <DescriptionIcon />,
-        element: <MovimientosCargados />,
-      },
-      {
-        label: "Carga general",
-        path: "/carga",
-        icon: <DescriptionIcon />,
-        element: <CargaGeneral />
-      },
-    ],
-  },
+    label: "Carga de datos",
+    path: "/carga",
+    icon: <DescriptionIcon />,
+    element: <CargaGeneral />
+  }, 
   {
     label: "Consolidación Bancaria",
     icon: <StorageIcon />,
