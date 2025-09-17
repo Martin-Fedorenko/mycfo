@@ -10,6 +10,8 @@ import registro.mercadopago.services.MpAuthService;
 import registro.mercadopago.services.MpBillingService;
 import registro.mercadopago.services.MpPaymentImportService;
 import registro.mercadopago.services.util.MpWalletMovementImportService;
+import registro.cargarDatos.models.Registro;
+import registro.cargarDatos.repositories.RegistroRepository;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -47,6 +50,9 @@ public class MpController {
     // Wallet movements
     private final MpWalletMovementImportService walletImporter;
     private final MpWalletMovementRepository walletRepo;
+
+    @Autowired
+    private RegistroRepository registroRepo;
 
     @Autowired
     private MpProperties mpProps;
@@ -137,66 +143,50 @@ public class MpController {
     }
 
     /* ======================
-       Listado de PAGOS
+       Listado de PAGOS (desde Registro)
        ====================== */
-
     @GetMapping("/payments")
     public Page<PaymentDTO> payments(
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String q,
-            @PageableDefault(size = 10, sort = "fecha", direction = Sort.Direction.DESC) Pageable pg
+            @PageableDefault(size = 10, sort = "fechaEmision", direction = Sort.Direction.DESC) Pageable pg
     ) {
         final Long userId = currentUserId();
-        final ZoneId zone = ZoneId.systemDefault();
 
-        Pageable pageable = normalizeSortPayments(pg);
-
-        Specification<MpPayment> spec = (root, query, cb) -> {
+        Specification<Registro> spec = (root, query, cb) -> {
             List<Predicate> ands = new ArrayList<>();
-            ands.add(cb.equal(root.get("accountLink").get("userIdApp"), userId));
+            ands.add(cb.equal(root.get("usuario"), UUID.fromString("00000000-0000-0000-0000-000000000001"))); // adaptar a tu auth real
 
-            if (accountId != null) {
-                ands.add(cb.equal(root.get("accountLink").get("id"), accountId));
-            }
             if (from != null) {
-                Instant fromI = from.atStartOfDay(zone).toInstant();
-                ands.add(cb.greaterThanOrEqualTo(root.get("dateApproved"), fromI));
+                ands.add(cb.greaterThanOrEqualTo(root.get("fechaEmision"), from));
             }
             if (to != null) {
-                Instant toI = to.plusDays(1).atStartOfDay(zone).toInstant();
-                ands.add(cb.lessThan(root.get("dateApproved"), toI));
+                ands.add(cb.lessThan(root.get("fechaEmision"), to.plusDays(1)));
             }
             if (q != null && !q.isBlank()) {
                 String ql = "%" + q.toLowerCase().trim() + "%";
-                Predicate or = cb.disjunction();
-                or = cb.or(or, cb.like(cb.lower(root.get("description")), ql));
-                or = cb.or(or, cb.like(cb.lower(root.get("payerEmail")), ql));
-                or = cb.or(or, cb.like(cb.lower(root.get("orderId")), ql));
-                try {
-                    Long idNum = Long.valueOf(q.trim());
-                    or = cb.or(or, cb.equal(root.get("mpPaymentId"), idNum));
-                } catch (NumberFormatException ignored) {}
+                Predicate or = cb.or(
+                        cb.like(cb.lower(root.get("descripcion")), ql),
+                        cb.like(cb.lower(root.get("origen")), ql),
+                        cb.like(cb.lower(root.get("destino")), ql)
+                );
                 ands.add(or);
             }
             return cb.and(ands.toArray(new Predicate[0]));
         };
 
-        Page<MpPayment> page = paymentRepo.findAll(spec, pageable);
+        Pageable sorted = normalizeSortRegistros(pg); // <-- mapeo DTO->Entidad
+        Page<Registro> page = registroRepo.findAll(spec, sorted);
 
-        return page.map(p -> {
+        return page.map(r -> {
             PaymentDTO dto = new PaymentDTO();
-            dto.setMpPaymentId(p.getMpPaymentId());
-
-            Instant when = p.getDateApproved() != null ? p.getDateApproved() : p.getDateCreated();
-            if (when != null) dto.setFecha(when.atZone(zone).toLocalDate());
-
-            dto.setTotal(p.getTransactionAmount());
-            dto.setDetalle(p.getDescription());
-            dto.setComprador(p.getPayerEmail());
-            dto.setComprobante(p.getOrderId());
-            dto.setEstado(p.getStatus());
+            dto.setFecha(r.getFechaEmision());
+            dto.setTotal(BigDecimal.valueOf(r.getMontoTotal()));
+            dto.setDetalle(r.getDescripcion());
+            dto.setComprador(r.getOrigen());
+            dto.setEstado("IMPORTED"); // si querés un status estático
             return dto;
         });
     }
@@ -293,6 +283,32 @@ public class MpController {
        Helpers
        ====================== */
 
+    // Mapea sort del DTO (fecha, total, comprador, detalle) a campos de la entidad Registro
+    private Pageable normalizeSortRegistros(Pageable pg) {
+        if (pg == null) return pg;
+        Sort s = pg.getSort();
+        if (!s.isSorted()) return pg;
+
+        List<Sort.Order> mapped = new ArrayList<>();
+        for (Sort.Order o : s) {
+            String prop = o.getProperty();
+            switch (prop) {
+                case "fecha"     -> prop = "fechaEmision";
+                case "total"     -> prop = "montoTotal";
+                case "comprador" -> prop = "origen";
+                case "detalle"   -> prop = "descripcion";
+                // "estado" NO existe en Registro; si viene, podés ignorarlo o redirigirlo:
+                case "estado"    -> prop = "fechaEmision";
+                default -> {
+                    // Si ya viene un nombre válido de entidad (p. ej. "fechaEmision"), lo dejamos tal cual
+                }
+            }
+            mapped.add(new Sort.Order(o.getDirection(), prop));
+        }
+        return PageRequest.of(pg.getPageNumber(), pg.getPageSize(), Sort.by(mapped));
+    }
+
+    // Este helper queda por si en algún endpoint listás MpPayment directamente
     private Pageable normalizeSortPayments(Pageable pg) {
         Sort s = pg.getSort();
         if (!s.isSorted()) {
@@ -301,7 +317,7 @@ public class MpController {
             List<Sort.Order> orders = new ArrayList<>();
             for (Sort.Order o : s) {
                 String prop = o.getProperty();
-                if ("fecha".equalsIgnoreCase(prop)) prop = "dateApproved"; // mapeo DTO -> entidad
+                if ("fecha".equalsIgnoreCase(prop)) prop = "dateApproved"; // mapeo DTO -> entidad MpPayment
                 orders.add(new Sort.Order(o.getDirection(), prop));
             }
             s = Sort.by(orders);

@@ -1,11 +1,11 @@
 package registro.mercadopago.services.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import registro.cargarDatos.models.*;
+import registro.cargarDatos.repositories.RegistroRepository;
 import registro.mercadopago.config.MpProperties;
 import registro.mercadopago.models.MpAccountLink;
-import registro.mercadopago.models.MpPayment;
 import registro.mercadopago.repositories.MpAccountLinkRepository;
-import registro.mercadopago.repositories.MpPaymentRepository;
 import registro.mercadopago.services.MpPaymentImportService;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ import java.util.*;
 @Service
 public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
-    private final MpPaymentRepository repo;
+    private final RegistroRepository registroRepo;
     private final MpAccountLinkRepository linkRepo;
     private final MpProperties props;
 
@@ -30,21 +30,25 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     private final ObjectMapper om = new ObjectMapper();
 
     public MpPaymentImportServiceImpl(
-            MpPaymentRepository repo,
+            RegistroRepository registroRepo,
             MpAccountLinkRepository linkRepo,
             MpProperties props
     ) {
-        this.repo = repo;
+        this.registroRepo = registroRepo;
         this.linkRepo = linkRepo;
         this.props = props;
     }
+
+    /* =========================
+       Métodos públicos
+       ========================= */
 
     @Override
     public int importPaymentById(Long userIdApp, Long paymentId) {
         MpAccountLink link = requireLink(userIdApp);
         Map<String, Object> body = get("/v1/payments/" + paymentId, link.getAccessToken());
         if (body == null || body.isEmpty()) return 0;
-        upsertPayment(body, link);
+        upsertRegistro(body, link);
         return 1;
     }
 
@@ -54,40 +58,38 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
         ZoneId zone = ZoneId.systemDefault();
         LocalDate first = LocalDate.of(year, month, 1);
-        LocalDate last  = first.withDayOfMonth(first.lengthOfMonth());
+        LocalDate last = first.withDayOfMonth(first.lengthOfMonth());
 
         Instant from = first.atStartOfDay(zone).toInstant();
-        Instant to   = last.plusDays(1).atStartOfDay(zone).toInstant(); // exclusivo
+        Instant to = last.plusDays(1).atStartOfDay(zone).toInstant(); // exclusivo
 
         int imported = 0;
         int offset = 0;
         final int limit = 50;
-        final int maxPages = 20; // tope de 1000 items para no barrer infinito
+        final int maxPages = 20; // tope de 1000 items
 
         for (int page = 0; page < maxPages; page++, offset += limit) {
-            List<Map<String,Object>> results = searchPaymentsPageNoDates(link.getAccessToken(), offset, limit);
+            List<Map<String, Object>> results = searchPaymentsPageNoDates(link.getAccessToken(), offset, limit);
             if (results.isEmpty()) break;
 
             boolean reachedOlder = false;
-            for (Map<String,Object> p : results) {
+            for (Map<String, Object> p : results) {
                 Instant approved = parseInstant(p.get("date_approved"));
                 if (approved == null) approved = parseInstant(p.get("date_created"));
 
                 if (approved == null || approved.isBefore(from)) {
-                    // ya pasamos el rango: marcamos y cortamos fuera
                     reachedOlder = true;
                     continue;
                 }
                 if (approved.isBefore(to)) {
-                    upsertPayment(p, link);
+                    upsertRegistro(p, link);
                     imported++;
                 }
             }
-            if (reachedOlder) break; // no seguimos paginando
+            if (reachedOlder) break;
         }
         return imported;
     }
-
 
     @Override
     public int importByExternalReference(Long userIdApp, String externalRef) {
@@ -104,8 +106,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             Object rs = (res.getBody() != null) ? res.getBody().get("results") : null;
             if (rs instanceof List<?> list) {
                 for (Object o : list) {
-                    if (o instanceof Map<?,?> m) {
-                        upsertPayment((Map<String,Object>) m, link);
+                    if (o instanceof Map<?, ?> m) {
+                        upsertRegistro((Map<String, Object>) m, link);
                         imported++;
                     }
                 }
@@ -117,14 +119,18 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             System.err.println("Body: " + e.getResponseBodyAsString());
         }
 
-        // B) Fallback: merchant_orders/search por external_reference → obtener payment IDs → /v1/payments/{id}
+        // B) merchant_orders/search
         imported += importViaMerchantOrders(link, externalRef);
 
-        // C) Fallback adicional (algunas integraciones guardan ese código en 'order.id' o en 'description'):
+        // C) búsqueda laxa
         imported += importByLooseQuery(link, externalRef);
 
         return imported;
     }
+
+    /* =========================
+       Métodos privados
+       ========================= */
 
     @SuppressWarnings("unchecked")
     private int importViaMerchantOrders(MpAccountLink link, String externalRef) {
@@ -139,16 +145,16 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             Object rs = (res.getBody() != null) ? res.getBody().get("elements") : null;
             if (rs instanceof List<?> list) {
                 for (Object ord : list) {
-                    if (ord instanceof Map<?,?> mo) {
+                    if (ord instanceof Map<?, ?> mo) {
                         Object pays = mo.get("payments");
                         if (pays instanceof List<?> pl) {
                             for (Object p : pl) {
-                                if (p instanceof Map<?,?> pm) {
-                                    Long pid = asLong(((Map<String,Object>) pm).get("id"));
+                                if (p instanceof Map<?, ?> pm) {
+                                    Long pid = asLong(((Map<String, Object>) pm).get("id"));
                                     if (pid != null) {
-                                        Map<String,Object> full = get("/v1/payments/" + pid, link.getAccessToken());
+                                        Map<String, Object> full = get("/v1/payments/" + pid, link.getAccessToken());
                                         if (full != null && !full.isEmpty()) {
-                                            upsertPayment(full, link);
+                                            upsertRegistro(full, link);
                                             imported++;
                                         }
                                     }
@@ -166,7 +172,6 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         return imported;
     }
 
-    /** C) Búsqueda laxa por 'q' (algunas cuentas lo indexan en description/external_reference) */
     @SuppressWarnings("unchecked")
     private int importByLooseQuery(MpAccountLink link, String query) {
         String url = props.getApiBase()
@@ -178,8 +183,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             Object rs = (res.getBody() != null) ? res.getBody().get("results") : null;
             if (rs instanceof List<?> list) {
                 for (Object o : list) {
-                    if (o instanceof Map<?,?> m) {
-                        upsertPayment((Map<String,Object>) m, link);
+                    if (o instanceof Map<?, ?> m) {
+                        upsertRegistro((Map<String, Object>) m, link);
                         imported++;
                     }
                 }
@@ -192,14 +197,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         return imported;
     }
 
-
-
-    /* =========================
-       Helpers
-       ========================= */
-
     @SuppressWarnings("unchecked")
-    private List<Map<String,Object>> searchPaymentsPageNoDates(String accessToken, int offset, int limit) {
+    private List<Map<String, Object>> searchPaymentsPageNoDates(String accessToken, int offset, int limit) {
         HttpEntity<Void> req = new HttpEntity<>(authHeaders(accessToken));
         String url = props.getApiBase() + "/v1/payments/search"
                 + "?sort=date_approved&criteria=desc"
@@ -207,15 +206,14 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         try {
             ResponseEntity<Map> res = rest.exchange(url, HttpMethod.GET, req, Map.class);
             Object rs = (res.getBody() != null) ? res.getBody().get("results") : null;
-            return (rs instanceof List) ? (List<Map<String,Object>>) rs : List.of();
+            return (rs instanceof List) ? (List<Map<String, Object>>) rs : List.of();
         } catch (HttpStatusCodeException e) {
             System.err.println("payments/search (no dates) -> " + e.getStatusCode());
             System.err.println("URL: " + url);
             System.err.println("Body: " + e.getResponseBodyAsString());
-            return List.of(); // devolvemos vacío para no romper
+            return List.of();
         }
     }
-
 
     private MpAccountLink requireLink(Long userIdApp) {
         return linkRepo.findByUserIdApp(userIdApp)
@@ -243,178 +241,132 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         }
     }
 
+    private void upsertRegistro(Map<String, Object> body, MpAccountLink link) {
+        // === 1) Parseos base ===
+        // id de MP (no lo usamos ahora, pero sirve por si logueás)
+        String mpId = asString(body.get("id"));
 
-    /**
-     * Busca una página de pagos usando /v1/payments/search.
-     * Prueba dos variantes de query (algunos entornos aceptan distinto formato de rango).
-     */
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> searchPaymentsPage(
-            String accessToken, Instant fromInclusive, Instant toExclusive, int offset, int limit, DateTimeFormatter ignored
-    ) {
-        // Cerramos al último ms del día anterior (inclusive)
-        Instant toInclusive = toExclusive.minusMillis(1);
+        // fechas: fechaEmision = date_created (LocalDate)
+        Instant dateCreated = parseInstant(body.get("date_created"));   // p.ej. "2025-07-05T14:12:33.000-03:00"
+        LocalDate fechaEmision = (dateCreated != null)
+                ? dateCreated.atZone(ZoneId.systemDefault()).toLocalDate()
+                : LocalDate.now();
 
-        // Distintas combinaciones de formatos y zonas:
-        record Fmt(String name, DateTimeFormatter fmt, ZoneId zone, boolean useSpace) {}
+        // historial
+        // fechaCreacion = date_created ; fechaActualizacion = imported_at (si viene), si no = hoy
+        Instant importedAt = parseInstant(body.get("imported_at")); // puede no estar en el payload
+        LocalDate fechaCreacion = (dateCreated != null)
+                ? dateCreated.atZone(ZoneId.systemDefault()).toLocalDate()
+                : LocalDate.now();
+        LocalDate fechaActualizacion = (importedAt != null)
+                ? importedAt.atZone(ZoneId.systemDefault()).toLocalDate()
+                : LocalDate.now();
 
-        List<Fmt> formats = List.of(
-                // Con milisegundos
-                new Fmt("UTC +00:00 ms", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX").withZone(ZoneOffset.UTC), ZoneOffset.UTC, false),
-                new Fmt("UTC Z(ms sin :)", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ").withZone(ZoneOffset.UTC), ZoneOffset.UTC, false),
-                new Fmt("Local ms",      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX").withZone(ZoneId.systemDefault()), ZoneId.systemDefault(), false),
-                new Fmt("Local Z(ms sin :)", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ").withZone(ZoneId.systemDefault()), ZoneId.systemDefault(), false),
+        // monto/moneda
+        BigDecimal transactionAmount = asBigDecimal(body.get("transaction_amount"));
+        String currencyId = asString(body.get("currency_id"));
 
-                // Sin milisegundos
-                new Fmt("UTC +00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX").withZone(ZoneOffset.UTC), ZoneOffset.UTC, false),
-                new Fmt("UTC Z(sin :)", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(ZoneOffset.UTC), ZoneOffset.UTC, false),
-                new Fmt("Local",      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX").withZone(ZoneId.systemDefault()), ZoneId.systemDefault(), false),
-                new Fmt("Local Z(sin :)", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(ZoneId.systemDefault()), ZoneId.systemDefault(), false),
+        // otros campos MP
+        String description = asString(body.get("description"));
+        String payerEmail = getPayerEmail(body); // como ya lo tenías
+        String paymentMethodId = asString(body.get("payment_method_id")); // OJO con el nombre real en el JSON
+        String status = asString(body.get("status")); // approved, refunded, cancelled, etc.
 
-                // Con espacio en vez de 'T' (algunas integraciones legacy)
-                new Fmt("UTC +00:00 (espacio)", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX").withZone(ZoneOffset.UTC), ZoneOffset.UTC, true),
-                new Fmt("UTC Z (espacio)",      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssZ").withZone(ZoneOffset.UTC), ZoneOffset.UTC, true),
-                new Fmt("Local (espacio)",      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX").withZone(ZoneId.systemDefault()), ZoneId.systemDefault(), true),
-                new Fmt("Local Z (espacio)",    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssZ").withZone(ZoneId.systemDefault()), ZoneId.systemDefault(), true)
-        );
+        // === 2) Armar Registro según tu mapeo ===
+        Registro r = new Registro();
 
-        // Header con Bearer
-        HttpHeaders hdrs = authHeaders(accessToken);
-        HttpEntity<Void> req = new HttpEntity<>(hdrs);
+        // id: autogenerado por JPA
 
-        // Base común
-        String base = props.getApiBase() + "/v1/payments/search"
-                + "?sort=date_approved"
-                + "&criteria=desc"
-                + "&range=date_approved";
-        // Si tu cuenta lo requiere, podés sumar:
-        // + "&status=approved"
+        // tipo (tu entidad): no existe 1:1 en MP; regla simple:
+        // - refunded / cancelled / charged_back -> EGRESO
+        // - el resto -> INGRESO
+        if (status != null && (
+                status.equalsIgnoreCase("refunded") ||
+                        status.equalsIgnoreCase("cancelled") ||
+                        status.equalsIgnoreCase("charged_back") ||
+                        status.equalsIgnoreCase("chargeback")
+        )) {
+            r.setTipo(TipoRegistro.Egreso);
+        } else {
+            r.setTipo(TipoRegistro.Ingreso);
+        }
 
-        List<String> tried = new ArrayList<>();
+        // montoTotal = transactionAmount
+        r.setMontoTotal(transactionAmount != null ? transactionAmount.doubleValue() : 0d);
 
-        for (Fmt f : formats) {
-            String begin = f.fmt.format(fromInclusive.atZone(f.zone));
-            String end   = f.fmt.format(toInclusive.atZone(f.zone));
+        // fechaEmision = date_created
+        r.setFechaEmision(fechaEmision);
 
-            // Si el formato usa ' ' en vez de 'T', no hay que tocar nada: el encoder se ocupa (%20)
-            String url = base
-                    + "&begin_date=" + enc(begin)
-                    + "&end_date="   + enc(end)
-                    + "&offset=" + offset
-                    + "&limit="  + limit;
+        // categoria = NULL (por ahora)
+        r.setCategoria(null);
 
+        // origen = payer_email
+        r.setOrigen(payerEmail);
+
+        // destino = NULL (por ahora)
+        r.setDestino(null);
+
+        // descripcion = description
+        r.setDescripcion(description);
+
+        // historial
+        r.setFechaCreacion(fechaCreacion);
+        r.setFechaActualizacion(fechaActualizacion);
+
+        // usuario = NULL (por ahora, según pediste)
+        r.setUsuario(null);
+
+        // medioPago = payment_method_id  (es ENUM: puede fallar si el literal no existe)
+        // Si tu enum es, por ejemplo, { EFECTIVO, TRANSFERENCIA, MERCADO_PAGO, ... }
+        // y el payment_method_id de MP viene como "account_money", "credit_card", etc.,
+        // podés:
+        //   a) Dejarlo null (como pediste)
+        //   b) O mapear algunos casos conocidos:
+        r.setMedioPago(null); // opción (a)
+        // // opción (b) ejemplo:
+        // try {
+        //     r.setMedioPago(TipoMedioPago.valueOf(paymentMethodId.trim().toUpperCase()));
+        // } catch (Exception ignore) {
+        //     r.setMedioPago(null);
+        // }
+
+        // moneda = currency_id (ENUM)
+        // Si tu enum tiene ARS/USD/EUR, esto suele funcionar:
+        if (currencyId != null) {
             try {
-                ResponseEntity<Map> res = rest.exchange(url, HttpMethod.GET, req, Map.class);
-                Map<String, Object> body = res.getBody();
-                Object rs = body != null ? body.get("results") : null;
-                if (rs instanceof List) return (List<Map<String, Object>>) rs;
-                return List.of();
-            } catch (HttpStatusCodeException e) {
-                // Guardamos intento y seguimos:
-                tried.add(f.name + " -> " + e.getStatusCode()
-                        + " (URL: " + url + ") body=" + e.getResponseBodyAsString());
-                if (e.getStatusCode().value() != 400) {
-                    // Si no es 400, probablemente sea 401/403; re-lanzamos
-                    throw e;
-                }
+                r.setMoneda(TipoMoneda.valueOf(currencyId.trim().toUpperCase()));
+            } catch (Exception ignore) {
+                r.setMoneda(null); // según pediste, dejamos null si no matchea
             }
+        } else {
+            r.setMoneda(null);
         }
 
-        // Último fallback: algunas cuentas piden access_token como query param.
-        String beginQ = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-                .withZone(ZoneOffset.UTC).format(fromInclusive.atZone(ZoneOffset.UTC));
-        String endQ   = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-                .withZone(ZoneOffset.UTC).format(toInclusive.atZone(ZoneOffset.UTC));
+        // documentoComercial = NULL (a futuro)
+        r.setDocumentoComercial(null);
 
-        String urlQp = base
-                + "&begin_date=" + enc(beginQ)
-                + "&end_date="   + enc(endQ)
-                + "&offset=" + offset
-                + "&limit="  + limit
-                + "&access_token=" + enc(accessToken);
-
-        try {
-            ResponseEntity<Map> res = rest.exchange(urlQp, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), Map.class);
-            Map<String, Object> body = res.getBody();
-            Object rs = body != null ? body.get("results") : null;
-            if (rs instanceof List) return (List<Map<String, Object>>) rs;
-            return List.of();
-        } catch (HttpStatusCodeException e) {
-            tried.add("QueryParam token -> " + e.getStatusCode()
-                    + " (URL: " + urlQp + ") body=" + e.getResponseBodyAsString());
-            System.err.println("payments/search -> todos los formatos devolvieron 400/err. Intentos:");
-            tried.forEach(System.err::println);
-            return List.of();
-        }
+        // === 3) Guardar ===
+        registroRepo.save(r);
     }
 
 
-    private void upsertPayment(Map<String, Object> body, MpAccountLink link) {
-        Long mpId = asLong(body.get("id"));
-        if (mpId == null) return;
 
-        MpPayment p = repo.findByMpPaymentId(mpId).orElseGet(MpPayment::new);
-        boolean isNew = (p.getId() == null);
-
-        p.setMpPaymentId(mpId);
-        p.setAccountLink(link);
-
-        p.setStatus(asString(body.get("status")));
-        p.setStatusDetail(asString(body.get("status_detail")));
-
-        // fechas
-        Instant created  = parseInstant(body.get("date_created"));
-        Instant approved = parseInstant(body.get("date_approved"));
-        p.setDateCreated(created);
-        p.setDateApproved(approved);
-
-        // montos / moneda
-        BigDecimal amount = asBigDecimal(body.get("transaction_amount"));
-        p.setTransactionAmount(amount);
-        p.setCurrencyId(asString(body.get("currency_id")));
-
-        // descripción / método
-        p.setDescription(asString(body.get("description")));
-        p.setPaymentMethodId(asString(body.get("payment_method_id")));
-
-        // payer email
+    private String getPayerEmail(Map<String, Object> body) {
         Map<String, Object> payer = asMap(body.get("payer"));
-        if (payer != null) p.setPayerEmail(asString(payer.get("email")));
-
-        // order / external_reference
-        Map<String, Object> order = asMap(body.get("order"));
-        if (order != null && order.get("id") != null) {
-            p.setOrderId(String.valueOf(order.get("id")));
-        } else if (body.get("external_reference") != null) {
-            p.setOrderId(String.valueOf(body.get("external_reference")));
-        }
-
-        // JSON crudo
-        try { p.setRawJson(om.writeValueAsString(body)); } catch (Exception ignored) {}
-
-        Instant now = Instant.now();
-        if (isNew) p.setImportedAt(now);
-        p.setUpdatedAt(now);
-
-        repo.save(p);
+        return payer != null ? asString(payer.get("email")) : null;
     }
 
-    /* -------- util de parsing -------- */
-
-    private String enc(String s) {
-        return URLEncoder.encode(s, StandardCharsets.UTF_8);
-    }
-
-    private Long asLong(Object o) {
-        if (o == null) return null;
-        if (o instanceof Number n) return n.longValue();
-        try { return Long.parseLong(String.valueOf(o)); } catch (Exception e) { return null; }
-    }
+    /* =========================
+       Utils
+       ========================= */
 
     private BigDecimal asBigDecimal(Object o) {
         if (o == null) return null;
-        try { return (o instanceof BigDecimal b) ? b : new BigDecimal(String.valueOf(o)); }
-        catch (Exception e) { return null; }
+        try {
+            return (o instanceof BigDecimal b) ? b : new BigDecimal(String.valueOf(o));
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String asString(Object o) {
@@ -423,18 +375,33 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> asMap(Object o) {
-        if (o instanceof Map) return (Map<String, Object>) o;
-        return null;
+        return (o instanceof Map) ? (Map<String, Object>) o : null;
     }
 
     private Instant parseInstant(Object o) {
         if (o == null) return null;
         try {
-            // MP suele devolver con offset (ej. 2025-09-08T22:11:00.000-03:00)
             return OffsetDateTime.parse(String.valueOf(o)).toInstant();
-        } catch (Exception ignored) {
-            try { return Instant.parse(String.valueOf(o)); }
-            catch (Exception e) { return null; }
+        } catch (Exception e) {
+            try {
+                return Instant.parse(String.valueOf(o));
+            } catch (Exception ignored) {
+                return null;
+            }
         }
+    }
+
+    private Long asLong(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) return n.longValue();
+        try {
+            return Long.parseLong(String.valueOf(o));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String enc(String s) {
+        return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 }
