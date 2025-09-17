@@ -20,7 +20,7 @@ const Filtros = ({
 
     // Categorías traídas desde backend
     const [categoriasExtra, setCategoriasExtra] = useState([]);
-
+/*
     useEffect(() => {
         const baseUrl = process.env.REACT_APP_URL_REGISTRO; // backend de registro
         if (!baseUrl) return;
@@ -40,7 +40,7 @@ const Filtros = ({
                 setCategoriasExtra([]); // fallback
             });
     }, []);
-
+*/
     // Catálogo final (sin duplicados)
     const categorias = useMemo(
         () => Array.from(new Set([...categoriasBase, ...categoriasExtra])),
