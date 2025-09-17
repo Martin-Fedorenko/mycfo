@@ -298,7 +298,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         r.setFechaEmision(fechaEmision);
 
         // categoria = NULL (por ahora)
-        r.setCategoria(null);
+        r.setCategoria("Ocio");
 
         // origen = payer_email
         r.setOrigen(payerEmail);
@@ -322,7 +322,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // podés:
         //   a) Dejarlo null (como pediste)
         //   b) O mapear algunos casos conocidos:
-        r.setMedioPago(null); // opción (a)
+        r.setMedioPago(TipoMedioPago.MercadoPago); // opción (a)
         // // opción (b) ejemplo:
         // try {
         //     r.setMedioPago(TipoMedioPago.valueOf(paymentMethodId.trim().toUpperCase()));
