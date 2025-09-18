@@ -92,6 +92,7 @@ export default function Perfil() {
           console.log("Atributos actualizados en Cognito:", result);
           alert("Cambios guardados con éxito en Cognito ✅");
           setEditados({});
+          window.dispatchEvent(new Event("userDataUpdated"));
         }
       });
     });

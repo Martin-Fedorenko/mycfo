@@ -59,18 +59,28 @@ export default function SideMenu() {
     email: '',
   });
 
-  React.useEffect(() => {
-    // Leer los valores guardados en sessionStorage por SignIn.js
+React.useEffect(() => {
+  const updateUserData = () => {
     const storedName = sessionStorage.getItem('name') || '';
     const storedFamilyName = sessionStorage.getItem('family_name') || '';
     const storedEmail = sessionStorage.getItem('email') || '';
-
     setUserData({
       name: storedName,
       familyName: storedFamilyName,
       email: storedEmail,
     });
-  }, []);
+  };
+
+  // Cargar inicial
+  updateUserData();
+
+  // Escuchar cambios
+  window.addEventListener("userDataUpdated", updateUserData);
+
+  return () => {
+    window.removeEventListener("userDataUpdated", updateUserData);
+  };
+}, []);
 
   return (
     <Drawer

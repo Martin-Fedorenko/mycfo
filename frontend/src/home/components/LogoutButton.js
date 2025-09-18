@@ -16,22 +16,20 @@ export default function LogoutButton() {
 
     if (cognitoUser) {
       console.log("👉 Cerrando sesión local de Cognito...");
-      cognitoUser.signOut(); // solo borra sesión local
+      cognitoUser.signOut(); // cierra la sesión local de Cognito
       console.log("✅ Sesión local cerrada.");
     } else {
       console.log("⚠️ No había usuario autenticado en Cognito.");
     }
 
-    // ✅ Limpiar sessionStorage
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("idToken");
-    sessionStorage.removeItem("refreshToken");
-    console.log("🗑️ Tokens eliminados de sessionStorage.");
+    // 🗑️ Limpiar todos los datos de sessionStorage
+    sessionStorage.clear();
+    console.log("🗑️ Todos los datos eliminados de sessionStorage.");
 
-    // 🚀 Si querés avisar al servidor de AWS Cognito (logout global):
-    const cognitoDomain = process.env.REACT_APP_COGNITO_DOMAIN; // ej: myapp.auth.us-east-1.amazoncognito.com
+    // 🚀 Si querés logout global en Cognito Hosted UI
+    const cognitoDomain = process.env.REACT_APP_COGNITO_DOMAIN; 
     const clientId = process.env.REACT_APP_COGNITO_CLIENT_ID;
-    const logoutRedirectUri = "/#/signin";
+    const logoutRedirectUri = `${window.location.origin}/#/signin`; // vuelve a la página de login
 
     if (cognitoDomain) {
       const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(
@@ -40,7 +38,7 @@ export default function LogoutButton() {
       console.log("🌐 Redirigiendo a Cognito Hosted UI logout:", logoutUrl);
       window.location.href = logoutUrl;
     } else {
-      // Si no usás Hosted UI, solo redirigís localmente
+      // Si no usás Hosted UI
       console.log("➡️ Redirigiendo a /#/signin");
       window.location.href = "/#/signin";
     }

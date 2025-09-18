@@ -4,6 +4,7 @@
   "private": true,
   "homepage": "https://Martin-Fedorenko.github.io/mycfo",
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.891.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.2",
