@@ -4,20 +4,31 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class PaymentDTO {
-    private Long mpPaymentId;
+    // Campos principales para la tabla
+    private String categoria;
+    private String descripcion;
     private LocalDate fecha;
-    private BigDecimal total;
-    private String detalle;
-    private String comprador;
-    private String comprobante;
+    private String origen;
+    private BigDecimal montoTotal;
+    private String tipo; // INGRESO, EGRESO, etc.
+    
+    // Campos adicionales para funcionalidad
+    private Long id; // ID del registro para edición
+    private Long mpPaymentId;
+    private String moneda;
     private String estado;
 
-    // getters/setters
-    public Long getMpPaymentId(){return mpPaymentId;} public void setMpPaymentId(Long v){this.mpPaymentId=v;}
+    // getters/setters principales
+    public String getCategoria(){return categoria;} public void setCategoria(String v){this.categoria=v;}
+    public String getDescripcion(){return descripcion;} public void setDescripcion(String v){this.descripcion=v;}
     public LocalDate getFecha(){return fecha;} public void setFecha(LocalDate v){this.fecha=v;}
-    public BigDecimal getTotal(){return total;} public void setTotal(BigDecimal v){this.total=v;}
-    public String getDetalle(){return detalle;} public void setDetalle(String v){this.detalle=v;}
-    public String getComprador(){return comprador;} public void setComprador(String v){this.comprador=v;}
-    public String getComprobante(){return comprobante;} public void setComprobante(String v){this.comprobante=v;}
+    public String getOrigen(){return origen;} public void setOrigen(String v){this.origen=v;}
+    public BigDecimal getMontoTotal(){return montoTotal;} public void setMontoTotal(BigDecimal v){this.montoTotal=v;}
+    public String getTipo(){return tipo;} public void setTipo(String v){this.tipo=v;}
+    
+    // getters/setters adicionales
+    public Long getId(){return id;} public void setId(Long v){this.id=v;}
+    public Long getMpPaymentId(){return mpPaymentId;} public void setMpPaymentId(Long v){this.mpPaymentId=v;}
+    public String getMoneda(){return moneda;} public void setMoneda(String v){this.moneda=v;}
     public String getEstado(){return estado;} public void setEstado(String v){this.estado=v;}
 }

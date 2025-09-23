@@ -15,9 +15,15 @@ import java.util.Optional;
 public class RegistroService {
 
     private final RegistroRepository registroRepository;
+    private final RegistroEventService eventService;
 
     public Registro guardarRegistro(Registro registro) {
-        return registroRepository.save(registro);
+        Registro savedRegistro = registroRepository.save(registro);
+        
+        // Enviar evento de notificación
+        eventService.sendMovementCreatedEvent(savedRegistro);
+        
+        return savedRegistro;
     }
 
     public List<Registro> listarRegistros() {

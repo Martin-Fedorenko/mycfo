@@ -26,3 +26,7 @@ export async function markAsRead({ userId, notifId }) {
 export async function markAllRead(userId) {
   await api.post(`/users/${userId}/notifications:markAllRead`);
 }
+
+export async function deleteNotification(notificationId, userId) {
+  await api.delete(`/users/${userId}/notifications/${notificationId}`);
+}

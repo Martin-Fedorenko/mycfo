@@ -55,32 +55,21 @@ export default function MpImportDialog({ open, onClose, onImport }) {
   const submit = async () => {
     setErr(null);
 
-    const hasId = paymentId.trim().length > 0;
-    if (hasId) {
-      if (!/^\d+$/.test(paymentId.trim())) {
-        setErr("El Payment ID debe ser numérico.");
-        return;
-      }
-    } else {
-      if (!month || !year) {
-        setErr("Seleccioná mes y año para importar por período.");
-        return;
-      }
+    // Validación solo para importación por mes (Payment ID comentado)
+    if (!month || !year) {
+      setErr("Seleccioná mes y año para importar por período.");
+      return;
     }
 
     setBusy(true);
     try {
-      if (hasId) {
-        await onImport?.({ mode: "id", paymentId: Number(paymentId.trim()) });
-      } else {
-        await onImport?.({
-          mode: "period",
-          month: Number(month),
-          year: Number(year),
-        });
-      }
+      await onImport?.({
+        mode: "preview",
+        month: Number(month),
+        year: Number(year),
+      });
     } catch (e) {
-      setErr(e?.message || "Error en la importación");
+      setErr(e?.message || "Error al obtener vista previa");
     } finally {
       setBusy(false);
     }
@@ -113,8 +102,8 @@ export default function MpImportDialog({ open, onClose, onImport }) {
             </Box>
           </Box>
 
-          {/* Sección 1: Único pago */}
-          <Divider textAlign="center">
+          {/* Sección 1: Único pago - COMENTADO TEMPORALMENTE */}
+          {/* <Divider textAlign="center">
             <Typography
               variant="subtitle1"
               sx={{
@@ -140,7 +129,7 @@ export default function MpImportDialog({ open, onClose, onImport }) {
                 fullWidth
               />
             </Stack>
-          </Paper>
+          </Paper> */}
 
           {/* Sección 2: Por meses */}
           <Divider textAlign="center">
@@ -196,7 +185,7 @@ export default function MpImportDialog({ open, onClose, onImport }) {
           Cancelar
         </Button>
         <Button variant="contained" onClick={submit} disabled={busy}>
-          {busy ? "Importando…" : "Aceptar"}
+          {busy ? "Buscando…" : "Vista Previa"}
         </Button>
       </DialogActions>
     </Dialog>

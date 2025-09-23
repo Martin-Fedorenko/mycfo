@@ -1,9 +1,9 @@
 package registro.mercadopago.services.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import registro.cargarDatos.models.*;
 import registro.cargarDatos.repositories.RegistroRepository;
 import registro.mercadopago.config.MpProperties;
+import registro.mercadopago.dtos.PaymentDTO;
 import registro.mercadopago.models.MpAccountLink;
 import registro.mercadopago.repositories.MpAccountLinkRepository;
 import registro.mercadopago.services.MpPaymentImportService;
@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -27,7 +26,6 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     private final MpProperties props;
 
     private final RestTemplate rest = new RestTemplate();
-    private final ObjectMapper om = new ObjectMapper();
 
     public MpPaymentImportServiceImpl(
             RegistroRepository registroRepo,
@@ -243,8 +241,6 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
     private void upsertRegistro(Map<String, Object> body, MpAccountLink link) {
         // === 1) Parseos base ===
-        // id de MP (no lo usamos ahora, pero sirve por si logueás)
-        String mpId = asString(body.get("id"));
 
         // fechas: fechaEmision = date_created (LocalDate)
         Instant dateCreated = parseInstant(body.get("date_created"));   // p.ej. "2025-07-05T14:12:33.000-03:00"
@@ -269,27 +265,28 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // otros campos MP
         String description = asString(body.get("description"));
         String payerEmail = getPayerEmail(body); // como ya lo tenías
-        String paymentMethodId = asString(body.get("payment_method_id")); // OJO con el nombre real en el JSON
         String status = asString(body.get("status")); // approved, refunded, cancelled, etc.
+        String transactionType = asString(body.get("transaction_type")); // money_in, money_out, etc.
+        String operationType = asString(body.get("operation_type")); // regular_payment, money_transfer, etc.
+        
+        // Log completo del pago para debug
+        System.out.println(">>> === IMPORTANDO PAGO ===");
+        System.out.println(">>> ID: " + asLong(body.get("id")));
+        System.out.println(">>> Status: " + status);
+        System.out.println(">>> TransactionType: " + transactionType);
+        System.out.println(">>> OperationType: " + operationType);
+        System.out.println(">>> Amount: " + transactionAmount);
+        System.out.println(">>> Description: " + description);
+        System.out.println(">>> PayerEmail: " + payerEmail);
 
         // === 2) Armar Registro según tu mapeo ===
         Registro r = new Registro();
 
         // id: autogenerado por JPA
 
-        // tipo (tu entidad): no existe 1:1 en MP; regla simple:
-        // - refunded / cancelled / charged_back -> EGRESO
-        // - el resto -> INGRESO
-        if (status != null && (
-                status.equalsIgnoreCase("refunded") ||
-                        status.equalsIgnoreCase("cancelled") ||
-                        status.equalsIgnoreCase("charged_back") ||
-                        status.equalsIgnoreCase("chargeback")
-        )) {
-            r.setTipo(TipoRegistro.Egreso);
-        } else {
-            r.setTipo(TipoRegistro.Ingreso);
-        }
+        // tipo (tu entidad): clasificación mejorada según múltiples campos de MP
+        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount);
+        r.setTipo(tipoRegistro);
 
         // montoTotal = transactionAmount
         r.setMontoTotal(transactionAmount != null ? transactionAmount.doubleValue() : 0d);
@@ -306,8 +303,12 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // destino = NULL (por ahora)
         r.setDestino(null);
 
-        // descripcion = description
-        r.setDescripcion(description);
+        // descripcion = description + status para mayor claridad
+        String descripcionCompleta = description != null ? description : "Pago MercadoPago";
+        if (status != null && !status.equalsIgnoreCase("approved")) {
+            descripcionCompleta += " [" + status.toUpperCase() + "]";
+        }
+        r.setDescripcion(descripcionCompleta);
 
         // historial
         r.setFechaCreacion(fechaCreacion);
@@ -345,8 +346,14 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // documentoComercial = NULL (a futuro)
         r.setDocumentoComercial(null);
 
+        // Nota: mpPaymentId removido temporalmente
+
         // === 3) Guardar ===
         registroRepo.save(r);
+        
+        // Log final de confirmación
+        System.out.println(">>> ✅ PAGO GUARDADO - Tipo: " + r.getTipo() + ", Categoría: " + r.getCategoria());
+        System.out.println(">>> =========================");
     }
 
 
@@ -403,5 +410,265 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
     private String enc(String s) {
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Determina el tipo de registro (INGRESO/EGRESO) basado en múltiples campos de MercadoPago
+     */
+    private TipoRegistro determinarTipoRegistro(String status, String transactionType, String operationType, BigDecimal amount) {
+        if (status == null) {
+            return TipoRegistro.Ingreso; // default
+        }
+        
+        String statusLower = status.toLowerCase().trim();
+        String transactionTypeLower = transactionType != null ? transactionType.toLowerCase().trim() : "";
+        String operationTypeLower = operationType != null ? operationType.toLowerCase().trim() : "";
+        
+        System.out.println(">>> Clasificando pago - Status: " + status + ", TransactionType: " + transactionType + ", OperationType: " + operationType + ", Amount: " + amount);
+        
+        // 1. NOTA: MercadoPago siempre envía montos positivos, el tipo se determina por operation_type
+        
+        // 2. Casos claros de EGRESO (dinero que sale de tu cuenta)
+        if (statusLower.equals("refunded") || 
+            statusLower.equals("charged_back") || 
+            statusLower.equals("chargeback") ||
+            transactionTypeLower.equals("money_out") ||
+            transactionTypeLower.equals("withdrawal") ||
+            transactionTypeLower.equals("transfer") ||
+            transactionTypeLower.equals("payout") ||
+            transactionTypeLower.equals("disbursement") ||
+            operationTypeLower.equals("refund") ||
+            operationTypeLower.equals("chargeback") ||
+            operationTypeLower.equals("withdrawal") ||
+            operationTypeLower.equals("transfer") ||
+            operationTypeLower.equals("payout") ||
+            operationTypeLower.equals("money_transfer")) {
+            System.out.println(">>> Clasificado como EGRESO por tipo de transacción");
+            return TipoRegistro.Egreso;
+        }
+        
+        // 3. Casos claros de INGRESO (dinero que entra a tu cuenta)
+        if (statusLower.equals("approved") && 
+            (transactionTypeLower.equals("money_in") || 
+             transactionTypeLower.equals("payment") ||
+             transactionTypeLower.equals("deposit") ||
+             operationTypeLower.equals("regular_payment") ||
+             operationTypeLower.equals("payment") ||
+             operationTypeLower.equals("purchase") ||
+             operationTypeLower.equals("deposit") ||
+             operationTypeLower.equals("account_fund") ||
+             operationTypeLower.equals("recurring_payment"))) {
+            System.out.println(">>> Clasificado como INGRESO por tipo de transacción");
+            return TipoRegistro.Ingreso;
+        }
+        
+        // 4. Casos especiales: otros tipos de transferencias
+        if (transactionTypeLower.contains("transfer") || 
+            operationTypeLower.contains("transfer") ||
+            transactionTypeLower.contains("internal") ||
+            operationTypeLower.contains("internal")) {
+            // Para transferencias, depende del contexto, pero por defecto EGRESO
+            System.out.println(">>> Clasificado como EGRESO por transferencia interna");
+            return TipoRegistro.Egreso;
+        }
+        
+        // 5. Casos pendientes o en proceso - analizar por tipo
+        if (statusLower.equals("pending") || 
+            statusLower.equals("in_process") || 
+            statusLower.equals("in_mediation")) {
+            // Si es pending pero el tipo indica egreso, clasificar como egreso
+            if (transactionTypeLower.equals("money_out") || 
+                operationTypeLower.equals("withdrawal") ||
+                operationTypeLower.equals("transfer")) {
+                System.out.println(">>> Clasificado como EGRESO por estado pendiente con tipo de egreso");
+                return TipoRegistro.Egreso;
+            }
+            System.out.println(">>> Clasificado como INGRESO por estado pendiente");
+            return TipoRegistro.Ingreso;
+        }
+        
+        // 6. Casos cancelados o rechazados - no afectan el flujo de dinero
+        if (statusLower.equals("cancelled") || statusLower.equals("rejected")) {
+            System.out.println(">>> Clasificado como INGRESO por estado cancelado/rechazado");
+            return TipoRegistro.Ingreso; // Se puede cambiar a un tipo especial si lo necesitas
+        }
+        
+        // 7. Default: INGRESO (pero con advertencia)
+        System.out.println(">>> ⚠️  Clasificado como INGRESO por defecto - revisar manualmente");
+        return TipoRegistro.Ingreso;
+    }
+
+    /* =========================
+       Métodos de PREVIEW (sin guardar)
+       ========================= */
+
+    @Override
+    public List<PaymentDTO> previewPaymentById(Long userIdApp, Long paymentId) {
+        MpAccountLink link = requireLink(userIdApp);
+        Map<String, Object> body = get("/v1/payments/" + paymentId, link.getAccessToken());
+        if (body == null || body.isEmpty()) return List.of();
+        
+        PaymentDTO dto = convertToPaymentDTO(body);
+        return List.of(dto);
+    }
+
+    @Override
+    public List<PaymentDTO> previewByMonth(Long userIdApp, int month, int year) {
+        MpAccountLink link = requireLink(userIdApp);
+        List<PaymentDTO> previewData = new ArrayList<>();
+
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate first = LocalDate.of(year, month, 1);
+        LocalDate last = first.withDayOfMonth(first.lengthOfMonth());
+
+        Instant from = first.atStartOfDay(zone).toInstant();
+        Instant to = last.plusDays(1).atStartOfDay(zone).toInstant();
+
+        int offset = 0;
+        final int limit = 50;
+        final int maxPages = 20;
+
+        for (int page = 0; page < maxPages; page++, offset += limit) {
+            List<Map<String, Object>> results = searchPaymentsPageNoDates(link.getAccessToken(), offset, limit);
+            if (results.isEmpty()) break;
+
+            boolean reachedOlder = false;
+            for (Map<String, Object> p : results) {
+                Instant approved = parseInstant(p.get("date_approved"));
+                if (approved == null) approved = parseInstant(p.get("date_created"));
+
+                if (approved == null || approved.isBefore(from)) {
+                    reachedOlder = true;
+                    continue;
+                }
+                if (approved.isBefore(to)) {
+                    PaymentDTO dto = convertToPaymentDTO(p);
+                    previewData.add(dto);
+                }
+            }
+            if (reachedOlder) break;
+        }
+        return previewData;
+    }
+
+    @Override
+    public List<PaymentDTO> previewByExternalReference(Long userIdApp, String externalRef) {
+        MpAccountLink link = requireLink(userIdApp);
+        List<PaymentDTO> previewData = new ArrayList<>();
+
+        // Buscar por external_reference
+        String url = props.getApiBase()
+                + "/v1/payments/search?external_reference=" + enc(externalRef)
+                + "&sort=date_approved&criteria=desc&limit=50";
+        
+        try {
+            HttpEntity<Void> req = new HttpEntity<>(authHeaders(link.getAccessToken()));
+            ResponseEntity<Map> res = rest.exchange(url, HttpMethod.GET, req, Map.class);
+            Object rs = (res.getBody() != null) ? res.getBody().get("results") : null;
+            if (rs instanceof List<?> list) {
+                for (Object o : list) {
+                    if (o instanceof Map<?, ?> m) {
+                        PaymentDTO dto = convertToPaymentDTO((Map<String, Object>) m);
+                        previewData.add(dto);
+                    }
+                }
+            }
+        } catch (HttpStatusCodeException e) {
+            System.err.println("Error en preview por external_reference: " + e.getStatusCode());
+        }
+
+        return previewData;
+    }
+
+    @Override
+    public int importSelectedPayments(Long userIdApp, List<Long> paymentIds) {
+        if (paymentIds == null || paymentIds.isEmpty()) {
+            return 0;
+        }
+
+        MpAccountLink link = requireLink(userIdApp);
+        int imported = 0;
+
+        for (Long paymentId : paymentIds) {
+            try {
+                Map<String, Object> body = get("/v1/payments/" + paymentId, link.getAccessToken());
+                if (body != null && !body.isEmpty()) {
+                    upsertRegistro(body, link);
+                    imported++;
+                }
+            } catch (Exception e) {
+                System.err.println("Error importando pago " + paymentId + ": " + e.getMessage());
+            }
+        }
+
+        return imported;
+    }
+
+    /**
+     * Convierte un Map de MercadoPago a PaymentDTO para preview
+     */
+    private PaymentDTO convertToPaymentDTO(Map<String, Object> body) {
+        PaymentDTO dto = new PaymentDTO();
+        
+        // Parsear datos básicos
+        Long mpPaymentId = asLong(body.get("id"));
+        Instant dateCreated = parseInstant(body.get("date_created"));
+        LocalDate fecha = (dateCreated != null) 
+            ? dateCreated.atZone(ZoneId.systemDefault()).toLocalDate()
+            : LocalDate.now();
+        
+        BigDecimal transactionAmount = asBigDecimal(body.get("transaction_amount"));
+        String currencyId = asString(body.get("currency_id"));
+        String description = asString(body.get("description"));
+        String payerEmail = getPayerEmail(body);
+        String status = asString(body.get("status"));
+        String transactionType = asString(body.get("transaction_type"));
+        String operationType = asString(body.get("operation_type"));
+        
+        // Determinar tipo de registro
+        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount);
+        
+        // Mapear a DTO
+        dto.setMpPaymentId(mpPaymentId);
+        dto.setFecha(fecha);
+        dto.setMontoTotal(transactionAmount);
+        dto.setDescripcion(description != null ? description : "Pago MercadoPago");
+        dto.setOrigen(payerEmail);
+        dto.setTipo(tipoRegistro.toString());
+        dto.setCategoria("MercadoPago"); // Categoría por defecto
+        dto.setMoneda(currencyId);
+        dto.setEstado(status);
+        
+        return dto;
+    }
+
+    @Override
+    public int updatePaymentCategory(Long userIdApp, Long registroId, String newCategory) {
+        System.out.println(">>> Actualizando categoría del registro " + registroId + " a: " + newCategory);
+        
+        // Buscar el registro por su ID
+        Optional<Registro> registroOpt = registroRepo.findById(registroId);
+        
+        if (registroOpt.isEmpty()) {
+            System.out.println(">>> No se encontró registro con ID: " + registroId);
+            return 0;
+        }
+        
+        Registro registro = registroOpt.get();
+        
+        // Verificar que el registro pertenece a MercadoPago
+        if (registro.getMedioPago() != TipoMedioPago.MercadoPago) {
+            System.out.println(">>> El registro no es de MercadoPago");
+            return 0;
+        }
+        
+        // Actualizar la categoría
+        registro.setCategoria(newCategory);
+        registro.setFechaActualizacion(LocalDate.now());
+        
+        registroRepo.save(registro);
+        
+        System.out.println(">>> Categoría actualizada exitosamente");
+        return 1;
     }
 }

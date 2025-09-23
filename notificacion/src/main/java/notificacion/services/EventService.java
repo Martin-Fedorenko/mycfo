@@ -1,6 +1,6 @@
 package notificacion.services;
 
-import notificacion.dtos.MovementCreatedEvent;
+import notificacion.dtos.*;
 import notificacion.models.*;
 import notificacion.repositories.NotificationRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +49,70 @@ public class EventService {
         }
 
         // 3) (opcional v2) Duplicado por monto+descripcion en ventana — lo dejamos para luego
+    }
+
+    @Transactional
+    public void handleBudgetExceeded(BudgetExceededEvent evt) {
+        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
+        final Instant createdAt = evt.occurredAt() != null ? evt.occurredAt() : Instant.now();
+        
+        String title = "Presupuesto excedido: " + evt.budgetName();
+        String body = String.format("Categoría: %s | Presupuestado: $%s | Real: $%s | Diferencia: $%s", 
+            evt.category(), evt.budgeted(), evt.actual(), evt.variance());
+        
+        saveIfNew(userId, NotificationType.BUDGET_EXCEEDED, 
+            "budget_" + evt.budgetId() + "_" + evt.category(),
+            title, body, Severity.WARN, createdAt);
+    }
+
+    @Transactional
+    public void handleReportGenerated(ReportGeneratedEvent evt) {
+        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
+        final Instant createdAt = evt.generatedAt() != null ? evt.generatedAt() : Instant.now();
+        
+        String title = "Reporte generado: " + evt.reportName();
+        String body = String.format("Tipo: %s | Período: %s", evt.reportType(), evt.period());
+        
+        NotificationType type = evt.hasAnomalies() ? NotificationType.REPORT_ANOMALY : NotificationType.REPORT_READY;
+        Severity severity = evt.hasAnomalies() ? Severity.WARN : Severity.INFO;
+        
+        saveIfNew(userId, type, "report_" + evt.reportType() + "_" + evt.period(),
+            title, body, severity, createdAt);
+    }
+
+    @Transactional
+    public void handleCashFlowAlert(CashFlowAlertEvent evt) {
+        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
+        final Instant createdAt = evt.occurredAt() != null ? evt.occurredAt() : Instant.now();
+        
+        String title = "Alerta de Cash Flow";
+        String body = evt.message() != null ? evt.message() : 
+            String.format("Balance actual: $%s | Balance pronosticado: $%s", 
+                evt.currentBalance(), evt.forecastBalance());
+        
+        Severity severity = "NEGATIVE".equals(evt.alertType()) ? Severity.CRIT : Severity.WARN;
+        
+        saveIfNew(userId, NotificationType.CASH_FLOW_ALERT, 
+            "cashflow_" + evt.alertType() + "_" + evt.period(),
+            title, body, severity, createdAt);
+    }
+
+    @Transactional
+    public void handleCustomReminder(CustomReminderEvent evt) {
+        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
+        final Instant createdAt = evt.scheduledFor() != null ? evt.scheduledFor() : Instant.now();
+        
+        NotificationType type = NotificationType.REMINDER_CUSTOM;
+        if ("DEADLINE".equals(evt.reminderType())) {
+            type = NotificationType.REMINDER_DEADLINE;
+        } else if ("DATA_LOAD".equals(evt.reminderType())) {
+            type = NotificationType.REMINDER_DATA_LOAD;
+        } else if ("BILL_DUE".equals(evt.reminderType())) {
+            type = NotificationType.REMINDER_BILL_DUE;
+        }
+        
+        saveIfNew(userId, type, "reminder_" + evt.title().hashCode(),
+            evt.title(), evt.message(), Severity.INFO, createdAt);
     }
 
     private String body(MovementCreatedEvent e) {

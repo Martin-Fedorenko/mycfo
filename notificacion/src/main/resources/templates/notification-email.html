@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{email-layout :: layout}"
+>
+  <head>
+    <title th:text="'MyCFO - ' + ${title}">MyCFO - Notificación</title>
+  </head>
+  <body>
+    <div th:fragment="content">
+      <h2 th:text="${title}">Título de la Notificación</h2>
+
+      <div class="date" th:text="${date}">Fecha</div>
+
+      <div class="notification-card" th:classappend="'severity-' + ${severity}">
+        <h3 th:text="${title}">Título</h3>
+        <p th:text="${body}">Contenido de la notificación</p>
+
+        <div th:if="${notification.resourceType != null}">
+          <p>
+            <strong>Tipo de Recurso:</strong>
+            <span th:text="${notification.resourceType}">-</span>
+          </p>
+          <p th:if="${notification.resourceId != null}">
+            <strong>ID:</strong>
+            <span th:text="${notification.resourceId}">-</span>
+          </p>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px">
+        <a href="http://localhost:3000/listado-notificaciones" class="btn">
+          Ver en MyCFO
+        </a>
+      </div>
+
+      <div
+        style="
+          margin-top: 30px;
+          padding: 20px;
+          background-color: #e9ecef;
+          border-radius: 6px;
+        "
+      >
+        <h4>¿Qué puedes hacer ahora?</h4>
+        <ul>
+          <li>Revisar el detalle completo en la aplicación</li>
+          <li>Configurar alertas similares en el futuro</li>
+          <li>Contactar a tu equipo si necesitas ayuda</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
