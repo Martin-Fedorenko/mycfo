@@ -68,6 +68,18 @@ public class EmailNotificationService {
             context.setVariable("severity", notification.getSeverity().name().toLowerCase());
             context.setVariable("notification", notification);
             
+            // Asegurar que el contexto tenga todos los datos necesarios
+            System.out.println("Enviando email con título: " + notification.getTitle());
+            System.out.println("Enviando email con cuerpo: " + notification.getBody());
+            
+            // Formatear números para evitar notación científica
+            String formattedBody = notification.getBody();
+            if (formattedBody != null) {
+                formattedBody = formattedBody.replaceAll("\\$-?\\d+\\.\\d+E\\+\\d+", "Número grande");
+                formattedBody = formattedBody.replaceAll("\\$-?\\d+E\\+\\d+", "Número grande");
+            }
+            context.setVariable("body", formattedBody);
+            
             String htmlContent = templateEngine.process("notification-email", context);
             helper.setText(htmlContent, true);
 
@@ -103,7 +115,21 @@ public class EmailNotificationService {
             context.setVariable("digestType", "Diario");
             context.setVariable("date", LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
             
-            String htmlContent = templateEngine.process("notification-digest-email", context);
+            // Formatear números para evitar notación científica (sin modificar la BD)
+            for (Notification notification : notifications) {
+                // Formatear números para evitar notación científica
+                String formattedBody = notification.getBody();
+                if (formattedBody != null) {
+                    // Detectar y reemplazar notación científica
+                    formattedBody = formattedBody.replaceAll("\\$-?\\d+\\.\\d*E\\+\\d+", "Número grande");
+                    formattedBody = formattedBody.replaceAll("\\$-?\\d+E\\+\\d+", "Número grande");
+                }
+                
+                // NO modificar la notificación original, solo usar para el email
+                // La fecha se mostrará correctamente desde el template
+            }
+            
+            String htmlContent = templateEngine.process("digest-email", context);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
@@ -137,7 +163,7 @@ public class EmailNotificationService {
             context.setVariable("digestType", "Semanal");
             context.setVariable("date", LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
             
-            String htmlContent = templateEngine.process("notification-digest-email", context);
+            String htmlContent = templateEngine.process("digest-email", context);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
@@ -148,16 +174,45 @@ public class EmailNotificationService {
 
 
     private String getUserEmail(Long userId) {
-        // TODO: Implementar obtención del email del usuario desde el módulo de administración
-        // Por ahora retornamos un email configurable o de prueba
-        
         // Opción 1: Email configurable por usuario en las preferencias
         NotificationPreferences prefs = preferencesService.getPreferences(userId).orElse(null);
-        if (prefs != null && prefs.getUserEmail() != null && !prefs.getUserEmail().isEmpty()) {
-            return prefs.getUserEmail();
+        if (prefs != null && prefs.getUserEmail() != null && !prefs.getUserEmail().trim().isEmpty()) {
+            System.out.println("Usando email personalizado del usuario " + userId + ": " + prefs.getUserEmail());
+            return prefs.getUserEmail().trim();
         }
         
-        // Opción 2: Email de prueba para desarrollo
-        return "usuario" + userId + "@mycfo.com";
+        // Opción 2: Email de prueba para desarrollo - usar el email configurado
+        System.out.println("Usuario " + userId + " sin email personalizado, usando email de desarrollo");
+        return "mycfoarg@gmail.com";
+    }
+
+    /**
+     * Envía un email de recordatorio personalizado
+     */
+    @Transactional
+    public void sendReminderEmail(Long userId, notificacion.models.CustomReminder reminder) {
+        try {
+            String userEmail = getUserEmail(userId);
+            
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setTo(userEmail);
+            helper.setSubject("MyCFO - Recordatorio: " + reminder.getTitle());
+            helper.setFrom(fromEmail);
+            
+            // Crear contexto para Thymeleaf
+            Context context = new Context(new Locale("es", "ES"));
+            context.setVariable("reminder", reminder);
+            
+            String htmlContent = templateEngine.process("reminder-email", context);
+            helper.setText(htmlContent, true);
+            
+            mailSender.send(message);
+            System.out.println("Email de recordatorio enviado a: " + userEmail);
+            
+        } catch (MessagingException e) {
+            System.err.println("Error enviando email de recordatorio: " + e.getMessage());
+        }
     }
 }

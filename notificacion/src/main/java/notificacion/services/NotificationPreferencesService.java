@@ -46,6 +46,7 @@ public class NotificationPreferencesService {
         existing.setDailyDigestEnabled(preferences.isDailyDigestEnabled());
         existing.setWeeklyDigestEnabled(preferences.isWeeklyDigestEnabled());
         existing.setDigestTime(preferences.getDigestTime());
+        existing.setUserEmail(preferences.getUserEmail()); // ✅ Agregar esta línea
         
         // Actualizar configuraciones por tipo
         if (preferences.getTypeConfigs() != null) {

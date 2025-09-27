@@ -3,9 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title th:text="'MyCFO - ' + ${notification.title}">
-      MyCFO - Notificación
-    </title>
+    <title>MyCFO - Resumen de Notificaciones</title>
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -36,11 +34,18 @@
       .content {
         padding: 30px;
       }
-      .notification-card {
-        border-left: 4px solid #28a745;
+      .digest-summary {
         background-color: #f8f9fa;
         padding: 20px;
-        margin: 20px 0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .notification-item {
+        border-left: 4px solid #28a745;
+        background-color: #f8f9fa;
+        padding: 15px;
+        margin: 15px 0;
         border-radius: 0 8px 8px 0;
       }
       .severity-critical {
@@ -54,6 +59,19 @@
       .severity-info {
         border-left-color: #17a2b8;
         background-color: #d1ecf1;
+      }
+      .notification-title {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 5px;
+      }
+      .notification-body {
+        color: #666;
+        margin-bottom: 10px;
+      }
+      .notification-date {
+        color: #999;
+        font-size: 12px;
       }
       .footer {
         background-color: #f8f9fa;
@@ -76,52 +94,46 @@
       .btn:hover {
         background-color: #218838;
       }
-      .date {
-        color: #6c757d;
-        font-size: 14px;
-        margin-bottom: 10px;
-      }
     </style>
   </head>
   <body>
     <div class="container">
       <div class="header">
         <h1>MyCFO</h1>
-        <p>Gestión Financiera Inteligente</p>
+        <p>Resumen de Notificaciones</p>
       </div>
 
       <div class="content">
-        <h2 th:text="${notification.title}">Título de la Notificación</h2>
-
-        <div
-          class="date"
-          th:text="${#temporals.format(notification.createdAt, 'dd/MM/yyyy HH:mm', 'America/Argentina/Buenos_Aires')}"
-        >
-          Fecha
+        <div class="digest-summary">
+          <h2>📧 Resumen de Notificaciones</h2>
+          <p>
+            Has recibido
+            <strong th:text="${notifications.size()}">0</strong> notificaciones
+          </p>
         </div>
 
         <div
-          class="notification-card"
-          th:classappend="'severity-' + ${severity}"
+          th:each="notification : ${notifications}"
+          class="notification-item"
+          th:classappend="'severity-' + ${notification.severity.name().toLowerCase()}"
         >
-          <h3 th:text="${notification.title}">Título</h3>
-          <p th:text="${notification.body}">Contenido de la notificación</p>
-
-          <div th:if="${notification.resourceType != null}">
-            <p>
-              <strong>Tipo de Recurso:</strong>
-              <span th:text="${notification.resourceType}">-</span>
-            </p>
-            <p th:if="${notification.resourceId != null}">
-              <strong>ID:</strong>
-              <span th:text="${notification.resourceId}">-</span>
-            </p>
+          <div class="notification-title" th:text="${notification.title}">
+            Título
+          </div>
+          <div class="notification-body" th:text="${notification.body}">
+            Contenido
+          </div>
+          <div
+            class="notification-date"
+            th:text="${#strings.substring(notification.createdAt.toString(), 8, 10) + '/' + #strings.substring(notification.createdAt.toString(), 5, 7) + '/' + #strings.substring(notification.createdAt.toString(), 0, 4)}"
+          >
+            Fecha
           </div>
         </div>
 
         <div style="text-align: center; margin-top: 30px">
           <a href="http://localhost:3000/listado-notificaciones" class="btn">
-            Ver en MyCFO
+            Ver Todas las Notificaciones
           </a>
         </div>
 
@@ -135,17 +147,17 @@
         >
           <h4>¿Qué puedes hacer ahora?</h4>
           <ul>
-            <li>Revisar el detalle completo en la aplicación</li>
-            <li>Configurar alertas similares en el futuro</li>
-            <li>Contactar a tu equipo si necesitas ayuda</li>
+            <li>Revisar el detalle completo de cada notificación</li>
+            <li>Configurar alertas personalizadas</li>
+            <li>Gestionar tus preferencias de notificación</li>
           </ul>
         </div>
       </div>
 
       <div class="footer">
-        <p>Este es un mensaje automático del sistema MyCFO.</p>
+        <p>Este es un resumen automático del sistema MyCFO.</p>
         <p>
-          Si no deseas recibir estas notificaciones, puedes configurarlas en tu
+          Si no deseas recibir estos resúmenes, puedes configurarlos en tu
           perfil.
         </p>
         <p>&copy; 2024 MyCFO. Todos los derechos reservados.</p>

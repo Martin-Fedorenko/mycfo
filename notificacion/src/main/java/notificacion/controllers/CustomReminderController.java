@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users/{userId}/reminders")
@@ -46,7 +45,7 @@ public class CustomReminderController {
     @GetMapping("/{reminderId}")
     public ResponseEntity<CustomReminder> getReminder(
             @PathVariable Long userId,
-            @PathVariable UUID reminderId) {
+            @PathVariable Long reminderId) {
         
         CustomReminder reminder = reminderService.getReminder(reminderId, userId);
         return ResponseEntity.ok(reminder);
@@ -55,7 +54,7 @@ public class CustomReminderController {
     @PutMapping("/{reminderId}")
     public ResponseEntity<CustomReminder> updateReminder(
             @PathVariable Long userId,
-            @PathVariable UUID reminderId,
+            @PathVariable Long reminderId,
             @RequestBody UpdateReminderRequest request) {
         
         reminderService.updateReminder(
@@ -75,10 +74,20 @@ public class CustomReminderController {
     @DeleteMapping("/{reminderId}")
     public ResponseEntity<Void> deleteReminder(
             @PathVariable Long userId,
-            @PathVariable UUID reminderId) {
+            @PathVariable Long reminderId) {
         
         reminderService.deleteReminder(reminderId, userId);
         return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/debug")
+    public ResponseEntity<String> debugReminders(@PathVariable Long userId) {
+        try {
+            reminderService.debugReminders(userId);
+            return ResponseEntity.ok("Debug ejecutado - revisar logs del backend");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error en debug: " + e.getMessage());
+        }
     }
 
     // DTOs para requests

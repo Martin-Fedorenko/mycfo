@@ -5,7 +5,6 @@ import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
 import Tooltip from "@mui/material/Tooltip";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
-import WifiOffIcon from "@mui/icons-material/WifiOff";
 import NotificationDrawer from "../notification-drawer/NotificationDrawer";
 import Box from "@mui/material/Box";
 import { useNotifications } from "../hooks/useNotifications";
@@ -44,8 +43,8 @@ export default function NotificationButton(props) {
         <Tooltip
           title={
             isWebSocketConnected
-              ? "Notificaciones en tiempo real"
-              : "Conexión perdida - Notificaciones limitadas"
+              ? `Notificaciones (${unread} sin leer)`
+              : `Notificaciones (${unread} sin leer)`
           }
         >
           <IconButton
@@ -62,11 +61,7 @@ export default function NotificationButton(props) {
               overlap="circular"
               max={99}
             >
-              {isWebSocketConnected ? (
-                <NotificationsRoundedIcon fontSize="small" />
-              ) : (
-                <WifiOffIcon fontSize="small" color="warning" />
-              )}
+              <NotificationsRoundedIcon fontSize="small" />
             </Badge>
           </IconButton>
         </Tooltip>

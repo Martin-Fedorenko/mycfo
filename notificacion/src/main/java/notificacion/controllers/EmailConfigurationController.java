@@ -2,11 +2,13 @@ package notificacion.controllers;
 
 import notificacion.services.EmailConfigurationService;
 import notificacion.services.EmailNotificationService;
+import notificacion.repositories.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -19,6 +21,9 @@ public class EmailConfigurationController {
 
     @Autowired
     private EmailNotificationService emailNotificationService;
+    
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getEmailStatus() {
@@ -46,24 +51,25 @@ public class EmailConfigurationController {
         }
 
         try {
-            // Crear una notificación de prueba
-            notificacion.models.Notification testNotification = new notificacion.models.Notification();
-            testNotification.setTitle("Prueba de Configuración de Email");
-            testNotification.setBody("Este es un email de prueba para verificar que la configuración de email funciona correctamente.");
-            testNotification.setType(notificacion.models.NotificationType.REMINDER_CUSTOM);
-            testNotification.setSeverity(notificacion.models.Severity.INFO);
-            testNotification.setCreatedAt(java.time.Instant.now());
+            // Obtener todas las notificaciones del usuario
+            List<notificacion.models.Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, org.springframework.data.domain.Pageable.unpaged()).getContent();
+            
+            if (notifications.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "No hay notificaciones para enviar en el digest");
+                return ResponseEntity.badRequest().body(response);
+            }
 
-            // Enviar email de prueba
-            emailNotificationService.sendNotificationEmail(userId, testNotification);
+            // Enviar digest con todas las notificaciones
+            emailNotificationService.sendDailyDigest(userId, notifications);
             
             response.put("success", true);
-            response.put("message", "Email de prueba enviado exitosamente");
+            response.put("message", "Digest de prueba enviado exitosamente con " + notifications.size() + " notificaciones");
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "Error enviando email de prueba: " + e.getMessage());
+            response.put("message", "Error enviando digest de prueba: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
     }

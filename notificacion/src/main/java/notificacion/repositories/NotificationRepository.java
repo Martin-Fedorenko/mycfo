@@ -13,10 +13,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
-
 @Repository
-public interface NotificationRepository extends JpaRepository<Notification, UUID> {
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
     Page<Notification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
     Page<Notification> findByUserIdAndIsReadFalseOrderByCreatedAtDesc(Long userId, Pageable pageable);
     int countByUserIdAndIsReadFalse(Long userId);

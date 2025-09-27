@@ -34,6 +34,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../../hooks/useNotifications";
 import { deleteNotification } from "../../services/notificationsApi";
+import {
+  formatDate,
+  formatNumber,
+  formatMovementDate,
+} from "../../utils/formatters";
 
 export default function NotificationCenter() {
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -160,17 +165,6 @@ export default function NotificationCenter() {
       default:
         return "default";
     }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const itemsPerPage = 10;
@@ -393,7 +387,7 @@ export default function NotificationCenter() {
                         color="text.secondary"
                         sx={{ mb: 1 }}
                       >
-                        {notification.body}
+                        {formatNumber(notification.body)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {formatDate(notification.date)}

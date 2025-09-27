@@ -13,7 +13,6 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -88,7 +87,9 @@ export default function EmailConfiguration() {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" p={3}>
-        <CircularProgress />
+        <Typography variant="body1" color="text.secondary">
+          Cargando configuración...
+        </Typography>
       </Box>
     );
   }
@@ -243,7 +244,7 @@ export default function EmailConfiguration() {
             onClick={testEmailConfiguration}
             variant="contained"
             disabled={testing}
-            startIcon={testing ? <CircularProgress size={20} /> : <SendIcon />}
+            startIcon={<SendIcon />}
           >
             {testing ? "Enviando..." : "Enviar Email de Prueba"}
           </Button>

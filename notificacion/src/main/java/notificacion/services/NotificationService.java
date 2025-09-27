@@ -13,7 +13,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
 
 @Service
 public class NotificationService {
@@ -53,7 +52,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markRead(Long userId, UUID notifId, boolean isRead) {
+    public void markRead(Long userId, Long notifId, boolean isRead) {
         var n = repo.findById(notifId).orElseThrow();
         if (!n.getUserId().equals(userId)) throw new IllegalArgumentException("Usuario inválido");
         n.setRead(isRead);
@@ -77,7 +76,12 @@ public class NotificationService {
         
         // Enviar email si está habilitado
         if (preferencesService.isEmailEnabled(n.getUserId(), n.getType())) {
-            emailService.sendNotificationEmail(n.getUserId(), saved);
+            try {
+                emailService.sendNotificationEmail(n.getUserId(), saved);
+                System.out.println("Email enviado para notificación: " + saved.getTitle());
+            } catch (Exception e) {
+                System.err.println("Error enviando email: " + e.getMessage());
+            }
         }
         
         // Actualizar contador de no leídas
@@ -125,7 +129,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public void deleteNotification(UUID notificationId, Long userId) {
+    public void deleteNotification(Long notificationId, Long userId) {
         var notification = repo.findById(notificationId).orElseThrow();
         if (!notification.getUserId().equals(userId)) {
             throw new IllegalArgumentException("No autorizado para eliminar esta notificación");

@@ -8,17 +8,15 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
-
 @Repository
-public interface CustomReminderRepository extends JpaRepository<CustomReminder, UUID> {
+public interface CustomReminderRepository extends JpaRepository<CustomReminder, Long> {
     
     List<CustomReminder> findByUserIdAndIsActiveTrueOrderByScheduledForAsc(Long userId);
     
-    @Query("SELECT r FROM CustomReminder r WHERE r.isActive = true AND r.scheduledFor <= :now ORDER BY r.scheduledFor ASC")
+    @Query("SELECT r FROM CustomReminder r WHERE r.isActive = true AND r.isRecurring = false AND r.scheduledFor <= :now ORDER BY r.scheduledFor ASC")
     List<CustomReminder> findDueReminders(@Param("now") Instant now);
     
-    @Query("SELECT r FROM CustomReminder r WHERE r.isActive = true AND r.nextTrigger <= :now ORDER BY r.nextTrigger ASC")
+    @Query("SELECT r FROM CustomReminder r WHERE r.isActive = true AND r.isRecurring = true AND r.nextTrigger <= :now ORDER BY r.nextTrigger ASC")
     List<CustomReminder> findRecurringReminders(@Param("now") Instant now);
     
     List<CustomReminder> findByUserIdAndIsActiveTrue(Long userId);

@@ -13,6 +13,11 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { markAsRead } from "../../services/notificationsApi";
+import {
+  formatDate,
+  formatNumber,
+  formatMovementDate,
+} from "../../utils/formatters";
 
 export default function MainGrid({
   notifications = [],
@@ -58,24 +63,6 @@ export default function MainGrid({
         return "info";
       default:
         return "default";
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now - date) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) {
-      return "Hace unos minutos";
-    } else if (diffInHours < 24) {
-      return `Hace ${Math.floor(diffInHours)} horas`;
-    } else {
-      return date.toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
     }
   };
 
@@ -151,7 +138,7 @@ export default function MainGrid({
                         color="text.secondary"
                         sx={{ mb: 0.5 }}
                       >
-                        {notification.body}
+                        {formatNumber(notification.body)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {formatDate(notification.date)}

@@ -139,7 +139,12 @@ public class EventService {
         n.setResourceType(ResourceType.MOVEMENT);
         n.setResourceId(resourceId);
         n.setCreatedAt(createdAt);
+        n.setRead(false);
+        
         repo.save(n);
+        
+        // Log para debugging
+        System.out.println("Notificación creada: " + title + " para usuario " + userId);
     }
 }
 

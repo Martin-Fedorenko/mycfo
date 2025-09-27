@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "custom_reminders", indexes = {
@@ -18,8 +17,8 @@ import java.util.UUID;
 public class CustomReminder {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
@@ -79,6 +78,8 @@ public class CustomReminder {
             return;
         }
 
+        // Para la primera vez, usar scheduledFor como base
+        // Para las siguientes veces, usar lastTriggered como base
         Instant base = lastTriggered != null ? lastTriggered : scheduledFor;
         
         switch (recurrencePattern) {
@@ -95,6 +96,17 @@ public class CustomReminder {
                 this.nextTrigger = base.plusSeconds(365L * 24 * 60 * 60); // 365 días
                 break;
         }
+    }
+    
+    // Método para inicializar el próximo trigger (primera vez)
+    public void initializeNextTrigger() {
+        if (!isRecurring || recurrencePattern == null) {
+            this.nextTrigger = null;
+            return;
+        }
+        
+        // Para recordatorios recurrentes, la primera ejecución es en scheduledFor
+        this.nextTrigger = this.scheduledFor;
     }
 
     // Método para marcar como ejecutado

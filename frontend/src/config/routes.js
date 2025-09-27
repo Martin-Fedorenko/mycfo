@@ -165,12 +165,12 @@ const routeConfig = [
         icon: <DescriptionIcon />,
         element: <NotificationSettings />,
       },
-      {
-        label: "Configuración Email",
-        path: "/configuracion-email",
-        icon: <DescriptionIcon />,
-        element: <EmailConfiguration />,
-      },
+      // {
+      //   label: "Configuración Email",
+      //   path: "/configuracion-email",
+      //   icon: <DescriptionIcon />,
+      //   element: <EmailConfiguration />,
+      // },
     ],
   },
 ];

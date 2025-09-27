@@ -2,7 +2,6 @@ import React from "react";
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import MainGrid from "./components/MainGrid";
 
@@ -46,7 +45,9 @@ export default function NotificationDrawer({
       <Box sx={{ flex: 1, overflow: "auto" }}>
         {loading && (
           <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
-            <CircularProgress />
+            <Typography variant="body2" color="text.secondary">
+              Cargando notificaciones...
+            </Typography>
           </Box>
         )}
 

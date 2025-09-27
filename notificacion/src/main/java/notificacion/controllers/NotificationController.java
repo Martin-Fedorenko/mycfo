@@ -9,7 +9,6 @@ import notificacion.services.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/users/{userId}/notifications")
@@ -37,7 +36,7 @@ public class NotificationController {
     @PatchMapping("/{notifId}")
     public ResponseEntity<?> markRead(
             @PathVariable Long userId,
-            @PathVariable UUID notifId,
+            @PathVariable Long notifId,
             @RequestBody MarkReadRequest body
     ) {
         service.markRead(userId, notifId, body.is_read());
@@ -83,7 +82,7 @@ public class NotificationController {
     @DeleteMapping("/{notifId}")
     public ResponseEntity<?> deleteNotification(
             @PathVariable Long userId,
-            @PathVariable UUID notifId
+            @PathVariable Long notifId
     ) {
         service.deleteNotification(notifId, userId);
         return ResponseEntity.noContent().build();

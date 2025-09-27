@@ -5,7 +5,6 @@ import {
   Paper,
   Grid,
   FormControl,
-  FormLabel,
   FormGroup,
   FormControlLabel,
   Switch,
@@ -16,9 +15,6 @@ import {
   CardContent,
   CardHeader,
   TextField,
-  Select,
-  MenuItem,
-  InputLabel,
   Stack,
 } from "@mui/material";
 import {
@@ -40,6 +36,7 @@ export default function NotificationSettings() {
     quietEnd: "08:00",
     quietDays: [],
     typeConfigs: {},
+    userEmail: "",
   });
 
   const [loading, setLoading] = React.useState(false);
@@ -147,14 +144,38 @@ export default function NotificationSettings() {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Configuración de Notificaciones
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Personaliza cómo y cuándo recibir notificaciones
-        </Typography>
+      {/* Header con título y botón alineados */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Configuración de Notificaciones
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Personaliza cómo y cuándo recibir notificaciones
+          </Typography>
+        </Box>
+
+        <Button
+          variant="contained"
+          size="large"
+          onClick={handleSave}
+          disabled={loading}
+          sx={{
+            minWidth: "180px",
+            height: "48px",
+          }}
+        >
+          {loading ? "Guardando..." : "Guardar Preferencias"}
+        </Button>
       </Box>
 
       {saved && (
@@ -162,18 +183,6 @@ export default function NotificationSettings() {
           Preferencias guardadas exitosamente
         </Alert>
       )}
-
-      {/* Botón de Guardar - Moved to top */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 3 }}>
-        <Button
-          variant="contained"
-          size="large"
-          onClick={handleSave}
-          disabled={loading}
-        >
-          {loading ? "Guardando..." : "Guardar Preferencias"}
-        </Button>
-      </Box>
 
       <Grid container spacing={3}>
         {/* Configuración General */}
@@ -230,6 +239,27 @@ export default function NotificationSettings() {
                     label="Notificaciones Push"
                   />
                 </FormGroup>
+
+                {/* Espaciado adicional */}
+                <Box sx={{ mt: 2 }} />
+
+                {/* Campo de Email del Usuario */}
+                <TextField
+                  fullWidth
+                  label="Email para Notificaciones"
+                  type="email"
+                  value={preferences.userEmail || ""}
+                  onChange={(e) =>
+                    handlePreferenceChange("userEmail", e.target.value)
+                  }
+                  placeholder="tu-email@ejemplo.com"
+                  helperText="Si no especificas un email, se usará el email de desarrollo para pruebas"
+                  InputProps={{
+                    startAdornment: (
+                      <EmailIcon sx={{ mr: 1, color: "action.active" }} />
+                    ),
+                  }}
+                />
               </FormControl>
             </CardContent>
           </Card>
@@ -300,6 +330,9 @@ export default function NotificationSettings() {
             />
             <CardContent>
               <Stack spacing={2}>
+                {/* Espaciado adicional después del título */}
+                <Box sx={{ mt: 1 }} />
+
                 <TextField
                   label="Inicio del Silencio"
                   type="time"
@@ -380,6 +413,10 @@ export default function NotificationSettings() {
                                 )
                               }
                               size="small"
+                              disabled={
+                                !preferences.emailEnabled &&
+                                !preferences.inAppEnabled
+                              }
                             />
                           }
                           label="Habilitado"
@@ -388,8 +425,10 @@ export default function NotificationSettings() {
                           control={
                             <Switch
                               checked={
-                                preferences.typeConfigs[type.value]
-                                  ?.emailEnabled ?? true
+                                (preferences.emailEnabled &&
+                                  preferences.typeConfigs[type.value]
+                                    ?.emailEnabled) ??
+                                true
                               }
                               onChange={(e) =>
                                 handleTypeConfigChange(
@@ -399,6 +438,7 @@ export default function NotificationSettings() {
                                 )
                               }
                               size="small"
+                              disabled={!preferences.emailEnabled}
                             />
                           }
                           label="Email"
@@ -407,8 +447,10 @@ export default function NotificationSettings() {
                           control={
                             <Switch
                               checked={
-                                preferences.typeConfigs[type.value]
-                                  ?.inAppEnabled ?? true
+                                (preferences.inAppEnabled &&
+                                  preferences.typeConfigs[type.value]
+                                    ?.inAppEnabled) ??
+                                true
                               }
                               onChange={(e) =>
                                 handleTypeConfigChange(
@@ -418,6 +460,7 @@ export default function NotificationSettings() {
                                 )
                               }
                               size="small"
+                              disabled={!preferences.inAppEnabled}
                             />
                           }
                           label="En App"

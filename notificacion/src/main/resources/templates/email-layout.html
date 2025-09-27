@@ -23,7 +23,7 @@
         overflow: hidden;
       }
       .header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
         padding: 30px;
         text-align: center;
@@ -37,7 +37,7 @@
         padding: 30px;
       }
       .notification-card {
-        border-left: 4px solid #667eea;
+        border-left: 4px solid #28a745;
         background-color: #f8f9fa;
         padding: 20px;
         margin: 20px 0;
@@ -66,7 +66,7 @@
       .btn {
         display: inline-block;
         padding: 12px 24px;
-        background-color: #667eea;
+        background-color: #28a745;
         color: white;
         text-decoration: none;
         border-radius: 6px;
@@ -74,7 +74,7 @@
         font-weight: 500;
       }
       .btn:hover {
-        background-color: #5a6fd8;
+        background-color: #218838;
       }
       .date {
         color: #6c757d;
@@ -90,14 +90,8 @@
         <p>Gestión Financiera Inteligente</p>
       </div>
 
-      <div class="content">
-        <div th:fragment="content">
-          <!-- Contenido específico de cada template -->
-        </div>
-      </div>
-
-      <div th:fragment="layout">
-        <div th:replace="~{::content}"></div>
+      <div class="content" th:fragment="content">
+        <!-- Contenido específico de cada template -->
       </div>
 
       <div class="footer">

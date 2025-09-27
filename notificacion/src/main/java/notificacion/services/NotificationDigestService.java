@@ -28,49 +28,88 @@ public class NotificationDigestService {
         this.emailService = emailService;
     }
 
-    // Ejecutar diariamente a las 9:00 AM
-    @Scheduled(cron = "0 0 9 * * *")
+    // Ejecutar cada minuto para verificar si es hora de enviar digest
+    @Scheduled(cron = "0 * * * * *")
     @Transactional
-    public void sendDailyDigests() {
+    public void checkAndSendDailyDigests() {
+        System.out.println("Verificando digest diario...");
+        
         LocalDate yesterday = LocalDate.now().minusDays(1);
         Instant startOfDay = yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfDay = yesterday.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
 
         // Obtener todos los usuarios únicos que tienen notificaciones de ayer
         List<Long> userIds = notificationRepository.findDistinctUserIdsByCreatedAtBetween(startOfDay, endOfDay);
+        System.out.println("Usuarios con notificaciones: " + userIds.size());
 
         for (Long userId : userIds) {
             NotificationPreferences prefs = preferencesService.getPreferences(userId).orElse(null);
             if (prefs != null && prefs.isDailyDigestEnabled()) {
-                List<Notification> dailyNotifications = notificationRepository
-                    .findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, startOfDay, endOfDay);
+                // Verificar si es la hora correcta para este usuario
+                LocalTime currentTime = LocalTime.now();
+                LocalTime digestTime = prefs.getDigestTime();
                 
-                if (!dailyNotifications.isEmpty()) {
-                    emailService.sendDailyDigest(userId, dailyNotifications);
+                if (currentTime.getHour() == digestTime.getHour() && 
+                    currentTime.getMinute() == digestTime.getMinute()) {
+                    
+                    List<Notification> dailyNotifications = notificationRepository
+                        .findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, startOfDay, endOfDay);
+                    
+                    if (!dailyNotifications.isEmpty()) {
+                        try {
+                            emailService.sendDailyDigest(userId, dailyNotifications);
+                            System.out.println("Digest diario enviado para usuario " + userId + " a las " + currentTime);
+                        } catch (Exception e) {
+                            System.err.println("Error enviando digest diario para usuario " + userId + ": " + e.getMessage());
+                        }
+                    }
                 }
             }
         }
+        
+        // También verificar digest semanal
+        checkAndSendWeeklyDigests();
     }
 
-    // Ejecutar semanalmente los lunes a las 9:00 AM
-    @Scheduled(cron = "0 0 9 * * MON")
+    // Verificar digest semanal (se ejecuta junto con el diario)
     @Transactional
-    public void sendWeeklyDigests() {
+    public void checkAndSendWeeklyDigests() {
+        System.out.println("Verificando digest semanal...");
+        
+        // Solo ejecutar los lunes
+        if (LocalDate.now().getDayOfWeek() != java.time.DayOfWeek.MONDAY) {
+            return;
+        }
+        
         LocalDate weekAgo = LocalDate.now().minusWeeks(1);
         Instant startOfWeek = weekAgo.atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfWeek = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
 
         // Obtener todos los usuarios únicos que tienen notificaciones de la semana pasada
         List<Long> userIds = notificationRepository.findDistinctUserIdsByCreatedAtBetween(startOfWeek, endOfWeek);
+        System.out.println("Usuarios con notificaciones semanales: " + userIds.size());
 
         for (Long userId : userIds) {
             NotificationPreferences prefs = preferencesService.getPreferences(userId).orElse(null);
             if (prefs != null && prefs.isWeeklyDigestEnabled()) {
-                List<Notification> weeklyNotifications = notificationRepository
-                    .findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, startOfWeek, endOfWeek);
+                // Verificar si es la hora correcta para este usuario
+                LocalTime currentTime = LocalTime.now();
+                LocalTime digestTime = prefs.getDigestTime();
                 
-                if (!weeklyNotifications.isEmpty()) {
-                    emailService.sendWeeklyDigest(userId, weeklyNotifications);
+                if (currentTime.getHour() == digestTime.getHour() && 
+                    currentTime.getMinute() == digestTime.getMinute()) {
+                    
+                    List<Notification> weeklyNotifications = notificationRepository
+                        .findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, startOfWeek, endOfWeek);
+                    
+                    if (!weeklyNotifications.isEmpty()) {
+                        try {
+                            emailService.sendWeeklyDigest(userId, weeklyNotifications);
+                            System.out.println("Digest semanal enviado para usuario " + userId + " a las " + currentTime);
+                        } catch (Exception e) {
+                            System.err.println("Error enviando digest semanal para usuario " + userId + ": " + e.getMessage());
+                        }
+                    }
                 }
             }
         }
