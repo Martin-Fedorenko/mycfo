@@ -7,6 +7,7 @@ import reporte.dtos.DetalleCategoriaDTO;
 import reporte.dtos.RegistroDTO;
 import reporte.dtos.ResumenMensualDTO;
 
+import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -18,12 +19,11 @@ public class ResumenService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public ResumenMensualDTO obtenerResumenMensual(int anio, int mes, Optional<String> categoriaFiltro) {
-        // Traer registros desde el microservicio de registro
+    public ResumenMensualDTO obtenerResumenMensual(int anio, int mes, List<String> categoriasFiltro) {
         String url = registroUrl + "/registros";
         RegistroDTO[] registros = restTemplate.getForObject(url, RegistroDTO[].class);
 
-        if (registros == null) return new ResumenMensualDTO(0,0,0, List.of(), List.of());
+        if (registros == null) return new ResumenMensualDTO(0, 0, 0, List.of(), List.of());
 
         // Filtrar por mes/año
         List<RegistroDTO> filtrados = Arrays.stream(registros)
@@ -32,12 +32,22 @@ public class ResumenService {
                         && r.getFechaEmision().getMonthValue() == mes)
                 .toList();
 
-        // Aplicar filtro por categoría si viene en el request
-        if (categoriaFiltro.isPresent()) {
-            String filtro = categoriaFiltro.get().toLowerCase();
-            filtrados = filtrados.stream()
-                    .filter(r -> r.getCategoria() != null && r.getCategoria().toLowerCase().equals(filtro))
-                    .toList();
+        // Filtro por categorías (OR inclusivo)
+        if (categoriasFiltro != null && !categoriasFiltro.isEmpty()) {
+            Set<String> filtrosNorm = categoriasFiltro.stream()
+                    .map(this::normalize)
+                    .filter(s -> !s.isBlank())
+                    .collect(Collectors.toSet());
+
+            if (!filtrosNorm.isEmpty()) {
+                filtrados = filtrados.stream()
+                        .filter(r -> {
+                            String cat = r.getCategoria();
+                            if (cat == null) return false;
+                            return filtrosNorm.contains(normalize(cat));
+                        })
+                        .toList();
+            }
         }
 
         // Separar ingresos y egresos
@@ -70,5 +80,12 @@ public class ResumenService {
                 .toList();
 
         return new ResumenMensualDTO(totalIngresos, totalEgresos, balance, detalleIngresos, detalleEgresos);
+    }
+
+    private String normalize(String input) {
+        if (input == null) return "";
+        String lower = input.trim().toLowerCase(Locale.ROOT);
+        String normalized = Normalizer.normalize(lower, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{M}", ""); // quita tildes
     }
 }

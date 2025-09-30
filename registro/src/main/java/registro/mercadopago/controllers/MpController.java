@@ -2,7 +2,7 @@ package registro.mercadopago.controllers;
 
 import registro.mercadopago.config.MpProperties;
 import registro.mercadopago.dtos.*;
-import registro.mercadopago.models.MpPayment;
+import registro.mercadopago.models.MpAccountLink;
 import registro.mercadopago.models.MpWalletMovement;
 import registro.mercadopago.repositories.MpPaymentRepository;
 import registro.mercadopago.repositories.MpWalletMovementRepository;
@@ -10,6 +10,9 @@ import registro.mercadopago.services.MpAuthService;
 import registro.mercadopago.services.MpBillingService;
 import registro.mercadopago.services.MpPaymentImportService;
 import registro.mercadopago.services.util.MpWalletMovementImportService;
+import registro.cargarDatos.models.Registro;
+import registro.cargarDatos.models.TipoMedioPago;
+import registro.cargarDatos.repositories.RegistroRepository;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +24,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.net.URI;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -47,6 +50,9 @@ public class MpController {
     // Wallet movements
     private final MpWalletMovementImportService walletImporter;
     private final MpWalletMovementRepository walletRepo;
+
+    @Autowired
+    private RegistroRepository registroRepo;
 
     @Autowired
     private MpProperties mpProps;
@@ -112,7 +118,36 @@ public class MpController {
     }
 
     /* ======================
-       Importación de PAGOS
+       Preview de PAGOS (sin guardar)
+       ====================== */
+
+    @PostMapping("/preview")
+    public Map<String, Object> previewPagos(@RequestBody ImportRequest req) {
+        final Long uid = currentUserId();
+        List<PaymentDTO> previewData;
+
+        if (req.getPaymentId() != null) {
+            System.out.println("[/preview] by paymentId=" + req.getPaymentId());
+            previewData = importer.previewPaymentById(uid, req.getPaymentId());
+        } else if (req.getExternalReference() != null && !req.getExternalReference().isBlank()) {
+            System.out.println("[/preview] by externalReference=" + req.getExternalReference());
+            previewData = importer.previewByExternalReference(uid, req.getExternalReference().trim());
+        } else if (req.getMonth() != null && req.getYear() != null) {
+            System.out.println("[/preview] by month/year " + req.getMonth() + "/" + req.getYear());
+            previewData = importer.previewByMonth(uid, req.getMonth(), req.getYear());
+        } else {
+            throw new IllegalArgumentException("Debes indicar paymentId, externalReference o month/year");
+        }
+
+        return Map.of(
+            "preview", previewData,
+            "total", previewData.size(),
+            "message", "Datos de preview obtenidos. Selecciona cuáles guardar."
+        );
+    }
+
+    /* ======================
+       Importación de PAGOS (guardar seleccionados)
        ====================== */
 
     @PostMapping("/import")
@@ -137,66 +172,86 @@ public class MpController {
     }
 
     /* ======================
-       Listado de PAGOS
+       Importación de PAGOS seleccionados
        ====================== */
 
+    @PostMapping("/import/selected")
+    public Map<String, Object> importPagosSeleccionados(@RequestBody List<Long> paymentIds) {
+        final Long uid = currentUserId();
+        int cant = importer.importSelectedPayments(uid, paymentIds);
+        return Map.of("importados", cant);
+    }
+
+    /* ======================
+       Listado de PAGOS (desde Registro)
+       ====================== */
     @GetMapping("/payments")
     public Page<PaymentDTO> payments(
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String q,
-            @PageableDefault(size = 10, sort = "fecha", direction = Sort.Direction.DESC) Pageable pg
+            @PageableDefault(size = 10, sort = "fechaEmision", direction = Sort.Direction.DESC) Pageable pg
     ) {
         final Long userId = currentUserId();
-        final ZoneId zone = ZoneId.systemDefault();
 
-        Pageable pageable = normalizeSortPayments(pg);
+        // Verificar que el usuario tenga cuenta vinculada
+        MpAccountLink accountLink = auth.getAccountLink(userId);
+        if (accountLink == null) {
+            return Page.empty();
+        }
 
-        Specification<MpPayment> spec = (root, query, cb) -> {
+        Specification<Registro> spec = (root, query, cb) -> {
             List<Predicate> ands = new ArrayList<>();
-            ands.add(cb.equal(root.get("accountLink").get("userIdApp"), userId));
-
-            if (accountId != null) {
-                ands.add(cb.equal(root.get("accountLink").get("id"), accountId));
+            
+        // Filtrar solo registros de MercadoPago del usuario actual
+        ands.add(cb.equal(root.get("medioPago"), TipoMedioPago.MercadoPago));
+            
+            // Filtrar por usuario si está disponible
+            if (accountLink.getUserIdApp() != null) {
+                // Aquí podrías agregar un filtro adicional si tienes el UUID del usuario
+                // ands.add(cb.equal(root.get("usuario"), userUuid));
             }
+
             if (from != null) {
-                Instant fromI = from.atStartOfDay(zone).toInstant();
-                ands.add(cb.greaterThanOrEqualTo(root.get("dateApproved"), fromI));
+                ands.add(cb.greaterThanOrEqualTo(root.get("fechaEmision"), from));
             }
             if (to != null) {
-                Instant toI = to.plusDays(1).atStartOfDay(zone).toInstant();
-                ands.add(cb.lessThan(root.get("dateApproved"), toI));
+                ands.add(cb.lessThan(root.get("fechaEmision"), to.plusDays(1)));
             }
             if (q != null && !q.isBlank()) {
                 String ql = "%" + q.toLowerCase().trim() + "%";
-                Predicate or = cb.disjunction();
-                or = cb.or(or, cb.like(cb.lower(root.get("description")), ql));
-                or = cb.or(or, cb.like(cb.lower(root.get("payerEmail")), ql));
-                or = cb.or(or, cb.like(cb.lower(root.get("orderId")), ql));
-                try {
-                    Long idNum = Long.valueOf(q.trim());
-                    or = cb.or(or, cb.equal(root.get("mpPaymentId"), idNum));
-                } catch (NumberFormatException ignored) {}
+                Predicate or = cb.or(
+                        cb.like(cb.lower(root.get("descripcion")), ql),
+                        cb.like(cb.lower(root.get("origen")), ql),
+                        cb.like(cb.lower(root.get("destino")), ql),
+                        cb.like(cb.lower(root.get("categoria")), ql)
+                );
                 ands.add(or);
             }
             return cb.and(ands.toArray(new Predicate[0]));
         };
 
-        Page<MpPayment> page = paymentRepo.findAll(spec, pageable);
+        Pageable sorted = normalizeSortRegistros(pg);
+        Page<Registro> page = registroRepo.findAll(spec, sorted);
 
-        return page.map(p -> {
+        return page.map(r -> {
             PaymentDTO dto = new PaymentDTO();
-            dto.setMpPaymentId(p.getMpPaymentId());
-
-            Instant when = p.getDateApproved() != null ? p.getDateApproved() : p.getDateCreated();
-            if (when != null) dto.setFecha(when.atZone(zone).toLocalDate());
-
-            dto.setTotal(p.getTransactionAmount());
-            dto.setDetalle(p.getDescription());
-            dto.setComprador(p.getPayerEmail());
-            dto.setComprobante(p.getOrderId());
-            dto.setEstado(p.getStatus());
+            // Campos principales para la tabla
+            dto.setCategoria(r.getCategoria());
+            dto.setDescripcion(r.getDescripcion());
+            dto.setFecha(r.getFechaEmision());
+            dto.setOrigen(r.getOrigen());
+            dto.setMontoTotal(BigDecimal.valueOf(r.getMontoTotal()));
+            dto.setTipo(r.getTipo() != null ? r.getTipo().toString() : "UNKNOWN");
+            
+            // Campos adicionales
+            dto.setMoneda(r.getMoneda() != null ? r.getMoneda().toString() : null);
+            dto.setEstado(r.getTipo() != null ? r.getTipo().toString() : "UNKNOWN");
+            
+            // ID del registro para poder actualizar la categoría
+            dto.setId(r.getId());
+            
             return dto;
         });
     }
@@ -293,6 +348,32 @@ public class MpController {
        Helpers
        ====================== */
 
+    // Mapea sort del DTO (fecha, total, comprador, detalle) a campos de la entidad Registro
+    private Pageable normalizeSortRegistros(Pageable pg) {
+        if (pg == null) return pg;
+        Sort s = pg.getSort();
+        if (!s.isSorted()) return pg;
+
+        List<Sort.Order> mapped = new ArrayList<>();
+        for (Sort.Order o : s) {
+            String prop = o.getProperty();
+            switch (prop) {
+                case "fecha"     -> prop = "fechaEmision";
+                case "total"     -> prop = "montoTotal";
+                case "comprador" -> prop = "origen";
+                case "detalle"   -> prop = "descripcion";
+                // "estado" NO existe en Registro; si viene, podés ignorarlo o redirigirlo:
+                case "estado"    -> prop = "fechaEmision";
+                default -> {
+                    // Si ya viene un nombre válido de entidad (p. ej. "fechaEmision"), lo dejamos tal cual
+                }
+            }
+            mapped.add(new Sort.Order(o.getDirection(), prop));
+        }
+        return PageRequest.of(pg.getPageNumber(), pg.getPageSize(), Sort.by(mapped));
+    }
+
+    // Este helper queda por si en algún endpoint listás MpPayment directamente
     private Pageable normalizeSortPayments(Pageable pg) {
         Sort s = pg.getSort();
         if (!s.isSorted()) {
@@ -301,11 +382,38 @@ public class MpController {
             List<Sort.Order> orders = new ArrayList<>();
             for (Sort.Order o : s) {
                 String prop = o.getProperty();
-                if ("fecha".equalsIgnoreCase(prop)) prop = "dateApproved"; // mapeo DTO -> entidad
+                if ("fecha".equalsIgnoreCase(prop)) prop = "dateApproved"; // mapeo DTO -> entidad MpPayment
                 orders.add(new Sort.Order(o.getDirection(), prop));
             }
             s = Sort.by(orders);
         }
         return PageRequest.of(pg.getPageNumber(), pg.getPageSize(), s);
+    }
+
+    /**
+     * Actualiza la categoría de un registro de MercadoPago
+     */
+    @PutMapping("/payments/{registroId}/category")
+    public Map<String, Object> updatePaymentCategory(
+            @PathVariable Long registroId,
+            @RequestBody Map<String, String> request) {
+        final Long uid = currentUserId();
+        String newCategory = request.get("categoria");
+        
+        if (newCategory == null || newCategory.trim().isEmpty()) {
+            throw new IllegalArgumentException("La categoría no puede estar vacía");
+        }
+        
+        int updated = importer.updatePaymentCategory(uid, registroId, newCategory.trim());
+        
+        if (updated == 0) {
+            throw new IllegalArgumentException("No se encontró el registro o no tienes permisos para modificarlo");
+        }
+        
+        return Map.of(
+            "success", true,
+            "message", "Categoría actualizada exitosamente",
+            "updated", updated
+        );
     }
 }

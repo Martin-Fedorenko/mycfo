@@ -46,6 +46,33 @@ export default function MercadoPagoPage() {
     }
   }, [loadStatus]);
 
+  // Limpiar datos al salir de la página (cambiar de solapa)
+  React.useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Opcional: limpiar datos locales si es necesario
+      // localStorage.removeItem('mp_data');
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // La página se ocultó (cambió de solapa)
+        console.log("MercadoPago: Página oculta, manteniendo sesión");
+      } else {
+        // La página se mostró de nuevo
+        console.log("MercadoPago: Página visible, verificando estado");
+        loadStatus();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadStatus]);
+
   const onRefreshStatus = () => loadStatus();
 
   return (

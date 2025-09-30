@@ -8,8 +8,8 @@ public class RegistroDTO {
     private Double montoTotal;
     private LocalDate fechaEmision;
     private String categoria;
+    private String medioPago;
 
-    // getters y setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -24,4 +24,7 @@ public class RegistroDTO {
 
     public String getCategoria() { return categoria; }
     public void setCategoria(String categoria) { this.categoria = categoria; }
+
+    public String getMedioPago() { return medioPago; }
+    public void setMedioPago(String medioPago) { this.medioPago = medioPago; }
 }

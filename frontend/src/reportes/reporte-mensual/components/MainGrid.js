@@ -5,15 +5,12 @@ import Filtros from './Filtros';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 
 export default function MainGrid() {
-    // Inician vacíos
-    const [selectedMonth, setSelectedMonth] = React.useState('');          // '' | 0..11
-    const [selectedYear, setSelectedYear] = React.useState('');            // '' | number
-    const [selectedCategoria, setSelectedCategoria] = React.useState([]);  // [] | string[]
+    const [selectedMonth, setSelectedMonth] = React.useState('');
+    const [selectedYear, setSelectedYear] = React.useState('');
+    const [selectedCategoria, setSelectedCategoria] = React.useState([]);
 
-    // Estructura alineada al backend (evita undefined)
     const [data, setData] = React.useState({ detalleIngresos: [], detalleEgresos: [] });
 
-    // Llamada al backend cada vez que cambian los filtros
     React.useEffect(() => {
         const baseUrl = process.env.REACT_APP_URL_REPORTE;
         if (!baseUrl) return;
@@ -21,11 +18,11 @@ export default function MainGrid() {
 
         const params = new URLSearchParams();
         params.set('anio', selectedYear);
-        params.set('mes', Number(selectedMonth) + 1); // selects 0..11 → backend 1..12
+        params.set('mes', Number(selectedMonth) + 1);
 
-        // Solo enviar 'categoria' cuando hay exactamente una elegida
-        if (Array.isArray(selectedCategoria) && selectedCategoria.length === 1) {
-            params.set('categoria', selectedCategoria[0]);
+        // Enviar categorías solo si hay alguna y no son todas
+        if (Array.isArray(selectedCategoria) && selectedCategoria.length > 0) {
+            selectedCategoria.forEach((c) => params.append('categoria', c));
         }
 
         fetch(`${baseUrl}/resumen?${params.toString()}`)
@@ -45,8 +42,6 @@ export default function MainGrid() {
 
     const handleMonthChange = (e) => setSelectedMonth(e.target.value);
     const handleYearChange = (e) => setSelectedYear(e.target.value);
-
-    // Garantizar SIEMPRE array (corrige caso string y evita “Varios” con 1 selección)
     const handleCategoriaChange = (e) => {
         const v = e.target.value;
         const arr = Array.isArray(v) ? v : (typeof v === 'string' ? (v ? v.split(',') : []) : []);

@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Box,
   Typography,
@@ -5,32 +6,165 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemButton,
+  Chip,
+  Button,
+  Stack,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { markAsRead } from "../../services/notificationsApi";
+import {
+  formatDate,
+  formatNumber,
+  formatMovementDate,
+} from "../../utils/formatters";
 
-export default function MainGrid({ alerts = [], onClose }) {
+export default function MainGrid({
+  notifications = [],
+  onClose,
+  unreadCount = 0,
+  onMarkAllRead,
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const navigate = useNavigate();
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      setLoading(true);
+      await markAsRead({ userId: 1, notifId: notificationId });
+      // TODO: Actualizar el estado local o recargar
+    } catch (error) {
+      console.error("Error marcando como leída:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      setLoading(true);
+      if (onMarkAllRead) {
+        await onMarkAllRead();
+      }
+    } catch (error) {
+      console.error("Error marcando todas como leídas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSeverityColor = (severity) => {
+    switch (severity) {
+      case "CRIT":
+        return "error";
+      case "WARN":
+        return "warning";
+      case "INFO":
+        return "info";
+      default:
+        return "default";
+    }
+  };
+
   return (
-    <Box sx={{ width: 320, p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Notificaciones
-      </Typography>
+    <Box sx={{ p: 2 }}>
+      {unreadCount > 0 && (
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            {unreadCount} sin leer
+          </Typography>
+          <Button size="small" onClick={handleMarkAllRead} disabled={loading}>
+            Marcar todas como leídas
+          </Button>
+        </Stack>
+      )}
+
       <Divider sx={{ mb: 2 }} />
 
       <List>
-        {alerts.length === 0 ? (
-          <Typography variant="body2">
-            No hay notificaciones pendientes.
-          </Typography>
+        {notifications.length === 0 ? (
+          <Box sx={{ textAlign: "center", py: 4 }}>
+            <Typography variant="body2" color="text.secondary">
+              No hay notificaciones
+            </Typography>
+          </Box>
         ) : (
-          alerts.map((alert, idx) => (
-            <ListItem button key={idx} onClick={onClose}>
-              <ListItemText
-                primary={alert.titulo}
-                secondary={`${alert.fecha} – ${alert.tipo}`}
-              />
+          notifications.slice(0, 10).map((notification) => (
+            <ListItem
+              key={notification.id}
+              disablePadding
+              sx={{
+                opacity: notification.is_read ? 0.7 : 1,
+                borderLeft: notification.is_read ? "none" : "3px solid #2196F3",
+              }}
+            >
+              <ListItemButton
+                onClick={() => {
+                  if (!notification.is_read) {
+                    handleMarkAsRead(notification.id);
+                  }
+                }}
+                disabled={loading}
+              >
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: notification.is_read ? "normal" : "bold",
+                          flex: 1,
+                        }}
+                      >
+                        {notification.title}
+                      </Typography>
+                      <Chip
+                        label={notification.badge}
+                        size="small"
+                        color={getSeverityColor(notification.badge)}
+                        variant="outlined"
+                      />
+                    </Box>
+                  }
+                  secondary={
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 0.5 }}
+                      >
+                        {formatNumber(notification.body)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatDate(notification.date)}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </ListItemButton>
             </ListItem>
           ))
         )}
       </List>
+
+      {notifications.length > 10 && (
+        <Box sx={{ textAlign: "center", mt: 2 }}>
+          <Button
+            size="small"
+            onClick={() => {
+              onClose(); // Cerrar el drawer
+              navigate("/listado-notificaciones"); // Navegar al centro
+            }}
+          >
+            Ver todas ({notifications.length})
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 }

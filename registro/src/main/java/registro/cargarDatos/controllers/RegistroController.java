@@ -35,4 +35,13 @@ public class RegistroController {
         }
         return ResponseEntity.ok(registro);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Registro> updateRegistro(
+            @PathVariable Long id,
+            @RequestBody Registro registroActualizado) {
+
+        Registro actualizado = registroService.updateRegistro(id, registroActualizado);
+        return ResponseEntity.ok(actualizado);
+    }
 }

@@ -42,6 +42,22 @@ public class MpAuthServiceImpl implements MpAuthService {
 
     @Override
     public String buildAuthorizationUrl(String ignored, Long userIdApp) {
+        // Siempre forzar nuevo login - limpiar cualquier sesión existente
+        System.out.println(">>> Forzando nuevo login OAuth para usuario: " + userIdApp);
+        
+        // Limpiar cualquier link existente antes de generar nueva URL
+        Optional<MpAccountLink> existingLink = repo.findByUserIdApp(userIdApp);
+        if (existingLink.isPresent()) {
+            System.out.println(">>> Limpiando sesión anterior antes de nuevo login");
+            // No borramos el link completo, solo invalidamos los tokens
+            MpAccountLink link = existingLink.get();
+            link.setAccessToken(null);
+            link.setRefreshToken(null);
+            link.setExpiresAt(Instant.now().minusSeconds(1)); // Token expirado
+            link.setUpdatedAt(Instant.now());
+            repo.save(link);
+        }
+        
         String signedState = buildSignedState(userIdApp);
 
         if (props.getClientId() == null || props.getClientId().isBlank()
@@ -52,24 +68,50 @@ public class MpAuthServiceImpl implements MpAuthService {
             );
         }
 
+        // Agregar parámetros para forzar nuevo login
         String q = "client_id=" + enc(props.getClientId())
                 + "&response_type=code"
                 + "&redirect_uri=" + enc(props.getRedirectUri())
-                + "&state=" + enc(signedState);
+                + "&state=" + enc(signedState)
+                + "&prompt=login"  // Forzar login
+                + "&approval_prompt=force"; // Forzar aprobación
+        
+        System.out.println(">>> URL de autorización generada con forzado de login");
         return props.getOauthAuthorize() + "?" + q;
     }
 
     @Override
     public OauthStatusDTO getStatus(Long userIdApp) {
         Optional<MpAccountLink> link = repo.findByUserIdApp(userIdApp);
-        if (link.isEmpty()) return new OauthStatusDTO(false, null, null, null);
+        if (link.isEmpty()) {
+            System.out.println(">>> No hay cuenta vinculada para usuario: " + userIdApp);
+            return new OauthStatusDTO(false, null, null, null);
+        }
 
         MpAccountLink l = link.get();
 
-        if (isBlank(l.getEmail()) || isBlank(l.getMpUserId())) {
-            try { enrichAccountIdentity(l); } catch (Exception ignored) {}
+        // Verificar si los tokens están válidos
+        if (isBlank(l.getAccessToken()) || l.getExpiresAt() == null || l.getExpiresAt().isBefore(Instant.now())) {
+            System.out.println(">>> Tokens expirados o inválidos para usuario: " + userIdApp);
+            return new OauthStatusDTO(false, null, null, null);
         }
+
+        if (isBlank(l.getEmail()) || isBlank(l.getMpUserId())) {
+            try { 
+                enrichAccountIdentity(l); 
+            } catch (Exception e) {
+                System.out.println(">>> Error al enriquecer identidad de cuenta: " + e.getMessage());
+                return new OauthStatusDTO(false, null, null, null);
+            }
+        }
+        
+        System.out.println(">>> Cuenta válida para usuario: " + userIdApp + " - Email: " + l.getEmail());
         return new OauthStatusDTO(true, l.getEmail(), l.getMpUserId(), l.getExpiresAt());
+    }
+
+    @Override
+    public MpAccountLink getAccountLink(Long userIdApp) {
+        return repo.findByUserIdApp(userIdApp).orElse(null);
     }
 
     @Override
@@ -77,9 +119,24 @@ public class MpAuthServiceImpl implements MpAuthService {
         if (!verifySignedState(state, userIdApp, 5 * 60_000L)) {
             throw new IllegalArgumentException("invalid state");
         }
+        
+        System.out.println(">>> Procesando callback OAuth para usuario: " + userIdApp);
+        
         TokenResponse token = exchangeCodeForToken(code);
 
+        // Buscar link existente o crear uno nuevo
         MpAccountLink link = repo.findByUserIdApp(userIdApp).orElse(new MpAccountLink());
+        
+        // Si ya existe un link, limpiar datos anteriores
+        if (link.getId() != null) {
+            System.out.println(">>> Limpiando datos de sesión anterior para usuario: " + userIdApp);
+            // Limpiar tokens anteriores
+            link.setAccessToken(null);
+            link.setRefreshToken(null);
+            link.setExpiresAt(null);
+        }
+        
+        // Configurar nuevos datos
         link.setUserIdApp(userIdApp);
         link.setAccessToken(token.getAccessToken());
         link.setRefreshToken(token.getRefreshToken());
@@ -94,10 +151,12 @@ public class MpAuthServiceImpl implements MpAuthService {
 
         enrichAccountIdentity(link);
         repo.save(link);
+        
+        System.out.println(">>> Cuenta MP vinculada exitosamente para usuario: " + userIdApp);
     }
 
     /* =========================
-       Desvincular con purge
+       Desvincular con purge completo
        ========================= */
     @Override
     @Transactional
@@ -111,17 +170,30 @@ public class MpAuthServiceImpl implements MpAuthService {
         }
         Long linkId = link.getId();
 
+        System.out.println(">>> Desvinculando cuenta MP para usuario: " + userIdApp);
+
         // 1) Borro pagos NO facturados del link
-        paymentRepo.deleteNotInvoicedByLink(linkId);
+        int deletedPayments = paymentRepo.deleteNotInvoicedByLink(linkId);
+        System.out.println(">>> Pagos no facturados eliminados: " + deletedPayments);
 
         // 2) Borro movimientos de billetera del link (siempre)
-        movementRepo.deleteByAccountLinkId(linkId);
+        int deletedMovements = movementRepo.deleteByAccountLinkId(linkId);
+        System.out.println(">>> Movimientos de billetera eliminados: " + deletedMovements);
 
         // 3) Desasocio pagos facturados (SET account_link_id = NULL)
-        paymentRepo.detachInvoicedByLink(linkId);
+        int detachedPayments = paymentRepo.detachInvoicedByLink(linkId);
+        System.out.println(">>> Pagos facturados desasociados: " + detachedPayments);
 
-        // 4) Elimino el link (ya sin dependencias duras)
+        // 4) Limpiar tokens en memoria (si los hay)
+        link.setAccessToken(null);
+        link.setRefreshToken(null);
+        link.setExpiresAt(null);
+        link.setUpdatedAt(Instant.now());
+
+        // 5) Elimino el link (ya sin dependencias duras)
         repo.delete(link);
+        
+        System.out.println(">>> Cuenta MP desvinculada completamente para usuario: " + userIdApp);
     }
 
     /* =========================

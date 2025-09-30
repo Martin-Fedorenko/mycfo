@@ -2,10 +2,9 @@
 package notificacion.dtos;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public record NotificationDTO(
-        UUID id,
+        Long id,
         String title,
         String body,
         String badge,      // etiqueta para UI

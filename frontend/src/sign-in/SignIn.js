@@ -126,7 +126,7 @@ export default function SignIn(props) {
         sessionStorage.setItem("idToken", idToken);
         sessionStorage.setItem("refreshToken", refreshToken);
 
-        // ✅ Obtener email, name, family_name y custom:organizacion
+        // ✅ Obtener atributos del usuario
         cognitoUser.getUserAttributes((err, attributes) => {
           if (err) {
             console.error("Error obteniendo atributos:", err);
@@ -147,11 +147,16 @@ export default function SignIn(props) {
               sessionStorage.setItem("family_name", attrMap.family_name);
             }
             if (attrMap["custom:organizacion"]) {
-              sessionStorage.setItem(
-                "organizacion",
-                attrMap["custom:organizacion"]
-              );
+              sessionStorage.setItem("organizacion", attrMap["custom:organizacion"]);
             }
+            if (attrMap.phone_number) {
+              sessionStorage.setItem("phone_number", attrMap.phone_number);
+            }
+            if (attrMap["custom:puesto"]) {
+              sessionStorage.setItem("custom:puesto", attrMap["custom:puesto"]);
+            }
+
+            window.dispatchEvent(new Event("userDataUpdated"));
 
             console.log("Atributos del usuario:", attrMap);
           }

@@ -1,13 +1,16 @@
 import StorageIcon from "@mui/icons-material/Storage";
 import DescriptionIcon from "@mui/icons-material/Description";
 
-
 import CargaManual from "../registro/carga-manual/CargaManual";
 import CargaDocumento from "../registro/carga-documento/CargaDocumento";
 import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
 import CargaMovimientos from "../consolidacion/carga-movimientos/CargaMovimientos";
 import CashFlow from "../reportes/cash-flow/CashFlow";
 import Notificaciones from "../notificaciones/listado-notificaciones/Notificaciones";
+import NotificationCenter from "../notificaciones/components/NotificationCenter/NotificationCenter";
+import ReminderManager from "../notificaciones/components/ReminderManager/ReminderManager";
+import NotificationSettings from "../notificaciones/components/NotificationSettings/NotificationSettings";
+import EmailConfiguration from "../notificaciones/components/EmailConfiguration/EmailConfiguration";
 import Presupuesto from "../pronostico/presupuesto/Presupuesto";
 import PresupuestoNuevo from "../pronostico/presupuesto/components/PresupuestoNuevo";
 import PresupuestoDetalle from "../pronostico/presupuesto/components/PresupuestoDetalle";
@@ -19,16 +22,23 @@ import Roles from "../administracion/roles/Roles";
 import Invitaciones from "../administracion/invitaciones/Invitaciones";
 import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCargados";
 import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
-import CargaGeneral from '../registro/carga-general/CargaGeneral';
-
+import CargaGeneral from "../registro/carga-general/CargaGeneral";
+import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
+import TablaRegistros from "../registro/movimientos-cargados/TablaRegistros";
 
 const routeConfig = [
   {
     label: "Carga de datos",
     path: "/carga",
     icon: <DescriptionIcon />,
-    element: <CargaGeneral />
-  }, 
+    element: <CargaGeneral />,
+  },
+  {
+    label: "Ver movimientos",
+    path: "/ver-movimientos",
+    icon: <DescriptionIcon />,
+    element: <TablaRegistros />,
+  },
   {
     label: "Consolidación Bancaria",
     icon: <StorageIcon />,
@@ -80,17 +90,17 @@ const routeConfig = [
           {
             label: "Nuevo",
             path: "/presupuestos/nuevo",
-            element: <PresupuestoNuevo />
+            element: <PresupuestoNuevo />,
           },
           {
             label: "Detalle",
             path: "/presupuestos/:nombre",
-            element: <PresupuestoDetalle />
+            element: <PresupuestoDetalle />,
           },
           {
             label: (params) => `Mes ${params.mesNombre}`,
             path: "/presupuestos/:nombre/detalle/:mesNombre",
-            element: <MesDetalle />
+            element: <MesDetalle />,
           },
         ],
       },
@@ -136,8 +146,32 @@ const routeConfig = [
   {
     label: "Notificaciones",
     icon: <StorageIcon />,
-    path: "/listado-notificaciones",
-    element: <Notificaciones />,
+    children: [
+      {
+        label: "Centro de Notificaciones",
+        path: "/listado-notificaciones",
+        icon: <DescriptionIcon />,
+        element: <Notificaciones />,
+      },
+      {
+        label: "Recordatorios",
+        path: "/recordatorios",
+        icon: <DescriptionIcon />,
+        element: <ReminderManager />,
+      },
+      {
+        label: "Configuración",
+        path: "/configuracion-notificaciones",
+        icon: <DescriptionIcon />,
+        element: <NotificationSettings />,
+      },
+      // {
+      //   label: "Configuración Email",
+      //   path: "/configuracion-email",
+      //   icon: <DescriptionIcon />,
+      //   element: <EmailConfiguration />,
+      // },
+    ],
   },
 ];
 

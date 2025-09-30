@@ -12,17 +12,36 @@ import java.time.Instant;
                 @Index(name="idx_account_link", columnList="account_link_id")
         })
 public class MpPayment {
-    @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
-    @Column(nullable=false) private Long mpPaymentId;
-    @ManyToOne(optional=false) private MpAccountLink accountLink;
+    @Id
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable=false)
+    private Long mpPaymentId;
+
+    @ManyToOne(optional=false)
+    private MpAccountLink accountLink;
     private String status; private String statusDetail;
     private Instant dateCreated; private Instant dateApproved;
-    @Column(precision=18, scale=2) private BigDecimal transactionAmount;
-    private String currencyId; @Column(length=1024) private String description;
-    private String payerEmail; private String paymentMethodId; private String orderId;
-    @Lob @Column(columnDefinition="LONGTEXT") private String rawJson;
-    private Instant importedAt; private Instant updatedAt;
+
+    @Column(precision=18, scale=2)
+    private BigDecimal transactionAmount;
+    private String currencyId;
+
+    @Column(length=1024)
+    private String description;
+    private String payerEmail;
+    private String paymentMethodId;
+    private String orderId;
+
+
+    @Lob @Column(columnDefinition="LONGTEXT")
+    private String rawJson;
+    private Instant importedAt;
+    private Instant updatedAt;
     // getters/setters
+
+
     public Long getId(){return id;} public void setId(Long v){this.id=v;}
     public Long getMpPaymentId(){return mpPaymentId;} public void setMpPaymentId(Long v){this.mpPaymentId=v;}
     public MpAccountLink getAccountLink(){return accountLink;} public void setAccountLink(MpAccountLink v){this.accountLink=v;}

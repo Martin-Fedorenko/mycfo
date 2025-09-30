@@ -82,7 +82,8 @@ export default function MpToolbar({
           value={filters.to}
           onChange={(e) => set({ to: e.target.value })}
         />
-        <TextField
+        {/* Filtro de estado oculto temporalmente */}
+        {/* <TextField
           size="small"
           select
           label="Estado"
@@ -96,7 +97,7 @@ export default function MpToolbar({
               {s.label}
             </MenuItem>
           ))}
-        </TextField>
+        </TextField> */}
         <TextField
           size="small"
           label="Buscar"
@@ -118,11 +119,12 @@ export default function MpToolbar({
           </span>
         </Tooltip>
 
-        <Tooltip title="Refrescar">
+        {/* Botón de refrescar oculto temporalmente */}
+        {/* <Tooltip title="Refrescar">
           <IconButton onClick={onRefresh}>
             <RefreshIcon />
           </IconButton>
-        </Tooltip>
+        </Tooltip> */}
 
         <Tooltip title="Configuración">
           <IconButton onClick={onOpenConfig}>
@@ -149,7 +151,8 @@ export default function MpToolbar({
         >
           Importar
         </Button>
-        <Button
+        {/* Botones de facturar y exportar ocultos temporalmente */}
+        {/* <Button
           variant="contained"
           color="inherit"
           startIcon={<ReceiptLongIcon />}
@@ -177,7 +180,7 @@ export default function MpToolbar({
           }}
         >
           Exportar
-        </Button>
+        </Button> */}
       </Box>
     </Toolbar>
   );

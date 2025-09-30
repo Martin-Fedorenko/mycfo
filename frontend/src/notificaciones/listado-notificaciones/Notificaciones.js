@@ -1,10 +1,10 @@
 import * as React from "react";
-import MainGrid from "./components/MainGrid";
+import NotificationCenter from "../components/NotificationCenter/NotificationCenter";
 
 export default function Notificaciones(props) {
   return (
     <>
-      <MainGrid />
+      <NotificationCenter />
     </>
   );
 }

@@ -3,11 +3,12 @@ package notificacion.controllers;
 
 import notificacion.dtos.MarkReadRequest;
 import notificacion.dtos.NotificationListResponse;
+import notificacion.models.NotificationType;
+import notificacion.models.Severity;
 import notificacion.services.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/users/{userId}/notifications")
@@ -35,7 +36,7 @@ public class NotificationController {
     @PatchMapping("/{notifId}")
     public ResponseEntity<?> markRead(
             @PathVariable Long userId,
-            @PathVariable UUID notifId,
+            @PathVariable Long notifId,
             @RequestBody MarkReadRequest body
     ) {
         service.markRead(userId, notifId, body.is_read());
@@ -45,6 +46,45 @@ public class NotificationController {
     @PostMapping(":markAllRead")
     public ResponseEntity<?> markAllRead(@PathVariable Long userId) {
         service.markAllRead(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/type/{type}")
+    public ResponseEntity<NotificationListResponse> getByType(
+            @PathVariable Long userId,
+            @PathVariable NotificationType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return ResponseEntity.ok(service.getNotificationsByType(userId, type, page, size));
+    }
+
+    @GetMapping("/severity/{severity}")
+    public ResponseEntity<NotificationListResponse> getBySeverity(
+            @PathVariable Long userId,
+            @PathVariable Severity severity,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return ResponseEntity.ok(service.getNotificationsBySeverity(userId, severity, page, size));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<NotificationListResponse> search(
+            @PathVariable Long userId,
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return ResponseEntity.ok(service.searchNotifications(userId, q, page, size));
+    }
+
+    @DeleteMapping("/{notifId}")
+    public ResponseEntity<?> deleteNotification(
+            @PathVariable Long userId,
+            @PathVariable Long notifId
+    ) {
+        service.deleteNotification(notifId, userId);
         return ResponseEntity.noContent().build();
     }
 }
