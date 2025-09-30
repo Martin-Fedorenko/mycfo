@@ -61,6 +61,21 @@ export const mpApi = {
     return request(`/api/mp/payments?${sp.toString()}`);
   },
 
+  // Métodos de preview (sin guardar)
+  previewPaymentsByMonth: ({ month, year }) =>
+    request("/api/mp/preview", { method: "POST", body: { month, year } }),
+
+  previewPaymentById: (paymentId) =>
+    request("/api/mp/preview", { method: "POST", body: { paymentId } }),
+
+  previewByExternalReference: (externalReference) =>
+    request("/api/mp/preview", { method: "POST", body: { externalReference } }),
+
+  // Importar pagos seleccionados
+  importSelectedPayments: (paymentIds) =>
+    request("/api/mp/import/selected", { method: "POST", body: paymentIds }),
+
+  // Métodos de importación directa (legacy)
   importPaymentsByMonth: ({ month, year }) =>
     request("/api/mp/import", { method: "POST", body: { month, year } }),
 
@@ -73,4 +88,11 @@ export const mpApi = {
 
   billPayments: (ids) =>
     request("/api/mp/facturar", { method: "POST", body: { paymentIds: ids } }),
+
+  // Actualizar categoría de un pago
+  updatePaymentCategory: (registroId, newCategory) =>
+    request(`/api/mp/payments/${registroId}/category`, {
+      method: "PUT",
+      body: { categoria: newCategory },
+    }),
 };

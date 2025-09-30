@@ -3,26 +3,27 @@
 import React from "react";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
+import Tooltip from "@mui/material/Tooltip";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import NotificationDrawer from "../notification-drawer/NotificationDrawer";
 import Box from "@mui/material/Box";
-
-// Notificaciones simuladas
-const notificaciones = [
-  {
-    titulo: "Vencimiento de monotributo",
-    fecha: "01/08/2025",
-    tipo: "Recordatorio",
-  },
-  {
-    titulo: "Ingreso detectado en cuenta bancaria",
-    fecha: "31/07/2025",
-    tipo: "Movimiento",
-  },
-];
+import { useNotifications } from "../hooks/useNotifications";
 
 export default function NotificationButton(props) {
   const [openDrawer, setOpenDrawer] = React.useState(false);
+
+  // TODO: Obtener el userId del contexto de autenticación
+  const userId = 1; // Por ahora hardcodeado
+  const { items, unread, loading, error, markAllAsRead, isWebSocketConnected } =
+    useNotifications(userId);
+
+  const handleOpenDrawer = () => {
+    setOpenDrawer(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setOpenDrawer(false);
+  };
 
   return (
     <React.Fragment>
@@ -39,27 +40,41 @@ export default function NotificationButton(props) {
           justifyContent: "center",
         })}
       >
-        <IconButton
-          onClick={() => setOpenDrawer(true)}
-          disableRipple
-          size="small"
-          aria-label="Open notifications"
-          {...props}
+        <Tooltip
+          title={
+            isWebSocketConnected
+              ? `Notificaciones (${unread} sin leer)`
+              : `Notificaciones (${unread} sin leer)`
+          }
         >
-          <Badge
-            variant={notificaciones.length > 0 ? "dot" : "standard"}
-            color="error"
-            overlap="circular"
+          <IconButton
+            onClick={handleOpenDrawer}
+            disableRipple
+            size="small"
+            aria-label="Open notifications"
+            disabled={loading}
+            {...props}
           >
-            <NotificationsRoundedIcon fontSize="small" />
-          </Badge>
-        </IconButton>
+            <Badge
+              badgeContent={unread}
+              color="error"
+              overlap="circular"
+              max={99}
+            >
+              <NotificationsRoundedIcon fontSize="small" />
+            </Badge>
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <NotificationDrawer
         open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-        alerts={notificaciones}
+        onClose={handleCloseDrawer}
+        notifications={items}
+        unreadCount={unread}
+        loading={loading}
+        error={error}
+        onMarkAllRead={markAllAsRead}
       />
     </React.Fragment>
   );

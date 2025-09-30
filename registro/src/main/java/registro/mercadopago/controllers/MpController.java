@@ -2,7 +2,7 @@ package registro.mercadopago.controllers;
 
 import registro.mercadopago.config.MpProperties;
 import registro.mercadopago.dtos.*;
-import registro.mercadopago.models.MpPayment;
+import registro.mercadopago.models.MpAccountLink;
 import registro.mercadopago.models.MpWalletMovement;
 import registro.mercadopago.repositories.MpPaymentRepository;
 import registro.mercadopago.repositories.MpWalletMovementRepository;
@@ -11,6 +11,7 @@ import registro.mercadopago.services.MpBillingService;
 import registro.mercadopago.services.MpPaymentImportService;
 import registro.mercadopago.services.util.MpWalletMovementImportService;
 import registro.cargarDatos.models.Registro;
+import registro.cargarDatos.models.TipoMedioPago;
 import registro.cargarDatos.repositories.RegistroRepository;
 
 import jakarta.persistence.criteria.Predicate;
@@ -25,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -118,7 +118,36 @@ public class MpController {
     }
 
     /* ======================
-       Importación de PAGOS
+       Preview de PAGOS (sin guardar)
+       ====================== */
+
+    @PostMapping("/preview")
+    public Map<String, Object> previewPagos(@RequestBody ImportRequest req) {
+        final Long uid = currentUserId();
+        List<PaymentDTO> previewData;
+
+        if (req.getPaymentId() != null) {
+            System.out.println("[/preview] by paymentId=" + req.getPaymentId());
+            previewData = importer.previewPaymentById(uid, req.getPaymentId());
+        } else if (req.getExternalReference() != null && !req.getExternalReference().isBlank()) {
+            System.out.println("[/preview] by externalReference=" + req.getExternalReference());
+            previewData = importer.previewByExternalReference(uid, req.getExternalReference().trim());
+        } else if (req.getMonth() != null && req.getYear() != null) {
+            System.out.println("[/preview] by month/year " + req.getMonth() + "/" + req.getYear());
+            previewData = importer.previewByMonth(uid, req.getMonth(), req.getYear());
+        } else {
+            throw new IllegalArgumentException("Debes indicar paymentId, externalReference o month/year");
+        }
+
+        return Map.of(
+            "preview", previewData,
+            "total", previewData.size(),
+            "message", "Datos de preview obtenidos. Selecciona cuáles guardar."
+        );
+    }
+
+    /* ======================
+       Importación de PAGOS (guardar seleccionados)
        ====================== */
 
     @PostMapping("/import")
@@ -143,6 +172,17 @@ public class MpController {
     }
 
     /* ======================
+       Importación de PAGOS seleccionados
+       ====================== */
+
+    @PostMapping("/import/selected")
+    public Map<String, Object> importPagosSeleccionados(@RequestBody List<Long> paymentIds) {
+        final Long uid = currentUserId();
+        int cant = importer.importSelectedPayments(uid, paymentIds);
+        return Map.of("importados", cant);
+    }
+
+    /* ======================
        Listado de PAGOS (desde Registro)
        ====================== */
     @GetMapping("/payments")
@@ -155,9 +195,23 @@ public class MpController {
     ) {
         final Long userId = currentUserId();
 
+        // Verificar que el usuario tenga cuenta vinculada
+        MpAccountLink accountLink = auth.getAccountLink(userId);
+        if (accountLink == null) {
+            return Page.empty();
+        }
+
         Specification<Registro> spec = (root, query, cb) -> {
             List<Predicate> ands = new ArrayList<>();
-            //ands.add(cb.equal(root.get("usuario"), UUID.fromString("00000000-0000-0000-0000-000000000001"))); // adaptar a tu auth real
+            
+        // Filtrar solo registros de MercadoPago del usuario actual
+        ands.add(cb.equal(root.get("medioPago"), TipoMedioPago.MercadoPago));
+            
+            // Filtrar por usuario si está disponible
+            if (accountLink.getUserIdApp() != null) {
+                // Aquí podrías agregar un filtro adicional si tienes el UUID del usuario
+                // ands.add(cb.equal(root.get("usuario"), userUuid));
+            }
 
             if (from != null) {
                 ands.add(cb.greaterThanOrEqualTo(root.get("fechaEmision"), from));
@@ -170,23 +224,34 @@ public class MpController {
                 Predicate or = cb.or(
                         cb.like(cb.lower(root.get("descripcion")), ql),
                         cb.like(cb.lower(root.get("origen")), ql),
-                        cb.like(cb.lower(root.get("destino")), ql)
+                        cb.like(cb.lower(root.get("destino")), ql),
+                        cb.like(cb.lower(root.get("categoria")), ql)
                 );
                 ands.add(or);
             }
             return cb.and(ands.toArray(new Predicate[0]));
         };
 
-        Pageable sorted = normalizeSortRegistros(pg); // <-- mapeo DTO->Entidad
+        Pageable sorted = normalizeSortRegistros(pg);
         Page<Registro> page = registroRepo.findAll(spec, sorted);
 
         return page.map(r -> {
             PaymentDTO dto = new PaymentDTO();
+            // Campos principales para la tabla
+            dto.setCategoria(r.getCategoria());
+            dto.setDescripcion(r.getDescripcion());
             dto.setFecha(r.getFechaEmision());
-            dto.setTotal(BigDecimal.valueOf(r.getMontoTotal()));
-            dto.setDetalle(r.getDescripcion());
-            dto.setComprador(r.getOrigen());
-            dto.setEstado("IMPORTED"); // si querés un status estático
+            dto.setOrigen(r.getOrigen());
+            dto.setMontoTotal(BigDecimal.valueOf(r.getMontoTotal()));
+            dto.setTipo(r.getTipo() != null ? r.getTipo().toString() : "UNKNOWN");
+            
+            // Campos adicionales
+            dto.setMoneda(r.getMoneda() != null ? r.getMoneda().toString() : null);
+            dto.setEstado(r.getTipo() != null ? r.getTipo().toString() : "UNKNOWN");
+            
+            // ID del registro para poder actualizar la categoría
+            dto.setId(r.getId());
+            
             return dto;
         });
     }
@@ -323,5 +388,32 @@ public class MpController {
             s = Sort.by(orders);
         }
         return PageRequest.of(pg.getPageNumber(), pg.getPageSize(), s);
+    }
+
+    /**
+     * Actualiza la categoría de un registro de MercadoPago
+     */
+    @PutMapping("/payments/{registroId}/category")
+    public Map<String, Object> updatePaymentCategory(
+            @PathVariable Long registroId,
+            @RequestBody Map<String, String> request) {
+        final Long uid = currentUserId();
+        String newCategory = request.get("categoria");
+        
+        if (newCategory == null || newCategory.trim().isEmpty()) {
+            throw new IllegalArgumentException("La categoría no puede estar vacía");
+        }
+        
+        int updated = importer.updatePaymentCategory(uid, registroId, newCategory.trim());
+        
+        if (updated == 0) {
+            throw new IllegalArgumentException("No se encontró el registro o no tienes permisos para modificarlo");
+        }
+        
+        return Map.of(
+            "success", true,
+            "message", "Categoría actualizada exitosamente",
+            "updated", updated
+        );
     }
 }

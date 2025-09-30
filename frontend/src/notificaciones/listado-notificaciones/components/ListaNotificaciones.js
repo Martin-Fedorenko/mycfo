@@ -1,4 +1,4 @@
-import { Container, Typography, CircularProgress, Alert } from "@mui/material";
+import { Container, Typography, Alert } from "@mui/material";
 import NotificationCard from "./NotificationCard";
 import { useNotifications } from "../../hooks/useNotifications";
 
@@ -9,7 +9,9 @@ export default function ListaNotificaciones({ userId = 1 }) {
   if (loading)
     return (
       <Container sx={{ mt: 2 }}>
-        <CircularProgress size={22} />
+        <Typography variant="body2" color="text.secondary">
+          Cargando notificaciones...
+        </Typography>
       </Container>
     );
   if (error)

@@ -5,6 +5,7 @@ import { mpApi } from "../mpApi";
 import MpToolbar from "./MpToolbar";
 import MpPaymentsTable from "./MpPaymentsTable";
 import MpImportDialog from "./MpImportDialog";
+import MpPreviewDialog from "./MpPreviewDialog";
 import MpConfigDialog from "./MpConfigDialog";
 import { DEFAULT_PAGE_SIZE } from "../catalogs";
 
@@ -22,6 +23,9 @@ export default function MainGrid({ status, onRefreshStatus }) {
   const [total, setTotal] = React.useState(0);
   const [selected, setSelected] = React.useState([]);
   const [importOpen, setImportOpen] = React.useState(false);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+  const [previewData, setPreviewData] = React.useState([]);
+  const [previewLoading, setPreviewLoading] = React.useState(false);
   const [configOpen, setConfigOpen] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
   const [snack, setSnack] = React.useState({
@@ -74,6 +78,18 @@ export default function MainGrid({ status, onRefreshStatus }) {
     loadPayments();
   }, [loadPayments]);
 
+  // Limpiar datos al desmontar el componente (cambiar de solapa)
+  React.useEffect(() => {
+    return () => {
+      // Limpiar datos locales al salir de la página
+      setRows([]);
+      setSelected([]);
+      setPage(0);
+      setTotal(0);
+      console.log("MainGrid: Componente desmontado, datos limpiados");
+    };
+  }, []);
+
   const handleUnlink = async () => {
     if (!window.confirm("¿Desvincular la cuenta de Mercado Pago?")) return;
     setUnlinking(true);
@@ -120,31 +136,95 @@ export default function MainGrid({ status, onRefreshStatus }) {
     [fetchPayments, rows]
   );
 
-  // handleImport adaptado para usar polling
+  // handleImport adaptado para usar preview
   const handleImport = async (args) => {
     try {
-      const prevTotal = total;
-      if (args.mode === "period") {
-        await mpApi.importPaymentsByMonth({
-          month: args.month,
-          year: args.year,
-        });
-      } else {
-        await mpApi.importPaymentById(args.paymentId);
-      }
-      notify("Importación solicitada. Buscando cambios…");
+      setPreviewLoading(true);
       setImportOpen(false);
-      setPage(0);
-      await loadPayments();
-      const changed = await refreshUntilChange(prevTotal);
-      if (!changed) {
+
+      let previewResponse;
+      if (args.mode === "preview") {
+        if (args.paymentId) {
+          previewResponse = await mpApi.previewPaymentById(args.paymentId);
+        } else {
+          previewResponse = await mpApi.previewPaymentsByMonth({
+            month: args.month,
+            year: args.year,
+          });
+        }
+      } else {
+        // Legacy mode - import directly
+        const prevTotal = total;
+        if (args.mode === "period") {
+          await mpApi.importPaymentsByMonth({
+            month: args.month,
+            year: args.year,
+          });
+        } else {
+          await mpApi.importPaymentById(args.paymentId);
+        }
+        notify("Importación solicitada. Buscando cambios…");
+        setPage(0);
+        await loadPayments();
+        const changed = await refreshUntilChange(prevTotal);
+        if (!changed) {
+          notify(
+            "No se detectaron cambios aún. Probá refrescar en unos segundos.",
+            "warning"
+          );
+        }
+        return;
+      }
+
+      const previewItems = previewResponse?.preview || [];
+      setPreviewData(previewItems);
+      setPreviewOpen(true);
+
+      if (previewItems.length === 0) {
+        notify("No se encontraron pagos para importar", "warning");
+      } else {
         notify(
-          "No se detectaron cambios aún. Probá refrescar en unos segundos.",
-          "warning"
+          `${previewItems.length} pagos encontrados. Selecciona cuáles importar.`,
+          "info"
         );
       }
     } catch (e) {
-      notify(e?.message || "Error al importar pagos", "error");
+      notify(e?.message || "Error al obtener vista previa", "error");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // handleImportSelected - importar pagos seleccionados del preview
+  const handleImportSelected = async (selectedPaymentIds) => {
+    try {
+      await mpApi.importSelectedPayments(selectedPaymentIds);
+      notify(`${selectedPaymentIds.length} pagos importados exitosamente`);
+      setPreviewOpen(false);
+      setPreviewData([]);
+      setPage(0);
+      await loadPayments();
+    } catch (e) {
+      notify(e?.message || "Error al importar pagos seleccionados", "error");
+      throw e; // Re-throw para que el preview dialog maneje el error
+    }
+  };
+
+  // handleCategoryChange - actualizar categoría de un pago
+  const handleCategoryChange = async (payment, newCategory) => {
+    try {
+      // Llamar al backend para actualizar la categoría usando el ID del registro
+      await mpApi.updatePaymentCategory(payment.id, newCategory);
+
+      // Actualizar el estado local
+      setRows((prevRows) =>
+        prevRows.map((row) =>
+          row.id === payment.id ? { ...row, categoria: newCategory } : row
+        )
+      );
+      notify(`Categoría actualizada a: ${newCategory}`);
+    } catch (e) {
+      notify(e?.message || "Error al actualizar categoría", "error");
     }
   };
 
@@ -321,6 +401,7 @@ export default function MainGrid({ status, onRefreshStatus }) {
             setPageSize(ps);
             setPage(0);
           }}
+          onCategoryChange={handleCategoryChange}
         />
       </Paper>
 
@@ -328,6 +409,17 @@ export default function MainGrid({ status, onRefreshStatus }) {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImport={handleImport}
+      />
+
+      <MpPreviewDialog
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewData([]);
+        }}
+        previewData={previewData}
+        loading={previewLoading}
+        onImportSelected={handleImportSelected}
       />
 
       <MpConfigDialog
