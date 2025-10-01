@@ -72,10 +72,7 @@ export default function CargaImagen({ tipoDoc, endpointMap }) {
 
   return (
     <Box sx={{ mt: 3 }}>
-      <Typography variant="h6" style={{ marginBottom: 10 }}>
-        Sacar foto para {tipoDoc}
-      </Typography>
-
+      
       <Box
         sx={{
           position: "relative",

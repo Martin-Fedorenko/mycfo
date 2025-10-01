@@ -1,7 +1,20 @@
 import React, { useState } from "react";
-import { Box, Typography, Grid, Tooltip, IconButton } from "@mui/material";
-import { Edit, Description, CameraAlt, Mic } from "@mui/icons-material";
-import CustomSelect from "../../shared-components/CustomSelect";
+import {
+  Box,
+  Typography,
+  Grid,
+  Tooltip,
+  IconButton,
+  ButtonBase,
+} from "@mui/material";
+import {
+  Edit,
+  Description,
+  CameraAlt,
+  Mic,
+  Receipt,
+  SwapHoriz,
+} from "@mui/icons-material";
 
 import CargaFormulario from "./components/CargaFormulario";
 import CargaDocumento from "./components/CargaDocumento";
@@ -9,8 +22,8 @@ import CargaImagen from "./components/CargaImagen";
 import CargaAudio from "./components/CargaAudio";
 
 export default function CargaGeneral() {
-  const [tipoDoc, setTipoDoc] = useState("");
-  const [modoCarga, setModoCarga] = useState("formulario");
+  const [tipoDoc, setTipoDoc] = useState(""); // Factura, Movimiento...
+  const [modoCarga, setModoCarga] = useState(""); // formulario, documento, foto, audio
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
 
@@ -28,13 +41,28 @@ export default function CargaGeneral() {
       documento: `${API_BASE}/registros/documento`,
       foto: `${API_BASE}/registros/foto`,
       audio: `${API_BASE}/registros/audio`,
-    }
+    },
   };
 
-  const tipos = Object.keys(endpointMap);
+  // Botones disponibles de tipo de documento
+  const tipos = [
+    { key: "Factura", label: "Factura", icon: <Receipt fontSize="large" /> },
+    { key: "Movimiento", label: "Movimiento", icon: <SwapHoriz fontSize="large" /> },
+    // 🔹 futuro: agregar más aquí fácilmente
+  ];
+
+  // Botones disponibles de método de carga
+  const modos = [
+    { key: "formulario", label: "Formulario", icon: <Edit fontSize="large" /> },
+    { key: "documento", label: "Documento", icon: <Description fontSize="large" /> },
+    { key: "foto", label: "Foto", icon: <CameraAlt fontSize="large" /> },
+    { key: "audio", label: "Audio", icon: <Mic fontSize="large" /> },
+  ];
 
   const renderContenido = () => {
-    if (!tipoDoc) return <Typography sx={{ mt: 3 }}>Seleccioná un documento</Typography>;
+    if (!tipoDoc || !modoCarga)
+      return <Typography sx={{ mt: 3 }}>Seleccioná un tipo y un método</Typography>;
+
     const endpoint = endpointMap[tipoDoc][modoCarga];
     switch (modoCarga) {
       case "formulario":
@@ -61,72 +89,123 @@ export default function CargaGeneral() {
 
   return (
     <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
-      {/* Encabezado con botones */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 1,
-        }}
-      >
-        <Box>
-          <Typography variant="h5">Registro de Documentos y movimientos</Typography>
-          <Typography variant="subtitle1">
-            Elegí el tipo de documento o movimiento y cómo cargarlo
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Tooltip title="Formulario">
-            <IconButton
-              color={modoCarga === "formulario" ? "primary" : "default"}
-              onClick={() => setModoCarga("formulario")}
-            >
-              <Edit />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Documento">
-            <IconButton
-              color={modoCarga === "documento" ? "primary" : "default"}
-              onClick={() => setModoCarga("documento")}
-            >
-              <Description />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Foto">
-            <IconButton
-              color={modoCarga === "foto" ? "primary" : "default"}
-              onClick={() => setModoCarga("foto")}
-            >
-              <CameraAlt />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Audio">
-            <IconButton
-              color={modoCarga === "audio" ? "primary" : "default"}
-              onClick={() => setModoCarga("audio")}
-            >
-              <Mic />
-            </IconButton>
-          </Tooltip>
-        </Box>
+      {/* Encabezado */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5">Registro de Documentos y Movimientos</Typography>
+        <Typography variant="subtitle1">
+          Elegí qué tipo de registro querés cargar
+        </Typography>
       </Box>
 
-      {/* Selector tipo de documento */}
-      <CustomSelect
-        label="Tipo"
-        name="tipo"
-        value={tipoDoc}
-        onChange={(valor) => {
-          setTipoDoc(valor);
-          setFormData({});  // resetear form
-          setErrors({});    // resetear errores
-        }}
-        options={tipos}
-        width="100%"
-      />
+      {/* Botones de selección de tipo */}
+      {!tipoDoc && (
+        <Grid container spacing={3} justifyContent="center">
+          {tipos.map((t) => (
+            <Grid item key={t.key}>
+              <ButtonBase
+                onClick={() => {
+                  setTipoDoc(t.key);
+                  setModoCarga(""); // resetear modo al elegir tipo
+                  setFormData({});
+                  setErrors({});
+                }}
+                sx={{
+                  flexDirection: "column",
+                  p: 3,
+                  borderRadius: 3,
+                  border: "2px solid",
+                  borderColor: "divider",
+                  width: 150,
+                  height: 150,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  bgcolor: "background.paper",
+                  "&:hover": {
+                    bgcolor: "action.hover",
+                  },
+                }}
+              >
+                {t.icon}
+                <Typography sx={{ mt: 1 }} variant="subtitle1">
+                  {t.label}
+                </Typography>
+              </ButtonBase>
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
-      {renderContenido()}
+      {/* Botones de métodos de carga */}
+      {tipoDoc && !modoCarga && (
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Elegí el método de carga para {tipoDoc}
+          </Typography>
+          <Grid container spacing={3} justifyContent="center">
+            {modos.map((m) => (
+              <Grid item key={m.key}>
+                <ButtonBase
+                  onClick={() => setModoCarga(m.key)}
+                  sx={{
+                    flexDirection: "column",
+                    p: 3,
+                    borderRadius: 3,
+                    border: "2px solid",
+                    borderColor: "divider",
+                    width: 150,
+                    height: 150,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    bgcolor: "background.paper",
+                    "&:hover": {
+                      bgcolor: "action.hover",
+                    },
+                  }}
+                >
+                  {m.icon}
+                  <Typography sx={{ mt: 1 }} variant="subtitle1">
+                    {m.label}
+                  </Typography>
+                </ButtonBase>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Vista final de carga */}
+      {tipoDoc && modoCarga && (
+        <Box sx={{ mt: 4 }}>
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+            <ButtonBase
+              onClick={() => setModoCarga("")}
+              sx={{
+                p: 1,
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="body2">← Cambiar método</Typography>
+            </ButtonBase>
+            <ButtonBase
+              onClick={() => {
+                setTipoDoc("");
+                setModoCarga("");
+              }}
+              sx={{
+                p: 1,
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="body2">← Cambiar tipo</Typography>
+            </ButtonBase>
+          </Box>
+          {renderContenido()}
+        </Box>
+      )}
     </Box>
   );
 }

@@ -24,7 +24,7 @@ export default function CargaDocumento({ tipoDoc, endpointMap }) {
 
   return (
     <Box sx={{ mt: 3 }}>
-      <Typography variant="h6">Subir documento para {tipoDoc}</Typography>
+      
       <DropzoneUploader
         onFileSelected={setArchivo}
         width="100%"

@@ -4,6 +4,7 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
+import ConciliacionDialog from "../../../../shared-components/ConciliacionDialog";
 
 export default function FormRegistro({ tipoDoc, formData, setFormData, errors = {} }) {
 
@@ -87,15 +88,25 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
         </Box>
       </Box>
 
-      {/* 3️⃣ Categoría */}
-      <Box>
-        <FormLabel>Categoría</FormLabel>
-        <CustomSingleAutoComplete
-          options={["Alimentos", "Transporte", "Educación", "Ocio"]}
-          value={formData.categoria || ""}
-          onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
-        />
+      {/* 4️⃣ Categoría + Botón Conciliar */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Categoría *</FormLabel>
+          <CustomSingleAutoComplete
+            options={["Productos", "Servicios", "Mantenimiento", "Consultoría"]}
+            value={formData.categoria || ""}
+            onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
+            error={!!errors.categoria}
+          />
+          {errors.categoria && (
+            <FormHelperText error>{errors.categoria}</FormHelperText>
+          )}
+        </Box>
+        <Box sx={{ flex: 1, display: "flex", alignItems: "flex-end" }}>
+          <ConciliacionDialog tipo="factura" width="100%" />
+        </Box>
       </Box>
+
 
       {/* 4️⃣ Descripción */}
       <Box>
@@ -108,16 +119,6 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
           fullWidth
         />
       </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Número de documento asociado</FormLabel>
-          <CustomSingleAutoComplete
-            options={["112", "113", "114"]}
-            value={formData.numeroDocumentoAsociado || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, numeroDocumentoAsociado: valor }))
-            }
-          />
-        </Box>
     </Box>
   );
 }
