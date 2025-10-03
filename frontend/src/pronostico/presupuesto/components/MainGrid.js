@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {
   Box, Typography, Button, Paper,
-  Table, TableHead, TableRow, TableCell, TableBody
+  Table, TableHead, TableRow, TableCell, TableBody, TextField
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -18,7 +18,35 @@ const tableCellStyle = {
 export default function MainGrid() {
   const navigate = useNavigate();
   const [presupuestos, setPresupuestos] = React.useState([]);
+  const [query, setQuery] = React.useState('');
 
+
+  const monthName = (ym) => {
+    if (!ym) return '';
+    const [anio, mes] = ym.split('-');
+    const nombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const idx = Number(mes) - 1;
+    return idx >= 0 && idx < nombres.length ? `${nombres[idx]} ${anio}` : ym;
+  };
+
+  const filtered = React.useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return presupuestos;
+    return presupuestos.filter((p) => {
+      const nombre = (p?.nombre || '').toLowerCase();
+      const desde = (p?.desde || '').toLowerCase();
+      const hasta = (p?.hasta || '').toLowerCase();
+      const desdeMes = monthName(p?.desde || '').toLowerCase();
+      const hastaMes = monthName(p?.hasta || '').toLowerCase();
+      return (
+        nombre.includes(term) ||
+        desde.includes(term) ||
+        hasta.includes(term) ||
+        desdeMes.includes(term) ||
+        hastaMes.includes(term)
+      );
+    });
+  }, [presupuestos, query]);
   React.useEffect(() => {
     const fetchPresupuestos = async () => {
       try {
@@ -42,7 +70,16 @@ export default function MainGrid() {
         Visualizá tus presupuestos creados o generá uno nuevo
       </Typography>
 
-      <Paper sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
+      <TextField
+        label="Buscar por nombre, mes o a�o"
+        variant="outlined"
+        size="small"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        sx={{ mt: 2, mb: 2, maxWidth: 360 }}
+      />
+
+      <Paper sx={{ width: '100%', overflowX: 'auto' }}>
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
@@ -53,7 +90,7 @@ export default function MainGrid() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {presupuestos.map((p) => (
+            {filtered.map((p) => (
               <TableRow key={p.id} sx={tableRowStyle}>
                 <TableCell sx={tableCellStyle}>{p.nombre}</TableCell>
                 <TableCell sx={tableCellStyle}>{p.desde}</TableCell>
@@ -72,7 +109,7 @@ export default function MainGrid() {
                 </TableCell>
               </TableRow>
             ))}
-            {presupuestos.length === 0 && (
+            {filtered.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
                   No hay presupuestos para mostrar.

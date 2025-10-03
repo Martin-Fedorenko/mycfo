@@ -51,5 +51,13 @@ public class PresupuestoLinea {
     @Column(name="source_type", nullable=false, length=15)
     @Builder.Default
     private SourceType sourceType = SourceType.MANUAL;
+
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private java.time.LocalDateTime createdAt;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private java.time.LocalDateTime updatedAt;
 }
 
