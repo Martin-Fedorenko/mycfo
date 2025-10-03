@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Entity
 @Table(
@@ -30,9 +29,9 @@ public class PresupuestoLinea {
     @JoinColumn(name = "presupuesto_id", nullable = false)
     private Presupuesto presupuesto;
 
-    /** Primer día del mes (YYYY-MM-01) */
-    @Column(nullable=false)
-    private LocalDate mes;
+    /** Mes en formato YYYY-MM */
+    @Column(nullable=false, length=10)
+    private String mes;
 
     @Column(nullable=false)
     private String categoria;
@@ -53,3 +52,4 @@ public class PresupuestoLinea {
     @Builder.Default
     private SourceType sourceType = SourceType.MANUAL;
 }
+

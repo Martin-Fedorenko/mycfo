@@ -14,7 +14,7 @@ import pronostico.repositories.PresupuestoRepository;
 import pronostico.services.PresupuestoService;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -54,8 +54,8 @@ public class PresupuestoController {
             PresupuestoDTO dto = PresupuestoDTO.builder()
                 .id(p.getId())
                 .nombre(p.getNombre())
-                .desde(p.getDesde() != null ? p.getDesde().toString() : null)
-                .hasta(p.getHasta() != null ? p.getHasta().toString() : null)
+                .desde(normalizeYM(p.getDesde()))
+                .hasta(normalizeYM(p.getHasta()))
                 .build();
             return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException ex) {
@@ -139,11 +139,9 @@ public class PresupuestoController {
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
         String normalized = normalizeYM(ym); // Acepta "YYYY-MM" o "YYYY-MM-01"
-        LocalDate mesDate = LocalDate.parse(normalized + "-01");
 
-        List<PresupuestoLinea> lineas = presupuestoLineaRepository.findByPresupuesto_IdAndMes(id, mesDate);
-
-        List<Map<String, Object>> out = lineas.stream()
+        List<Map<String, Object>> out = presupuestoLineaRepository.findByPresupuesto_Id(id).stream()
+            .filter(l -> Objects.equals(normalizeYM(l.getMes()), normalized))
             .map(this::toLineaDTO)
             .collect(Collectors.toList());
 
@@ -247,53 +245,42 @@ public class PresupuestoController {
     private static BigDecimal nvl(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 
     // Acepta "YYYY-MM" o "YYYY-MM-01" y devuelve "YYYY-MM"
+    private static final java.util.regex.Pattern YM_PATTERN = java.util.regex.Pattern.compile("^(\\d{4})-(\\d{1,2})(?:-(\\d{1,2}))?$");
+
     private static String normalizeYM(String ym) {
-        if (ym == null || ym.isBlank()) return ym;
+        if (ym == null) return null;
         String s = ym.trim();
-        if (s.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return s.substring(0, 7);
+        if (s.isEmpty()) return s;
+
+        java.util.regex.Matcher matcher = YM_PATTERN.matcher(s);
+        if (matcher.matches()) {
+            int month = Integer.parseInt(matcher.group(2));
+            if (month >= 1 && month <= 12) {
+                return matcher.group(1) + "-" + String.format("%02d", month);
+            }
         }
-        if (s.matches("\\d{4}-\\d{2}")) return s;
-        // Intento parsear
+
         try {
-            LocalDate d = LocalDate.parse(s);
-            return d.format(YM);
+            return java.time.YearMonth.parse(s).toString();
+        } catch (Exception ignored) {}
+        try {
+            return java.time.LocalDate.parse(s).format(YM);
         } catch (Exception ignored) {}
         return s;
     }
 
-    // Lee el campo mes de la entidad como String "YYYY-MM"
     private static String getMesAsString(PresupuestoLinea l) {
-        try {
-            // Si es LocalDate en tu entidad, usa el primer día para formatear
-            LocalDate d = (LocalDate) PresupuestoLinea.class.getMethod("getMes").invoke(l);
-            return d.format(YM);
-        } catch (Exception ignore) {
-            // Si es String
-            try {
-                Object val = PresupuestoLinea.class.getMethod("getMes").invoke(l);
-                if (val != null) {
-                    String s = val.toString();
-                    return normalizeYM(s);
-                }
-            } catch (Exception ignored) {}
-        }
-        return null;
+        return normalizeYM(l.getMes());
     }
 
-    // Setea el mes en la entidad admitiendo String o LocalDate (día 1)
     private static void setMesFromString(PresupuestoLinea l, String ym) {
-        String onlyYm = normalizeYM(ym);
-        // Si la entidad tiene setMes(LocalDate)
+        String normalized = normalizeYM(ym);
         try {
-            LocalDate first = LocalDate.parse(onlyYm + "-01");
-            PresupuestoLinea.class.getMethod("setMes", LocalDate.class).invoke(l, first);
-            return;
-        } catch (Exception ignored) {}
-        // Si la entidad tiene setMes(String)
-        try {
-            PresupuestoLinea.class.getMethod("setMes", String.class).invoke(l, onlyYm);
-        } catch (Exception ignored) {}
+            YearMonth yearMonth = YearMonth.parse(normalized);
+            l.setMes(yearMonth.atDay(1).toString());
+        } catch (Exception ex) {
+            l.setMes(normalized);
+        }
     }
 
     private Map<String, Object> toLineaDTO(PresupuestoLinea l) {
@@ -326,3 +313,4 @@ public class PresupuestoController {
         }
     }
 }
+

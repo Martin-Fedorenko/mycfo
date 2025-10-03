@@ -15,7 +15,6 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -72,7 +71,6 @@ export default function PresupuestoDetalle() {
   // Panel lateral (KPIs clicables)
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [drawerTipo, setDrawerTipo] = React.useState('ingresos'); // 'ingresos' | 'egresos' | 'resultado'
-  const [simulacion, setSimulacion] = React.useState(false); // sandbox visual (no persiste cambios)
 
   React.useEffect(() => {
     const cargar = async () => {
@@ -321,7 +319,6 @@ export default function PresupuestoDetalle() {
         </Tabs>
 
         <Stack direction="row" spacing={1} alignItems="center">
-          <Chip icon={<InfoOutlinedIcon />} label={simulacion ? 'Simulación' : 'Lectura'} color={simulacion ? 'warning' : 'default'} variant={simulacion ? 'filled' : 'outlined'} />
           <Tooltip title="Filtros">
             <IconButton onClick={handleOpenMenu}><FilterAltOutlinedIcon /></IconButton>
           </Tooltip>
@@ -450,10 +447,6 @@ export default function PresupuestoDetalle() {
                   <Typography variant="body2" color="text.secondary">
                     Cumplimiento: {(pctCumplimientoGlobal * 100).toFixed(0)}%
                   </Typography>
-                  <FormControlLabel
-                    control={<Switch checked={simulacion} onChange={(_, v) => setSimulacion(v)} />}
-                    label={<Stack direction="row" spacing={1} alignItems="center"><ScienceOutlinedIcon fontSize="small" /> <span>Simulación</span></Stack>}
-                  />
                 </Stack>
               </Paper>
             </Grid>
@@ -680,18 +673,6 @@ export default function PresupuestoDetalle() {
                       <td style={{ padding: 12 }}>
                         <Stack direction="row" spacing={1}>
                           <Button size="small" variant="contained" onClick={() => goToMes(fila)}>Ver mes</Button>
-                          <Tooltip title="Simular ajuste +10% (visual)">
-                            <span>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                disabled={!simulacion}
-                                onClick={() => window.alert('Solo visual: acá aplicarías un +10% al Estimado del mes (sandbox).')}
-                              >
-                                +10% Est.
-                              </Button>
-                            </span>
-                          </Tooltip>
                         </Stack>
                       </td>
                     </tr>

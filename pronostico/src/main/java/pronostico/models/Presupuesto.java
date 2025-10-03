@@ -3,8 +3,6 @@ package pronostico.models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
-
 @Entity
 @Table(name = "presupuesto")
 @Getter @Setter
@@ -19,9 +17,10 @@ public class Presupuesto {
     @Column(nullable=false)
     private String nombre;
 
-    @Column(nullable=false)
-    private LocalDate desde;
+    @Column(nullable=false, length=10)
+    private String desde;
 
-    @Column(nullable=false)
-    private LocalDate hasta;
+    @Column(nullable=false, length=10)
+    private String hasta;
 }
+

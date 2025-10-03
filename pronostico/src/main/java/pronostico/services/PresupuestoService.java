@@ -13,6 +13,9 @@ import pronostico.repositories.PresupuestoRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,7 +26,7 @@ public class PresupuestoService {
     private final PresupuestoRepository repo;
     private final PresupuestoLineaRepository lineaRepo;
 
-    // CRUD básico
+    // CRUD basico
     public Presupuesto save(Presupuesto p) { return repo.save(p); }
     public List<Presupuesto> findAll() { return repo.findAll(); }
     public Optional<Presupuesto> findById(Long id) { return repo.findById(id); }
@@ -34,8 +37,8 @@ public class PresupuestoService {
             .map(p -> PresupuestoDTO.builder()
                 .id(p.getId())
                 .nombre(p.getNombre())
-                .desde(p.getDesde() != null ? p.getDesde().toString() : null)
-                .hasta(p.getHasta() != null ? p.getHasta().toString() : null)
+                .desde(formatStoredYm(p.getDesde()))
+                .hasta(formatStoredYm(p.getHasta()))
                 .build())
             .collect(Collectors.toList());
     }
@@ -45,49 +48,75 @@ public class PresupuestoService {
             PresupuestoDTO.builder()
                 .id(p.getId())
                 .nombre(p.getNombre())
-                .desde(p.getDesde() != null ? p.getDesde().toString() : null)
-                .hasta(p.getHasta() != null ? p.getHasta().toString() : null)
+                .desde(formatStoredYm(p.getDesde()))
+                .hasta(formatStoredYm(p.getHasta()))
                 .build()
         );
     }
 
     // --- Helpers ---
     private static BigDecimal nvl(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
-    private static LocalDate firstDay(LocalDate d) { return d.withDayOfMonth(1); }
+
+    private static YearMonth parseYearMonth(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("El mes '" + fieldName + "' es requerido");
+        }
+        try {
+            return YearMonth.parse(value.trim());
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Formato invalido para '" + fieldName + "' (usar YYYY-MM)");
+        }
+    }
+
+    private static String formatStoredYm(String value) {
+        if (value == null || value.isBlank()) return value;
+        String trimmed = value.trim();
+        if (trimmed.length() >= 10) {
+            try {
+                return LocalDate.parse(trimmed).format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            } catch (Exception ignored) { }
+        }
+        return trimmed.length() > 7 ? trimmed.substring(0, 7) : trimmed;
+    }
+
+    private static String formatYearMonthForStorage(YearMonth ym, boolean endOfMonth) {
+        LocalDate date = endOfMonth ? ym.atEndOfMonth() : ym.atDay(1);
+        return date.toString();
+    }
 
     private static PresupuestoLinea.Tipo mapTipo(String v) {
         if (v == null) throw new IllegalArgumentException("Tipo requerido");
         return switch (v.trim().toUpperCase()) {
             case "INGRESO" -> PresupuestoLinea.Tipo.INGRESO;
             case "EGRESO"  -> PresupuestoLinea.Tipo.EGRESO;
-            default -> throw new IllegalArgumentException("Tipo inválido: " + v);
+            default -> throw new IllegalArgumentException("Tipo invalido: " + v);
         };
     }
 
     // --- Crear presupuesto (2 tablas) ---
     @Transactional
     public Presupuesto crearPresupuesto(CrearPresupuestoRequest req) {
-        if (req.getDesde() == null || req.getHasta() == null)
-            throw new IllegalArgumentException("Las fechas 'desde' y 'hasta' son requeridas");
-        if (req.getHasta().isBefore(req.getDesde()))
+        YearMonth desde = parseYearMonth(req.getDesde(), "desde");
+        YearMonth hasta = parseYearMonth(req.getHasta(), "hasta");
+        if (hasta.isBefore(desde)) {
             throw new IllegalArgumentException("'hasta' no puede ser anterior a 'desde'");
+        }
 
         Presupuesto p = Presupuesto.builder()
             .nombre(req.getNombre())
-            .desde(req.getDesde())
-            .hasta(req.getHasta())
+            .desde(formatYearMonthForStorage(desde, false))
+            .hasta(formatYearMonthForStorage(hasta, true))
             .build();
         repo.save(p);
 
-        LocalDate cursor = firstDay(req.getDesde());
-        LocalDate fin = firstDay(req.getHasta());
-
-        while (!cursor.isAfter(fin)) {
+        YearMonth cursor = desde;
+        while (!cursor.isAfter(hasta)) {
+            String ym = formatYearMonthForStorage(cursor, false);
             if (req.getPlantilla() != null && !req.getPlantilla().isEmpty()) {
                 for (CrearPresupuestoRequest.PlantillaLinea pl : req.getPlantilla()) {
                     PresupuestoLinea l = PresupuestoLinea.builder()
                         .presupuesto(p)
-                        .mes(cursor)
+                        .mes(ym)
                         .categoria(pl.getCategoria())
                         .tipo(mapTipo(pl.getTipo()))
                         .montoEstimado(nvl(pl.getMontoEstimado()))
@@ -100,8 +129,8 @@ public class PresupuestoService {
                 for (PresupuestoLinea.Tipo t : PresupuestoLinea.Tipo.values()) {
                     PresupuestoLinea l = PresupuestoLinea.builder()
                         .presupuesto(p)
-                        .mes(cursor)
-                        .categoria("Sin categoría")
+                        .mes(ym)
+                        .categoria("Sin categoria")
                         .tipo(t)
                         .montoEstimado(BigDecimal.ZERO)
                         .montoReal(null)
@@ -116,3 +145,5 @@ public class PresupuestoService {
         return p;
     }
 }
+
+
