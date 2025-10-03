@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PresupuestoService {
 
+    private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
+
     private final PresupuestoRepository repo;
     private final PresupuestoLineaRepository lineaRepo;
 
@@ -33,29 +35,40 @@ public class PresupuestoService {
     public void delete(Long id) { repo.deleteById(id); }
 
     public List<PresupuestoDTO> findAllDTO() {
-        return repo.findAll().stream()
-            .map(p -> PresupuestoDTO.builder()
-                .id(p.getId())
-                .nombre(p.getNombre())
-                .desde(formatStoredYm(p.getDesde()))
-                .hasta(formatStoredYm(p.getHasta()))
-                .build())
-            .collect(Collectors.toList());
+        return mapToDto(repo.findAll());
+    }
+
+    public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("El rango debe incluir fechas 'from' y 'to'");
+        }
+        if (to.isBefore(from)) {
+            throw new IllegalArgumentException("'to' no puede ser anterior a 'from'");
+        }
+        String fromStr = from.format(ISO_DATE);
+        String toStr = to.format(ISO_DATE);
+        return mapToDto(repo.findOverlapping(fromStr, toStr));
     }
 
     public Optional<PresupuestoDTO> findByIdDTO(Long id) {
-        return repo.findById(id).map(p ->
-            PresupuestoDTO.builder()
-                .id(p.getId())
-                .nombre(p.getNombre())
-                .desde(formatStoredYm(p.getDesde()))
-                .hasta(formatStoredYm(p.getHasta()))
-                .build()
-        );
+        return repo.findById(id).map(this::toDto);
     }
 
     // --- Helpers ---
     private static BigDecimal nvl(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
+
+    private List<PresupuestoDTO> mapToDto(List<Presupuesto> presupuestos) {
+        return presupuestos.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    private PresupuestoDTO toDto(Presupuesto p) {
+        return PresupuestoDTO.builder()
+            .id(p.getId())
+            .nombre(p.getNombre())
+            .desde(formatStoredYm(p.getDesde()))
+            .hasta(formatStoredYm(p.getHasta()))
+            .build();
+    }
 
     private static YearMonth parseYearMonth(String value, String fieldName) {
         if (value == null || value.isBlank()) {
@@ -145,5 +158,3 @@ public class PresupuestoService {
         return p;
     }
 }
-
-

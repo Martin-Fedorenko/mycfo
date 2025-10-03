@@ -1,8 +1,11 @@
 package pronostico.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import pronostico.dtos.CrearPresupuestoRequest;
 import pronostico.dtos.PresupuestoDTO;
@@ -14,6 +17,7 @@ import pronostico.repositories.PresupuestoRepository;
 import pronostico.services.PresupuestoService;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -35,8 +39,27 @@ public class PresupuestoController {
 
     // ===================== LISTAR =====================
     @GetMapping("/presupuestos")
-    public List<PresupuestoDTO> getAll() {
-        return service.findAllDTO();
+    public List<PresupuestoDTO> getAll(
+        @RequestParam(value = "year", required = false) Integer year,
+        @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+        @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        try {
+            if (from != null || to != null) {
+                if (from == null || to == null) {
+                    throw new IllegalArgumentException("Debe especificar las fechas 'from' y 'to' para el rango");
+                }
+                return service.findByRange(from, to);
+            }
+            if (year != null) {
+                LocalDate start = LocalDate.of(year, 1, 1);
+                LocalDate end = LocalDate.of(year, 12, 31);
+                return service.findByRange(start, end);
+            }
+            return service.findAllDTO();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
     }
 
     @GetMapping("/presupuestos/{id}")

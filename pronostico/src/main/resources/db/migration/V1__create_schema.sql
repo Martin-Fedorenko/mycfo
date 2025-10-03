@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS presupuesto (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
+CREATE INDEX idx_presupuesto_desde ON presupuesto (desde);
+CREATE INDEX idx_presupuesto_hasta ON presupuesto (hasta);
+
 -- Orden específico:
 -- id, presupuesto_id, mes, categoria, tipo, monto_estimado, monto_real, source_type, source_id, created_at, updated_at
 CREATE TABLE IF NOT EXISTS presupuesto_linea (
