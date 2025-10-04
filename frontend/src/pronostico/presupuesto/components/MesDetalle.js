@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
-import axios from 'axios';
+import http from '../../../api/http';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend
 } from 'recharts';
@@ -135,7 +135,7 @@ export default function MesDetalle() {
 
     const tryFetch = async (url) => {
       try {
-        const res = await axios.get(url);
+        const res = await http.get(url);
         const d = res?.data;
         let arr =
           Array.isArray(d) ? d :
@@ -157,7 +157,7 @@ export default function MesDetalle() {
     const cargar = async () => {
       try {
         // 1) buscar presupuesto por nombre
-        const resPres = await axios.get(`${baseURL}/api/presupuestos`);
+        const resPres = await http.get(`${baseURL}/api/presupuestos`);
         const lista = Array.isArray(resPres.data) ? resPres.data : [];
 
         const decodedNombre = decodeURIComponent(nombreUrl || '').trim().toLowerCase().replace(/\s+/g, '-');
@@ -171,7 +171,7 @@ export default function MesDetalle() {
       const mesNumStr = mesANumero[(mesNombreUrl || '').toLowerCase().trim()];
       if (!mesNumStr) throw new Error('Mes no válido');
 
-      const resTot = await axios.get(`${baseURL}/api/presupuestos/${p.id}/totales`);
+      const resTot = await http.get(`${baseURL}/api/presupuestos/${p.id}/totales`);
       const totales = Array.isArray(resTot.data) ? resTot.data : [];
       const item = totales.find(t => String(t?.mes || '').endsWith(`-${mesNumStr}`));
       if (!item?.mes) throw new Error('Mes no encontrado en totales');
@@ -348,8 +348,8 @@ export default function MesDetalle() {
   });
 
   const tryPatchOrPut = async (method, url, data) => {
-    if (method === 'patch') return axios.patch(url, data);
-    return axios.put(url, data);
+    if (method === 'patch') return http.patch(url, data);
+    return http.put(url, data);
   };
 
   const patchLinea = async (l) => {
@@ -427,7 +427,7 @@ export default function MesDetalle() {
   const deleteLinea = async (lineaId) => {
     try {
       if (!presupuestoId || !ym || !lineaId) return;
-      await axios.delete(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas/${lineaId}`);
+      await http.delete(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas/${lineaId}`);
       await reloadMes();
       setSnack({ open: true, message: 'Línea eliminada', severity: 'success' });
     } catch (e) {
@@ -458,7 +458,7 @@ export default function MesDetalle() {
         montoEstimado: Number(nueva.montoEstimado || 0),
         montoReal: nueva.montoReal === '' || nueva.montoReal == null ? null : Number(nueva.montoReal),
       };
-      await axios.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
+      await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
       setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' });
       setAgregando(false);
       await reloadMes();
@@ -502,7 +502,7 @@ export default function MesDetalle() {
           montoReal: l.montoReal === '' || l.montoReal == null ? null : Number(l.montoReal),
         };
         for (const ymX of meses) {
-          await axios.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ymX}/lineas`, payload);
+          await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ymX}/lineas`, payload);
         }
         setSnack({ open: true, message: `Replicado en ${meses.length} mes(es)`, severity: 'success' });
       } else if (accion === 'eliminar') {
@@ -515,7 +515,7 @@ export default function MesDetalle() {
           let ls = [];
           for (const u of urls) {
             try {
-              const res = await axios.get(u);
+              const res = await http.get(u);
               const d = res?.data;
               const arr = Array.isArray(d) ? d : Array.isArray(d?.lineas) ? d.lineas : Array.isArray(d?.categorias) ? d.categorias : [];
               ls = arr.map(normalizeLine);
@@ -527,7 +527,7 @@ export default function MesDetalle() {
             ll.tipo === l.tipo
           );
           for (const d of toDelete) {
-            await axios.delete(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ymX}/lineas/${d.id}`);
+            await http.delete(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ymX}/lineas/${d.id}`);
           }
         }
         setSnack({ open: true, message: `Eliminado en ${meses.length} mes(es)`, severity: 'success' });
@@ -1040,6 +1040,7 @@ export default function MesDetalle() {
     </Box>
   );
 }
+
 
 
 

@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
-import axios from 'axios';
+import http from '../../../api/http';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend,
   LineChart, Line, Area, ReferenceLine
@@ -76,7 +76,7 @@ export default function PresupuestoDetalle() {
     const cargar = async () => {
       try {
         // 1) Buscar presupuesto por nombre
-        const res = await axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
+        const res = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
         const lista = Array.isArray(res.data) ? res.data : [];
 
         const slug = decodeURIComponent(nombreUrl || '')
@@ -96,12 +96,12 @@ export default function PresupuestoDetalle() {
         // 2) (opcional) obtener nombre "oficial" desde header
         let nombreOficial = encontrado.nombre;
         try {
-          const resHeader = await axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}`);
+          const resHeader = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}`);
           if (resHeader?.data?.nombre) nombreOficial = resHeader.data.nombre;
         } catch { /* no crítico */ }
 
         // 3) Traer TOTALES mensuales del backend nuevo
-        const resTot = await axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}/totales`);
+        const resTot = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}/totales`);
         const totales = Array.isArray(resTot.data) ? resTot.data : [];
 
         // 4) Mapear a la forma que usa el front
@@ -743,3 +743,4 @@ export default function PresupuestoDetalle() {
     </Box>
   );
 }
+

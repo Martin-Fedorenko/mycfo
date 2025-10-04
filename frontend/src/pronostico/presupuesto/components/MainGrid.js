@@ -17,7 +17,7 @@ import {
   Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import http from '../../../api/http';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -97,7 +97,7 @@ export default function MainGrid() {
   const fetchAllPresupuestos = React.useCallback(async () => {
     setLoadingAll(true);
     try {
-      const res = await axios.get(`${baseURL}/api/presupuestos`);
+      const res = await http.get(`${baseURL}/api/presupuestos`);
       setAllPresupuestos(res.data);
       setListError('');
     } catch (e) {
@@ -115,7 +115,7 @@ export default function MainGrid() {
       const queryString = searchParams && searchParams.toString()
         ? `?${searchParams.toString()}`
         : '';
-      const res = await axios.get(`${baseURL}/api/presupuestos${queryString}`);
+      const res = await http.get(`${baseURL}/api/presupuestos${queryString}`);
       const filteredData = filterBudgetsByRange(res.data, range);
       setSearchResults(filteredData);
       setSearchError('');
@@ -415,3 +415,4 @@ export default function MainGrid() {
     </Box>
   );
 }
+

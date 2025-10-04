@@ -6,9 +6,20 @@ import org.springframework.data.repository.query.Param;
 import pronostico.models.Presupuesto;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> {
 
-    @Query("SELECT p FROM Presupuesto p WHERE p.desde <= :to AND p.hasta >= :from")
-    List<Presupuesto> findOverlapping(@Param("from") String from, @Param("to") String to);
+    List<Presupuesto> findByOwnerSub(String ownerSub);
+
+    boolean existsByIdAndOwnerSub(Long id, String ownerSub);
+
+    Optional<Presupuesto> findByIdAndOwnerSub(Long id, String ownerSub);
+
+    @Query("SELECT p FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from")
+    List<Presupuesto> findOverlapping(
+        @Param("ownerSub") String ownerSub,
+        @Param("from") String from,
+        @Param("to") String to
+    );
 }

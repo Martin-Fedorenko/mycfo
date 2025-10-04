@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
-import axios from 'axios';
+import http from '../../../api/http';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -365,7 +365,7 @@ export default function PresupuestoNuevo() {
         plantilla
       };
 
-      const res = await axios.post(
+      const res = await http.post(
         `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`,
         payload
       );
@@ -749,3 +749,4 @@ export default function PresupuestoNuevo() {
     </Box>
   );
 }
+

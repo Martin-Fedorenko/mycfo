@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -13,72 +15,80 @@ import pronostico.models.Presupuesto;
 import pronostico.models.PresupuestoLinea;
 import pronostico.models.PresupuestoLinea.Tipo;
 import pronostico.repositories.PresupuestoLineaRepository;
-import pronostico.repositories.PresupuestoRepository;
 import pronostico.services.PresupuestoService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class PresupuestoController {
 
     private final PresupuestoService service;
-
-    // 🔻 Repos agregados (mínimo necesario) para no tocar tu Service
-    private final PresupuestoRepository presupuestoRepository;
     private final PresupuestoLineaRepository presupuestoLineaRepository;
 
     private static final DateTimeFormatter YM = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final Pattern YM_PATTERN = Pattern.compile("^(\\d{4})-(\\d{1,2})(?:-(\\d{1,2}))?$");
 
-    // ===================== LISTAR =====================
     @GetMapping("/presupuestos")
     public List<PresupuestoDTO> getAll(
         @RequestParam(value = "year", required = false) Integer year,
         @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-        @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+        @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @AuthenticationPrincipal Jwt jwt
     ) {
+        String sub = requireSub(jwt);
         try {
             if (from != null || to != null) {
                 if (from == null || to == null) {
                     throw new IllegalArgumentException("Debe especificar las fechas 'from' y 'to' para el rango");
                 }
-                return service.findByRange(from, to);
+                return service.findByRange(from, to, sub);
             }
             if (year != null) {
                 LocalDate start = LocalDate.of(year, 1, 1);
                 LocalDate end = LocalDate.of(year, 12, 31);
-                return service.findByRange(start, end);
+                return service.findByRange(start, end, sub);
             }
-            return service.findAllDTO();
+            return service.findAllByOwner(sub);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
     }
 
     @GetMapping("/presupuestos/{id}")
-    public ResponseEntity<PresupuestoDTO> getById(@PathVariable Long id) {
-        return service.findByIdDTO(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<PresupuestoDTO> getById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String sub = requireSub(jwt);
+        try {
+            return ResponseEntity.ok(service.getOneOwned(id, sub));
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return ResponseEntity.notFound().build();
+            }
+            throw ex;
+        }
     }
 
-    // ===================== CREAR (nuevo contrato) =====================
     @PostMapping(value = "/presupuestos", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> crear(@RequestBody CrearPresupuestoRequest req) {
+    public ResponseEntity<?> crear(@RequestBody CrearPresupuestoRequest req, @AuthenticationPrincipal Jwt jwt) {
+        String sub = requireSub(jwt);
         try {
-            Presupuesto p = service.crearPresupuesto(req);
+            Presupuesto presupuesto = service.crearPresupuesto(req, sub);
             PresupuestoDTO dto = PresupuestoDTO.builder()
-                .id(p.getId())
-                .nombre(p.getNombre())
-                .desde(normalizeYM(p.getDesde()))
-                .hasta(normalizeYM(p.getHasta()))
+                .id(presupuesto.getId())
+                .nombre(presupuesto.getNombre())
+                .desde(normalizeYM(presupuesto.getDesde()))
+                .hasta(normalizeYM(presupuesto.getHasta()))
                 .build();
             return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException ex) {
@@ -86,83 +96,59 @@ public class PresupuestoController {
         }
     }
 
-    // ===================== UPDATE/DELETE =====================
     @PutMapping("/presupuestos/{id}")
-    public ResponseEntity<Presupuesto> update(@PathVariable Long id, @RequestBody Presupuesto p) {
-        return service.findById(id).map(existing -> {
-            existing.setNombre(p.getNombre());
-            existing.setDesde(p.getDesde());
-            existing.setHasta(p.getHasta());
-            return ResponseEntity.ok(service.save(existing));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Presupuesto> update(@PathVariable Long id, @RequestBody Presupuesto payload, @AuthenticationPrincipal Jwt jwt) {
+        String sub = requireSub(jwt);
+        try {
+            Presupuesto updated = service.updateOwned(id, payload, sub);
+            return ResponseEntity.ok(updated);
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return ResponseEntity.notFound().build();
+            }
+            throw ex;
+        }
     }
 
     @DeleteMapping("/presupuestos/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String sub = requireSub(jwt);
+        try {
+            service.deleteOwned(id, sub);
+            return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return ResponseEntity.notFound().build();
+            }
+            throw ex;
+        }
     }
 
-    // ===================== ENDPOINTS AGREGADOS =====================
-    // ---------- 1) Totales por mes (para PresupuestoDetalle) ----------
     @GetMapping("/presupuestos/{id}/totales")
-    public ResponseEntity<List<Map<String, Object>>> getTotalesPorMes(@PathVariable Long id) {
-        Optional<Presupuesto> opt = presupuestoRepository.findById(id);
-        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+    public ResponseEntity<List<Map<String, Object>>> getTotalesPorMes(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        service.mustOwn(id, requireSub(jwt));
 
-        // Traer todas las líneas del presupuesto y agrupar por mes
         List<PresupuestoLinea> lineas = presupuestoLineaRepository.findByPresupuesto_Id(id);
-
         Map<String, List<PresupuestoLinea>> porMes = lineas.stream()
             .collect(Collectors.groupingBy(l -> normalizeYM(getMesAsString(l))));
 
         List<Map<String, Object>> salida = porMes.entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
-            .map(e -> {
-                String ym = e.getKey();
-                BigDecimal ingEst = BigDecimal.ZERO;
-                BigDecimal ingReal = BigDecimal.ZERO;
-                BigDecimal egrEst = BigDecimal.ZERO;
-                BigDecimal egrReal = BigDecimal.ZERO;
-
-                for (PresupuestoLinea l : e.getValue()) {
-                    BigDecimal est = nvl(l.getMontoEstimado());
-                    BigDecimal real = nvl(l.getMontoReal());
-                    if (l.getTipo() == Tipo.INGRESO) {
-                        ingEst = ingEst.add(est);
-                        ingReal = ingReal.add(real);
-                    } else {
-                        egrEst = egrEst.add(est);
-                        egrReal = egrReal.add(real);
-                    }
-                }
-
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("mes", ym); // "YYYY-MM"
-                m.put("ingresoEstimado", ingEst);
-                m.put("egresoEstimado", egrEst);
-                m.put("ingresoReal", ingReal);
-                m.put("egresoReal", egrReal);
-                m.put("saldoEstimado", ingEst.subtract(egrEst));
-                m.put("saldoReal", ingReal.subtract(egrReal));
-                return m;
-            })
+            .map(entry -> buildTotales(entry.getKey(), entry.getValue()))
             .collect(Collectors.toList());
 
         return ResponseEntity.ok(salida);
     }
 
-    // ---------- 2) Listar líneas del mes ----------
     @GetMapping("/presupuestos/{id}/mes/{ym}")
     public ResponseEntity<List<Map<String, Object>>> getLineasMes(
         @PathVariable Long id,
-        @PathVariable String ym
+        @PathVariable String ym,
+        @AuthenticationPrincipal Jwt jwt
     ) {
-        Optional<Presupuesto> opt = presupuestoRepository.findById(id);
-        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+        service.mustOwn(id, requireSub(jwt));
 
-        String normalized = normalizeYM(ym); // Acepta "YYYY-MM" o "YYYY-MM-01"
-
+        String normalized = normalizeYM(ym);
         List<Map<String, Object>> out = presupuestoLineaRepository.findByPresupuesto_Id(id).stream()
             .filter(l -> Objects.equals(normalizeYM(l.getMes()), normalized))
             .map(this::toLineaDTO)
@@ -171,45 +157,38 @@ public class PresupuestoController {
         return ResponseEntity.ok(out);
     }
 
-    // ---------- 3) Crear línea en un mes ----------
     @PostMapping("/presupuestos/{id}/mes/{ym}/lineas")
     public ResponseEntity<Map<String, Object>> crearLinea(
         @PathVariable Long id,
         @PathVariable String ym,
-        @RequestBody LineaUpsertRequest req
+        @RequestBody LineaUpsertRequest req,
+        @AuthenticationPrincipal Jwt jwt
     ) {
-        Presupuesto presupuesto = presupuestoRepository.findById(id).orElse(null);
-        if (presupuesto == null) return ResponseEntity.notFound().build();
+        Presupuesto presupuesto = service.mustOwn(id, requireSub(jwt));
 
         String normalized = normalizeYM(ym);
+        PresupuestoLinea linea = new PresupuestoLinea();
+        linea.setPresupuesto(presupuesto);
+        setMesFromString(linea, normalized);
+        linea.setCategoria(req.getCategoria());
+        linea.setTipo(Tipo.valueOf(req.getTipo().toUpperCase(Locale.ROOT)));
+        linea.setMontoEstimado(req.getMontoEstimado() != null ? req.getMontoEstimado() : BigDecimal.ZERO);
+        linea.setMontoReal(req.getMontoReal());
 
-        PresupuestoLinea l = new PresupuestoLinea();
-        l.setPresupuesto(presupuesto);
-        // guardamos como "YYYY-MM" (string) para mantener compatibilidad
-        setMesFromString(l, normalized);
-        l.setCategoria(req.getCategoria());
-        l.setTipo(Tipo.valueOf(req.getTipo().toUpperCase(Locale.ROOT)));
-
-        l.setMontoEstimado(req.getMontoEstimado() != null ? req.getMontoEstimado() : BigDecimal.ZERO);
-        l.setMontoReal(req.getMontoReal()); // puede ser null
-
-        // Opcionales si existen en tu entidad (si no, el compilador los ignorará si no hay setters)
-        // l.setSourceType(SourceType.MANUAL);
-        // l.setSourceId(null);
-
-        PresupuestoLinea saved = presupuestoLineaRepository.save(l);
+        PresupuestoLinea saved = presupuestoLineaRepository.save(linea);
         return ResponseEntity.ok(toLineaDTO(saved));
     }
 
-    // ---------- 4) Editar línea del mes (PUT/PATCH tolerante) ----------
     @PatchMapping("/presupuestos/{id}/mes/{ym}/lineas/{lineaId}")
     public ResponseEntity<Map<String, Object>> patchLinea(
         @PathVariable Long id,
         @PathVariable String ym,
         @PathVariable Long lineaId,
-        @RequestBody LineaUpsertRequest req
+        @RequestBody LineaUpsertRequest req,
+        @AuthenticationPrincipal Jwt jwt
     ) {
-        return upsertLinea(id, ym, lineaId, req, true);
+        Presupuesto presupuesto = service.mustOwn(id, requireSub(jwt));
+        return upsertLinea(presupuesto, ym, lineaId, req, true);
     }
 
     @PutMapping("/presupuestos/{id}/mes/{ym}/lineas/{lineaId}")
@@ -217,65 +196,113 @@ public class PresupuestoController {
         @PathVariable Long id,
         @PathVariable String ym,
         @PathVariable Long lineaId,
-        @RequestBody LineaUpsertRequest req
+        @RequestBody LineaUpsertRequest req,
+        @AuthenticationPrincipal Jwt jwt
     ) {
-        return upsertLinea(id, ym, lineaId, req, false);
+        Presupuesto presupuesto = service.mustOwn(id, requireSub(jwt));
+        return upsertLinea(presupuesto, ym, lineaId, req, false);
     }
 
-    private ResponseEntity<Map<String, Object>> upsertLinea(Long id, String ym, Long lineaId, LineaUpsertRequest req, boolean partial) {
-        Optional<PresupuestoLinea> opt = presupuestoLineaRepository.findById(lineaId);
-        if (opt.isEmpty()) return ResponseEntity.notFound().build();
-
-        PresupuestoLinea l = opt.get();
-        if (l.getPresupuesto() == null || !Objects.equals(l.getPresupuesto().getId(), id)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "La línea no pertenece al presupuesto indicado"));
-        }
-        // Si cambia el mes por la ruta, lo normalizamos y seteamos igual (permite mover línea de mes si quisieras)
-        String normalized = normalizeYM(ym);
-        setMesFromString(l, normalized);
-
-        if (!partial || req.getCategoria() != null) l.setCategoria(req.getCategoria());
-        if (!partial || req.getTipo() != null) l.setTipo(Tipo.valueOf(req.getTipo().toUpperCase(Locale.ROOT)));
-        if (!partial || req.getMontoEstimado() != null) l.setMontoEstimado(nvl(req.getMontoEstimado()));
-        if (!partial || (req.isExplicitMontoReal() || req.getMontoReal() != null)) {
-            // Permitimos null explícito en PATCH
-            l.setMontoReal(req.getMontoReal());
-        }
-
-        PresupuestoLinea saved = presupuestoLineaRepository.save(l);
-        return ResponseEntity.ok(toLineaDTO(saved));
-    }
-
-    // ---------- 5) Borrar línea ----------
     @DeleteMapping("/presupuestos/{id}/mes/{ym}/lineas/{lineaId}")
     public ResponseEntity<Void> deleteLinea(
         @PathVariable Long id,
         @PathVariable String ym,
-        @PathVariable Long lineaId
+        @PathVariable Long lineaId,
+        @AuthenticationPrincipal Jwt jwt
     ) {
-        Optional<PresupuestoLinea> opt = presupuestoLineaRepository.findById(lineaId);
-        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+        service.mustOwn(id, requireSub(jwt));
 
-        PresupuestoLinea l = opt.get();
-        if (l.getPresupuesto() == null || !Objects.equals(l.getPresupuesto().getId(), id)) {
+        PresupuestoLinea linea = presupuestoLineaRepository.findById(lineaId).orElse(null);
+        if (linea == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (linea.getPresupuesto() == null || !Objects.equals(linea.getPresupuesto().getId(), id)) {
             return ResponseEntity.badRequest().build();
         }
         presupuestoLineaRepository.deleteById(lineaId);
         return ResponseEntity.noContent().build();
     }
 
-    // ===================== Helpers =====================
-    private static BigDecimal nvl(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
+    private ResponseEntity<Map<String, Object>> upsertLinea(
+        Presupuesto presupuesto,
+        String ym,
+        Long lineaId,
+        LineaUpsertRequest req,
+        boolean partial
+    ) {
+        PresupuestoLinea linea = presupuestoLineaRepository.findById(lineaId).orElse(null);
+        if (linea == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (linea.getPresupuesto() == null || !Objects.equals(linea.getPresupuesto().getId(), presupuesto.getId())) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("error", "La linea no pertenece al presupuesto indicado");
+            return ResponseEntity.badRequest().body(error);
+        }
 
-    // Acepta "YYYY-MM" o "YYYY-MM-01" y devuelve "YYYY-MM"
-    private static final java.util.regex.Pattern YM_PATTERN = java.util.regex.Pattern.compile("^(\\d{4})-(\\d{1,2})(?:-(\\d{1,2}))?$");
+        String normalized = normalizeYM(ym);
+        setMesFromString(linea, normalized);
+
+        if (!partial || req.getCategoria() != null) {
+            linea.setCategoria(req.getCategoria());
+        }
+        if (!partial || req.getTipo() != null) {
+            linea.setTipo(Tipo.valueOf(req.getTipo().toUpperCase(Locale.ROOT)));
+        }
+        if (!partial || req.getMontoEstimado() != null) {
+            linea.setMontoEstimado(nvl(req.getMontoEstimado()));
+        }
+        if (!partial || (req.isExplicitMontoReal() || req.getMontoReal() != null)) {
+            linea.setMontoReal(req.getMontoReal());
+        }
+
+        PresupuestoLinea saved = presupuestoLineaRepository.save(linea);
+        return ResponseEntity.ok(toLineaDTO(saved));
+    }
+
+    private Map<String, Object> buildTotales(String ym, List<PresupuestoLinea> lineas) {
+        BigDecimal ingresoEstimado = BigDecimal.ZERO;
+        BigDecimal ingresoReal = BigDecimal.ZERO;
+        BigDecimal egresoEstimado = BigDecimal.ZERO;
+        BigDecimal egresoReal = BigDecimal.ZERO;
+
+        for (PresupuestoLinea linea : lineas) {
+            BigDecimal estimado = nvl(linea.getMontoEstimado());
+            BigDecimal real = nvl(linea.getMontoReal());
+            if (linea.getTipo() == Tipo.INGRESO) {
+                ingresoEstimado = ingresoEstimado.add(estimado);
+                ingresoReal = ingresoReal.add(real);
+            } else {
+                egresoEstimado = egresoEstimado.add(estimado);
+                egresoReal = egresoReal.add(real);
+            }
+        }
+
+        Map<String, Object> resultado = new LinkedHashMap<>();
+        resultado.put("mes", ym);
+        resultado.put("ingresoEstimado", ingresoEstimado);
+        resultado.put("egresoEstimado", egresoEstimado);
+        resultado.put("ingresoReal", ingresoReal);
+        resultado.put("egresoReal", egresoReal);
+        resultado.put("saldoEstimado", ingresoEstimado.subtract(egresoEstimado));
+        resultado.put("saldoReal", ingresoReal.subtract(egresoReal));
+        return resultado;
+    }
+
+    private static BigDecimal nvl(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
 
     private static String normalizeYM(String ym) {
-        if (ym == null) return null;
-        String s = ym.trim();
-        if (s.isEmpty()) return s;
+        if (ym == null) {
+            return null;
+        }
+        String trimmed = ym.trim();
+        if (trimmed.isEmpty()) {
+            return trimmed;
+        }
 
-        java.util.regex.Matcher matcher = YM_PATTERN.matcher(s);
+        var matcher = YM_PATTERN.matcher(trimmed);
         if (matcher.matches()) {
             int month = Integer.parseInt(matcher.group(2));
             if (month >= 1 && month <= 12) {
@@ -284,51 +311,62 @@ public class PresupuestoController {
         }
 
         try {
-            return java.time.YearMonth.parse(s).toString();
-        } catch (Exception ignored) {}
+            return YearMonth.parse(trimmed).toString();
+        } catch (Exception ignored) {
+        }
         try {
-            return java.time.LocalDate.parse(s).format(YM);
-        } catch (Exception ignored) {}
-        return s;
+            return LocalDate.parse(trimmed).format(YM);
+        } catch (Exception ignored) {
+        }
+        return trimmed;
     }
 
-    private static String getMesAsString(PresupuestoLinea l) {
-        return normalizeYM(l.getMes());
+    private static String getMesAsString(PresupuestoLinea linea) {
+        return normalizeYM(linea.getMes());
     }
 
-    private static void setMesFromString(PresupuestoLinea l, String ym) {
+    private static void setMesFromString(PresupuestoLinea linea, String ym) {
         String normalized = normalizeYM(ym);
         try {
             YearMonth yearMonth = YearMonth.parse(normalized);
-            l.setMes(yearMonth.atDay(1).toString());
+            linea.setMes(yearMonth.atDay(1).toString());
         } catch (Exception ex) {
-            l.setMes(normalized);
+            linea.setMes(normalized);
         }
     }
 
-    private Map<String, Object> toLineaDTO(PresupuestoLinea l) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("id", l.getId());
-        m.put("mes", getMesAsString(l)); // "YYYY-MM"
-        m.put("categoria", l.getCategoria());
-        m.put("tipo", l.getTipo() != null ? l.getTipo().name() : null);
-        m.put("montoEstimado", l.getMontoEstimado());
-        m.put("montoReal", l.getMontoReal());
-        // Opcionales si están en tu entidad:
-        try { m.put("sourceType", PresupuestoLinea.class.getMethod("getSourceType").invoke(l)); } catch (Exception ignored) {}
-        try { m.put("sourceId", PresupuestoLinea.class.getMethod("getSourceId").invoke(l)); } catch (Exception ignored) {}
-        return m;
+    private Map<String, Object> toLineaDTO(PresupuestoLinea linea) {
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", linea.getId());
+        dto.put("mes", getMesAsString(linea));
+        dto.put("categoria", linea.getCategoria());
+        dto.put("tipo", linea.getTipo() != null ? linea.getTipo().name() : null);
+        dto.put("montoEstimado", linea.getMontoEstimado());
+        dto.put("montoReal", linea.getMontoReal());
+        try {
+            dto.put("sourceType", PresupuestoLinea.class.getMethod("getSourceType").invoke(linea));
+        } catch (Exception ignored) {
+        }
+        try {
+            dto.put("sourceId", PresupuestoLinea.class.getMethod("getSourceId").invoke(linea));
+        } catch (Exception ignored) {
+        }
+        return dto;
     }
 
-    // Request para crear/editar líneas (camelCase)
+    private String requireSub(Jwt jwt) {
+        if (jwt == null || jwt.getSubject() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token invalido");
+        }
+        return jwt.getSubject();
+    }
+
     @lombok.Data
     public static class LineaUpsertRequest {
         private String categoria;
-        private String tipo; // "INGRESO"/"EGRESO"
+        private String tipo;
         private BigDecimal montoEstimado;
         private BigDecimal montoReal;
-
-        // Para distinguir null vs "quiero setear null" en PATCH
         private Boolean explicitMontoReal;
 
         public boolean isExplicitMontoReal() {
@@ -336,4 +374,11 @@ public class PresupuestoController {
         }
     }
 }
+
+
+
+
+
+
+
 

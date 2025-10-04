@@ -14,6 +14,9 @@ public class Presupuesto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "owner_sub", nullable = false, length = 64)
+    private String ownerSub;
+
     @Column(nullable=false)
     private String nombre;
 
@@ -23,4 +26,3 @@ public class Presupuesto {
     @Column(nullable=false, length=10)
     private String hasta;
 }
-
