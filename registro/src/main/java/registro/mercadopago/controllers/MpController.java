@@ -4,8 +4,10 @@ import registro.mercadopago.config.MpProperties;
 import registro.mercadopago.dtos.*;
 import registro.mercadopago.models.MpAccountLink;
 import registro.mercadopago.models.MpWalletMovement;
+import registro.mercadopago.models.MpImportedPayment;
 import registro.mercadopago.repositories.MpPaymentRepository;
 import registro.mercadopago.repositories.MpWalletMovementRepository;
+import registro.mercadopago.repositories.MpImportedPaymentRepository;
 import registro.mercadopago.services.MpAuthService;
 import registro.mercadopago.services.MpBillingService;
 import registro.mercadopago.services.MpPaymentImportService;
@@ -50,6 +52,9 @@ public class MpController {
     // Wallet movements
     private final MpWalletMovementImportService walletImporter;
     private final MpWalletMovementRepository walletRepo;
+    
+    // Imported payments
+    private final MpImportedPaymentRepository mpImportedRepo;
 
     @Autowired
     private RegistroRepository registroRepo;
@@ -63,7 +68,8 @@ public class MpController {
             MpBillingService billing,
             MpPaymentRepository paymentRepo,
             MpWalletMovementImportService walletImporter,
-            MpWalletMovementRepository walletRepo
+            MpWalletMovementRepository walletRepo,
+            MpImportedPaymentRepository mpImportedRepo
     ) {
         this.auth = auth;
         this.importer = importer;
@@ -71,6 +77,7 @@ public class MpController {
         this.paymentRepo = paymentRepo;
         this.walletImporter = walletImporter;
         this.walletRepo = walletRepo;
+        this.mpImportedRepo = mpImportedRepo;
     }
 
     // En tu proyecto real obtendrás el userId del token/JWT.
@@ -257,6 +264,87 @@ public class MpController {
     }
 
     /* ======================
+       Listado de PAGOS IMPORTADOS (desde MpImportedPayment)
+       ====================== */
+    @GetMapping("/imported-payments")
+    public Page<PaymentDTO> importedPayments(
+            @RequestParam(required = false) Long accountId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 10, sort = "fechaEmision", direction = Sort.Direction.DESC) Pageable pg
+    ) {
+        final Long userId = currentUserId();
+        System.out.println(">>> [IMPORTED-PAYMENTS] Endpoint llamado para usuario: " + userId);
+
+        // Verificar que el usuario tenga cuenta vinculada
+        MpAccountLink accountLink = auth.getAccountLink(userId);
+        if (accountLink == null) {
+            System.out.println(">>> [IMPORTED-PAYMENTS] No hay cuenta vinculada");
+            return Page.empty();
+        }
+
+        Specification<MpImportedPayment> spec = (root, query, cb) -> {
+            List<Predicate> ands = new ArrayList<>();
+            
+            // Filtrar solo pagos importados del usuario actual
+            ands.add(cb.equal(root.get("usuarioId"), UUID.fromString("00000000-0000-0000-0000-000000000001"))); // TODO: obtener del contexto de usuario
+            
+            // Filtrar por cuenta de MP si se especifica
+            if (accountId != null) {
+                ands.add(cb.equal(root.get("mpAccountId"), accountId.toString()));
+            }
+
+            if (from != null) {
+                ands.add(cb.greaterThanOrEqualTo(root.get("fechaEmision"), from));
+            }
+            if (to != null) {
+                ands.add(cb.lessThan(root.get("fechaEmision"), to.plusDays(1)));
+            }
+            if (q != null && !q.isBlank()) {
+                String ql = "%" + q.toLowerCase().trim() + "%";
+                Predicate or = cb.or(
+                        cb.like(cb.lower(root.get("descripcion")), ql),
+                        cb.like(cb.lower(root.get("description")), ql),
+                        cb.like(cb.lower(root.get("origen")), ql),
+                        cb.like(cb.lower(root.get("categoria")), ql)
+                );
+                ands.add(or);
+            }
+            return cb.and(ands.toArray(new Predicate[0]));
+        };
+
+        Pageable normalizedPageable = normalizeSortImportedPayments(pg);
+        Page<MpImportedPayment> page = mpImportedRepo.findAll(spec, normalizedPageable);
+        
+        System.out.println(">>> [IMPORTED-PAYMENTS] Total elementos encontrados: " + page.getTotalElements());
+        System.out.println(">>> [IMPORTED-PAYMENTS] Elementos en esta página: " + page.getContent().size());
+
+        return page.map(mp -> {
+            PaymentDTO dto = new PaymentDTO();
+            // Campos principales para la tabla
+            dto.setCategoria(mp.getCategoria());
+            dto.setDescripcion(mp.getDescripcion());
+            dto.setFecha(mp.getFechaEmision());
+            dto.setOrigen(mp.getOrigen());
+            dto.setMontoTotal(mp.getMontoTotal());
+            dto.setTipo(mp.getTipo() != null ? mp.getTipo().toString() : "UNKNOWN");
+            
+            // Campos adicionales
+            dto.setMoneda(mp.getMoneda() != null ? mp.getMoneda().toString() : null);
+            dto.setEstado(mp.getStatus());
+            
+            // ID del registro para poder actualizar la categoría
+            dto.setId(mp.getRegistroId());
+            
+            // ID del pago de MercadoPago
+            dto.setMpPaymentId(Long.valueOf(mp.getMpPaymentId()));
+            
+            return dto;
+        });
+    }
+
+    /* ======================
        Importación de MOVIMIENTOS (Billetera)
        ====================== */
 
@@ -345,6 +433,21 @@ public class MpController {
     }
 
     /* ======================
+       Debug/Test endpoints
+       ====================== */
+    
+    @GetMapping("/debug/imported-count")
+    public Map<String, Object> debugImportedCount() {
+        long totalCount = mpImportedRepo.count();
+        System.out.println(">>> [DEBUG] Total registros en mp_imported_payments: " + totalCount);
+        
+        return Map.of(
+            "totalImportedPayments", totalCount,
+            "message", "Debug endpoint - verificar datos en mp_imported_payments"
+        );
+    }
+
+    /* ======================
        Helpers
        ====================== */
 
@@ -388,6 +491,30 @@ public class MpController {
             s = Sort.by(orders);
         }
         return PageRequest.of(pg.getPageNumber(), pg.getPageSize(), s);
+    }
+
+    // Helper para normalizar el sorting de MpImportedPayment
+    private Pageable normalizeSortImportedPayments(Pageable pg) {
+        if (pg == null) return pg;
+        Sort s = pg.getSort();
+        if (!s.isSorted()) return pg;
+
+        List<Sort.Order> mapped = new ArrayList<>();
+        for (Sort.Order o : s) {
+            String prop = o.getProperty();
+            switch (prop) {
+                case "fecha"     -> prop = "fechaEmision";
+                case "total"     -> prop = "montoTotal";
+                case "comprador" -> prop = "origen";
+                case "detalle"   -> prop = "descripcion";
+                case "estado"    -> prop = "status";
+                default -> {
+                    // Si ya viene un nombre válido de entidad, lo dejamos tal cual
+                }
+            }
+            mapped.add(new Sort.Order(o.getDirection(), prop));
+        }
+        return PageRequest.of(pg.getPageNumber(), pg.getPageSize(), Sort.by(mapped));
     }
 
     /**

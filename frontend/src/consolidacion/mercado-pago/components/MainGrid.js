@@ -43,9 +43,9 @@ export default function MainGrid({ status, onRefreshStatus }) {
   const notify = (message, severity = "success") =>
     setSnack({ open: true, severity, message });
 
-  // Nueva función para obtener pagos (con cache-buster)
+  // Nueva función para obtener pagos importados (con cache-buster)
   const fetchPayments = React.useCallback(async () => {
-    const resp = await mpApi.listPayments({
+    const resp = await mpApi.listImportedPayments({
       from: filters.from || undefined,
       to: filters.to || undefined,
       q: filters.q || undefined,

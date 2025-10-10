@@ -4,7 +4,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import CargaManual from "../registro/carga-manual/CargaManual";
 import CargaDocumento from "../registro/carga-documento/CargaDocumento";
 import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
-import CargaMovimientos from "../consolidacion/carga-movimientos/CargaMovimientos";
+import ExcelManagement from "../consolidacion/carga-movimientos/ExcelManagement";
 import CashFlow from "../reportes/cash-flow/CashFlow";
 import Notificaciones from "../notificaciones/listado-notificaciones/Notificaciones";
 import NotificationCenter from "../notificaciones/components/NotificationCenter/NotificationCenter";
@@ -47,7 +47,7 @@ const routeConfig = [
         label: "Carga de movimientos",
         path: "/carga-movimientos",
         icon: <DescriptionIcon />,
-        element: <CargaMovimientos />,
+        element: <ExcelManagement />,
       },
       {
         label: "Mercado Pago",

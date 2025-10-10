@@ -5,7 +5,9 @@ import registro.cargarDatos.repositories.RegistroRepository;
 import registro.mercadopago.config.MpProperties;
 import registro.mercadopago.dtos.PaymentDTO;
 import registro.mercadopago.models.MpAccountLink;
+import registro.mercadopago.models.MpImportedPayment;
 import registro.mercadopago.repositories.MpAccountLinkRepository;
+import registro.mercadopago.repositories.MpImportedPaymentRepository;
 import registro.mercadopago.services.MpPaymentImportService;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
     private final RegistroRepository registroRepo;
     private final MpAccountLinkRepository linkRepo;
+    private final MpImportedPaymentRepository mpImportedRepo;
     private final MpProperties props;
 
     private final RestTemplate rest = new RestTemplate();
@@ -30,10 +33,12 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     public MpPaymentImportServiceImpl(
             RegistroRepository registroRepo,
             MpAccountLinkRepository linkRepo,
+            MpImportedPaymentRepository mpImportedRepo,
             MpProperties props
     ) {
         this.registroRepo = registroRepo;
         this.linkRepo = linkRepo;
+        this.mpImportedRepo = mpImportedRepo;
         this.props = props;
     }
 
@@ -269,6 +274,17 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         String transactionType = asString(body.get("transaction_type")); // money_in, money_out, etc.
         String operationType = asString(body.get("operation_type")); // regular_payment, money_transfer, etc.
         
+        // Campos para determinar si es ingreso o egreso
+        Long payerId = asLong(body.get("payer_id"));
+        Long collectorId = asLong(body.get("collector"));
+        if (collectorId == null) {
+            // Intentar obtener collector_id del objeto collector
+            Map<String, Object> collector = asMap(body.get("collector"));
+            if (collector != null) {
+                collectorId = asLong(collector.get("id"));
+            }
+        }
+        
         // Log completo del pago para debug
         System.out.println(">>> === IMPORTANDO PAGO ===");
         System.out.println(">>> ID: " + asLong(body.get("id")));
@@ -278,6 +294,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         System.out.println(">>> Amount: " + transactionAmount);
         System.out.println(">>> Description: " + description);
         System.out.println(">>> PayerEmail: " + payerEmail);
+        System.out.println(">>> PayerID: " + payerId);
+        System.out.println(">>> CollectorID: " + collectorId);
 
         // === 2) Armar Registro según tu mapeo ===
         Registro r = new Registro();
@@ -285,7 +303,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // id: autogenerado por JPA
 
         // tipo (tu entidad): clasificación mejorada según múltiples campos de MP
-        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount);
+        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount, payerId, collectorId);
         r.setTipo(tipoRegistro);
 
         // montoTotal = transactionAmount
@@ -348,11 +366,45 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
         // Nota: mpPaymentId removido temporalmente
 
-        // === 3) Guardar ===
-        registroRepo.save(r);
+        // === 3) Guardar en tabla Registro ===
+        Registro savedRegistro = registroRepo.save(r);
+        
+        // === 4) Guardar en tabla MpImportedPayment ===
+        String mpPaymentId = asString(body.get("id"));
+        UUID usuarioId = UUID.fromString("00000000-0000-0000-0000-000000000001"); // TODO: obtener del contexto de usuario
+        String mpAccountId = link.getMpUserId(); // ID de la cuenta de MP
+        
+        MpImportedPayment mpImported = new MpImportedPayment(savedRegistro, mpPaymentId, usuarioId, mpAccountId);
+        
+        // Copiar datos adicionales de MercadoPago
+        mpImported.setDescription(description);
+        mpImported.setAmount(transactionAmount);
+        mpImported.setCurrencyId(currencyId);
+        mpImported.setStatus(status);
+        mpImported.setStatusDetail(asString(body.get("status_detail")));
+        mpImported.setPaymentMethodId(asString(body.get("payment_method_id")));
+        mpImported.setPaymentTypeId(asString(body.get("payment_type_id")));
+        mpImported.setExternalReference(asString(body.get("external_reference")));
+        
+        // Fechas de MercadoPago
+        Instant dateApproved = parseInstant(body.get("date_approved"));
+        Instant dateLastUpdated = parseInstant(body.get("date_last_updated"));
+        
+        if (dateCreated != null) {
+            mpImported.setDateCreated(dateCreated.atZone(ZoneId.systemDefault()).toLocalDateTime());
+        }
+        if (dateApproved != null) {
+            mpImported.setDateApproved(dateApproved.atZone(ZoneId.systemDefault()).toLocalDateTime());
+        }
+        if (dateLastUpdated != null) {
+            mpImported.setDateLastUpdated(dateLastUpdated.atZone(ZoneId.systemDefault()).toLocalDateTime());
+        }
+        
+        mpImportedRepo.save(mpImported);
         
         // Log final de confirmación
-        System.out.println(">>> ✅ PAGO GUARDADO - Tipo: " + r.getTipo() + ", Categoría: " + r.getCategoria());
+        System.out.println(">>> ✅ PAGO GUARDADO EN AMBAS TABLAS - Tipo: " + r.getTipo() + ", Categoría: " + r.getCategoria());
+        System.out.println(">>> Registro ID: " + savedRegistro.getId() + ", MpImported ID: " + mpImported.getId());
         System.out.println(">>> =========================");
     }
 
@@ -414,8 +466,24 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
     /**
      * Determina el tipo de registro (INGRESO/EGRESO) basado en múltiples campos de MercadoPago
+     * REGLA PRINCIPAL: Si payer_id != collector_id, es un EGRESO (tú pagas a otro)
      */
-    private TipoRegistro determinarTipoRegistro(String status, String transactionType, String operationType, BigDecimal amount) {
+    private TipoRegistro determinarTipoRegistro(String status, String transactionType, String operationType, BigDecimal amount, Long payerId, Long collectorId) {
+        System.out.println(">>> === CLASIFICACIÓN DE PAGO ===");
+        System.out.println(">>> PayerID: " + payerId + ", CollectorID: " + collectorId);
+        
+        // 0. REGLA PRINCIPAL: Análisis de relación payer/collector (MÁS CONFIABLE)
+        if (payerId != null && collectorId != null && !payerId.equals(collectorId)) {
+            System.out.println(">>> ✅ Clasificado como EGRESO por payer != collector (tú pagas a otro)");
+            return TipoRegistro.Egreso;
+        }
+        
+        if (payerId != null && collectorId != null && payerId.equals(collectorId)) {
+            System.out.println(">>> ✅ Clasificado como INGRESO por payer == collector (tú recibes)");
+            return TipoRegistro.Ingreso;
+        }
+        
+        // Si no hay IDs, continuar con lógica secundaria
         if (status == null) {
             return TipoRegistro.Ingreso; // default
         }
@@ -424,9 +492,9 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         String transactionTypeLower = transactionType != null ? transactionType.toLowerCase().trim() : "";
         String operationTypeLower = operationType != null ? operationType.toLowerCase().trim() : "";
         
-        System.out.println(">>> Clasificando pago - Status: " + status + ", TransactionType: " + transactionType + ", OperationType: " + operationType + ", Amount: " + amount);
+        System.out.println(">>> Usando lógica secundaria - Status: " + status + ", TransactionType: " + transactionType + ", OperationType: " + operationType);
         
-        // 1. NOTA: MercadoPago siempre envía montos positivos, el tipo se determina por operation_type
+        // 1. VERIFICAR SI EL MONTO ES NEGATIVO
         
         // 2. Casos claros de EGRESO (dinero que sale de tu cuenta)
         if (statusLower.equals("refunded") || 
@@ -625,8 +693,18 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         String transactionType = asString(body.get("transaction_type"));
         String operationType = asString(body.get("operation_type"));
         
-        // Determinar tipo de registro
-        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount);
+        // Obtener IDs para clasificación correcta en preview
+        Long payerId = asLong(body.get("payer_id"));
+        Long collectorId = asLong(body.get("collector"));
+        if (collectorId == null) {
+            Map<String, Object> collector = asMap(body.get("collector"));
+            if (collector != null) {
+                collectorId = asLong(collector.get("id"));
+            }
+        }
+        
+        // Determinar tipo de registro (para preview, CON IDs para clasificación correcta)
+        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount, payerId, collectorId);
         
         // Mapear a DTO
         dto.setMpPaymentId(mpPaymentId);
@@ -662,13 +740,21 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             return 0;
         }
         
-        // Actualizar la categoría
+        // Actualizar la categoría en la tabla Registro
         registro.setCategoria(newCategory);
         registro.setFechaActualizacion(LocalDate.now());
-        
         registroRepo.save(registro);
         
-        System.out.println(">>> Categoría actualizada exitosamente");
+        // Actualizar la categoría en la tabla MpImportedPayment
+        MpImportedPayment mpImported = mpImportedRepo.findByRegistroId(registroId);
+        if (mpImported != null) {
+            mpImported.setCategoria(newCategory);
+            mpImportedRepo.save(mpImported);
+            System.out.println(">>> Categoría actualizada en ambas tablas exitosamente");
+        } else {
+            System.out.println(">>> Categoría actualizada en tabla Registro, pero no se encontró en MpImportedPayment");
+        }
+        
         return 1;
     }
 }

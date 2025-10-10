@@ -1,11 +1,13 @@
 package registro.movimientosexcel.controllers;
 
-import registro.movimientosexcel.dtos.ResumenCargaDTO;
+import registro.movimientosexcel.dtos.*;
 import registro.movimientosexcel.services.ExcelImportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
@@ -22,5 +24,32 @@ public class ExcelImportController {
 
         ResumenCargaDTO resultado = excelImportService.procesarArchivo(file, tipoOrigen);
         return ResponseEntity.ok(resultado);
+    }
+    
+    @PostMapping("/preview-excel")
+    public ResponseEntity<PreviewDataDTO> previewExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("tipoOrigen") String tipoOrigen) {
+
+        PreviewDataDTO resultado = excelImportService.procesarArchivoParaPreview(file, tipoOrigen);
+        return ResponseEntity.ok(resultado);
+    }
+    
+    @PostMapping("/guardar-seleccionados")
+    public ResponseEntity<ResumenCargaDTO> guardarSeleccionados(
+            @RequestBody SaveSelectedRequestDTO request,
+            @RequestHeader("X-User-ID") UUID usuario) {
+
+        ResumenCargaDTO resultado = excelImportService.guardarRegistrosSeleccionados(request, usuario);
+        return ResponseEntity.ok(resultado);
+    }
+    
+    @GetMapping("/historial-cargas")
+    public ResponseEntity<java.util.List<registro.movimientosexcel.models.ExcelImportHistory>> obtenerHistorialCargas(
+            @RequestHeader("X-User-ID") UUID usuario) {
+        
+        java.util.List<registro.movimientosexcel.models.ExcelImportHistory> historial = 
+            excelImportService.obtenerHistorialCargas(usuario);
+        return ResponseEntity.ok(historial);
     }
 }
