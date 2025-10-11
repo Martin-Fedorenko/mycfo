@@ -1,30 +1,16 @@
 import React from "react";
-import { Chip, TextField, Box, IconButton, Tooltip } from "@mui/material";
+import {
+  Chip,
+  Box,
+  IconButton,
+  Tooltip,
+  Autocomplete,
+  TextField,
+} from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-
-const CATEGORIAS_PREDEFINIDAS = [
-  "Ventas",
-  "Cobranzas",
-  "Transferencias",
-  "Depósitos",
-  "Retiros",
-  "Compras",
-  "Gastos",
-  "Servicios",
-  "Alquiler",
-  "Sueldos",
-  "Impuestos",
-  "Servicios Bancarios",
-  "Tarjetas",
-  "Créditos",
-  "Préstamos",
-  "Inversiones",
-  "Ahorros",
-  "General",
-  "Sin categorizar",
-];
+import { TODAS_LAS_CATEGORIAS } from "../../../shared-components/categorias";
 
 export default function EditableExcelCategory({
   value = "Sin categorizar",
@@ -39,8 +25,13 @@ export default function EditableExcelCategory({
   }, [value]);
 
   const handleSave = () => {
-    if (editValue.trim() && editValue !== value) {
-      onChange?.(editValue.trim());
+    // Solo guardar si la categoría seleccionada es válida y diferente
+    if (
+      editValue &&
+      editValue !== value &&
+      TODAS_LAS_CATEGORIAS.includes(editValue)
+    ) {
+      onChange?.(editValue);
     }
     setIsEditing(false);
   };
@@ -50,32 +41,38 @@ export default function EditableExcelCategory({
     setIsEditing(false);
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSave();
-    } else if (e.key === "Escape") {
-      handleCancel();
-    }
-  };
-
   if (isEditing) {
     return (
       <Box
-        sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 120 }}
+        sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 200 }}
       >
-        <TextField
+        <Autocomplete
           size="small"
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-          autoFocus
-          variant="outlined"
+          onChange={(event, newValue) => {
+            if (newValue) {
+              setEditValue(newValue);
+            }
+          }}
+          options={TODAS_LAS_CATEGORIAS}
+          autoHighlight
+          openOnFocus
+          disableClearable
           sx={{
+            minWidth: 150,
             "& .MuiOutlinedInput-root": {
               height: 32,
               fontSize: "0.75rem",
             },
           }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              autoFocus
+              placeholder="Seleccionar categoría"
+              variant="outlined"
+            />
+          )}
         />
         <Tooltip title="Guardar">
           <IconButton size="small" onClick={handleSave} color="primary">

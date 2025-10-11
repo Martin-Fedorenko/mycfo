@@ -8,7 +8,9 @@ import registro.mercadopago.models.MpAccountLink;
 import registro.mercadopago.models.MpImportedPayment;
 import registro.mercadopago.repositories.MpAccountLinkRepository;
 import registro.mercadopago.repositories.MpImportedPaymentRepository;
+import registro.mercadopago.services.MpDuplicateDetectionService;
 import registro.mercadopago.services.MpPaymentImportService;
+import registro.movimientosexcel.services.CategorySuggestionService;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -27,6 +29,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     private final MpAccountLinkRepository linkRepo;
     private final MpImportedPaymentRepository mpImportedRepo;
     private final MpProperties props;
+    private final CategorySuggestionService categorySuggestionService;
+    private final MpDuplicateDetectionService duplicateDetectionService;
 
     private final RestTemplate rest = new RestTemplate();
 
@@ -34,12 +38,16 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             RegistroRepository registroRepo,
             MpAccountLinkRepository linkRepo,
             MpImportedPaymentRepository mpImportedRepo,
-            MpProperties props
+            MpProperties props,
+            CategorySuggestionService categorySuggestionService,
+            MpDuplicateDetectionService duplicateDetectionService
     ) {
         this.registroRepo = registroRepo;
         this.linkRepo = linkRepo;
         this.mpImportedRepo = mpImportedRepo;
         this.props = props;
+        this.categorySuggestionService = categorySuggestionService;
+        this.duplicateDetectionService = duplicateDetectionService;
     }
 
     /* =========================
@@ -312,8 +320,10 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // fechaEmision = date_created
         r.setFechaEmision(fechaEmision);
 
-        // categoria = NULL (por ahora)
-        r.setCategoria("Ocio");
+        // categoria = sugerida inteligentemente según descripción y tipo
+        String categoriaSugerida = categorySuggestionService.sugerirCategoria(description, tipoRegistro);
+        r.setCategoria(categoriaSugerida);
+        System.out.println(">>> Categoría sugerida: " + categoriaSugerida);
 
         // origen = payer_email
         r.setOrigen(payerEmail);
@@ -577,7 +587,10 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         if (body == null || body.isEmpty()) return List.of();
         
         PaymentDTO dto = convertToPaymentDTO(body);
-        return List.of(dto);
+        List<PaymentDTO> previewData = List.of(dto);
+        
+        // Detectar duplicados antes de devolver
+        return duplicateDetectionService.detectarDuplicadosEnBD(previewData);
     }
 
     @Override
@@ -616,7 +629,9 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             }
             if (reachedOlder) break;
         }
-        return previewData;
+        
+        // Detectar duplicados antes de devolver
+        return duplicateDetectionService.detectarDuplicadosEnBD(previewData);
     }
 
     @Override
@@ -645,7 +660,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             System.err.println("Error en preview por external_reference: " + e.getStatusCode());
         }
 
-        return previewData;
+        // Detectar duplicados antes de devolver
+        return duplicateDetectionService.detectarDuplicadosEnBD(previewData);
     }
 
     @Override
@@ -713,7 +729,9 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         dto.setDescripcion(description != null ? description : "Pago MercadoPago");
         dto.setOrigen(payerEmail);
         dto.setTipo(tipoRegistro.toString());
-        dto.setCategoria("MercadoPago"); // Categoría por defecto
+        // Categoría sugerida inteligentemente
+        String categoriaSugerida = categorySuggestionService.sugerirCategoria(description, tipoRegistro);
+        dto.setCategoria(categoriaSugerida);
         dto.setMoneda(currencyId);
         dto.setEstado(status);
         

@@ -4,9 +4,14 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
+import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
 
-export default function FormRegistro({ tipoDoc, formData, setFormData, errors = {} }) {
-
+export default function FormRegistro({
+  tipoDoc,
+  formData,
+  setFormData,
+  errors = {},
+}) {
   useEffect(() => {
     if (tipoDoc === "Movimiento") {
       const tipo = formData.montoTotal >= 0 ? "Ingreso" : "Egreso";
@@ -16,10 +21,11 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
       }));
     }
   }, [tipoDoc, setFormData, formData.montoTotal]);
-  
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
 
+  return (
+    <Box
+      sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
+    >
       {/* 1️⃣ Monto total + Moneda + Medio de pago */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
         <Box sx={{ flex: 1 }}>
@@ -27,12 +33,16 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
           <OutlinedInput
             type="number"
             value={formData.montoTotal || ""}
-            onChange={(e) => setFormData((p) => ({ ...p, montoTotal: e.target.value }))}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, montoTotal: e.target.value }))
+            }
             size="small"
             fullWidth
             error={!!errors.montoTotal}
           />
-          {errors.montoTotal && <FormHelperText error>{errors.montoTotal}</FormHelperText>}
+          {errors.montoTotal && (
+            <FormHelperText error>{errors.montoTotal}</FormHelperText>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Moneda *</FormLabel>
@@ -43,14 +53,25 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
             width="100%"
             error={!!errors.moneda}
           />
-          {errors.moneda && <FormHelperText error>{errors.moneda}</FormHelperText>}
+          {errors.moneda && (
+            <FormHelperText error>{errors.moneda}</FormHelperText>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Medio de pago</FormLabel>
           <CustomSelect
             value={formData.medioPago || ""}
-            onChange={(valor) => setFormData((p) => ({ ...p, medioPago: valor }))}
-            options={["Efectivo", "Transferencia", "Cheque", "Tarjeta", "MercadoPago", "Otro"]}
+            onChange={(valor) =>
+              setFormData((p) => ({ ...p, medioPago: valor }))
+            }
+            options={[
+              "Efectivo",
+              "Transferencia",
+              "Cheque",
+              "Tarjeta",
+              "MercadoPago",
+              "Otro",
+            ]}
             width="100%"
           />
         </Box>
@@ -62,7 +83,9 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
           <FormLabel>Origen</FormLabel>
           <OutlinedInput
             value={formData.origen || ""}
-            onChange={(e) => setFormData((p) => ({ ...p, origen: e.target.value }))}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, origen: e.target.value }))
+            }
             size="small"
             fullWidth
           />
@@ -71,7 +94,9 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
           <FormLabel>Destino</FormLabel>
           <OutlinedInput
             value={formData.destino || ""}
-            onChange={(e) => setFormData((p) => ({ ...p, destino: e.target.value }))}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, destino: e.target.value }))
+            }
             size="small"
             fullWidth
           />
@@ -80,10 +105,14 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
           <FormLabel>Fecha emisión *</FormLabel>
           <CustomDatePicker
             value={formData.fechaEmision || null}
-            onChange={(fecha) => setFormData((p) => ({ ...p, fechaEmision: fecha }))}
+            onChange={(fecha) =>
+              setFormData((p) => ({ ...p, fechaEmision: fecha }))
+            }
             error={!!errors.fechaEmision}
           />
-          {errors.fechaEmision && <FormHelperText error>{errors.fechaEmision}</FormHelperText>}
+          {errors.fechaEmision && (
+            <FormHelperText error>{errors.fechaEmision}</FormHelperText>
+          )}
         </Box>
       </Box>
 
@@ -91,7 +120,7 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
       <Box>
         <FormLabel>Categoría</FormLabel>
         <CustomSingleAutoComplete
-          options={["Alimentos", "Transporte", "Educación", "Ocio"]}
+          options={TODAS_LAS_CATEGORIAS}
           value={formData.categoria || ""}
           onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
         />
@@ -103,21 +132,23 @@ export default function FormRegistro({ tipoDoc, formData, setFormData, errors = 
         <OutlinedInput
           multiline
           value={formData.descripcion || ""}
-          onChange={(e) => setFormData((p) => ({ ...p, descripcion: e.target.value }))}
+          onChange={(e) =>
+            setFormData((p) => ({ ...p, descripcion: e.target.value }))
+          }
           size="small"
           fullWidth
         />
       </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Número de documento asociado</FormLabel>
-          <CustomSingleAutoComplete
-            options={["112", "113", "114"]}
-            value={formData.numeroDocumentoAsociado || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, numeroDocumentoAsociado: valor }))
-            }
-          />
-        </Box>
+      <Box sx={{ flex: 1 }}>
+        <FormLabel>Número de documento asociado</FormLabel>
+        <CustomSingleAutoComplete
+          options={["112", "113", "114"]}
+          value={formData.numeroDocumentoAsociado || ""}
+          onChange={(valor) =>
+            setFormData((p) => ({ ...p, numeroDocumentoAsociado: valor }))
+          }
+        />
+      </Box>
     </Box>
   );
 }

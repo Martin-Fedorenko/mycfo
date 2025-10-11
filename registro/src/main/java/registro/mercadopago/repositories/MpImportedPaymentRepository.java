@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import registro.mercadopago.models.MpImportedPayment;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,4 +58,7 @@ public interface MpImportedPaymentRepository extends JpaRepository<MpImportedPay
     List<MpImportedPayment> findByUsuarioIdAndCategoria(
         @Param("usuarioId") UUID usuarioId,
         @Param("categoria") String categoria);
+    
+    // Buscar por múltiples IDs de Mercado Pago (para detección de duplicados)
+    List<MpImportedPayment> findByMpPaymentIdIn(Collection<String> mpPaymentIds);
 }

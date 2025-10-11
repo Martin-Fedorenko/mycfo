@@ -4,10 +4,13 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
+import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
 
 export default function FormFactura({ formData, setFormData, errors = {} }) {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
+    <Box
+      sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
+    >
       {/* 1️⃣ Número Documento */}
       <Box>
         <FormLabel>Número documento *</FormLabel>
@@ -94,9 +97,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>Moneda *</FormLabel>
           <CustomSelect
             value={formData.moneda || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, moneda: valor }))
-            }
+            onChange={(valor) => setFormData((p) => ({ ...p, moneda: valor }))}
             options={["ARS", "USD", "EUR"]}
             width="100%"
             error={!!errors.moneda}
@@ -112,7 +113,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         <Box sx={{ flex: 1 }}>
           <FormLabel>Categoría *</FormLabel>
           <CustomSingleAutoComplete
-            options={["Productos", "Servicios", "Mantenimiento", "Consultoría"]}
+            options={TODAS_LAS_CATEGORIAS}
             value={formData.categoria || ""}
             onChange={(valor) =>
               setFormData((p) => ({ ...p, categoria: valor }))

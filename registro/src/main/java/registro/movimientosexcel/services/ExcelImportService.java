@@ -346,13 +346,14 @@ public class ExcelImportService {
                             ? medioPago.getStringCellValue()
                             : String.valueOf(medioPago.getNumericCellValue());
                     
+                    TipoRegistro tipoReg = determinarTipoRegistro(montoValor);
                     RegistroPreviewDTO preview = new RegistroPreviewDTO(
-                            i + 1, determinarTipoRegistro(montoValor), montoValor, fechaLocal, 
+                            i + 1, tipoReg, montoValor, fechaLocal, 
                             descripcionStr, "MYCFO", parseMedioPago(medioPagoStr), TipoMoneda.ARS
                     );
                     
-                    // Sugerir categoría
-                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(descripcionStr));
+                    // Sugerir categoría usando el tipo de registro para mejor precisión
+                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(descripcionStr, tipoReg));
                     
                     // Verificar duplicados
                     verificarDuplicado(preview, registros);
@@ -422,14 +423,15 @@ public class ExcelImportService {
                     
                     LocalDate fechaLocal = parseFechaMercadoPago(fila.getCell(idx.get("FECHA")));
                     Double montoValor = parseMontoEsAr(rawMonto);
+                    TipoRegistro tipoReg = determinarTipoRegistro(montoValor);
                     
                     RegistroPreviewDTO preview = new RegistroPreviewDTO(
-                            i + 1, determinarTipoRegistro(montoValor), montoValor, fechaLocal,
+                            i + 1, tipoReg, montoValor, fechaLocal,
                             rawTipo, "MERCADO_PAGO", parseMedioPago("Mercado Pago"), TipoMoneda.ARS
                     );
                     
-                    // Sugerir categoría
-                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(rawTipo));
+                    // Sugerir categoría usando el tipo de registro para mejor precisión
+                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(rawTipo, tipoReg));
                     
                     // Verificar duplicados
                     verificarDuplicado(preview, registros);
