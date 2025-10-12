@@ -27,13 +27,26 @@ import CargaGeneral from "../registro/carga-general/CargaGeneral";
 import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
 import TablaRegistros from "../registro/movimientos-cargados/TablaRegistros";
 import ConciliacionPanel from "../conciliacion/ConciliacionPanel";
+import CargaSeleccionTipo from "../registro/carga-general/CargaSeleccionTipo";
+import CargaSeleccionMetodo from "../registro/carga-general/CargaSeleccionMetodo";
+import CargaVistaFinal from "../registro/carga-general/CargaVistaFinal";
 
 const routeConfig = [
   {
-    label: "Carga de datos",
-    path: "/carga",
-    icon: <DescriptionIcon />,
-    element: <CargaGeneral />,
+  label: "Carga de datos",
+  path: "/carga",
+  icon: <DescriptionIcon />,
+  element: <CargaSeleccionTipo />,
+  },
+  {
+    path: "/carga/:tipo",
+    element: <CargaSeleccionMetodo />,
+    hidden: true, // 👈 no aparece en menú
+  },
+  {
+    path: "/carga/:tipo/:modo",
+    element: <CargaVistaFinal />,
+    hidden: true,
   },
   {
     label: "Ver movimientos",

@@ -34,7 +34,9 @@ export default function MenuContent() {
   return (
     <Stack sx={{ flexGrow: 1, p: 1, justifyContent: "space-between" }}>
       <List dense>
-        {routeConfig.map((item, index) => {
+        {routeConfig
+        .filter((item) => !item.hidden)
+        .map((item, index) => {
           const isParentActive =
             (item.path && isActive(item.path)) ||
             item.children?.some((child) => isActive(child.path));

@@ -69,7 +69,7 @@ export default function CargaFormulario({
 
   const renderFormulario = () => {
     switch (tipoDoc) {
-      case "Factura":
+      case "factura":
         return (
           <FormFactura
             formData={formData}
@@ -77,7 +77,7 @@ export default function CargaFormulario({
             errors={errors}
           />
         );
-      case "Movimiento":
+      case "movimiento":
         return (
           <FormRegistro
             tipoDoc={tipoDoc}
@@ -93,9 +93,7 @@ export default function CargaFormulario({
 
   return (
     <Grid sx={{ mt: 3, width: "100%" }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Formulario para {tipoDoc}
-      </Typography>
+      
 
       {renderFormulario()}
 

@@ -5,6 +5,7 @@ import CustomSingleAutoComplete from "../../../../shared-components/CustomSingle
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
+import ConciliacionDialog from "../../../../shared-components/ConciliacionDialog";
 
 export default function FormRegistro({
   tipoDoc,
@@ -125,6 +126,7 @@ export default function FormRegistro({
           onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
         />
       </Box>
+
 
       {/* 4️⃣ Descripción */}
       <Box>

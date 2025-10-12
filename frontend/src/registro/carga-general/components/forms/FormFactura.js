@@ -1,10 +1,17 @@
 import React from "react";
-import { Box, FormLabel, FormHelperText } from "@mui/material";
-import OutlinedInput from "@mui/material/OutlinedInput";
+import {
+  Box,
+  FormLabel,
+  FormHelperText,
+  OutlinedInput,
+  MenuItem,
+  TextField,
+} from "@mui/material";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
+import ConciliacionDialog from "../../../../shared-components/ConciliacionDialog";
 
 export default function FormFactura({ formData, setFormData, errors = {} }) {
   return (
@@ -108,23 +115,21 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         </Box>
       </Box>
 
-      {/* 4️⃣ Categoría */}
+      {/* 3️⃣ Categoría + Botón Conciliar */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
         <Box sx={{ flex: 1 }}>
-          <FormLabel>Categoría *</FormLabel>
+          <FormLabel>Categoría</FormLabel>
           <CustomSingleAutoComplete
             options={TODAS_LAS_CATEGORIAS}
             value={formData.categoria || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, categoria: valor }))
-            }
-            error={!!errors.categoria}
+            onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
           />
-          {errors.categoria && (
-            <FormHelperText error>{errors.categoria}</FormHelperText>
-          )}
+        </Box>
+        <Box sx={{ flex: 1, display: "flex", alignItems: "flex-end" }}>
+          <ConciliacionDialog tipo="movimiento" width="100%" />
         </Box>
       </Box>
+
 
       {/* 5️⃣ Datos Vendedor */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
@@ -236,9 +241,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>CAE</FormLabel>
           <OutlinedInput
             value={formData.cae || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, cae: e.target.value }))
-            }
+            onChange={(e) => setFormData((p) => ({ ...p, cae: e.target.value }))}
             size="small"
             fullWidth
           />
@@ -251,6 +254,39 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
               setFormData((p) => ({ ...p, vencimientoCae: fecha }))
             }
           />
+        </Box>
+      </Box>
+
+      {/* 8️⃣ Estado de Pago + Fecha de Pago */}
+      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Estado de Pago</FormLabel>
+          <TextField
+            select
+            fullWidth
+            size="small"
+            value={formData.estadoPago || ""}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, estadoPago: e.target.value }))
+            }
+          >
+            <MenuItem value="Pago">Pago</MenuItem>
+            <MenuItem value="Pago pendiente">Pago pendiente</MenuItem>
+          </TextField>
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
+          <FormLabel>Fecha de Pago</FormLabel>
+          <CustomDatePicker
+            value={formData.fechaPago || null}
+            onChange={(fecha) =>
+              setFormData((p) => ({ ...p, fechaPago: fecha }))
+            }
+            error={!!errors.fechaPago}
+          />
+          {errors.fechaPago && (
+            <FormHelperText error>{errors.fechaPago}</FormHelperText>
+          )}
         </Box>
       </Box>
     </Box>
