@@ -61,6 +61,19 @@ export const mpApi = {
     return request(`/api/mp/payments?${sp.toString()}`);
   },
 
+  // Nuevo endpoint para obtener solo los pagos importados
+  listImportedPayments: (params = {}) => {
+    const { from, to, q, page = 0, pageSize = 20 } = params;
+    const sp = new URLSearchParams();
+    if (from) sp.set("from", from);
+    if (to) sp.set("to", to);
+    if (q) sp.set("q", q);
+    sp.set("page", page);
+    sp.set("size", pageSize);
+    sp.set("sort", "fecha,DESC");
+    return request(`/api/mp/imported-payments?${sp.toString()}`);
+  },
+
   // Métodos de preview (sin guardar)
   previewPaymentsByMonth: ({ month, year }) =>
     request("/api/mp/preview", { method: "POST", body: { month, year } }),
