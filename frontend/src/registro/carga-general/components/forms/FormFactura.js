@@ -10,6 +10,7 @@ import {
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
+import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
 import ConciliacionDialog from "../../../../shared-components/ConciliacionDialog";
 
 export default function FormFactura({ formData, setFormData, errors = {} }) {
@@ -119,7 +120,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         <Box sx={{ flex: 1 }}>
           <FormLabel>Categoría</FormLabel>
           <CustomSingleAutoComplete
-            options={["Alimentos", "Transporte", "Educación", "Ocio"]}
+            options={TODAS_LAS_CATEGORIAS}
             value={formData.categoria || ""}
             onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
           />

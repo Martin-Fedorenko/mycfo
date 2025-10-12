@@ -1,4 +1,3 @@
-// /mercado-pago/components/EditableCategory.js
 import React from "react";
 import {
   Chip,
@@ -13,8 +12,8 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { TODAS_LAS_CATEGORIAS } from "../../../shared-components/categorias";
 
-export default function EditableCategory({
-  value = "MercadoPago",
+export default function EditableExcelCategory({
+  value = "Sin categorizar",
   onChange,
   disabled = false,
 }) {
@@ -94,7 +93,7 @@ export default function EditableCategory({
       <Chip
         size="small"
         label={value}
-        color="default"
+        color="secondary"
         variant="outlined"
         sx={{ minWidth: 80 }}
       />

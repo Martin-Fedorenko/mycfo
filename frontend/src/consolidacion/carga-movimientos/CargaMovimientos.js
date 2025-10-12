@@ -9,17 +9,23 @@ import MenuItem from "@mui/material/MenuItem";
 import CamposRequeridos from "./components/CamposRequeridos";
 import ResumenCarga from "./components/ResumenCarga";
 import TablaErrores from "./components/TablaErrores";
+import ExcelPreviewDialog from "./components/ExcelPreviewDialog";
 import DropzoneUploader from "./../../shared-components/DropzoneUploader";
 import CustomButton from "./../../shared-components/CustomButton";
 import axios from "axios";
 
-export default function CargaMovimientos(props) {
+export default function CargaMovimientos({ onCargaCompletada }) {
   const [resumen, setResumen] = React.useState(null);
   const [file, setFile] = React.useState(null);
   const [tipoOrigen, setTipoOrigen] = React.useState("");
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+  const [previewData, setPreviewData] = React.useState([]);
+  const [previewLoading, setPreviewLoading] = React.useState(false);
+  const [fileName, setFileName] = React.useState("");
 
   const handleFileSelected = (archivo) => {
     setFile(archivo);
+    setFileName(archivo.name);
     console.log("Archivo recibido:", archivo);
   };
 
@@ -29,13 +35,14 @@ export default function CargaMovimientos(props) {
       return;
     }
 
+    setPreviewLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file); // nombre del campo que espera el backend
+      formData.append("file", file);
       formData.append("tipoOrigen", tipoOrigen);
 
       const response = await axios.post(
-        `${process.env.REACT_APP_URL_REGISTRO}/api/importar-excel`, // <-- endpoint del back
+        `${process.env.REACT_APP_URL_REGISTRO}/api/preview-excel`,
         formData,
         {
           headers: {
@@ -44,11 +51,45 @@ export default function CargaMovimientos(props) {
         }
       );
 
-      //Suponiendo que el back devuelve { totalRegistros, registrosExitosos, errores }
-      setResumen(response.data);
+      setPreviewData(response.data.registros || []);
+      setPreviewOpen(true);
     } catch (error) {
       console.error("Error al procesar el archivo:", error);
       alert("Ocurrió un error al procesar el archivo. Revisar consola.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleImportSelected = async (selectedRegistros) => {
+    try {
+      const requestData = {
+        registrosSeleccionados: selectedRegistros,
+        fileName: fileName,
+        tipoOrigen: tipoOrigen,
+      };
+
+      const response = await axios.post(
+        `${process.env.REACT_APP_URL_REGISTRO}/api/guardar-seleccionados`,
+        requestData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-User-ID": "00000000-0000-0000-0000-000000000001", // TODO: obtener del contexto de usuario
+          },
+        }
+      );
+
+      setResumen(response.data);
+      setPreviewOpen(false);
+      setFile(null);
+      setFileName("");
+
+      // Notificar que la carga se completó
+      onCargaCompletada?.();
+    } catch (error) {
+      console.error("Error al guardar los registros:", error);
+      alert("Ocurrió un error al guardar los registros. Revisar consola.");
     }
   };
 
@@ -90,7 +131,10 @@ export default function CargaMovimientos(props) {
             width="100%"
             onClick={procesarArchivo}
             sx={{ mt: 1, mb: 4 }}
-          />
+            disabled={previewLoading}
+          >
+            {previewLoading ? "Procesando..." : "Vista Previa"}
+          </CustomButton>
         </>
       )}
       {resumen && (
@@ -103,6 +147,18 @@ export default function CargaMovimientos(props) {
           )}
         </Box>
       )}
+      <ExcelPreviewDialog
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewData([]);
+        }}
+        previewData={previewData}
+        loading={previewLoading}
+        onImportSelected={handleImportSelected}
+        fileName={fileName}
+        tipoOrigen={tipoOrigen}
+      />
     </Box>
   );
 }

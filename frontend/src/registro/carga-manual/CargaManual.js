@@ -1,62 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  Box, Typography, Grid, MenuItem, Chip, Autocomplete,
-  FormLabel, FormHelperText, Select, TextField, InputLabel
-} from '@mui/material';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import { styled } from '@mui/material/styles';
+  Box,
+  Typography,
+  Grid,
+  MenuItem,
+  Chip,
+  Autocomplete,
+  FormLabel,
+  FormHelperText,
+  Select,
+  TextField,
+  InputLabel,
+} from "@mui/material";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import { styled } from "@mui/material/styles";
 
-import { DatePicker, TimePicker } from '@mui/x-date-pickers';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import axios from 'axios';
+import { DatePicker, TimePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import axios from "axios";
 import CustomButton from "./../../shared-components/CustomButton";
-import CustomDatePicker from '../../shared-components/CustomDatePicker';
-import EditableText from '../../shared-components/CampoEditable';
-import ComentarioEditable from '../../shared-components/CampoEditable';
+import CustomDatePicker from "../../shared-components/CustomDatePicker";
+import EditableText from "../../shared-components/CampoEditable";
+import ComentarioEditable from "../../shared-components/CampoEditable";
+import { TODAS_LAS_CATEGORIAS } from "../../shared-components/categorias";
 
 const FormGrid = styled(Grid)(() => ({
-  display: 'flex',
-  flexDirection: 'column',
+  display: "flex",
+  flexDirection: "column",
 }));
 
 export default function CargaManual() {
-  const tipos = ['Ingreso', 'Egreso', 'Deuda', 'Acreencia'];
+  const tipos = ["Ingreso", "Egreso", "Deuda", "Acreencia"];
 
-  const sugerenciasCategorias = [
-    'Comida',
-    'Combustible',
-    'Donación',
-    'Venta',
-    'Compra',
-    'Servicio',
-    'Renta',
-    'Impuestos',
-    'Salud',
-    'Transporte',
-    'Entretenimiento',
-  ];
+  // Usar categorías unificadas
+  const sugerenciasCategorias = TODAS_LAS_CATEGORIAS;
 
-  const [tipo, setTipo] = useState('');
-  const [monto, setMonto] = useState('');
+  const [tipo, setTipo] = useState("");
+  const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState(null);
-  const [hora,  setHora]  = useState(null);
+  const [hora, setHora] = useState(null);
   const [categorias, setCategorias] = useState([]);
-  const [categoriaInput, setCategoriaInput] = useState('');
-  const [tercero, setTercero] = useState('');
-  const [comentario, setComentario] = useState('');
+  const [categoriaInput, setCategoriaInput] = useState("");
+  const [tercero, setTercero] = useState("");
+  const [comentario, setComentario] = useState("");
   const [errores, setErrores] = useState({});
 
   const handleAgregarCategoria = (value) => {
     if (!value) return;
     const nueva = value.trim();
     if (
-      nueva !== '' &&
+      nueva !== "" &&
       !categorias.some((c) => c.toLowerCase() === nueva.toLowerCase())
     ) {
       setCategorias((prev) => [...prev, nueva]);
     }
-    setCategoriaInput('');
+    setCategoriaInput("");
   };
 
   const handleDeleteCategoria = (cat) => {
@@ -70,7 +69,8 @@ export default function CargaManual() {
     const montoNum = Number(monto);
 
     if (!tipo) nuevosErrores.tipo = "El tipo es obligatorio";
-    if (monto === '' || montoNum <= 0) nuevosErrores.monto = "El monto debe ser mayor que 0";
+    if (monto === "" || montoNum <= 0)
+      nuevosErrores.monto = "El monto debe ser mayor que 0";
     if (!fecha) nuevosErrores.fecha = "La fecha es obligatoria";
     if (!hora) nuevosErrores.hora = "La hora es obligatoria";
 
@@ -87,7 +87,7 @@ export default function CargaManual() {
     const payload = {
       tipo,
       monto: montoNum,
-      fecha: fechaHora.format('YYYY-MM-DDTHH:mm:ss'),
+      fecha: fechaHora.format("YYYY-MM-DDTHH:mm:ss"),
       categorias,
       tercero,
       comentario,
@@ -97,29 +97,25 @@ export default function CargaManual() {
 
     try {
       const response = await axios.post(`${URL_REGISTRO}/registros`, payload);
-      console.log('✅ Datos guardados:', response.data);
+      console.log("✅ Datos guardados:", response.data);
 
       // 🔹 Limpiar formulario si se guardó con éxito
-      setTipo('');
-      setMonto('');
+      setTipo("");
+      setMonto("");
       setFecha(null);
       setHora(null);
       setCategorias([]);
-      setCategoriaInput('');
-      setTercero('');
-      setComentario('');
+      setCategoriaInput("");
+      setTercero("");
+      setComentario("");
       setErrores({});
-      
     } catch (error) {
-      console.error('❌ Error al guardar los datos:', error);
+      console.error("❌ Error al guardar los datos:", error);
     }
   };
 
-
-
-
   const montoNum = Number(monto);
-  const montoInvalido = monto !== '' && montoNum < 0;
+  const montoInvalido = monto !== "" && montoNum < 0;
 
   const opcionesFiltradas = sugerenciasCategorias.filter(
     (option) =>
@@ -128,7 +124,7 @@ export default function CargaManual() {
   );
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto', mt: 4, p: 3 }}>
+    <Box sx={{ width: "100%", maxWidth: 720, mx: "auto", mt: 4, p: 3 }}>
       <Typography variant="h5" sx={{ mb: 3 }}>
         Carga Manual
       </Typography>
@@ -136,7 +132,9 @@ export default function CargaManual() {
       <Grid container spacing={2}>
         {/* Tipo */}
         <FormGrid size={{ xs: 12 }}>
-          <InputLabel id="tipo" required>Tipo</InputLabel>
+          <InputLabel id="tipo" required>
+            Tipo
+          </InputLabel>
           <Select
             labelId="tipo"
             id="tipo"
@@ -157,9 +155,10 @@ export default function CargaManual() {
               </MenuItem>
             ))}
           </Select>
-          {errores.tipo && <FormHelperText error>{errores.tipo}</FormHelperText>}
+          {errores.tipo && (
+            <FormHelperText error>{errores.tipo}</FormHelperText>
+          )}
         </FormGrid>
-
 
         {/* Monto */}
         <FormGrid size={{ xs: 12 }}>
@@ -170,16 +169,18 @@ export default function CargaManual() {
             id="monto"
             type="number"
             placeholder="0.00"
-            inputProps={{ step: '0.01' }}
+            inputProps={{ step: "0.01" }}
             value={monto}
             onChange={(e) => setMonto(e.target.value)}
             size="small"
-            aria-invalid={montoInvalido ? 'true' : 'false'}
+            aria-invalid={montoInvalido ? "true" : "false"}
           />
-          {errores.monto && <FormHelperText error>{errores.monto}</FormHelperText>}
+          {errores.monto && (
+            <FormHelperText error>{errores.monto}</FormHelperText>
+          )}
         </FormGrid>
 
-        <CustomDatePicker/>
+        <CustomDatePicker />
 
         {/* Tercero (opcional) */}
         <FormGrid size={{ xs: 12 }}>
@@ -189,7 +190,7 @@ export default function CargaManual() {
             placeholder="Ej: Proveedor, cliente, etc."
             value={tercero}
             onChange={(e) => setTercero(e.target.value)}
-            size='large'
+            size="large"
           />
         </FormGrid>
 
@@ -201,30 +202,32 @@ export default function CargaManual() {
             placeholder="Observaciones…"
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
-            size='large'
+            size="large"
           />
         </FormGrid>
 
         {/* Autocomplete para agregar categoría (opcional)*/}
         <FormGrid size={{ xs: 12 }}>
-          <FormLabel htmlFor="categoria-input">Agregar categoría (opcional)</FormLabel>
+          <FormLabel htmlFor="categoria-input">
+            Agregar categoría (opcional)
+          </FormLabel>
           <Autocomplete
             id="categoria-input"
             freeSolo
             options={opcionesFiltradas}
             inputValue={categoriaInput}
             onInputChange={(event, newValue, reason) => {
-              if (reason !== 'reset') setCategoriaInput(newValue);
+              if (reason !== "reset") setCategoriaInput(newValue);
             }}
             onChange={(event, newValue) => {
-              if (typeof newValue === 'string') {
+              if (typeof newValue === "string") {
                 handleAgregarCategoria(newValue);
               } else if (newValue && newValue.inputValue) {
                 handleAgregarCategoria(newValue.inputValue);
               } else if (newValue) {
                 handleAgregarCategoria(newValue);
               }
-              setCategoriaInput('');
+              setCategoriaInput("");
             }}
             renderInput={(params) => (
               <TextField

@@ -59,6 +59,10 @@ export default function MpPreviewDialog({
     }
   };
 
+  // Contar duplicados y válidos
+  const duplicadosCount = previewData.filter((p) => p.esDuplicado).length;
+  const validosCount = previewData.length - duplicadosCount;
+
   return (
     <Dialog
       open={open}
@@ -90,13 +94,12 @@ export default function MpPreviewDialog({
 
           {previewData.length > 0 && (
             <>
-              <Alert severity="info">
-                <Typography variant="body2">
-                  Revisa los pagos encontrados y selecciona cuáles deseas
-                  importar. Los pagos se clasifican automáticamente como INGRESO
-                  o EGRESO según su estado en MercadoPago.
-                </Typography>
-              </Alert>
+              {duplicadosCount > 0 && (
+                <Alert severity="warning">
+                  Se encontraron <strong>{duplicadosCount}</strong> pago(s)
+                  duplicado(s). Estos pagos ya fueron importados anteriormente.
+                </Alert>
+              )}
 
               <Paper variant="outlined" sx={{ borderRadius: 2 }}>
                 <MpPaymentsTable
