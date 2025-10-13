@@ -1,11 +1,9 @@
 package pronostico.dtos;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 @Getter @Setter
@@ -17,12 +15,10 @@ public class CrearPresupuestoRequest {
   private String nombre;
 
   @JsonProperty("desde")
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-  private LocalDate desde;
+  private String desde; // formato YYYY-MM
 
   @JsonProperty("hasta")
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-  private LocalDate hasta;
+  private String hasta; // formato YYYY-MM
 
   @JsonProperty("autogenerarCeros")
   private boolean autogenerarCeros;

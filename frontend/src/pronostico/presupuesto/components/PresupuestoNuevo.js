@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
-import axios from 'axios';
+import http from '../../../api/http';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -86,7 +86,7 @@ export default function PresupuestoNuevo() {
 
   const meses = React.useMemo(() => {
     if (!fechaDesde || !fechaHasta) return [];
-    return generarMesesEntre(fechaDesde.slice(0, 7), fechaHasta.slice(0, 7));
+    return generarMesesEntre(fechaDesde, fechaHasta);
   }, [fechaDesde, fechaHasta]);
 
   // Mantener coherencia de estructura al cambiar meses/categorías
@@ -125,8 +125,8 @@ export default function PresupuestoNuevo() {
   // Validaciones básicas
   const validarPaso1 = () => {
     if (!nombre) return 'Ingresá un nombre para el presupuesto.';
-    if (!fechaDesde || !fechaHasta) return 'Completá las fechas.';
-    if (fechaDesde > fechaHasta) return 'La fecha "Desde" no puede ser posterior a "Hasta".';
+    if (!fechaDesde || !fechaHasta) return 'Completá los meses.';
+    if (fechaDesde > fechaHasta) return 'El mes "Desde" no puede ser posterior a "Hasta".';
     return null;
   };
   const validarPaso2 = () => {
@@ -226,7 +226,7 @@ export default function PresupuestoNuevo() {
   // Aplicar reglas a la grilla
   const aplicarReglas = () => {
     if (meses.length === 0) {
-      setErrors('Definí el rango de fechas primero.');
+      setErrors('Definí el rango de meses primero.');
       return;
     }
     setErrors(null);
@@ -330,7 +330,7 @@ export default function PresupuestoNuevo() {
     const v2 = validarPaso2(); if (v2) return setErrors(v2);
 
     try {
-      // Normalizo fechas a YYYY-MM-DD (ya vienen así desde el input type="date")
+      // Normalizo meses a YYYY-MM (ya vienen así desde el input type="month")
       const dDesde = fechaDesde;
       const dHasta = fechaHasta;
 
@@ -365,7 +365,7 @@ export default function PresupuestoNuevo() {
         plantilla
       };
 
-      const res = await axios.post(
+      const res = await http.post(
         `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`,
         payload
       );
@@ -399,8 +399,8 @@ export default function PresupuestoNuevo() {
         <>
           <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
             <TextField label="Nombre del presupuesto" value={nombre} onChange={e => setNombre(e.target.value)} fullWidth variant="outlined" />
-            <TextField label="Desde" type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} InputLabelProps={{ shrink: true }} />
-            <TextField label="Hasta" type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField label="Desde" type="month" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField label="Hasta" type="month" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} InputLabelProps={{ shrink: true }} />
           </Box>
 
           <Divider sx={{ my: 2 }} />
@@ -425,14 +425,14 @@ export default function PresupuestoNuevo() {
           </Box>
 
           <Paper sx={{ p: 2, mb: 2, overflowX: 'auto' }}>
-            <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
+            <Table size="small" sx={{ tableLayout: 'auto', width: '100%', minWidth: 720 }}>
               <TableHead>
                 <TableRow sx={tableRowStyle}>
                   <TableCell sx={tableCellStyle}>Categoría</TableCell>
                   <TableCell sx={tableCellStyle}>Tipo</TableCell>
                   <TableCell sx={tableCellStyle}>Regla</TableCell>
                   <TableCell sx={tableCellStyle}>Parámetros</TableCell>
-                  <TableCell sx={tableCellStyle}>Acciones</TableCell>
+                  <TableCell sx={{ ...tableCellStyle, width: 96, minWidth: 96, maxWidth: 96 }}>Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -469,93 +469,155 @@ export default function PresupuestoNuevo() {
                       </TableCell>
 
                       {/* Parámetros por modo */}
-                      <TableCell sx={{ ...tableCellStyle, textAlign: 'left' }}>
+                      <TableCell
+                        sx={{
+                          ...tableCellStyle,
+                          textAlign: 'left',
+                          whiteSpace: 'normal',
+                          overflow: 'visible',
+                          textOverflow: 'unset',
+                          minWidth: 220,
+                          maxWidth: 420,
+                        }}
+                      >
                         {r.modo === 'FIJO' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
+                          <Stack spacing={0.75} alignItems="flex-start">
                             <TextField
-                              type="number" label="Importe"
-                              value={r.importe ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'importe', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 120 }}
-                              inputProps={{ min: 0 }}
+                              type="number"
+                              label="Importe"
+                              value={r.importe ?? ''}
+                              onChange={e => handleCambioRegla(idx, 'importe', e.target.value)}
+                              size="small"
+                              variant="standard"
+                              sx={{ maxWidth: 180 }}
+                              inputProps={{ min: 0, inputMode: 'decimal' }}
                             />
-                            <Chip label="Mismo importe todos los meses" size="small" />
+                            <Typography variant="caption" color="text.secondary">
+                              Mismo importe para cada mes del rango
+                            </Typography>
                           </Stack>
                         )}
                         {r.modo === 'AJUSTE' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <TextField
-                              type="number" label="Importe inicial"
-                              value={r.importe ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'importe', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 140 }}
-                              inputProps={{ min: 0 }}
-                            />
-                            <TextField
-                              type="number" label="% mensual"
-                              value={r.porcentaje ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'porcentaje', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 120 }}
-                              inputProps={{ step: 0.1 }}
-                            />
-                            <Chip label="Crecimiento compuesto" size="small" color="info" />
+                          <Stack spacing={0.75} alignItems="flex-start">
+                            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
+                              <TextField
+                                type="number"
+                                label="Importe inicial"
+                                value={r.importe ?? ''}
+                                onChange={e => handleCambioRegla(idx, 'importe', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                                inputProps={{ min: 0, inputMode: 'decimal' }}
+                              />
+                              <TextField
+                                type="number"
+                                label="% mensual"
+                                value={r.porcentaje ?? ''}
+                                onChange={e => handleCambioRegla(idx, 'porcentaje', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 120px', minWidth: 120 }}
+                                inputProps={{ step: 0.1, inputMode: 'decimal' }}
+                              />
+                            </Stack>
+                            <Typography variant="caption" color="info.main">
+                              Crecimiento compuesto mes a mes
+                            </Typography>
                           </Stack>
                         )}
                         {r.modo === 'UNICO' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <TextField
-                              select label="Mes" value={r.mesUnico || ''} onChange={e => handleCambioRegla(idx, 'mesUnico', e.target.value)}
-                              size="small" variant="standard" sx={{ minWidth: 120 }}
-                            >
-                              {meses.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-                            </TextField>
-                            <TextField
-                              type="number" label="Importe"
-                              value={r.importe ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'importe', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 120 }}
-                              inputProps={{ min: 0 }}
-                            />
-                            <Chip label="Solo un mes" size="small" />
+                          <Stack spacing={0.75} alignItems="flex-start">
+                            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
+                              <TextField
+                                select
+                                label="Mes"
+                                value={r.mesUnico || ''}
+                                onChange={e => handleCambioRegla(idx, 'mesUnico', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                              >
+                                {meses.map(m => (
+                                  <MenuItem key={m} value={m}>
+                                    {m}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                              <TextField
+                                type="number"
+                                label="Importe"
+                                value={r.importe ?? ''}
+                                onChange={e => handleCambioRegla(idx, 'importe', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                                inputProps={{ min: 0, inputMode: 'decimal' }}
+                              />
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary">
+                              Se aplica solo al mes seleccionado
+                            </Typography>
                           </Stack>
                         )}
                         {r.modo === 'CUOTAS' && (
-                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                            <TextField
-                              type="number" label="Monto total"
-                              value={r.montoTotal ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'montoTotal', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 140 }}
-                              inputProps={{ min: 0 }}
-                            />
-                            <TextField
-                              type="number" label="Cuotas"
-                              value={r.cuotas ?? 2}
-                              onChange={e => handleCambioRegla(idx, 'cuotas', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 100 }}
-                              inputProps={{ min: 1 }}
-                            />
-                            <TextField
-                              type="number" label="% interés mensual"
-                              value={r.interesMensual ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'interesMensual', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 150 }}
-                              inputProps={{ step: 0.1 }}
-                            />
-                            <TextField
-                              select label="Comienza" value={r.comienza || (meses[0] || '')}
-                              onChange={e => handleCambioRegla(idx, 'comienza', e.target.value)}
-                              size="small" variant="standard" sx={{ minWidth: 130 }}
-                            >
-                              {meses.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-                            </TextField>
-                            <Chip label="Sistema francés si hay interés" size="small" color="warning" />
+                          <Stack spacing={0.75} alignItems="flex-start">
+                            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
+                              <TextField
+                                type="number"
+                                label="Monto total"
+                                value={r.montoTotal ?? ''}
+                                onChange={e => handleCambioRegla(idx, 'montoTotal', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 150px', minWidth: 150 }}
+                                inputProps={{ min: 0, inputMode: 'decimal' }}
+                              />
+                              <TextField
+                                type="number"
+                                label="Cuotas"
+                                value={r.cuotas ?? ''}
+                                onChange={e => handleCambioRegla(idx, 'cuotas', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 110px', minWidth: 110 }}
+                                inputProps={{ min: 1, step: 1, inputMode: 'numeric' }}
+                              />
+                              <TextField
+                                type="number"
+                                label="% interés"
+                                value={r.interesMensual ?? ''}
+                                onChange={e => handleCambioRegla(idx, 'interesMensual', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 120px', minWidth: 120 }}
+                                inputProps={{ step: 0.1, inputMode: 'decimal' }}
+                              />
+                              <TextField
+                                select
+                                label="Comienza"
+                                value={r.comienza || meses[0] || ''}
+                                onChange={e => handleCambioRegla(idx, 'comienza', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                              >
+                                {meses.map(m => (
+                                  <MenuItem key={m} value={m}>
+                                    {m}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            </Stack>
+                            <Typography variant="caption" color="warning.main">
+                              Calcula cuotas estilo francés cuando hay interés
+                            </Typography>
                           </Stack>
                         )}
                       </TableCell>
 
-                      <TableCell sx={tableCellStyle}>
-                        <Stack direction="row" spacing={1} justifyContent="center">
+                      <TableCell sx={{ ...tableCellStyle, width: 96, minWidth: 96, maxWidth: 96, px: 0.5 }}>
+                        <Stack direction="row" spacing={0.5} justifyContent="center">
                           <Tooltip title="Duplicar categoría">
                             <IconButton onClick={() => handleDuplicarCategoria(idx)} size="small"><ContentCopyIcon fontSize="small" /></IconButton>
                           </Tooltip>
@@ -687,3 +749,4 @@ export default function PresupuestoNuevo() {
     </Box>
   );
 }
+

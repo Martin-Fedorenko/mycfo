@@ -102,7 +102,7 @@ services:
       - mycfo_network
     environment:
       - SERVER_PORT=8085
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/pronostico_db
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/pronostico_db_test
       - SPRING_DATASOURCE_USERNAME=user
       - SPRING_DATASOURCE_PASSWORD=password
 
