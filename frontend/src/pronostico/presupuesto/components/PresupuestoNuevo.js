@@ -10,6 +10,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import http from '../../../api/http';
+import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -45,7 +46,7 @@ function generarMesesEntre(desde, hasta) {
 }
 
 // Helper ARS
-const fmtARS = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Number(n || 0));
+const fmtARS = (n) => formatCurrency(n);
 
 /**
  * Modo de regla por categoría:
@@ -302,7 +303,8 @@ export default function PresupuestoNuevo() {
 
   // Edición manual de la grilla
   const handleCambioMonto = (mes, categoria, campo, valor) => {
-    const num = Number(valor);
+    const num = valor === '' ? 0 : Number(valor);
+    if (Number.isNaN(num)) return;
     if (lockNegative && num < 0) return;
     setPresupuestoDataMes(oldData => {
       const newData = { ...oldData };
@@ -483,14 +485,17 @@ export default function PresupuestoNuevo() {
                         {r.modo === 'FIJO' && (
                           <Stack spacing={0.75} alignItems="flex-start">
                             <TextField
-                              type="number"
+                              type="text"
                               label="Importe"
-                              value={r.importe ?? ''}
-                              onChange={e => handleCambioRegla(idx, 'importe', e.target.value)}
+                              value={formatCurrencyInput(r.importe)}
+                              onChange={(e) => {
+                                const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
+                              }}
                               size="small"
                               variant="standard"
                               sx={{ maxWidth: 180 }}
-                              inputProps={{ min: 0, inputMode: 'decimal' }}
+                              inputProps={{ inputMode: 'numeric' }}
                             />
                             <Typography variant="caption" color="text.secondary">
                               Mismo importe para cada mes del rango
@@ -501,14 +506,17 @@ export default function PresupuestoNuevo() {
                           <Stack spacing={0.75} alignItems="flex-start">
                             <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
                               <TextField
-                                type="number"
+                                type="text"
                                 label="Importe inicial"
-                                value={r.importe ?? ''}
-                                onChange={e => handleCambioRegla(idx, 'importe', e.target.value)}
+                                value={formatCurrencyInput(r.importe)}
+                                onChange={(e) => {
+                                  const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                  handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
+                                }}
                                 size="small"
                                 variant="standard"
                                 sx={{ flex: '1 1 140px', minWidth: 140 }}
-                                inputProps={{ min: 0, inputMode: 'decimal' }}
+                                inputProps={{ inputMode: 'numeric' }}
                               />
                               <TextField
                                 type="number"
@@ -545,14 +553,17 @@ export default function PresupuestoNuevo() {
                                 ))}
                               </TextField>
                               <TextField
-                                type="number"
+                                type="text"
                                 label="Importe"
-                                value={r.importe ?? ''}
-                                onChange={e => handleCambioRegla(idx, 'importe', e.target.value)}
+                                value={formatCurrencyInput(r.importe)}
+                                onChange={(e) => {
+                                  const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                  handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
+                                }}
                                 size="small"
                                 variant="standard"
                                 sx={{ flex: '1 1 140px', minWidth: 140 }}
-                                inputProps={{ min: 0, inputMode: 'decimal' }}
+                                inputProps={{ inputMode: 'numeric' }}
                               />
                             </Stack>
                             <Typography variant="caption" color="text.secondary">
@@ -564,14 +575,17 @@ export default function PresupuestoNuevo() {
                           <Stack spacing={0.75} alignItems="flex-start">
                             <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
                               <TextField
-                                type="number"
+                                type="text"
                                 label="Monto total"
-                                value={r.montoTotal ?? ''}
-                                onChange={e => handleCambioRegla(idx, 'montoTotal', e.target.value)}
+                                value={formatCurrencyInput(r.montoTotal)}
+                                onChange={(e) => {
+                                  const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                  handleCambioRegla(idx, 'montoTotal', parsed === '' ? '' : parsed);
+                                }}
                                 size="small"
                                 variant="standard"
                                 sx={{ flex: '1 1 150px', minWidth: 150 }}
-                                inputProps={{ min: 0, inputMode: 'decimal' }}
+                                inputProps={{ inputMode: 'numeric' }}
                               />
                               <TextField
                                 type="number"
@@ -691,12 +705,12 @@ export default function PresupuestoNuevo() {
                         return (
                           <TableCell key={idx} sx={tableCellStyle}>
                             <TextField
-                              type="number"
+                              type="text"
                               variant="standard"
                               size="small"
-                              value={Number(valores.sugerido || 0)}
-                              onChange={e => handleCambioMonto(mes, cat.categoria, 'sugerido', e.target.value)}
-                              inputProps={{ min: 0, style: { padding: '4px 6px', textAlign: 'right' } }}
+                              value={formatCurrencyInput(valores.sugerido)}
+                              onChange={(e) => handleCambioMonto(mes, cat.categoria, 'sugerido', parseCurrency(e.target.value, { returnEmpty: true }))}
+                              inputProps={{ inputMode: 'numeric', style: { padding: '4px 6px', textAlign: 'right' } }}
                               sx={{ maxWidth: 90 }}
                             />
                           </TableCell>

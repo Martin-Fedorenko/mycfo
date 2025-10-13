@@ -39,7 +39,12 @@ function findMatchingRoute(path) {
 }
 
 function capitalizeFirst(text = '') {
+  if (typeof text !== 'string') return text;
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function formatLabel(input) {
+  return typeof input === 'string' ? capitalizeFirst(input) : input;
 }
 
 export default function NavbarBreadcrumbs() {
@@ -79,9 +84,14 @@ export default function NavbarBreadcrumbs() {
           const { route, params } = matchResult;
           if (route.breadcrumb) {
             label = route.breadcrumb(params);
+          } else if (typeof route.label === 'function') {
+            // Support dynamic labels defined as functions in route config
+            label = route.label(params);
           } else {
-            label = capitalizeFirst(route.label || value);
+            label = formatLabel(route.label ?? value);
           }
+        } else {
+          label = formatLabel(value);
         }
 
         return isLast ? (
