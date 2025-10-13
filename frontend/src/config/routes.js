@@ -1,10 +1,11 @@
 import StorageIcon from "@mui/icons-material/Storage";
 import DescriptionIcon from "@mui/icons-material/Description";
+import LinkIcon from "@mui/icons-material/Link";
 
 import CargaManual from "../registro/carga-manual/CargaManual";
 import CargaDocumento from "../registro/carga-documento/CargaDocumento";
 import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
-import CargaMovimientos from "../consolidacion/carga-movimientos/CargaMovimientos";
+import ExcelManagement from "../consolidacion/carga-movimientos/ExcelManagement";
 import CashFlow from "../reportes/cash-flow/CashFlow";
 import Notificaciones from "../notificaciones/listado-notificaciones/Notificaciones";
 import NotificationCenter from "../notificaciones/components/NotificationCenter/NotificationCenter";
@@ -25,19 +26,39 @@ import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
 import CargaGeneral from "../registro/carga-general/CargaGeneral";
 import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
 import TablaRegistros from "../registro/movimientos-cargados/TablaRegistros";
+import ConciliacionPanel from "../conciliacion/ConciliacionPanel";
+import CargaSeleccionTipo from "../registro/carga-general/CargaSeleccionTipo";
+import CargaSeleccionMetodo from "../registro/carga-general/CargaSeleccionMetodo";
+import CargaVistaFinal from "../registro/carga-general/CargaVistaFinal";
 
 const routeConfig = [
   {
-    label: "Carga de datos",
-    path: "/carga",
-    icon: <DescriptionIcon />,
-    element: <CargaGeneral />,
+  label: "Carga de datos",
+  path: "/carga",
+  icon: <DescriptionIcon />,
+  element: <CargaSeleccionTipo />,
+  },
+  {
+    path: "/carga/:tipo",
+    element: <CargaSeleccionMetodo />,
+    hidden: true, // 👈 no aparece en menú
+  },
+  {
+    path: "/carga/:tipo/:modo",
+    element: <CargaVistaFinal />,
+    hidden: true,
   },
   {
     label: "Ver movimientos",
     path: "/ver-movimientos",
     icon: <DescriptionIcon />,
     element: <TablaRegistros />,
+  },
+  {
+    label: "Conciliación",
+    path: "/conciliacion",
+    icon: <LinkIcon />,
+    element: <ConciliacionPanel />,
   },
   {
     label: "Consolidación Bancaria",
@@ -47,7 +68,7 @@ const routeConfig = [
         label: "Carga de movimientos",
         path: "/carga-movimientos",
         icon: <DescriptionIcon />,
-        element: <CargaMovimientos />,
+        element: <ExcelManagement />,
       },
       {
         label: "Mercado Pago",

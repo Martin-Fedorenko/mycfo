@@ -17,6 +17,10 @@ public class PaymentDTO {
     private Long mpPaymentId;
     private String moneda;
     private String estado;
+    
+    // Campos para detección de duplicados
+    private Boolean esDuplicado = false;
+    private String motivoDuplicado;
 
     // getters/setters principales
     public String getCategoria(){return categoria;} public void setCategoria(String v){this.categoria=v;}
@@ -31,4 +35,8 @@ public class PaymentDTO {
     public Long getMpPaymentId(){return mpPaymentId;} public void setMpPaymentId(Long v){this.mpPaymentId=v;}
     public String getMoneda(){return moneda;} public void setMoneda(String v){this.moneda=v;}
     public String getEstado(){return estado;} public void setEstado(String v){this.estado=v;}
+    
+    // getters/setters para duplicados
+    public Boolean getEsDuplicado(){return esDuplicado;} public void setEsDuplicado(Boolean v){this.esDuplicado=v;}
+    public String getMotivoDuplicado(){return motivoDuplicado;} public void setMotivoDuplicado(String v){this.motivoDuplicado=v;}
 }

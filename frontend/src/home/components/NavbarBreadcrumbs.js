@@ -77,15 +77,11 @@ export default function NavbarBreadcrumbs() {
 
         if (matchResult) {
           const { route, params } = matchResult;
-          const paramValues = params && Object.values(params);
-
-          if (paramValues.length > 0) {
-            label = capitalizeFirst(paramValues[0]); // mostrar ID
+          if (route.breadcrumb) {
+            label = route.breadcrumb(params);
           } else {
-            label = capitalizeFirst(route.label || value); // usar label si está
+            label = capitalizeFirst(route.label || value);
           }
-        } else {
-          label = capitalizeFirst(value); // fallback
         }
 
         return isLast ? (
