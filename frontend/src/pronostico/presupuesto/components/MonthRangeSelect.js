@@ -170,7 +170,23 @@ export default function MonthRangeSelect({ value = {}, onChange }) {
 
           {/* Años visibles */}
           {years.map(year => (
-            <Box key={year} sx={{ mb: 0.5 }}>
+            <Box 
+              key={year} 
+              sx={{ 
+                mb: 0.5,
+                animation: 'fadeIn 0.3s ease-in-out',
+                '@keyframes fadeIn': {
+                  '0%': {
+                    opacity: 0,
+                    transform: 'translateY(10px)'
+                  },
+                  '100%': {
+                    opacity: 1,
+                    transform: 'translateY(0)'
+                  }
+                }
+              }}
+            >
               <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 'bold' }}>
                 {year}
               </Typography>
