@@ -2,6 +2,7 @@ package pronostico.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -27,6 +28,10 @@ public class Presupuesto {
 
     @Column(nullable=false, length=10)
     private String hasta;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     @Builder.Default
     @Column(nullable = false)

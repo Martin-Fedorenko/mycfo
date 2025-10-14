@@ -2,6 +2,8 @@ package pronostico.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,14 +64,18 @@ public class PresupuestoService {
     }
 
     public List<PresupuestoDTO> findAllByOwner(String ownerSub) {
-        return listByStatus(ownerSub, ListStatus.ACTIVE);
+        return listByStatus(ownerSub, ListStatus.ACTIVE, Pageable.unpaged()).getContent();
     }
 
     public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub) {
-        return findByRange(from, to, ownerSub, ListStatus.ACTIVE);
+        return findByRange(from, to, ownerSub, ListStatus.ACTIVE, Pageable.unpaged()).getContent();
     }
 
     public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub, ListStatus status) {
+        return findByRange(from, to, ownerSub, status, Pageable.unpaged()).getContent();
+    }
+
+    public Page<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub, ListStatus status, Pageable pageable) {
         if (from == null || to == null) {
             throw new IllegalArgumentException("El rango debe incluir fechas 'from' y 'to'");
         }
@@ -78,12 +84,13 @@ public class PresupuestoService {
         }
         String fromStr = from.format(ISO_DATE);
         String toStr = to.format(ISO_DATE);
-        List<Presupuesto> result = switch (status) {
-            case ACTIVE -> repo.findActiveOverlapping(ownerSub, fromStr, toStr);
-            case DELETED -> repo.findDeletedOverlapping(ownerSub, fromStr, toStr);
-            case ALL -> repo.findAnyOverlapping(ownerSub, fromStr, toStr);
+        Pageable safePageable = pageable != null ? pageable : Pageable.unpaged();
+        Page<Presupuesto> result = switch (status) {
+            case ACTIVE -> repo.findActiveOverlapping(ownerSub, fromStr, toStr, safePageable);
+            case DELETED -> repo.findDeletedOverlapping(ownerSub, fromStr, toStr, safePageable);
+            case ALL -> repo.findAnyOverlapping(ownerSub, fromStr, toStr, safePageable);
         };
-        return mapToDto(result);
+        return result.map(this::toDto);
     }
 
     public Optional<PresupuestoDTO> findByIdDTO(Long id, String ownerSub) {
@@ -126,8 +133,13 @@ public class PresupuestoService {
         return toDto(restored);
     }
 
+    public Page<PresupuestoDTO> listByStatus(String ownerSub, ListStatus status, Pageable pageable) {
+        Pageable safePageable = pageable != null ? pageable : Pageable.unpaged();
+        return selectByStatus(ownerSub, status, safePageable).map(this::toDto);
+    }
+
     public List<PresupuestoDTO> listByStatus(String ownerSub, ListStatus status) {
-        return mapToDto(selectByStatus(ownerSub, status));
+        return listByStatus(ownerSub, status, Pageable.unpaged()).getContent();
     }
 
     public List<PresupuestoDTO> listByStatus(String ownerSub, String status) {
@@ -142,11 +154,11 @@ public class PresupuestoService {
         return listByStatus(ownerSub, ListStatus.DELETED);
     }
 
-    private List<Presupuesto> selectByStatus(String ownerSub, ListStatus status) {
+    private Page<Presupuesto> selectByStatus(String ownerSub, ListStatus status, Pageable pageable) {
         return switch (status) {
-            case ACTIVE -> repo.findByOwnerSubAndDeletedFalse(ownerSub);
-            case DELETED -> repo.findByOwnerSubAndDeletedTrue(ownerSub);
-            case ALL -> repo.findByOwnerSub(ownerSub);
+            case ACTIVE -> repo.findByOwnerSubAndDeletedFalse(ownerSub, pageable);
+            case DELETED -> repo.findByOwnerSubAndDeletedTrue(ownerSub, pageable);
+            case ALL -> repo.findByOwnerSub(ownerSub, pageable);
         };
     }
 
@@ -170,16 +182,13 @@ public class PresupuestoService {
         }
         return presupuesto;
     }
-    private List<PresupuestoDTO> mapToDto(List<Presupuesto> presupuestos) {
-        return presupuestos.stream().map(this::toDto).collect(Collectors.toList());
-    }
-
     private PresupuestoDTO toDto(Presupuesto p) {
         return PresupuestoDTO.builder()
             .id(p.getId())
             .nombre(p.getNombre())
             .desde(formatStoredYm(p.getDesde()))
             .hasta(formatStoredYm(p.getHasta()))
+            .createdAt(p.getCreatedAt() != null ? p.getCreatedAt().format(ISO_DATE_TIME) : null)
             .deleted(p.isDeleted())
             .deletedAt(p.getDeletedAt() != null ? p.getDeletedAt().format(ISO_DATE_TIME) : null)
             .deletedBy(p.getDeletedBy())

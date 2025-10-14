@@ -1,5 +1,7 @@
 package pronostico.repositories;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,9 +15,15 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
 
     List<Presupuesto> findByOwnerSub(String ownerSub);
 
+    Page<Presupuesto> findByOwnerSub(String ownerSub, Pageable pageable);
+
     List<Presupuesto> findByOwnerSubAndDeletedFalse(String ownerSub);
 
+    Page<Presupuesto> findByOwnerSubAndDeletedFalse(String ownerSub, Pageable pageable);
+
     List<Presupuesto> findByOwnerSubAndDeletedTrue(String ownerSub);
+
+    Page<Presupuesto> findByOwnerSubAndDeletedTrue(String ownerSub, Pageable pageable);
 
     boolean existsByIdAndOwnerSub(Long id, String ownerSub);
 
@@ -30,6 +38,17 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
         @Param("to") String to
     );
 
+    @Query(
+        value = "SELECT p FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from AND p.deleted = false",
+        countQuery = "SELECT COUNT(p) FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from AND p.deleted = false"
+    )
+    Page<Presupuesto> findActiveOverlapping(
+        @Param("ownerSub") String ownerSub,
+        @Param("from") String from,
+        @Param("to") String to,
+        Pageable pageable
+    );
+
     @Query("SELECT p FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from AND p.deleted = true")
     List<Presupuesto> findDeletedOverlapping(
         @Param("ownerSub") String ownerSub,
@@ -37,11 +56,33 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
         @Param("to") String to
     );
 
+    @Query(
+        value = "SELECT p FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from AND p.deleted = true",
+        countQuery = "SELECT COUNT(p) FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from AND p.deleted = true"
+    )
+    Page<Presupuesto> findDeletedOverlapping(
+        @Param("ownerSub") String ownerSub,
+        @Param("from") String from,
+        @Param("to") String to,
+        Pageable pageable
+    );
+
     @Query("SELECT p FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from")
     List<Presupuesto> findAnyOverlapping(
         @Param("ownerSub") String ownerSub,
         @Param("from") String from,
         @Param("to") String to
+    );
+
+    @Query(
+        value = "SELECT p FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from",
+        countQuery = "SELECT COUNT(p) FROM Presupuesto p WHERE p.ownerSub = :ownerSub AND p.desde <= :to AND p.hasta >= :from"
+    )
+    Page<Presupuesto> findAnyOverlapping(
+        @Param("ownerSub") String ownerSub,
+        @Param("from") String from,
+        @Param("to") String to,
+        Pageable pageable
     );
 
     @Query("SELECT p.id FROM Presupuesto p WHERE p.deleted = true AND p.deletedAt < :cutoff")
