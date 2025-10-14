@@ -29,7 +29,6 @@ import TasksWidget from "./components/TasksWidget";
 import RecentMovementsWidget from "./components/RecentMovementsWidget";
 import ReconciliationWidget from "./components/ReconciliationWidget";
 import BillingWidget from "./components/BillingWidget";
-import CashbackWidget from "./components/CashbackWidget";
 import { formatCurrencyAR, formatPercentage } from "../utils/formatters";
 
 const mockKpis = {
@@ -177,14 +176,6 @@ const mockBilling = {
   ],
 };
 
-const mockCashback = {
-  accumulated: 36200,
-  benefits: [
-    { id: "benef-1", title: "15% cashback en Ualá bis", cta: "Activar promoción >" },
-    { id: "benef-2", title: "3 meses bonificados en AWS", cta: "Ver requisitos >" },
-    { id: "benef-3", title: "Descuento 10% en seguros Sancor", cta: "Solicitar asesor >" },
-  ],
-};
 
 const initialDashboardState = {
   kpis: { loading: true, error: null, data: null },
@@ -195,7 +186,6 @@ const initialDashboardState = {
   movements: { loading: true, error: null, data: null },
   reconciliation: { loading: true, error: null, data: null },
   billing: { loading: true, error: null, data: null },
-  cashback: { loading: true, error: null, data: null },
 };
 
 const companiesMock = ["MyCFO Demo", "Acme Corp", "Globex Latam"];
@@ -247,7 +237,6 @@ const Dashboard = () => {
         movements: { loading: false, error: null, data: mockMovements },
         reconciliation: { loading: false, error: null, data: mockReconciliation },
         billing: { loading: false, error: null, data: mockBilling },
-        cashback: { loading: false, error: null, data: mockCashback },
       });
     }, 700);
   }, []);
@@ -560,15 +549,6 @@ const Dashboard = () => {
               error={state.billing.error}
               onRetry={loadDashboardData}
               onNavigate={() => handleNavigate("/carga", { tipo: "factura" })}
-            />
-          </Grid>
-          <Grid item xs={12} xl={4}>
-            <CashbackWidget
-              data={state.cashback.data}
-              loading={state.cashback.loading && !state.cashback.data}
-              error={state.cashback.error}
-              onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/mercado-pago")}
             />
           </Grid>
         </Grid>
