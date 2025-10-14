@@ -1,6 +1,7 @@
 package pronostico.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,30 +15,61 @@ import pronostico.repositories.PresupuestoLineaRepository;
 import pronostico.repositories.PresupuestoRepository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PresupuestoService {
 
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final DateTimeFormatter ISO_DATE_TIME = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final int CURRENCY_SCALE = 2;
+    private static final BigDecimal ZERO_AMOUNT = BigDecimal.ZERO.setScale(CURRENCY_SCALE);
+    private static final Pattern YEAR_MONTH_PATTERN = Pattern.compile("^(\\d{4})[-/](\\d{1,2})");
 
     private final PresupuestoRepository repo;
     private final PresupuestoLineaRepository lineaRepo;
 
+    public enum ListStatus {
+        ACTIVE,
+        DELETED,
+        ALL;
+
+        public static ListStatus from(String raw) {
+            if (raw == null || raw.isBlank()) {
+                return ACTIVE;
+            }
+            return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+                case "deleted", "trash", "papelera" -> DELETED;
+                case "all", "todos" -> ALL;
+                default -> ACTIVE;
+            };
+        }
+    }
+
     public List<PresupuestoDTO> findAllByOwner(String ownerSub) {
-        return mapToDto(repo.findByOwnerSub(ownerSub));
+        return listByStatus(ownerSub, ListStatus.ACTIVE);
     }
 
     public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub) {
+        return findByRange(from, to, ownerSub, ListStatus.ACTIVE);
+    }
+
+    public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub, ListStatus status) {
         if (from == null || to == null) {
             throw new IllegalArgumentException("El rango debe incluir fechas 'from' y 'to'");
         }
@@ -46,31 +78,91 @@ public class PresupuestoService {
         }
         String fromStr = from.format(ISO_DATE);
         String toStr = to.format(ISO_DATE);
-        return mapToDto(repo.findOverlapping(ownerSub, fromStr, toStr));
+        List<Presupuesto> result = switch (status) {
+            case ACTIVE -> repo.findActiveOverlapping(ownerSub, fromStr, toStr);
+            case DELETED -> repo.findDeletedOverlapping(ownerSub, fromStr, toStr);
+            case ALL -> repo.findAnyOverlapping(ownerSub, fromStr, toStr);
+        };
+        return mapToDto(result);
     }
 
     public Optional<PresupuestoDTO> findByIdDTO(Long id, String ownerSub) {
-        return repo.findByIdAndOwnerSub(id, ownerSub).map(this::toDto);
+        return repo.findByIdAndOwnerSubAndDeletedFalse(id, ownerSub).map(this::toDto);
     }
 
     public PresupuestoDTO getOneOwned(Long id, String ownerSub) {
-        return toDto(mustOwn(id, ownerSub));
+        return toDto(mustOwnActive(id, ownerSub));
     }
 
     public Presupuesto updateOwned(Long id, Presupuesto payload, String ownerSub) {
-        Presupuesto existing = mustOwn(id, ownerSub);
+        Presupuesto existing = mustOwnActive(id, ownerSub);
         existing.setNombre(payload.getNombre());
         existing.setDesde(payload.getDesde());
         existing.setHasta(payload.getHasta());
         return repo.save(existing);
     }
 
+    @Transactional
     public void deleteOwned(Long id, String ownerSub) {
-        Presupuesto existing = mustOwn(id, ownerSub);
-        repo.delete(existing);
+        Presupuesto existing = mustOwnActive(id, ownerSub);
+        existing.setDeleted(true);
+        existing.setDeletedAt(LocalDateTime.now());
+        existing.setDeletedBy(ownerSub);
+        repo.save(existing);
+        log.info("Presupuesto {} marcado como eliminado por {}", id, ownerSub);
+    }
+
+    @Transactional
+    public PresupuestoDTO restoreOwned(Long id, String ownerSub) {
+        Presupuesto presupuesto = mustOwnIncludingDeleted(id, ownerSub);
+        if (!presupuesto.isDeleted()) {
+            return toDto(presupuesto);
+        }
+        presupuesto.setDeleted(false);
+        presupuesto.setDeletedAt(null);
+        presupuesto.setDeletedBy(null);
+        Presupuesto restored = repo.save(presupuesto);
+        log.info("Presupuesto {} restaurado por {}", id, ownerSub);
+        return toDto(restored);
+    }
+
+    public List<PresupuestoDTO> listByStatus(String ownerSub, ListStatus status) {
+        return mapToDto(selectByStatus(ownerSub, status));
+    }
+
+    public List<PresupuestoDTO> listByStatus(String ownerSub, String status) {
+        return listByStatus(ownerSub, ListStatus.from(status));
+    }
+
+    public List<PresupuestoDTO> listActive(String ownerSub) {
+        return listByStatus(ownerSub, ListStatus.ACTIVE);
+    }
+
+    public List<PresupuestoDTO> listDeleted(String ownerSub) {
+        return listByStatus(ownerSub, ListStatus.DELETED);
+    }
+
+    private List<Presupuesto> selectByStatus(String ownerSub, ListStatus status) {
+        return switch (status) {
+            case ACTIVE -> repo.findByOwnerSubAndDeletedFalse(ownerSub);
+            case DELETED -> repo.findByOwnerSubAndDeletedTrue(ownerSub);
+            case ALL -> repo.findByOwnerSub(ownerSub);
+        };
+    }
+
+    private Presupuesto mustOwnActive(Long id, String ownerSub) {
+        Presupuesto presupuesto = mustOwnIncludingDeleted(id, ownerSub);
+        if (presupuesto.isDeleted()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Presupuesto no encontrado");
+        }
+        return presupuesto;
     }
 
     public Presupuesto mustOwn(Long id, String ownerSub) {
+        return mustOwnActive(id, ownerSub);
+    }
+
+    public Presupuesto mustOwnIncludingDeleted(Long id, String ownerSub) {
         Presupuesto presupuesto = repo.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Presupuesto no encontrado"));
         if (!Objects.equals(presupuesto.getOwnerSub(), ownerSub)) {
@@ -78,11 +170,6 @@ public class PresupuestoService {
         }
         return presupuesto;
     }
-
-    private static BigDecimal nvl(BigDecimal v) {
-        return v != null ? v : BigDecimal.ZERO;
-    }
-
     private List<PresupuestoDTO> mapToDto(List<Presupuesto> presupuestos) {
         return presupuestos.stream().map(this::toDto).collect(Collectors.toList());
     }
@@ -93,6 +180,9 @@ public class PresupuestoService {
             .nombre(p.getNombre())
             .desde(formatStoredYm(p.getDesde()))
             .hasta(formatStoredYm(p.getHasta()))
+            .deleted(p.isDeleted())
+            .deletedAt(p.getDeletedAt() != null ? p.getDeletedAt().format(ISO_DATE_TIME) : null)
+            .deletedBy(p.getDeletedBy())
             .build();
     }
 
@@ -100,11 +190,31 @@ public class PresupuestoService {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("El mes '" + fieldName + "' es requerido");
         }
+        String trimmed = value.trim();
         try {
-            return YearMonth.parse(value.trim());
-        } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException("Formato invalido para '" + fieldName + "' (usar YYYY-MM)");
+            return YearMonth.parse(trimmed);
+        } catch (DateTimeParseException ignored) {
         }
+        if (trimmed.length() >= 7) {
+            String firstSeven = trimmed.substring(0, 7);
+            try {
+                return YearMonth.parse(firstSeven);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        try {
+            return YearMonth.from(LocalDate.parse(trimmed));
+        } catch (DateTimeParseException ignored) {
+        }
+        java.util.regex.Matcher matcher = YEAR_MONTH_PATTERN.matcher(trimmed);
+        if (matcher.find()) {
+            int year = Integer.parseInt(matcher.group(1));
+            int month = Integer.parseInt(matcher.group(2));
+            if (month >= 1 && month <= 12) {
+                return YearMonth.of(year, month);
+            }
+        }
+        throw new IllegalArgumentException("Formato invalido para '" + fieldName + "' (usar YYYY-MM)");
     }
 
     private static String formatStoredYm(String value) {
@@ -138,6 +248,117 @@ public class PresupuestoService {
         };
     }
 
+    private static BigDecimal scale(BigDecimal value) {
+        if (value == null) {
+            return null;
+        }
+        return value.setScale(CURRENCY_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal calculateFactor(BigDecimal porcentaje) {
+        if (porcentaje == null) {
+            return null;
+        }
+        BigDecimal rate = porcentaje.divide(new BigDecimal("100"), 8, RoundingMode.HALF_UP);
+        return BigDecimal.ONE.add(rate);
+    }
+
+    private static class PlantillaData {
+        private final String categoria;
+        private final PresupuestoLinea.Tipo tipo;
+        private final BigDecimal defaultEstimado;
+        private final BigDecimal defaultReal;
+        private final Map<YearMonth, MesValor> valoresPorMes = new HashMap<>();
+        private final BigDecimal factor;
+        private BigDecimal pendingAmount;
+
+        private PlantillaData(CrearPresupuestoRequest.PlantillaLinea linea) {
+            this.categoria = (linea.getCategoria() != null && !linea.getCategoria().trim().isEmpty())
+                ? linea.getCategoria().trim()
+                : "Sin categoria";
+            this.tipo = mapTipo(linea.getTipo());
+            this.defaultEstimado = scale(linea.getMontoEstimado());
+            this.defaultReal = scale(linea.getMontoReal());
+            this.factor = calculateFactor(linea.getPorcentajeMensual());
+            if (this.factor != null) {
+                this.pendingAmount = this.defaultEstimado != null ? this.defaultEstimado : ZERO_AMOUNT;
+            } else {
+                this.pendingAmount = this.defaultEstimado;
+            }
+            if (linea.getMeses() != null) {
+                for (CrearPresupuestoRequest.PlantillaMes mes : linea.getMeses()) {
+                    if (mes == null || mes.getMes() == null || mes.getMes().isBlank()) {
+                        continue;
+                    }
+                    try {
+                        YearMonth ym = parseYearMonth(mes.getMes(), "mes");
+                        valoresPorMes.put(ym, new MesValor(scale(mes.getMontoEstimado()), scale(mes.getMontoReal())));
+                    } catch (IllegalArgumentException ex) {
+                        log.debug("Mes de plantilla ignorado por formato invalido: {}", mes.getMes());
+                    }
+                }
+            }
+        }
+
+        String getCategoria() {
+            return categoria;
+        }
+
+        PresupuestoLinea.Tipo getTipo() {
+            return tipo;
+        }
+
+        MesValor valorPara(YearMonth ym) {
+            MesValor override = valoresPorMes.get(ym);
+            BigDecimal estimado;
+
+            if (override != null && override.estimado != null) {
+                estimado = override.estimado;
+                if (factor != null) {
+                    pendingAmount = estimado.multiply(factor).setScale(CURRENCY_SCALE, RoundingMode.HALF_UP);
+                }
+            } else if (factor != null) {
+                BigDecimal base = pendingAmount;
+                if (base == null) {
+                    base = defaultEstimado != null ? defaultEstimado : ZERO_AMOUNT;
+                    pendingAmount = base;
+                }
+                estimado = base;
+                pendingAmount = estimado.multiply(factor).setScale(CURRENCY_SCALE, RoundingMode.HALF_UP);
+            } else if (defaultEstimado != null) {
+                estimado = defaultEstimado;
+            } else {
+                estimado = ZERO_AMOUNT;
+            }
+
+            BigDecimal real;
+            if (override != null && override.real != null) {
+                real = override.real;
+            } else {
+                real = defaultReal;
+            }
+            return new MesValor(estimado, real);
+        }
+    }
+
+    private static class MesValor {
+        private final BigDecimal estimado;
+        private final BigDecimal real;
+
+        private MesValor(BigDecimal estimado, BigDecimal real) {
+            this.estimado = estimado;
+            this.real = real;
+        }
+
+        BigDecimal getEstimado() {
+            return estimado;
+        }
+
+        BigDecimal getReal() {
+            return real;
+        }
+    }
+
     @Transactional
     public Presupuesto crearPresupuesto(CrearPresupuestoRequest req, String ownerSub) {
         YearMonth desde = parseYearMonth(req.getDesde(), "desde");
@@ -154,37 +375,53 @@ public class PresupuestoService {
             .build();
         repo.save(presupuesto);
 
-        YearMonth cursor = desde;
-        while (!cursor.isAfter(hasta)) {
-            String ym = formatYearMonthForStorage(cursor, false);
-            if (req.getPlantilla() != null && !req.getPlantilla().isEmpty()) {
-                for (CrearPresupuestoRequest.PlantillaLinea plantilla : req.getPlantilla()) {
+        List<CrearPresupuestoRequest.PlantillaLinea> plantillaReq = req.getPlantilla();
+
+        if (plantillaReq != null && !plantillaReq.isEmpty()) {
+            List<PlantillaData> plantillas = plantillaReq.stream()
+                .map(PlantillaData::new)
+                .collect(Collectors.toList());
+
+            YearMonth cursor = desde;
+            while (!cursor.isAfter(hasta)) {
+                String ym = formatYearMonthForStorage(cursor, false);
+                for (PlantillaData data : plantillas) {
+                    MesValor valor = data.valorPara(cursor);
+                    BigDecimal estimado = valor.getEstimado();
+                    BigDecimal real = valor.getReal();
+                    log.debug("Guardando linea '{}' tipo {} mes {} estimado={} real={}",
+                        data.getCategoria(), data.getTipo(), ym, estimado, real);
                     PresupuestoLinea linea = PresupuestoLinea.builder()
                         .presupuesto(presupuesto)
                         .mes(ym)
-                        .categoria(plantilla.getCategoria())
-                        .tipo(mapTipo(plantilla.getTipo()))
-                        .montoEstimado(nvl(plantilla.getMontoEstimado()))
-                        .montoReal(plantilla.getMontoReal())
+                        .categoria(data.getCategoria())
+                        .tipo(data.getTipo())
+                        .montoEstimado(estimado)
+                        .montoReal(real)
                         .sourceType(PresupuestoLinea.SourceType.MANUAL)
                         .build();
                     lineaRepo.save(linea);
                 }
-            } else if (req.isAutogenerarCeros()) {
+                cursor = cursor.plusMonths(1);
+            }
+        } else if (req.isAutogenerarCeros()) {
+            YearMonth cursor = desde;
+            while (!cursor.isAfter(hasta)) {
+                String ym = formatYearMonthForStorage(cursor, false);
                 for (PresupuestoLinea.Tipo tipo : PresupuestoLinea.Tipo.values()) {
                     PresupuestoLinea linea = PresupuestoLinea.builder()
                         .presupuesto(presupuesto)
                         .mes(ym)
                         .categoria("Sin categoria")
                         .tipo(tipo)
-                        .montoEstimado(BigDecimal.ZERO)
+                        .montoEstimado(ZERO_AMOUNT)
                         .montoReal(null)
                         .sourceType(PresupuestoLinea.SourceType.MANUAL)
                         .build();
                     lineaRepo.save(linea);
                 }
+                cursor = cursor.plusMonths(1);
             }
-            cursor = cursor.plusMonths(1);
         }
 
         return presupuesto;

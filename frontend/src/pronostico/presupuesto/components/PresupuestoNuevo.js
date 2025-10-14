@@ -28,22 +28,51 @@ const tableCellStyle = {
   textAlign: 'center',
 };
 
+function startOfMonthUTC(year, monthZeroBased) {
+  return new Date(Date.UTC(year, monthZeroBased, 1));
+}
+
+function addMonthsUTC(date, count) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + count, 1));
+}
+
+function formatUTCToYearMonth(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
 // Generar lista de meses entre dos fechas (YYYY-MM)
 function generarMesesEntre(desde, hasta) {
   const meses = [];
   if (!desde || !hasta) return meses;
 
-  let desdeDate = new Date(desde + '-01');
-  let hastaDate = new Date(hasta + '-01');
+  const [desdeYear, desdeMonth] = desde.split('-').map(Number);
+  const [hastaYear, hastaMonth] = hasta.split('-').map(Number);
+  if (
+    !Number.isFinite(desdeYear) ||
+    !Number.isFinite(desdeMonth) ||
+    !Number.isFinite(hastaYear) ||
+    !Number.isFinite(hastaMonth)
+  ) {
+    return meses;
+  }
 
-  while (desdeDate <= hastaDate) {
-    const y = desdeDate.getFullYear();
-    const m = (desdeDate.getMonth() + 1).toString().padStart(2, '0');
-    meses.push(`${y}-${m}`);
-    desdeDate.setMonth(desdeDate.getMonth() + 1);
+  let cursor = startOfMonthUTC(desdeYear, desdeMonth - 1);
+  const end = startOfMonthUTC(hastaYear, hastaMonth - 1);
+
+  while (cursor.getTime() <= end.getTime()) {
+    meses.push(formatUTCToYearMonth(cursor));
+    cursor = addMonthsUTC(cursor, 1);
   }
   return meses;
 }
+
+const roundTo2 = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(num * 100) / 100;
+};
 
 // Helper ARS
 const fmtARS = (n) => formatCurrency(n);
@@ -339,23 +368,38 @@ export default function PresupuestoNuevo() {
       // Tomo como base el PRIMER mes para cada categoría (si hay grilla calculada),
       // y si no existe, uso el importe de la regla (FIJO/UNICO/etc.).
       const firstMonth = meses[0];
-      const plantilla = categorias.map(c => {
+      const plantilla = categorias.map((c) => {
         const catName = (c.categoria || '').trim();
         const tipo = (c.tipo || '').toString().toUpperCase(); // "INGRESO"/"EGRESO"
 
-        const sugeridoDeGrilla = firstMonth
+        const fallbackDeRegla = c?.regla?.importe ?? c?.regla?.montoTotal ?? 0;
+
+        const detalles = meses.map((mes) => {
+          const registroMes = presupuestoDataMes?.[mes]?.[catName];
+          const sugerido = registroMes?.sugerido ?? 0;
+          const real = registroMes?.montoReal ?? registroMes?.real ?? null;
+          const estimadoRedondeado = roundTo2(sugerido);
+          const realRedondeado = real == null ? null : roundTo2(real);
+          return {
+            mes,
+            montoEstimado: estimadoRedondeado,
+            montoReal: realRedondeado,
+          };
+        });
+
+        const montoBase = firstMonth
           ? presupuestoDataMes?.[firstMonth]?.[catName]?.sugerido
           : undefined;
 
-        const fallbackDeRegla = c?.regla?.importe ?? c?.regla?.montoTotal ?? 0;
+        const montoEstimadoPrincipal =
+          montoBase != null ? roundTo2(montoBase) : roundTo2(fallbackDeRegla || 0);
 
         return {
           categoria: catName,
           tipo,
-          montoEstimado: Number(
-            sugeridoDeGrilla != null ? sugeridoDeGrilla : fallbackDeRegla || 0
-          ),
-          montoReal: null
+          montoEstimado: montoEstimadoPrincipal,
+          montoReal: null,
+          meses: detalles,
         };
       });
 

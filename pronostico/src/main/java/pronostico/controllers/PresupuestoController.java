@@ -16,6 +16,7 @@ import pronostico.models.PresupuestoLinea;
 import pronostico.models.PresupuestoLinea.Tipo;
 import pronostico.repositories.PresupuestoLineaRepository;
 import pronostico.services.PresupuestoService;
+import pronostico.services.PresupuestoService.ListStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -45,22 +46,24 @@ public class PresupuestoController {
         @RequestParam(value = "year", required = false) Integer year,
         @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(value = "status", required = false) String statusParam,
         @AuthenticationPrincipal Jwt jwt
     ) {
         String sub = requireSub(jwt);
+        ListStatus status = ListStatus.from(statusParam);
         try {
             if (from != null || to != null) {
                 if (from == null || to == null) {
                     throw new IllegalArgumentException("Debe especificar las fechas 'from' y 'to' para el rango");
                 }
-                return service.findByRange(from, to, sub);
+                return service.findByRange(from, to, sub, status);
             }
             if (year != null) {
                 LocalDate start = LocalDate.of(year, 1, 1);
                 LocalDate end = LocalDate.of(year, 12, 31);
-                return service.findByRange(start, end, sub);
+                return service.findByRange(start, end, sub, status);
             }
-            return service.findAllByOwner(sub);
+            return service.listByStatus(sub, status);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
@@ -89,6 +92,9 @@ public class PresupuestoController {
                 .nombre(presupuesto.getNombre())
                 .desde(normalizeYM(presupuesto.getDesde()))
                 .hasta(normalizeYM(presupuesto.getHasta()))
+                .deleted(presupuesto.isDeleted())
+                .deletedAt(presupuesto.getDeletedAt() != null ? presupuesto.getDeletedAt().toString() : null)
+                .deletedBy(presupuesto.getDeletedBy())
                 .build();
             return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException ex) {
@@ -116,6 +122,20 @@ public class PresupuestoController {
         try {
             service.deleteOwned(id, sub);
             return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return ResponseEntity.notFound().build();
+            }
+            throw ex;
+        }
+    }
+
+    @PostMapping("/presupuestos/{id}/restore")
+    public ResponseEntity<PresupuestoDTO> restore(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String sub = requireSub(jwt);
+        try {
+            PresupuestoDTO restored = service.restoreOwned(id, sub);
+            return ResponseEntity.ok(restored);
         } catch (ResponseStatusException ex) {
             if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
                 return ResponseEntity.notFound().build();

@@ -10,4 +10,7 @@ public class PresupuestoDTO {
     private String nombre;
     private String desde;
     private String hasta;
+    private boolean deleted;
+    private String deletedAt;
+    private String deletedBy;
 }

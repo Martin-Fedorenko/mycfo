@@ -14,10 +14,23 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert
+  Alert,
+  Tabs,
+  Tab,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Menu,
+  Tooltip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import http from '../../../api/http';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -73,10 +86,30 @@ const filterBudgetsByRange = (items, range) => {
   return items.filter((item) => overlapsRange(item, range));
 };
 
+const parseRetentionDays = () => {
+  const raw = process.env.REACT_APP_PRESUPUESTO_RETENTION_DAYS;
+  const parsed = Number(raw);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return 90;
+  }
+  return parsed;
+};
+
+const formatDeletedAt = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) {
+    return value;
+  }
+  return date.toLocaleString('es-AR', { hour12: false });
+};
+
 export default function MainGrid() {
   const navigate = useNavigate();
   const baseURL = process.env.REACT_APP_URL_PRONOSTICO || '';
+  const retentionDays = React.useMemo(() => parseRetentionDays(), []);
 
+  const [statusFilter, setStatusFilter] = React.useState('active');
   const [allPresupuestos, setAllPresupuestos] = React.useState([]);
   const [searchResults, setSearchResults] = React.useState(null);
   const [hasActiveSearch, setHasActiveSearch] = React.useState(false);
@@ -86,6 +119,11 @@ export default function MainGrid() {
   const [listError, setListError] = React.useState('');
   const [loadingSearch, setLoadingSearch] = React.useState(false);
   const [loadingAll, setLoadingAll] = React.useState(false);
+  const [confirmDialog, setConfirmDialog] = React.useState({ open: false, presupuesto: null });
+  const [snackbar, setSnackbar] = React.useState({ open: false, message: '', action: null });
+  const [menuState, setMenuState] = React.useState({ anchorEl: null, presupuesto: null });
+
+  const lastDeletedRef = React.useRef(null);
 
   const monthName = React.useCallback((ym) => {
     if (!ym) return '';
@@ -94,11 +132,13 @@ export default function MainGrid() {
     return idx >= 0 && idx < monthLabels.length ? `${monthLabels[idx]} ${anio}` : ym;
   }, []);
 
-  const fetchAllPresupuestos = React.useCallback(async () => {
+  const fetchPresupuestos = React.useCallback(async (statusValue = statusFilter) => {
     setLoadingAll(true);
     try {
-      const res = await http.get(`${baseURL}/api/presupuestos`);
-      setAllPresupuestos(res.data);
+      const params = new URLSearchParams();
+      params.set('status', statusValue);
+      const res = await http.get(`${baseURL}/api/presupuestos?${params.toString()}`);
+      setAllPresupuestos(Array.isArray(res.data) ? res.data : []);
       setListError('');
     } catch (e) {
       console.error('Error cargando presupuestos desde el backend:', e);
@@ -107,16 +147,17 @@ export default function MainGrid() {
     } finally {
       setLoadingAll(false);
     }
-  }, [baseURL]);
+  }, [baseURL, statusFilter]);
 
   const fetchSearchPresupuestos = React.useCallback(async (searchParams, range) => {
     setLoadingSearch(true);
     try {
-      const queryString = searchParams && searchParams.toString()
-        ? `?${searchParams.toString()}`
-        : '';
+      const params = new URLSearchParams(searchParams || '');
+      params.set('status', statusFilter);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
       const res = await http.get(`${baseURL}/api/presupuestos${queryString}`);
-      const filteredData = filterBudgetsByRange(res.data, range);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const filteredData = filterBudgetsByRange(data, range);
       setSearchResults(filteredData);
       setSearchError('');
     } catch (e) {
@@ -126,11 +167,112 @@ export default function MainGrid() {
     } finally {
       setLoadingSearch(false);
     }
-  }, [baseURL]);
+  }, [baseURL, statusFilter]);
 
   React.useEffect(() => {
-    fetchAllPresupuestos();
-  }, [fetchAllPresupuestos]);
+    fetchPresupuestos(statusFilter);
+  }, [fetchPresupuestos, statusFilter]);
+
+  const handleStatusChange = (event, newValue) => {
+    if (newValue === statusFilter) return;
+    setStatusFilter(newValue);
+    setHasActiveSearch(false);
+    setSearchResults(null);
+    setSearchError('');
+  };
+
+  React.useEffect(() => {
+    setMenuState({ anchorEl: null, presupuesto: null });
+  }, [statusFilter]);
+
+  const openActionsMenu = (event, presupuesto) => {
+    setMenuState({ anchorEl: event.currentTarget, presupuesto });
+  };
+
+  const closeActionsMenu = () => {
+    setMenuState({ anchorEl: null, presupuesto: null });
+  };
+
+  const openDeleteDialog = (presupuesto) => {
+    setConfirmDialog({ open: true, presupuesto });
+  };
+
+  const handleSelectDelete = () => {
+    const presupuesto = menuState.presupuesto;
+    closeActionsMenu();
+    if (presupuesto) {
+      openDeleteDialog(presupuesto);
+    }
+  };
+
+  const closeDeleteDialog = () => {
+    setConfirmDialog({ open: false, presupuesto: null });
+  };
+
+  const performRestore = React.useCallback(async (presupuesto, successMessage = 'Presupuesto restaurado.') => {
+    if (!presupuesto) {
+      return;
+    }
+    try {
+      await http.post(`${baseURL}/api/presupuestos/${presupuesto.id}/restore`);
+      await fetchPresupuestos(statusFilter);
+      if (successMessage) {
+        setSnackbar({ open: true, message: successMessage, action: null });
+      }
+      setListError('');
+    } catch (e) {
+      console.error('Error restaurando presupuesto:', e);
+      setSnackbar({ open: true, message: 'No se pudo restaurar el presupuesto.', action: null });
+    }
+  }, [baseURL, fetchPresupuestos, statusFilter]);
+
+  const handleRestore = React.useCallback((presupuesto) => {
+    performRestore(presupuesto, 'Presupuesto restaurado.');
+  }, [performRestore]);
+
+  const handleUndoDelete = React.useCallback(async () => {
+    const presupuesto = lastDeletedRef.current;
+    if (!presupuesto) {
+      setSnackbar((prev) => ({ ...prev, open: false }));
+      return;
+    }
+    lastDeletedRef.current = null;
+    await performRestore(presupuesto, 'Presupuesto restaurado.');
+  }, [performRestore]);
+
+  const handleConfirmDelete = async () => {
+    const presupuesto = confirmDialog.presupuesto;
+    if (!presupuesto) {
+      closeDeleteDialog();
+      return;
+    }
+    try {
+      await http.delete(`${baseURL}/api/presupuestos/${presupuesto.id}`);
+      lastDeletedRef.current = presupuesto;
+      closeDeleteDialog();
+      await fetchPresupuestos(statusFilter);
+      setSnackbar({
+        open: true,
+        message: 'Presupuesto eliminado.',
+        action: (
+          <Button color="secondary" size="small" onClick={() => handleUndoDelete()}>
+            Deshacer
+          </Button>
+        ),
+      });
+      setListError('');
+    } catch (e) {
+      console.error('Error eliminando presupuesto:', e);
+      setSnackbar({ open: true, message: 'No se pudo eliminar el presupuesto.', action: null });
+    }
+  };
+
+  const handleSnackbarClose = (_, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
 
   const yearOptions = React.useMemo(() => {
     const years = new Set();
@@ -155,6 +297,8 @@ export default function MainGrid() {
       label: label.charAt(0).toUpperCase() + label.slice(1),
     }))
   ), []);
+
+  const columnsCount = statusFilter === 'deleted' ? 5 : 4;
 
   const filtered = React.useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -231,25 +375,58 @@ export default function MainGrid() {
   };
 
   const renderRows = (items) => (
-    items.map((p) => (
-      <TableRow key={p.id} sx={tableRowStyle}>
-        <TableCell sx={tableCellStyle}>{p.nombre}</TableCell>
-        <TableCell sx={tableCellStyle}>{monthName(p.desde)}</TableCell>
-        <TableCell sx={tableCellStyle}>{monthName(p.hasta)}</TableCell>
-        <TableCell sx={{ ...tableCellStyle }} align="right">
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => {
-              const nombreUrl = encodeURIComponent(p.nombre.trim().toLowerCase().replace(/\s+/g, '-'));
-              navigate(`/presupuestos/${nombreUrl}`);
-            }}
-          >
-            Ver detalle
-          </Button>
-        </TableCell>
-      </TableRow>
-    ))
+    items.map((p) => {
+      const slug = encodeURIComponent((p.nombre || '').trim().toLowerCase().replace(/\s+/g, '-'));
+      const isDeleted = statusFilter === 'deleted';
+      const isMenuOpenForRow = Boolean(menuState.anchorEl) && menuState.presupuesto && menuState.presupuesto.id === p.id;
+      const menuId = isMenuOpenForRow ? 'presupuesto-actions-menu' : undefined;
+      const buttonId = `acciones-presupuesto-${p.id}`;
+      return (
+        <TableRow key={p.id} sx={tableRowStyle}>
+          <TableCell sx={tableCellStyle}>{p.nombre}</TableCell>
+          <TableCell sx={tableCellStyle}>{monthName(p.desde)}</TableCell>
+          <TableCell sx={tableCellStyle}>{monthName(p.hasta)}</TableCell>
+          {isDeleted && (
+            <TableCell sx={tableCellStyle}>{formatDeletedAt(p.deletedAt)}</TableCell>
+          )}
+          <TableCell sx={{ ...tableCellStyle }} align="right">
+            {isDeleted ? (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RestoreFromTrashIcon />}
+                onClick={() => handleRestore(p)}
+              >
+                Restaurar
+              </Button>
+            ) : (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => navigate(`/presupuestos/${slug}`)}
+                >
+                  Ver detalle
+                </Button>
+                <Tooltip title="Más acciones">
+                  <IconButton
+                    size="small"
+                    aria-label="Más acciones"
+                    aria-controls={menuId}
+                    aria-haspopup="true"
+                    aria-expanded={isMenuOpenForRow ? 'true' : undefined}
+                    id={buttonId}
+                    onClick={(event) => openActionsMenu(event, p)}
+                  >
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+          </TableCell>
+        </TableRow>
+      );
+    })
   );
 
   return (
@@ -257,6 +434,14 @@ export default function MainGrid() {
       <Typography variant="h4" gutterBottom>Presupuestos</Typography>
       <Typography variant="subtitle1" gutterBottom>
         Visualiza tus presupuestos creados o genera uno nuevo
+      </Typography>
+
+      <Tabs value={statusFilter} onChange={handleStatusChange} sx={{ mt: 1 }}>
+        <Tab value="active" label="Activos" />
+        <Tab value="deleted" label="Borrados" />
+      </Tabs>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+        {`Los presupuestos se purgan de forma definitiva a los ${retentionDays} días.`}
       </Typography>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mt: 2, mb: 2 }}>
@@ -341,7 +526,7 @@ export default function MainGrid() {
             <Table>
               <TableBody>
                 <TableRow>
-                  <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
+                  <TableCell colSpan={columnsCount} sx={{ textAlign: 'center', py: 3 }}>
                     Cargando presupuestos...
                   </TableCell>
                 </TableRow>
@@ -354,6 +539,9 @@ export default function MainGrid() {
                   <TableCell sx={tableCellStyle}>Nombre</TableCell>
                   <TableCell sx={tableCellStyle}>Desde</TableCell>
                   <TableCell sx={tableCellStyle}>Hasta</TableCell>
+                  {statusFilter === 'deleted' && (
+                    <TableCell sx={tableCellStyle}>Eliminado</TableCell>
+                  )}
                   <TableCell sx={{ ...tableCellStyle }} align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
@@ -384,6 +572,9 @@ export default function MainGrid() {
               <TableCell sx={tableCellStyle}>Nombre</TableCell>
               <TableCell sx={tableCellStyle}>Desde</TableCell>
               <TableCell sx={tableCellStyle}>Hasta</TableCell>
+              {statusFilter === 'deleted' && (
+                <TableCell sx={tableCellStyle}>Eliminado</TableCell>
+              )}
               <TableCell sx={{ ...tableCellStyle }} align="right">Acciones</TableCell>
             </TableRow>
           </TableHead>
@@ -391,14 +582,14 @@ export default function MainGrid() {
             {filtered.length > 0 && renderRows(filtered)}
             {filtered.length === 0 && !loadingAll && !listError && (
               <TableRow>
-                <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
+                <TableCell colSpan={columnsCount} sx={{ textAlign: 'center', py: 3 }}>
                   No hay presupuestos para mostrar.
                 </TableCell>
               </TableRow>
             )}
             {loadingAll && (
               <TableRow>
-                <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
+                <TableCell colSpan={columnsCount} sx={{ textAlign: 'center', py: 3 }}>
                   Cargando presupuestos...
                 </TableCell>
               </TableRow>
@@ -412,6 +603,50 @@ export default function MainGrid() {
           Crear nuevo presupuesto
         </Button>
       </Box>
+
+      <Menu
+        id="presupuesto-actions-menu"
+        anchorEl={menuState.anchorEl}
+        open={Boolean(menuState.anchorEl)}
+        onClose={closeActionsMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        keepMounted
+        MenuListProps={{
+          'aria-labelledby': menuState.presupuesto
+            ? `acciones-presupuesto-${menuState.presupuesto.id}`
+            : undefined,
+        }}
+      >
+        <MenuItem onClick={handleSelectDelete} disabled={!menuState.presupuesto}>
+          <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} />
+          Eliminar
+        </MenuItem>
+      </Menu>
+
+      <Dialog open={confirmDialog.open} onClose={closeDeleteDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Eliminar presupuesto</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2">
+            {`Vas a eliminar el presupuesto "${confirmDialog.presupuesto?.nombre || ''}". Podrás restaurarlo desde la Papelera durante ${retentionDays} días.`}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog}>Cancelar</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message={snackbar.message}
+        action={snackbar.action}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

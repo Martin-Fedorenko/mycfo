@@ -3,6 +3,8 @@ package pronostico.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "presupuesto")
 @Getter @Setter
@@ -25,4 +27,14 @@ public class Presupuesto {
 
     @Column(nullable=false, length=10)
     private String hasta;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by", length = 64)
+    private String deletedBy;
 }
