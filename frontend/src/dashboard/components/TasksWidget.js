@@ -31,7 +31,7 @@ const TasksWidget = ({
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Tareas & notificaciones" subheader="Buscando pendientes..." />
+        <CardHeader title="Recordatorios" subheader="Buscando pendientes..." />
         <CardContent>
           {Array.from({ length: 3 }).map((_, index) => (
             <Skeleton key={index} variant="rectangular" height={56} sx={{ mb: 1.5 }} />
@@ -44,7 +44,7 @@ const TasksWidget = ({
   if (error) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Tareas & notificaciones" />
+        <CardHeader title="Recordatorios" />
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error">{error}</Alert>
           {onRetry ? (
@@ -62,7 +62,7 @@ const TasksWidget = ({
   return (
     <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <CardHeader
-        title="Tareas & notificaciones"
+        title="Recordatorios"
         subheader="Conciliación, recordatorios y alertas automáticas"
       />
       <CardContent sx={{ flexGrow: 1 }}>
