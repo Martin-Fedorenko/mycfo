@@ -309,7 +309,9 @@ export default function MesDetalle() {
         item.tipo,
         safeNumber(item.montoEstimado),
         safeNumber(item.montoReal),
-        safeNumber(item.montoReal) - safeNumber(item.montoEstimado),
+        (item.tipo === 'EGRESO'
+            ? safeNumber(item.montoEstimado) - safeNumber(item.montoReal)
+            : safeNumber(item.montoReal) - safeNumber(item.montoEstimado)),
       ]),
     ];
     data.push(['', '', '', '', '']);
@@ -819,7 +821,7 @@ export default function MesDetalle() {
                     const e = edits[item.id] || { categoria: '', tipo: 'EGRESO', montoEstimado: 0, montoReal: '' };
                     const estimadoN = safeNumber(e.montoEstimado);
                     const realN = e.montoReal === '' ? 0 : safeNumber(e.montoReal);
-                    const desvio = realN - estimadoN;
+                    const desvio = e.tipo === 'EGRESO' ? (estimadoN - realN) : (realN - estimadoN);
                     const allowCategoria = isFieldUnlocked(item.id, 'categoria');
                     const allowReal = isFieldUnlocked(item.id, 'montoReal');
 
