@@ -172,16 +172,21 @@ export default function MainGrid() {
     async (statusValue, pageValue) => {
       setLoadingAll(true);
       try {
+        const trimmedQuery = query.trim();
+        const shouldExpand = trimmedQuery.length >= 2;
+        const effectivePage = shouldExpand ? 0 : Math.max(pageValue, 0);
+        const effectiveSize = shouldExpand ? 1000 : PAGE_SIZE;
         const params = new URLSearchParams();
         params.set("status", statusValue);
-        params.set("page", String(Math.max(pageValue, 0)));
-        params.set("size", String(PAGE_SIZE));
+        params.set("page", String(effectivePage));
+        params.set("size", String(effectiveSize));
         params.set("sort", DEFAULT_SORT);
         const res = await http.get(
           `${baseURL}/api/presupuestos?${params.toString()}`,
         );
         const pageData = normalizePage(res.data);
         if (
+          !shouldExpand &&
           pageValue > 0 &&
           pageData.totalPages > 0 &&
           pageValue >= pageData.totalPages
@@ -192,6 +197,9 @@ export default function MainGrid() {
         setPresupuestosPage(pageData);
         mergeYearOptions(pageData.content);
         setListError("");
+        if (shouldExpand && pageValue !== 0) {
+          setPageIndex(0);
+        }
       } catch (e) {
         console.error("Error cargando presupuestos desde el backend:", e);
         setPresupuestosPage(createEmptyPage());
@@ -202,7 +210,7 @@ export default function MainGrid() {
         setLoadingAll(false);
       }
     },
-    [baseURL, mergeYearOptions, normalizePage],
+    [baseURL, mergeYearOptions, normalizePage, query],
   );
   const fetchSearchPresupuestos = React.useCallback(
     async (searchParamsString, statusValue, pageValue) => {

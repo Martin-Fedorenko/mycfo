@@ -20,7 +20,6 @@ const Drawer = styled(MuiDrawer)({
   width: drawerWidth,
   flexShrink: 0,
   boxSizing: 'border-box',
-  mt: 10,
   [`& .${drawerClasses.paper}`]: {
     width: drawerWidth,
     boxSizing: 'border-box',
@@ -49,8 +48,14 @@ const CustomIcon = () => {
   );
 };
 
-export default function SideMenu() {
+export default function SideMenu({
+  variant = 'permanent',
+  open = true,
+  onClose,
+  onNavigate,
+}) {
   const navigate = useNavigate();
+  const isTemporary = variant !== 'permanent';
 
   // 🔹 Datos de usuario obtenidos del sessionStorage
   const [userData, setUserData] = React.useState({
@@ -84,9 +89,18 @@ React.useEffect(() => {
 
   return (
     <Drawer
-      variant="permanent"
+      variant={variant}
+      open={isTemporary ? open : undefined}
+      onClose={isTemporary ? onClose : undefined}
+      ModalProps={
+        isTemporary
+          ? {
+              keepMounted: true,
+            }
+          : undefined
+      }
       sx={{
-        display: { xs: 'none', md: 'block' },
+        display: isTemporary ? 'block' : { xs: 'none', md: 'block' },
         [`& .${drawerClasses.paper}`]: {
           backgroundColor: 'background.paper',
         },
@@ -95,7 +109,7 @@ React.useEffect(() => {
       <Box
         sx={{
           display: 'flex',
-          mt: 'calc(var(--template-frame-height, 0px) + 4px)',
+          mt: isTemporary ? 2 : 'calc(var(--template-frame-height, 0px) + 4px)',
           p: 1.5,
         }}
       >
@@ -117,7 +131,7 @@ React.useEffect(() => {
           flexDirection: 'column',
         }}
       >
-        <MenuContent />
+        <MenuContent onNavigate={onNavigate || onClose} />
       </Box>
 
       {/* Pie con datos del usuario */}

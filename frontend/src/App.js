@@ -3,8 +3,8 @@ import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-rou
 
 import SignIn from "./sign-in/SignIn";
 import SignUp from "./sign-up/SignUp";
-import Dashboard from "./template/dashboard/Dashboard";
 import Home from "./home/Home";
+import Dashboard from "./dashboard/Dashboard";
 import ConfirmAccount from "./sign-up/ConfirmAccount";
 import routeConfig from "./config/routes";
 import Checkout from "./template/checkout/Checkout";
@@ -52,9 +52,8 @@ function App() {
           {/* Layout principal con Home como contenedor */}
           <Route path="/" element={<Home />}>
             {/* Ruta por defecto (podrías redirigir a dashboard u otra página) */}
-            
-            
-
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="perfil" element={<Perfil />} />
             <Route path="organizacion" element={<Organizacion />} />
             
