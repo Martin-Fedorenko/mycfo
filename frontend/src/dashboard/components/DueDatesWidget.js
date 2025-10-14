@@ -39,7 +39,7 @@ const DueDatesWidget = ({
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Próximos vencimientos" subheader="Procesando recordatorios..." />
+        <CardHeader title="Notificaciones" subheader="Procesando recordatorios..." />
         <CardContent>
           {Array.from({ length: 3 }).map((_, index) => (
             <Skeleton key={index} variant="rectangular" height={56} sx={{ mb: 1.5 }} />
@@ -52,7 +52,7 @@ const DueDatesWidget = ({
   if (error) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Próximos vencimientos" />
+        <CardHeader title="Notificaciones" />
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error">{error}</Alert>
           {onRetry ? (
@@ -70,7 +70,7 @@ const DueDatesWidget = ({
   return (
     <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <CardHeader
-        title="Próximos vencimientos"
+        title="Notificaciones"
         subheader="Gestioná AFIP, proveedores y clientes en los próximos 14 días"
       />
       <CardContent sx={{ flexGrow: 1 }}>
