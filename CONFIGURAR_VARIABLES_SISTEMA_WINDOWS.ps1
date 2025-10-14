@@ -9,15 +9,6 @@ Write-Host "Este script configurará las variables de entorno para desarrollo lo
 Write-Host "Las credenciales se guardarán como variables de USUARIO (no del sistema)." -ForegroundColor Yellow
 Write-Host ""
 
-# Credenciales AWS
-$AWS_ACCESS_KEY_ID = "AKIA3PDL62RGT7LSNDJB"
-$AWS_SECRET_ACCESS_KEY = "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"
-$AWS_REGION = "sa-east-1"
-
-# Cognito
-$COGNITO_USER_POOL_ID = "sa-east-1_lTMNrWW7R"
-$COGNITO_CLIENT_ID = "3ksssqtg3r49rf6js1t1177hrd"
-
 try {
     # Configurar variables de entorno de usuario
     [System.Environment]::SetEnvironmentVariable("AWS_ACCESS_KEY_ID", $AWS_ACCESS_KEY_ID, "User")
