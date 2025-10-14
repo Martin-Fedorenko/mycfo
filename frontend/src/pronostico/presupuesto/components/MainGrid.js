@@ -37,6 +37,13 @@ const tableRowStyle = {
   "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.05)" },
 };
 const tableCellStyle = { border: "1px solid rgba(255, 255, 255, 0.1)" };
+const getColumnWidth = (statusFilter) => ({
+  nombre: { width: statusFilter === "deleted" ? "20%" : "25%" },
+  desde: { width: statusFilter === "deleted" ? "20%" : "25%" },
+  hasta: { width: statusFilter === "deleted" ? "20%" : "25%" },
+  eliminado: { width: "20%" },
+  acciones: { width: statusFilter === "deleted" ? "20%" : "25%" },
+});
 const monthLabels = [
   "enero",
   "febrero",
@@ -507,15 +514,15 @@ export default function MainGrid() {
       const buttonId = `acciones-presupuesto-${p.id}`;
       return (
         <TableRow key={p.id} sx={tableRowStyle}>
-          <TableCell sx={tableCellStyle}>{p.nombre}</TableCell>
-          <TableCell sx={tableCellStyle}>{monthName(p.desde)}</TableCell>
-          <TableCell sx={tableCellStyle}>{monthName(p.hasta)}</TableCell>
+          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }}>{p.nombre}</TableCell>
+          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }}>{monthName(p.desde)}</TableCell>
+          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }}>{monthName(p.hasta)}</TableCell>
           {isDeleted && (
-            <TableCell sx={tableCellStyle}>
+            <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>
               {formatDeletedAt(p.deletedAt)}
             </TableCell>
           )}
-          <TableCell sx={{ ...tableCellStyle }} align="right">
+          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
             {isDeleted ? (
               <Button
                 variant="outlined"
@@ -685,13 +692,13 @@ export default function MainGrid() {
               <Table>
                 <TableHead>
                   <TableRow sx={tableRowStyle}>
-                    <TableCell sx={tableCellStyle}>Nombre</TableCell>
-                    <TableCell sx={tableCellStyle}>Desde</TableCell>
-                    <TableCell sx={tableCellStyle}>Hasta</TableCell>
+                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }}>Nombre</TableCell>
+                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }}>Desde</TableCell>
+                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }}>Hasta</TableCell>
                     {statusFilter === "deleted" && (
-                      <TableCell sx={tableCellStyle}>Eliminado</TableCell>
+                      <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>Eliminado</TableCell>
                     )}
-                    <TableCell sx={{ ...tableCellStyle }} align="right">
+                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
                       Acciones
                     </TableCell>
                   </TableRow>
@@ -743,13 +750,13 @@ export default function MainGrid() {
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
-              <TableCell sx={tableCellStyle}>Nombre</TableCell>
-              <TableCell sx={tableCellStyle}>Desde</TableCell>
-              <TableCell sx={tableCellStyle}>Hasta</TableCell>
+              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }}>Nombre</TableCell>
+              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }}>Desde</TableCell>
+              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }}>Hasta</TableCell>
               {statusFilter === "deleted" && (
-                <TableCell sx={tableCellStyle}>Eliminado</TableCell>
+                <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>Eliminado</TableCell>
               )}
-              <TableCell sx={{ ...tableCellStyle }} align="right">
+              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
                 Acciones
               </TableCell>
             </TableRow>
