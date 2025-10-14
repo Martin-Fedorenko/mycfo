@@ -7,6 +7,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
+import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend
 } from 'recharts';
@@ -200,8 +201,8 @@ export default function MesDetalle() {
       nextEdits[l.id] = {
         categoria: l.categoria,
         tipo: l.tipo,
-        montoEstimado: l.montoEstimado,
-        montoReal: l.montoReal ?? ''
+        montoEstimado: safeNumber(l.montoEstimado),
+        montoReal: l.montoReal === null || typeof l.montoReal === 'undefined' ? '' : safeNumber(l.montoReal)
       };
     }
     setEdits(nextEdits);
@@ -242,7 +243,9 @@ export default function MesDetalle() {
     if (!enabled) {
       const linea = lineas.find((l) => l.id === id);
       if (linea) {
-        const restoredValue = field === 'montoReal' ? (linea.montoReal ?? '') : linea.categoria;
+        const restoredValue = field === 'montoReal'
+          ? (linea.montoReal === null || typeof linea.montoReal === 'undefined' ? '' : safeNumber(linea.montoReal))
+          : linea.categoria;
         setEdits((prev) => ({
           ...prev,
           [id]: { ...(prev[id] || {}), [field]: restoredValue },
@@ -573,14 +576,14 @@ export default function MesDetalle() {
               <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
-                <Typography variant="h4" fontWeight="bold">${totalIngresos.toLocaleString()}</Typography>
+                <Typography variant="h4" fontWeight="bold">{formatCurrency(totalIngresos)}</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
-                <Typography variant="h4" fontWeight="bold">${totalEgresos.toLocaleString()}</Typography>
+                <Typography variant="h4" fontWeight="bold">{formatCurrency(totalEgresos)}</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
@@ -589,7 +592,7 @@ export default function MesDetalle() {
                   {resultado >= 0 ? '✓' : '⚠'}
                 </Avatar>
                 <Typography variant="h6">Resultado</Typography>
-                <Typography variant="h4" fontWeight="bold">${resultado.toLocaleString()}</Typography>
+                <Typography variant="h4" fontWeight="bold">{formatCurrency(resultado)}</Typography>
               </Paper>
             </Grid>
           </Grid>
@@ -604,7 +607,7 @@ export default function MesDetalle() {
                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {pieDataIngresos.map((_, i) => <Cell key={`ing-${i}`} fill={INGRESO_COLOR} opacity={0.7 + i * 0.1} />)}
                   </Pie>
-                  <RTooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                  <RTooltip formatter={(value) => formatCurrency(value)} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -632,9 +635,9 @@ export default function MesDetalle() {
                               <BarChart data={[{ name: item.name, valor: item.estimado }]} layout="vertical">
                                 <XAxis type="number" domain={[0, max]} hide />
                                 <YAxis type="category" dataKey="name" hide />
-                                <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                                <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                                 <Bar dataKey="valor" fill={INGRESO_EST_COLOR} radius={[4,4,4,4]}
-                                     label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                     label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                               </BarChart>
                             </ResponsiveContainer>
                           </Box>
@@ -646,9 +649,9 @@ export default function MesDetalle() {
                               <BarChart data={[{ name: item.name, valor: item.real }]} layout="vertical">
                                 <XAxis type="number" domain={[0, max]} hide />
                                 <YAxis type="category" dataKey="name" hide />
-                                <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                                <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                                 <Bar dataKey="valor" fill={INGRESO_COLOR} radius={[4,4,4,4]}
-                                     label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                     label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                               </BarChart>
                             </ResponsiveContainer>
                           </Box>
@@ -670,7 +673,7 @@ export default function MesDetalle() {
                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {pieDataEgresos.map((_, i) => <Cell key={`egr-${i}`} fill={EGRESO_COLOR} opacity={0.7 + i * 0.1} />)}
                   </Pie>
-                  <RTooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                  <RTooltip formatter={(value) => formatCurrency(value)} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -698,9 +701,9 @@ export default function MesDetalle() {
                               <BarChart data={[{ name: item.name, valor: item.estimado }]} layout="vertical">
                                 <XAxis type="number" domain={[0, max]} hide />
                                 <YAxis type="category" dataKey="name" hide />
-                                <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                                <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                                 <Bar dataKey="valor" fill={EGRESO_EST_COLOR} radius={[4,4,4,4]}
-                                     label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                     label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                               </BarChart>
                             </ResponsiveContainer>
                           </Box>
@@ -712,9 +715,9 @@ export default function MesDetalle() {
                               <BarChart data={[{ name: item.name, valor: item.real }]} layout="vertical">
                                 <XAxis type="number" domain={[0, max]} hide />
                                 <YAxis type="category" dataKey="name" hide />
-                                <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                                <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                                 <Bar dataKey="valor" fill={EGRESO_COLOR} radius={[4,4,4,4]}
-                                     label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                     label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                               </BarChart>
                             </ResponsiveContainer>
                           </Box>
@@ -755,12 +758,30 @@ export default function MesDetalle() {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} md={2}>
-                  <TextField label="Estimado" type="number" fullWidth value={nueva.montoEstimado}
-                    onChange={(e) => setNueva((s) => ({ ...s, montoEstimado: e.target.value }))} />
+                  <TextField
+                    label="Estimado"
+                    type="text"
+                    fullWidth
+                    value={formatCurrencyInput(nueva.montoEstimado)}
+                    onChange={(e) => {
+                      const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                      setNueva((s) => ({ ...s, montoEstimado: parsed === '' ? '' : parsed }));
+                    }}
+                    inputProps={{ inputMode: 'numeric' }}
+                  />
                 </Grid>
                 <Grid item xs={12} md={2}>
-                  <TextField label="Real (opcional)" type="number" fullWidth value={nueva.montoReal}
-                    onChange={(e) => setNueva((s) => ({ ...s, montoReal: e.target.value }))} />
+                  <TextField
+                    label="Real (opcional)"
+                    type="text"
+                    fullWidth
+                    value={formatCurrencyInput(nueva.montoReal)}
+                    onChange={(e) => {
+                      const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                      setNueva((s) => ({ ...s, montoReal: parsed === '' ? '' : parsed }));
+                    }}
+                    inputProps={{ inputMode: 'numeric' }}
+                  />
                 </Grid>
                 <Grid item xs={12} md={3} display="flex" gap={1} justifyContent="flex-end">
                   <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' }); }}>
@@ -836,20 +857,27 @@ export default function MesDetalle() {
                           </FormControl>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
-                          <TextField size="small" type="number" fullWidth value={e.montoEstimado}
-                                     onChange={(ev) => updateField('montoEstimado', ev.target.value)} />
+                          <TextField
+                            size="small"
+                            type="text"
+                            fullWidth
+                            value={formatCurrencyInput(e.montoEstimado)}
+                            onChange={(ev) => updateField('montoEstimado', parseCurrency(ev.target.value))}
+                            inputProps={{ inputMode: 'numeric' }}
+                          />
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
                           <Box display="flex" alignItems="center" gap={1}>
                             <TextField
                               size="small"
-                              type="number"
+                              type="text"
                               fullWidth
-                              value={e.montoReal}
+                              value={formatCurrencyInput(e.montoReal)}
                               InputProps={{ readOnly: !allowReal }}
                               onChange={(ev) => {
-                                if (allowReal) updateField('montoReal', ev.target.value);
+                                if (allowReal) updateField('montoReal', parseCurrency(ev.target.value, { returnEmpty: true }));
                               }}
+                              inputProps={{ inputMode: 'numeric' }}
                             />
                             {allowReal ? (
                               <Tooltip title="Bloquear edicion manual">
@@ -867,7 +895,7 @@ export default function MesDetalle() {
                           </Box>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', color: desvio >= 0 ? '#66bb6a' : '#ef5350' }}>
-                          {desvio >= 0 ? '+' : '-'}${Math.abs(desvio).toLocaleString()}
+                          {desvio >= 0 ? '+' : '-'}{formatCurrency(Math.abs(desvio))}
                         </td>
                         <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
                           <Tooltip title="Guardar cambios">
@@ -978,7 +1006,20 @@ export default function MesDetalle() {
               <MenuItem value="UNICO">�nico (1 mes)</MenuItem>
               <MenuItem value="CUOTAS">En cuotas</MenuItem>
             </TextField>
-            <TextField label={regla.modo === 'AJUSTE_PCT' ? '% valor' : 'Monto'} type="number" value={regla.valor} onChange={(e) => setRegla((r) => ({ ...r, valor: Number(e.target.value) }))} />
+            <TextField
+              label={regla.modo === 'AJUSTE_PCT' ? '% valor' : 'Monto'}
+              type={regla.modo === 'AJUSTE_PCT' ? 'number' : 'text'}
+              value={regla.modo === 'AJUSTE_PCT' ? regla.valor : formatCurrencyInput(regla.valor)}
+              onChange={(e) => {
+                if (regla.modo === 'AJUSTE_PCT') {
+                  setRegla((r) => ({ ...r, valor: Number(e.target.value) }));
+                } else {
+                  const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                  setRegla((r) => ({ ...r, valor: parsed === '' ? '' : parsed }));
+                }
+              }}
+              inputProps={regla.modo === 'AJUSTE_PCT' ? { step: 0.1, inputMode: 'decimal' } : { inputMode: 'numeric' }}
+            />
             <TextField select label="Aplicar a" value={regla.solo} onChange={(e) => setRegla((r) => ({ ...r, solo: e.target.value }))}>
               <MenuItem value="todos">Ingresos y egresos</MenuItem>
               <MenuItem value="ingresos">Solo ingresos</MenuItem>

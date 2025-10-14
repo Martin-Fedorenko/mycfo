@@ -1,6 +1,10 @@
 package pronostico.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +20,7 @@ import pronostico.models.PresupuestoLinea;
 import pronostico.models.PresupuestoLinea.Tipo;
 import pronostico.repositories.PresupuestoLineaRepository;
 import pronostico.services.PresupuestoService;
+import pronostico.services.PresupuestoService.ListStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,26 +46,32 @@ public class PresupuestoController {
     private static final Pattern YM_PATTERN = Pattern.compile("^(\\d{4})-(\\d{1,2})(?:-(\\d{1,2}))?$");
 
     @GetMapping("/presupuestos")
-    public List<PresupuestoDTO> getAll(
+    public Page<PresupuestoDTO> getAll(
         @RequestParam(value = "year", required = false) Integer year,
         @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(value = "status", required = false, defaultValue = "active") String statusParam,
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "size", defaultValue = "3") int size,
+        @RequestParam(value = "sort", defaultValue = "createdAt,desc") String sortParam,
         @AuthenticationPrincipal Jwt jwt
     ) {
         String sub = requireSub(jwt);
+        ListStatus status = ListStatus.from(statusParam);
         try {
+            Pageable pageable = buildPageable(page, size, sortParam);
             if (from != null || to != null) {
                 if (from == null || to == null) {
                     throw new IllegalArgumentException("Debe especificar las fechas 'from' y 'to' para el rango");
                 }
-                return service.findByRange(from, to, sub);
+                return service.findByRange(from, to, sub, status, pageable);
             }
             if (year != null) {
                 LocalDate start = LocalDate.of(year, 1, 1);
                 LocalDate end = LocalDate.of(year, 12, 31);
-                return service.findByRange(start, end, sub);
+                return service.findByRange(start, end, sub, status, pageable);
             }
-            return service.findAllByOwner(sub);
+            return service.listByStatus(sub, status, pageable);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
@@ -89,6 +100,10 @@ public class PresupuestoController {
                 .nombre(presupuesto.getNombre())
                 .desde(normalizeYM(presupuesto.getDesde()))
                 .hasta(normalizeYM(presupuesto.getHasta()))
+                .createdAt(presupuesto.getCreatedAt() != null ? presupuesto.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null)
+                .deleted(presupuesto.isDeleted())
+                .deletedAt(presupuesto.getDeletedAt() != null ? presupuesto.getDeletedAt().toString() : null)
+                .deletedBy(presupuesto.getDeletedBy())
                 .build();
             return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException ex) {
@@ -116,6 +131,20 @@ public class PresupuestoController {
         try {
             service.deleteOwned(id, sub);
             return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return ResponseEntity.notFound().build();
+            }
+            throw ex;
+        }
+    }
+
+    @PostMapping("/presupuestos/{id}/restore")
+    public ResponseEntity<PresupuestoDTO> restore(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String sub = requireSub(jwt);
+        try {
+            PresupuestoDTO restored = service.restoreOwned(id, sub);
+            return ResponseEntity.ok(restored);
         } catch (ResponseStatusException ex) {
             if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
                 return ResponseEntity.notFound().build();
@@ -352,6 +381,39 @@ public class PresupuestoController {
         } catch (Exception ignored) {
         }
         return dto;
+    }
+
+    private Pageable buildPageable(int page, int size, String sortParam) {
+        int safePage = Math.max(page, 0);
+        int safeSize = size > 0 ? size : 3;
+        Sort sort = parseSort(sortParam);
+        return PageRequest.of(safePage, safeSize, sort);
+    }
+
+    private Sort parseSort(String sortParam) {
+        String property = "createdAt";
+        Sort.Direction direction = Sort.Direction.DESC;
+        if (sortParam != null && !sortParam.isBlank()) {
+            String[] parts = sortParam.split(",");
+            if (parts.length > 0 && !parts[0].trim().isEmpty() && isSortableProperty(parts[0].trim())) {
+                property = parts[0].trim();
+            }
+            if (parts.length > 1) {
+                direction = Sort.Direction.fromOptionalString(parts[1].trim()).orElse(Sort.Direction.DESC);
+            }
+        }
+        Sort sort = Sort.by(new Sort.Order(direction, property));
+        if (!"createdAt".equals(property)) {
+            sort = sort.and(Sort.by(Sort.Order.desc("createdAt")));
+        }
+        return sort.and(Sort.by(Sort.Order.desc("id")));
+    }
+
+    private boolean isSortableProperty(String property) {
+        return switch (property) {
+            case "id", "nombre", "desde", "hasta", "createdAt" -> true;
+            default -> false;
+        };
     }
 
     private String requireSub(Jwt jwt) {
