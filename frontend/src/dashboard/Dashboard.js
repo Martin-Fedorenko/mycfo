@@ -490,14 +490,12 @@ const Dashboard = () => {
         <Grid container spacing={2}>
           <Grid item xs={12} xl={6}>
             <BudgetWidget
+              companyId={company}
+              period={period}
               data={state.budget.data}
               loading={state.budget.loading && !state.budget.data}
               error={state.budget.error}
               onRetry={loadDashboardData}
-              onCreateBudget={() => handleNavigate("/presupuestos/nuevo")}
-              onNavigate={() =>
-                handleNavigate(`/presupuestos/${encodeURIComponent(state.budget.data?.slug ?? "general")}/detalle/${state.budget.data?.period?.routeParam ?? "actual"}`)
-              }
             />
           </Grid>
           <Grid item xs={12} xl={6}>
