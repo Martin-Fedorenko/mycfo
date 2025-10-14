@@ -12,7 +12,7 @@ import Tooltip from '@mui/material/Tooltip';
 import LogoutButton from './LogoutButton';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import ApartmentIcon from '@mui/icons-material/Apartment';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 const drawerWidth = 380;
 
@@ -107,10 +107,16 @@ React.useEffect(() => {
       }}
     >
       <Box
+        component={RouterLink}
+        to="/dashboard"
+        aria-label="Ir al dashboard"
         sx={{
           display: 'flex',
           mt: isTemporary ? 2 : 'calc(var(--template-frame-height, 0px) + 4px)',
           p: 1.5,
+          textDecoration: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
         }}
       >
         <CustomIcon />
