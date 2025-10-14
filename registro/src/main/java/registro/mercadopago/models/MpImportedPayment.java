@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import registro.cargarDatos.models.TipoMedioPago;
 import registro.cargarDatos.models.TipoMoneda;
-import registro.cargarDatos.models.TipoRegistro;
+import registro.cargarDatos.models.TipoMovimiento;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,7 +65,7 @@ public class MpImportedPayment {
     // Campos mapeados a la estructura de Registro
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo")
-    private TipoRegistro tipo;
+    private TipoMovimiento tipo;
 
     @Column(name = "monto_total", precision = 19, scale = 2)
     private BigDecimal montoTotal;
@@ -104,17 +104,17 @@ public class MpImportedPayment {
     public MpImportedPayment() {}
 
     // Constructor para crear desde un Registro
-    public MpImportedPayment(registro.cargarDatos.models.Registro registro, String mpPaymentId, UUID usuarioId, String mpAccountId) {
-        this.registroId = registro.getId();
+    public MpImportedPayment(registro.cargarDatos.models.Movimiento movimiento, String mpPaymentId, UUID usuarioId, String mpAccountId) {
+        this.registroId = movimiento.getId();
         this.mpPaymentId = mpPaymentId;
-        this.tipo = registro.getTipo();
-        this.montoTotal = BigDecimal.valueOf(registro.getMontoTotal());
-        this.fechaEmision = registro.getFechaEmision();
-        this.descripcion = registro.getDescripcion();
-        this.medioPago = registro.getMedioPago();
-        this.moneda = registro.getMoneda();
-        this.categoria = registro.getCategoria();
-        this.origen = registro.getOrigen();
+        this.tipo = movimiento.getTipo();
+        this.montoTotal = BigDecimal.valueOf(movimiento.getMontoTotal());
+        this.fechaEmision = movimiento.getFechaEmision();
+        this.descripcion = movimiento.getDescripcion();
+        this.medioPago = movimiento.getMedioPago();
+        this.moneda = movimiento.getMoneda();
+        this.categoria = movimiento.getCategoria();
+        this.origen = movimiento.getOrigenNombre(); // Mapeo desde origenNombre
         this.usuarioId = usuarioId;
         this.mpAccountId = mpAccountId;
     }

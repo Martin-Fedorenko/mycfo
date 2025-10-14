@@ -11,8 +11,8 @@ services:
     environment:
       - SERVER_PORT=8081
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/administracion_db
-      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
 
       - ADMINISTRACION_URL=http://administracion:8081
       - CONSOLIDACION_URL=http://consolidacion:8082
@@ -21,6 +21,15 @@ services:
       - PRONOSTICO_URL=http://pronostico:8085
       - REGISTRO_URL=http://registro:8086
       - REPORTE_URL=http://reporte:8087
+
+      # AWS Cognito (desde .env)
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
+      - AWS_REGION=${AWS_REGION}
+
+      # AWS Credenciales (desde .env)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
   consolidacion:
     container_name: consolidacion
@@ -34,8 +43,8 @@ services:
     environment:
       - SERVER_PORT=8082
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/consolidacion_db
-      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
 
       - ADMINISTRACION_URL=http://administracion:8081
       - CONSOLIDACION_URL=http://consolidacion:8082
@@ -57,8 +66,8 @@ services:
     environment:
       - SERVER_PORT=8083
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/ia_db
-      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
 
       - ADMINISTRACION_URL=http://administracion:8081
       - CONSOLIDACION_URL=http://consolidacion:8082
@@ -80,8 +89,8 @@ services:
     environment:
       - SERVER_PORT=8084
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/notificacion_db
-      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
 
       - ADMINISTRACION_URL=http://administracion:8081
       - CONSOLIDACION_URL=http://consolidacion:8082
@@ -90,6 +99,14 @@ services:
       - PRONOSTICO_URL=http://pronostico:8085
       - REGISTRO_URL=http://registro:8086
       - REPORTE_URL=http://reporte:8087
+
+      # Email configuration (desde .env)
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_SSL_TRUST=${MAIL_SSL_TRUST}
+      - NOTIFICATIONS_EMAIL_FROM=${NOTIFICATIONS_EMAIL_FROM}
 
   pronostico:
     container_name: pronostico
@@ -103,8 +120,8 @@ services:
     environment:
       - SERVER_PORT=8085
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/pronostico_db
-      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
 
       - ADMINISTRACION_URL=http://administracion:8081
       - CONSOLIDACION_URL=http://consolidacion:8082
@@ -126,8 +143,8 @@ services:
     environment:
       - SERVER_PORT=8086
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/registro_db
-      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
 
       - ADMINISTRACION_URL=http://administracion:8081
       - CONSOLIDACION_URL=http://consolidacion:8082
@@ -136,6 +153,18 @@ services:
       - PRONOSTICO_URL=http://pronostico:8085
       - REGISTRO_URL=http://registro:8086
       - REPORTE_URL=http://reporte:8087
+
+      # Mercado Pago (desde .env)
+      - MERCADOPAGO_CLIENT_ID=${MERCADOPAGO_CLIENT_ID}
+      - MERCADOPAGO_CLIENT_SECRET=${MERCADOPAGO_CLIENT_SECRET}
+      - MERCADOPAGO_REDIRECT_URI=${MERCADOPAGO_REDIRECT_URI}
+      - MERCADOPAGO_OAUTH_AUTHORIZE=${MERCADOPAGO_OAUTH_AUTHORIZE}
+      - MERCADOPAGO_BASE_URL=${MERCADOPAGO_BASE_URL}
+      - MERCADOPAGO_SCOPE=${MERCADOPAGO_SCOPE}
+      - MERCADOPAGO_FRONTEND_URL=${MERCADOPAGO_FRONTEND_URL}
+
+      # Encriptación de datos sensibles
+      - APP_ENCRYPT_SECRET=${APP_ENCRYPT_SECRET}
 
   reporte:
     container_name: reporte
@@ -149,8 +178,8 @@ services:
     environment:
       - SERVER_PORT=8087
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/reporte_db
-      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
 
       - ADMINISTRACION_URL=http://administracion:8081
       - CONSOLIDACION_URL=http://consolidacion:8082
@@ -165,9 +194,9 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:

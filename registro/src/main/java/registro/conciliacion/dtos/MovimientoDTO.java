@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import registro.cargarDatos.models.TipoMedioPago;
 import registro.cargarDatos.models.TipoMoneda;
-import registro.cargarDatos.models.TipoRegistro;
+import registro.cargarDatos.models.TipoMovimiento;
 
 import java.time.LocalDate;
 
@@ -19,7 +19,7 @@ public class MovimientoDTO {
     
     private Long id;
     
-    private TipoRegistro tipo;
+    private TipoMovimiento tipo;
     
     private Double montoTotal;
     

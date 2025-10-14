@@ -17,7 +17,15 @@ public class FacturaController {
     private final FacturaService facturaService;
 
     @PostMapping("/formulario")
-    public ResponseEntity<Factura> crearFactura(@RequestBody Factura factura) {
+    public ResponseEntity<Factura> crearFactura(
+            @RequestBody Factura factura,
+            @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSub,
+            @RequestHeader(value = "X-Organizacion-Id", required = false) Long organizacionId) {
+        
+        // Setear datos de sesión si vienen en headers
+        if (usuarioSub != null) factura.setUsuarioId(usuarioSub);
+        if (organizacionId != null) factura.setOrganizacionId(organizacionId);
+        
         Factura guardada = facturaService.guardarFactura(factura);
         return ResponseEntity.ok(guardada);
     }

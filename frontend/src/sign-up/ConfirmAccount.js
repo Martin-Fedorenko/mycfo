@@ -1,6 +1,6 @@
 // ConfirmAccount.js
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,18 +13,15 @@ import {
   Divider,
   Link,
   Stack,
+  Alert,
 } from "@mui/material";
 import MuiCard from "@mui/material/Card";
 import { styled } from "@mui/material/styles";
 
-import {
-  CognitoUserPool,
-  CognitoUser,
-} from "amazon-cognito-identity-js";
-
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { SitemarkIcon } from "./components/CustomIcons";
+import axios from "axios";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -52,41 +49,68 @@ const ConfirmContainer = styled(Stack)(({ theme }) => ({
 
 export default function ConfirmAccount(props) {
   const navigate = useNavigate();
-  const [email, setEmail] = useState(""); // usuario registrado
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  
+  // Obtener email temporal
+  const email = sessionStorage.getItem("tempEmail") || "";
 
-  const poolData = {
-    UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID,
-    ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,
-  };
-  const userPool = new CognitoUserPool(poolData);
+  useEffect(() => {
+    if (!email) {
+      navigate("/signup");
+    }
+  }, [email, navigate]);
 
-  const handleConfirm = (e) => {
+  const handleConfirm = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setSuccessMsg("");
 
-    const userData = {
-      Username: email,
-      Pool: userPool,
-    };
+    try {
+      // Confirmar código con el backend
+      await axios.post("http://localhost:8081/api/auth/confirmar", {
+        email: email,
+        codigo: code,
+      });
 
-    const cognitoUser = new CognitoUser(userData);
-    cognitoUser.confirmRegistration(code, true, (err, result) => {
+      setSuccessMsg("¡Cuenta confirmada exitosamente!");
+      
+      // Limpiar datos temporales
+      sessionStorage.removeItem("tempEmail");
+
+      // Redirigir al login
+      setTimeout(() => {
+        navigate("/signin");
+      }, 1500);
+    } catch (err) {
+      console.error("Error confirming code:", err);
+      setError(err.response?.data?.error || "Código incorrecto o expirado");
+    } finally {
       setLoading(false);
-      if (err) {
-        console.error("Confirm Error", err);
-        setError(err.message || JSON.stringify(err));
-        return;
-      }
-      console.log("Confirm result:", result);
-      setSuccessMsg("Account confirmed! Redirecting...");
-      setTimeout(() => navigate("/#/"), 1500); // redirige al home
-    });
+    }
+  };
+
+  const handleResendCode = async () => {
+    setResendLoading(true);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      await axios.post("http://localhost:8081/api/auth/reenviar-codigo", {
+        email: email,
+      });
+
+      setSuccessMsg("Código reenviado exitosamente. Revisa tu email.");
+    } catch (err) {
+      console.error("Error resending code:", err);
+      setError(err.response?.data?.error || "Error al reenviar el código");
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -101,10 +125,13 @@ export default function ConfirmAccount(props) {
             variant="h4"
             sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
           >
-            Confirm your account
+            Confirma tu cuenta
           </Typography>
-          <Typography>
-            We have sent a code in an Email message. To confirm your account, enter your code.
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Hemos enviado un código de verificación a <strong>{email}</strong>
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Ingresa el código para completar tu registro.
           </Typography>
 
           <Box
@@ -113,40 +140,40 @@ export default function ConfirmAccount(props) {
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
             <FormControl>
-              <FormLabel>Email</FormLabel>
-              <TextField
-                required
-                fullWidth
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </FormControl>
-
-            <FormControl>
-              <FormLabel>Code</FormLabel>
+              <FormLabel>Código de Verificación</FormLabel>
               <TextField
                 required
                 fullWidth
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
+                placeholder="123456"
+                inputProps={{ maxLength: 6 }}
               />
             </FormControl>
 
-            {error && <Typography color="error">{error}</Typography>}
-            {successMsg && <Typography color="primary">{successMsg}</Typography>}
+            {error && <Alert severity="error">{error}</Alert>}
+            {successMsg && <Alert severity="success">{successMsg}</Alert>}
 
             <Button type="submit" fullWidth variant="contained" disabled={loading}>
-              {loading ? "Confirming..." : "Confirm account"}
+              {loading ? "Confirmando..." : "Confirmar cuenta"}
+            </Button>
+
+            <Button 
+              fullWidth 
+              variant="outlined" 
+              onClick={handleResendCode}
+              disabled={resendLoading || loading}
+            >
+              {resendLoading ? "Reenviando..." : "Reenviar código"}
             </Button>
           </Box>
 
           <Divider sx={{ my: 2 }} />
 
           <Typography sx={{ textAlign: "center" }}>
-            Already confirmed?{" "}
+            ¿Ya tienes cuenta?{" "}
             <Link href="/#/signin" variant="body2">
-              Sign in
+              Iniciar sesión
             </Link>
           </Typography>
         </Card>

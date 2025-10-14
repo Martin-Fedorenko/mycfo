@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -14,88 +14,73 @@ import {
   DialogActions,
   Button,
   TextField,
-  Alert
+  Alert,
+  CircularProgress,
+  Paper,
+  Chip
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
-  PersonAdd as PersonAddIcon
+  PersonAdd as PersonAddIcon,
+  Business as BusinessIcon,
+  AdminPanelSettings as AdminIcon
 } from "@mui/icons-material";
-import CampoEditable from "../../shared-components/CampoEditable";
-import BotonConsolidar from "../../shared-components/CustomButton";
-import CustomMultiLine from "../../shared-components/CustomMultiLine";
-import CustomButton from "../../shared-components/CustomButton";
+import axios from "axios";
+import CampoEditable from "../../shared-components/CustomButton";
 
-// Datos iniciales hardcodeados
-const initialOrganizationData = {
-  nombre: "MyCFO Solutions",
-  descripcion: "Empresa líder en soluciones financieras y contables para PyMEs",
-};
-
-// Empleados iniciales hardcodeados
-const initialEmployees = [
-  {
-    id: 1,
-    nombre: "Martín",
-    apellido: "Fedorenko",
-    email: "martin@mycfo.com",
-    puesto: "CTO"
-  },
-  {
-    id: 2,
-    nombre: "Ana",
-    apellido: "Gómez",
-    email: "ana.gomez@mycfo.com",
-    puesto: "CFO"
-  },
-  {
-    id: 3,
-    nombre: "Carlos",
-    apellido: "López",
-    email: "carlos.lopez@mycfo.com",
-    puesto: "Desarrollador Senior"
-  }
-];
+const API_URL = "http://localhost:8081";
 
 export default function Organizacion() {
-  const [organizacion, setOrganizacion] = useState(initialOrganizationData);
-  const [empleados, setEmpleados] = useState(initialEmployees);
-  const [editados, setEditados] = useState({});
-  const [emailsInvitacion, setEmailsInvitacion] = useState([]);
+  const [empresa, setEmpresa] = useState(null);
+  const [empleados, setEmpleados] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editandoEmpleado, setEditandoEmpleado] = useState(null);
   const [empleadoEditado, setEmpleadoEditado] = useState({});
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  const [usuarioRol, setUsuarioRol] = useState(null);
 
-  // Manejar cambios en los datos de la organización
-  const handleChangeOrganizacion = (campo, valor) => {
-    setOrganizacion(prev => ({ ...prev, [campo]: valor }));
-    setEditados(prev => ({ ...prev, [campo]: true }));
-  };
+  const sub = sessionStorage.getItem("sub");
+  const organizacionId = sessionStorage.getItem("organizacionId");
 
-  // Manejar envío de cambios de la organización
-  const handleConsolidarOrganizacion = () => {
-    console.log("Datos de organización enviados:", organizacion);
-    setMensaje({ tipo: 'success', texto: 'Cambios guardados con éxito' });
-    setEditados({});
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
-  };
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    cargarDatosEmpresaYEmpleados();
+  }, []);
 
-  // Eliminar empleado
-  const handleEliminarEmpleado = (id) => {
-    setEmpleados(prev => prev.filter(emp => emp.id !== id));
-    setMensaje({ tipo: 'info', texto: 'Empleado eliminado' });
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+  const cargarDatosEmpresaYEmpleados = async () => {
+    setLoading(true);
+    try {
+      // Cargar datos del perfil del usuario para saber su rol
+      const perfilResponse = await axios.get(`${API_URL}/api/usuarios/perfil`, {
+        headers: { "X-Usuario-Sub": sub }
+      });
+      setUsuarioRol(perfilResponse.data.rol);
+
+      // Cargar datos de la empresa
+      const empresaResponse = await axios.get(`${API_URL}/api/empresas/${organizacionId}`, {
+        headers: { "X-Usuario-Sub": sub }
+      });
+      setEmpresa(empresaResponse.data);
+
+      // Cargar empleados de la empresa
+      const empleadosResponse = await axios.get(`${API_URL}/api/usuarios/empresa/${organizacionId}`, {
+        headers: { "X-Usuario-Sub": sub }
+      });
+      setEmpleados(empleadosResponse.data);
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+      setMensaje({ tipo: 'error', texto: 'Error al cargar los datos de la empresa' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Abrir diálogo para editar empleado
   const handleAbrirDialogoEdicion = (empleado) => {
-    setEditandoEmpleado(empleado.id);
+    setEditandoEmpleado(empleado.sub);
     setEmpleadoEditado({ ...empleado });
     setDialogoAbierto(true);
   };
@@ -108,17 +93,55 @@ export default function Organizacion() {
   };
 
   // Guardar cambios del empleado
-  const handleGuardarEmpleado = () => {
-    setEmpleados(prev => 
-      prev.map(emp => 
-        emp.id === editandoEmpleado ? { ...empleadoEditado } : emp
-      )
-    );
-    setMensaje({ tipo: 'success', texto: 'Cambios del empleado guardados' });
-    handleCerrarDialogo();
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+  const handleGuardarEmpleado = async () => {
+    try {
+      await axios.put(
+        `${API_URL}/api/usuarios/${editandoEmpleado}`,
+        {
+          nombre: empleadoEditado.nombre,
+          email: empleadoEditado.email,
+          telefono: empleadoEditado.telefono,
+          rol: empleadoEditado.rol
+        },
+        {
+          headers: { "X-Usuario-Sub": sub }
+        }
+      );
+
+      setMensaje({ tipo: 'success', texto: 'Cambios del empleado guardados exitosamente' });
+      handleCerrarDialogo();
+      
+      // Recargar lista de empleados
+      cargarDatosEmpresaYEmpleados();
+      
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+    } catch (error) {
+      console.error("Error guardando empleado:", error);
+      setMensaje({ tipo: 'error', texto: 'Error al guardar los cambios del empleado' });
+    }
+  };
+
+  // Eliminar empleado
+  const handleEliminarEmpleado = async (empleadoSub) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este empleado?")) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/api/usuarios/${empleadoSub}`, {
+        headers: { "X-Usuario-Sub": sub }
+      });
+
+      setMensaje({ tipo: 'success', texto: 'Empleado eliminado exitosamente' });
+      
+      // Recargar lista de empleados
+      cargarDatosEmpresaYEmpleados();
+      
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+    } catch (error) {
+      console.error("Error eliminando empleado:", error);
+      setMensaje({ tipo: 'error', texto: 'Error al eliminar el empleado' });
+    }
   };
 
   // Manejar cambios en el formulario de edición
@@ -126,21 +149,15 @@ export default function Organizacion() {
     setEmpleadoEditado(prev => ({ ...prev, [campo]: valor }));
   };
 
-  // Manejar envío de invitaciones
-  const handleEnviarInvitaciones = () => {
-    if (emailsInvitacion.length === 0) {
-      setMensaje({ tipo: 'error', texto: 'Debe ingresar al menos un email' });
-    } else {
-      console.log("Invitaciones enviadas a:", emailsInvitacion);
-      setMensaje({ tipo: 'success', texto: `Invitaciones enviadas a ${emailsInvitacion.length} contactos` });
-      setEmailsInvitacion([]);
-    }
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
-  };
+  const esAdministrador = usuarioRol === "ADMINISTRADOR";
 
-  const hayCambios = Object.keys(editados).length > 0;
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
@@ -150,106 +167,135 @@ export default function Organizacion() {
         </Alert>
       )}
       
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <BusinessIcon fontSize="large" color="primary" />
         Gestión de Organización
       </Typography>
-      <Typography variant="subtitle1" sx={{ mb: 4 }}>
-        Administra la información de tu empresa y empleados
+      <Typography variant="subtitle1" sx={{ mb: 4, color: 'text.secondary' }}>
+        Visualiza la información de tu empresa y empleados
       </Typography>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2 }}>
-        Información de la Empresa
-      </Typography>
-      
-      <CampoEditable
-        label="Nombre de la Empresa"
-        value={organizacion.nombre}
-        onChange={(v) => handleChangeOrganizacion("nombre", v)}
-      />
-      <CampoEditable
-        label="Descripción"
-        value={organizacion.descripcion}
-        multiline
-        rows={3}
-        onChange={(v) => handleChangeOrganizacion("descripcion", v)}
-      />
-
-      {hayCambios && (
-        <BotonConsolidar
-          label="Guardar Cambios de Empresa"
-          onClick={handleConsolidarOrganizacion}
-          width="100%"
-        />
-      )}
-
-      <Typography variant="h5" gutterBottom sx={{ mt: 6, mb: 2 }}>
-        Empleados de la Organización
-      </Typography>
-      
-      {empleados.length === 0 ? (
-        <Typography variant="body2" color="textSecondary" sx={{ py: 2 }}>
-          No hay empleados registrados en la organización.
+      {/* Información de la Empresa */}
+      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+          Información de la Empresa
         </Typography>
-      ) : (
-        <List sx={{ width: '100%',  mb: 3 }}>
-          {empleados.map((empleado, index) => (
-            <React.Fragment key={empleado.id}>
-              <ListItem alignItems="flex-start">
-                <ListItemText
-                  primary={`${empleado.nombre} ${empleado.apellido}`}
-                  secondary={
-                    <Box>
-                      <Typography variant="body2" component="span">
-                        {empleado.puesto}
-                      </Typography>
-                      <Typography variant="body2" component="div" color="textSecondary">
-                        {empleado.email}
-                      </Typography>
-                    </Box>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="editar"
-                    onClick={() => handleAbrirDialogoEdicion(empleado)}
-                    sx={{ mr: 1 }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="eliminar"
-                    onClick={() => handleEliminarEmpleado(empleado.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-              {index < empleados.length - 1 && <Divider variant="inset" component="li" />}
-            </React.Fragment>
-          ))}
-        </List>
-      )}
+        
+        {empresa && (
+          <Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Nombre de la Empresa
+              </Typography>
+              <Typography variant="h6">
+                {empresa.nombre}
+              </Typography>
+            </Box>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 6, mb: 2 }}>
-        Invitar nuevos miembros
-      </Typography>
-      <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-        Ingresa las direcciones de correo electrónico de las personas que deseas invitar a tu organización
-      </Typography>
-      
-      <CustomMultiLine
-        value={emailsInvitacion}
-        onChange={setEmailsInvitacion}
-        placeholder="Ingresa emails separados por coma o presiona Enter"
-      />
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Descripción
+              </Typography>
+              <Typography variant="body1">
+                {empresa.descripcion || "Sin descripción"}
+              </Typography>
+            </Box>
 
-      <CustomButton
-        label="Enviar Invitaciones"
-        width="100%"
-        onClick={handleEnviarInvitaciones}
-      />
+
+            {!esAdministrador && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Solo los administradores pueden modificar los datos de la empresa
+              </Alert>
+            )}
+          </Box>
+        )}
+      </Paper>
+
+      {/* Empleados de la Organización */}
+      <Paper elevation={2} sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+          Empleados de la Organización ({empleados.length})
+        </Typography>
+        
+        {empleados.length === 0 ? (
+          <Typography variant="body2" color="textSecondary" sx={{ py: 2 }}>
+            No hay empleados registrados en la organización.
+          </Typography>
+        ) : (
+          <List sx={{ width: '100%' }}>
+            {empleados.map((empleado, index) => (
+              <React.Fragment key={empleado.sub}>
+                <ListItem alignItems="flex-start" sx={{ py: 2 }}>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="h6">
+                          {empleado.nombre}
+                        </Typography>
+                        {empleado.rol === "ADMINISTRADOR" && (
+                          <Chip 
+                            icon={<AdminIcon />} 
+                            label="Admin" 
+                            size="small" 
+                            color="primary" 
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
+                    }
+                    secondary={
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" component="div">
+                          📧 {empleado.email}
+                        </Typography>
+                        {empleado.telefono && (
+                          <Typography variant="body2" component="div" color="text.secondary">
+                            📱 {empleado.telefono}
+                          </Typography>
+                        )}
+                        <Typography variant="body2" component="div" color="text.secondary" sx={{ mt: 0.5 }}>
+                          Rol: {empleado.rol}
+                        </Typography>
+                        <Typography variant="caption" component="div" color="text.disabled" sx={{ mt: 0.5 }}>
+                          Estado: {empleado.activo ? "Activo" : "Inactivo"}
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                  {esAdministrador && (
+                    <ListItemSecondaryAction>
+                      <IconButton 
+                        edge="end" 
+                        aria-label="editar"
+                        onClick={() => handleAbrirDialogoEdicion(empleado)}
+                        sx={{ mr: 1 }}
+                        color="primary"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        edge="end" 
+                        aria-label="eliminar"
+                        onClick={() => handleEliminarEmpleado(empleado.sub)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  )}
+                </ListItem>
+                {index < empleados.length - 1 && <Divider variant="fullWidth" component="li" />}
+              </React.Fragment>
+            ))}
+          </List>
+        )}
+
+        {!esAdministrador && empleados.length > 0 && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Solo los administradores pueden modificar o eliminar empleados
+          </Alert>
+        )}
+      </Paper>
 
       {/* Diálogo para editar empleado */}
       <Dialog open={dialogoAbierto} onClose={handleCerrarDialogo} maxWidth="sm" fullWidth>
@@ -258,23 +304,13 @@ export default function Organizacion() {
           <TextField
             autoFocus
             margin="dense"
-            label="Nombre"
+            label="Nombre Completo"
             type="text"
             fullWidth
             variant="outlined"
             value={empleadoEditado.nombre || ''}
             onChange={(e) => handleChangeEmpleado('nombre', e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Apellido"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={empleadoEditado.apellido || ''}
-            onChange={(e) => handleChangeEmpleado('apellido', e.target.value)}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, mt: 1 }}
           />
           <TextField
             margin="dense"
@@ -283,18 +319,36 @@ export default function Organizacion() {
             fullWidth
             variant="outlined"
             value={empleadoEditado.email || ''}
-            disabled
+            onChange={(e) => handleChangeEmpleado('email', e.target.value)}
             sx={{ mb: 2 }}
           />
           <TextField
             margin="dense"
-            label="Puesto"
-            type="text"
+            label="Teléfono"
+            type="tel"
             fullWidth
             variant="outlined"
-            value={empleadoEditado.puesto || ''}
-            onChange={(e) => handleChangeEmpleado('puesto', e.target.value)}
+            value={empleadoEditado.telefono || ''}
+            onChange={(e) => handleChangeEmpleado('telefono', e.target.value)}
+            helperText="Formato internacional: +[código país][número] (ej: +541234567890)"
+            placeholder="+541234567890"
+            sx={{ mb: 2 }}
           />
+          <TextField
+            margin="dense"
+            label="Rol"
+            select
+            fullWidth
+            variant="outlined"
+            value={empleadoEditado.rol || 'NORMAL'}
+            onChange={(e) => handleChangeEmpleado('rol', e.target.value)}
+            SelectProps={{
+              native: true,
+            }}
+          >
+            <option value="NORMAL">Normal</option>
+            <option value="ADMINISTRADOR">Administrador</option>
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCerrarDialogo}>Cancelar</Button>

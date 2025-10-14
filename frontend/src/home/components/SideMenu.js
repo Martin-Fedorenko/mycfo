@@ -52,21 +52,18 @@ const CustomIcon = () => {
 export default function SideMenu() {
   const navigate = useNavigate();
 
-  // 🔹 Datos de usuario obtenidos del sessionStorage
+  // 🔹 Datos de usuario obtenidos del sessionStorage (desde la BD)
   const [userData, setUserData] = React.useState({
-    name: '',
-    familyName: '',
+    nombre: '',
     email: '',
   });
 
 React.useEffect(() => {
   const updateUserData = () => {
-    const storedName = sessionStorage.getItem('name') || '';
-    const storedFamilyName = sessionStorage.getItem('family_name') || '';
+    const storedNombre = sessionStorage.getItem('nombre') || '';
     const storedEmail = sessionStorage.getItem('email') || '';
     setUserData({
-      name: storedName,
-      familyName: storedFamilyName,
+      nombre: storedNombre,
       email: storedEmail,
     });
   };
@@ -133,7 +130,7 @@ React.useEffect(() => {
       >
         <Avatar
           sizes="small"
-          alt={`${userData.name} ${userData.familyName}`}
+          alt={userData.nombre}
           src="/static/images/avatar/7.jpg"
           sx={{ width: 36, height: 36 }}
         />
@@ -142,7 +139,7 @@ React.useEffect(() => {
             variant="body2"
             sx={{ fontWeight: 500, lineHeight: '16px' }}
           >
-            {userData.name || 'Nombre'} {userData.familyName || ''}
+            {userData.nombre || 'Nombre Usuario'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             {userData.email || 'correo@ejemplo.com'}

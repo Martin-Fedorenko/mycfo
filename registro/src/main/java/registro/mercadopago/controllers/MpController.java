@@ -12,9 +12,9 @@ import registro.mercadopago.services.MpAuthService;
 import registro.mercadopago.services.MpBillingService;
 import registro.mercadopago.services.MpPaymentImportService;
 import registro.mercadopago.services.util.MpWalletMovementImportService;
-import registro.cargarDatos.models.Registro;
+import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMedioPago;
-import registro.cargarDatos.repositories.RegistroRepository;
+import registro.cargarDatos.repositories.MovimientoRepository;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +57,7 @@ public class MpController {
     private final MpImportedPaymentRepository mpImportedRepo;
 
     @Autowired
-    private RegistroRepository registroRepo;
+    private MovimientoRepository MovimientoRepo;
 
     @Autowired
     private MpProperties mpProps;
@@ -208,7 +208,7 @@ public class MpController {
             return Page.empty();
         }
 
-        Specification<Registro> spec = (root, query, cb) -> {
+        Specification<Movimiento> spec = (root, query, cb) -> {
             List<Predicate> ands = new ArrayList<>();
             
         // Filtrar solo registros de MercadoPago del usuario actual
@@ -240,7 +240,7 @@ public class MpController {
         };
 
         Pageable sorted = normalizeSortRegistros(pg);
-        Page<Registro> page = registroRepo.findAll(spec, sorted);
+        Page<Movimiento> page = MovimientoRepo.findAll(spec, sorted);
 
         return page.map(r -> {
             PaymentDTO dto = new PaymentDTO();
@@ -248,7 +248,7 @@ public class MpController {
             dto.setCategoria(r.getCategoria());
             dto.setDescripcion(r.getDescripcion());
             dto.setFecha(r.getFechaEmision());
-            dto.setOrigen(r.getOrigen());
+            dto.setOrigen(r.getOrigenNombre()); // DTO usa 'origen' pero mapea desde origenNombre
             dto.setMontoTotal(BigDecimal.valueOf(r.getMontoTotal()));
             dto.setTipo(r.getTipo() != null ? r.getTipo().toString() : "UNKNOWN");
             

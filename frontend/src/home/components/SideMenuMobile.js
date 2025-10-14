@@ -15,18 +15,16 @@ import { Box } from '@mui/material';
 import LogoutButton from './LogoutButton';
 
 function SideMenuMobile({ open, toggleDrawer }) {
-  // 🔹 Datos de usuario obtenidos de sessionStorage
+  // 🔹 Datos de usuario obtenidos de sessionStorage (desde la BD)
   const [userData, setUserData] = React.useState({
-    name: '',
-    familyName: '',
+    nombre: '',
     email: '',
   });
 
   React.useEffect(() => {
   const loadData = () => {
     setUserData({
-      name: sessionStorage.getItem('name') || '',
-      familyName: sessionStorage.getItem('family_name') || '',
+      nombre: sessionStorage.getItem('nombre') || '',
       email: sessionStorage.getItem('email') || '',
     });
   };
@@ -99,13 +97,13 @@ function SideMenuMobile({ open, toggleDrawer }) {
         <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
           <Avatar
             sizes="small"
-            alt={`${userData.name} ${userData.familyName}`}
+            alt={userData.nombre}
             src="/static/images/avatar/7.jpg"
             sx={{ width: 24, height: 24 }}
           />
           <Box>
             <Typography component="p" variant="h6">
-              {userData.name || 'Nombre'} {userData.familyName || ''}
+              {userData.nombre || 'Nombre Usuario'}
             </Typography>
             <Typography component="p" variant="caption" sx={{ color: 'text.secondary' }}>
               {userData.email || 'correo@ejemplo.com'}

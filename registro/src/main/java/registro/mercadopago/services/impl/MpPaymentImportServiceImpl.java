@@ -1,7 +1,7 @@
 package registro.mercadopago.services.impl;
 
 import registro.cargarDatos.models.*;
-import registro.cargarDatos.repositories.RegistroRepository;
+import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.mercadopago.config.MpProperties;
 import registro.mercadopago.dtos.PaymentDTO;
 import registro.mercadopago.models.MpAccountLink;
@@ -25,7 +25,7 @@ import java.util.*;
 @Service
 public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
-    private final RegistroRepository registroRepo;
+    private final MovimientoRepository movimientoRepo;
     private final MpAccountLinkRepository linkRepo;
     private final MpImportedPaymentRepository mpImportedRepo;
     private final MpProperties props;
@@ -35,14 +35,14 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     private final RestTemplate rest = new RestTemplate();
 
     public MpPaymentImportServiceImpl(
-            RegistroRepository registroRepo,
+            MovimientoRepository movimientoRepo,
             MpAccountLinkRepository linkRepo,
             MpImportedPaymentRepository mpImportedRepo,
             MpProperties props,
             CategorySuggestionService categorySuggestionService,
             MpDuplicateDetectionService duplicateDetectionService
     ) {
-        this.registroRepo = registroRepo;
+        this.movimientoRepo = movimientoRepo;
         this.linkRepo = linkRepo;
         this.mpImportedRepo = mpImportedRepo;
         this.props = props;
@@ -305,14 +305,14 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         System.out.println(">>> PayerID: " + payerId);
         System.out.println(">>> CollectorID: " + collectorId);
 
-        // === 2) Armar Registro según tu mapeo ===
-        Registro r = new Registro();
+        // === 2) Armar Movimiento según tu mapeo ===
+        Movimiento r = new Movimiento();
 
         // id: autogenerado por JPA
 
         // tipo (tu entidad): clasificación mejorada según múltiples campos de MP
-        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount, payerId, collectorId);
-        r.setTipo(tipoRegistro);
+        TipoMovimiento tipoMovimiento = determinarTipoMovimiento(status, transactionType, operationType, transactionAmount, payerId, collectorId);
+        r.setTipo(tipoMovimiento);
 
         // montoTotal = transactionAmount
         r.setMontoTotal(transactionAmount != null ? transactionAmount.doubleValue() : 0d);
@@ -321,15 +321,15 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         r.setFechaEmision(fechaEmision);
 
         // categoria = sugerida inteligentemente según descripción y tipo
-        String categoriaSugerida = categorySuggestionService.sugerirCategoria(description, tipoRegistro);
+        String categoriaSugerida = categorySuggestionService.sugerirCategoria(description, tipoMovimiento);
         r.setCategoria(categoriaSugerida);
         System.out.println(">>> Categoría sugerida: " + categoriaSugerida);
 
-        // origen = payer_email
-        r.setOrigen(payerEmail);
+        // origenNombre = payer_email
+        r.setOrigenNombre(payerEmail);
 
-        // destino = NULL (por ahora)
-        r.setDestino(null);
+        // destinoNombre = NULL (por ahora)
+        r.setDestinoNombre(null);
 
         // descripcion = description + status para mayor claridad
         String descripcionCompleta = description != null ? description : "Pago MercadoPago";
@@ -342,8 +342,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         r.setFechaCreacion(fechaCreacion);
         r.setFechaActualizacion(fechaActualizacion);
 
-        // usuario = NULL (por ahora, según pediste)
-        r.setUsuario(null);
+        // usuarioId se setea como null por defecto
 
         // medioPago = payment_method_id  (es ENUM: puede fallar si el literal no existe)
         // Si tu enum es, por ejemplo, { EFECTIVO, TRANSFERENCIA, MERCADO_PAGO, ... }
@@ -377,7 +376,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // Nota: mpPaymentId removido temporalmente
 
         // === 3) Guardar en tabla Registro ===
-        Registro savedRegistro = registroRepo.save(r);
+        Movimiento savedRegistro = movimientoRepo.save(r);
         
         // === 4) Guardar en tabla MpImportedPayment ===
         String mpPaymentId = asString(body.get("id"));
@@ -478,24 +477,24 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
      * Determina el tipo de registro (INGRESO/EGRESO) basado en múltiples campos de MercadoPago
      * REGLA PRINCIPAL: Si payer_id != collector_id, es un EGRESO (tú pagas a otro)
      */
-    private TipoRegistro determinarTipoRegistro(String status, String transactionType, String operationType, BigDecimal amount, Long payerId, Long collectorId) {
+    private TipoMovimiento determinarTipoMovimiento(String status, String transactionType, String operationType, BigDecimal amount, Long payerId, Long collectorId) {
         System.out.println(">>> === CLASIFICACIÓN DE PAGO ===");
         System.out.println(">>> PayerID: " + payerId + ", CollectorID: " + collectorId);
         
         // 0. REGLA PRINCIPAL: Análisis de relación payer/collector (MÁS CONFIABLE)
         if (payerId != null && collectorId != null && !payerId.equals(collectorId)) {
             System.out.println(">>> ✅ Clasificado como EGRESO por payer != collector (tú pagas a otro)");
-            return TipoRegistro.Egreso;
+            return TipoMovimiento.Egreso;
         }
         
         if (payerId != null && collectorId != null && payerId.equals(collectorId)) {
             System.out.println(">>> ✅ Clasificado como INGRESO por payer == collector (tú recibes)");
-            return TipoRegistro.Ingreso;
+            return TipoMovimiento.Ingreso;
         }
         
         // Si no hay IDs, continuar con lógica secundaria
         if (status == null) {
-            return TipoRegistro.Ingreso; // default
+            return TipoMovimiento.Ingreso; // default
         }
         
         String statusLower = status.toLowerCase().trim();
@@ -522,7 +521,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             operationTypeLower.equals("payout") ||
             operationTypeLower.equals("money_transfer")) {
             System.out.println(">>> Clasificado como EGRESO por tipo de transacción");
-            return TipoRegistro.Egreso;
+            return TipoMovimiento.Egreso;
         }
         
         // 3. Casos claros de INGRESO (dinero que entra a tu cuenta)
@@ -537,7 +536,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
              operationTypeLower.equals("account_fund") ||
              operationTypeLower.equals("recurring_payment"))) {
             System.out.println(">>> Clasificado como INGRESO por tipo de transacción");
-            return TipoRegistro.Ingreso;
+            return TipoMovimiento.Ingreso;
         }
         
         // 4. Casos especiales: otros tipos de transferencias
@@ -547,7 +546,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             operationTypeLower.contains("internal")) {
             // Para transferencias, depende del contexto, pero por defecto EGRESO
             System.out.println(">>> Clasificado como EGRESO por transferencia interna");
-            return TipoRegistro.Egreso;
+            return TipoMovimiento.Egreso;
         }
         
         // 5. Casos pendientes o en proceso - analizar por tipo
@@ -559,21 +558,21 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
                 operationTypeLower.equals("withdrawal") ||
                 operationTypeLower.equals("transfer")) {
                 System.out.println(">>> Clasificado como EGRESO por estado pendiente con tipo de egreso");
-                return TipoRegistro.Egreso;
+                return TipoMovimiento.Egreso;
             }
             System.out.println(">>> Clasificado como INGRESO por estado pendiente");
-            return TipoRegistro.Ingreso;
+            return TipoMovimiento.Ingreso;
         }
         
         // 6. Casos cancelados o rechazados - no afectan el flujo de dinero
         if (statusLower.equals("cancelled") || statusLower.equals("rejected")) {
             System.out.println(">>> Clasificado como INGRESO por estado cancelado/rechazado");
-            return TipoRegistro.Ingreso; // Se puede cambiar a un tipo especial si lo necesitas
+            return TipoMovimiento.Ingreso; // Se puede cambiar a un tipo especial si lo necesitas
         }
         
         // 7. Default: INGRESO (pero con advertencia)
         System.out.println(">>> ⚠️  Clasificado como INGRESO por defecto - revisar manualmente");
-        return TipoRegistro.Ingreso;
+        return TipoMovimiento.Ingreso;
     }
 
     /* =========================
@@ -720,7 +719,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         }
         
         // Determinar tipo de registro (para preview, CON IDs para clasificación correcta)
-        TipoRegistro tipoRegistro = determinarTipoRegistro(status, transactionType, operationType, transactionAmount, payerId, collectorId);
+        TipoMovimiento tipoMovimiento = determinarTipoMovimiento(status, transactionType, operationType, transactionAmount, payerId, collectorId);
         
         // Mapear a DTO
         dto.setMpPaymentId(mpPaymentId);
@@ -728,9 +727,9 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         dto.setMontoTotal(transactionAmount);
         dto.setDescripcion(description != null ? description : "Pago MercadoPago");
         dto.setOrigen(payerEmail);
-        dto.setTipo(tipoRegistro.toString());
+        dto.setTipo(tipoMovimiento.toString());
         // Categoría sugerida inteligentemente
-        String categoriaSugerida = categorySuggestionService.sugerirCategoria(description, tipoRegistro);
+        String categoriaSugerida = categorySuggestionService.sugerirCategoria(description, tipoMovimiento);
         dto.setCategoria(categoriaSugerida);
         dto.setMoneda(currencyId);
         dto.setEstado(status);
@@ -743,14 +742,14 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         System.out.println(">>> Actualizando categoría del registro " + registroId + " a: " + newCategory);
         
         // Buscar el registro por su ID
-        Optional<Registro> registroOpt = registroRepo.findById(registroId);
+        Optional<Movimiento> registroOpt = movimientoRepo.findById(registroId);
         
         if (registroOpt.isEmpty()) {
             System.out.println(">>> No se encontró registro con ID: " + registroId);
             return 0;
         }
         
-        Registro registro = registroOpt.get();
+        Movimiento registro = registroOpt.get();
         
         // Verificar que el registro pertenece a MercadoPago
         if (registro.getMedioPago() != TipoMedioPago.MercadoPago) {
@@ -761,7 +760,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         // Actualizar la categoría en la tabla Registro
         registro.setCategoria(newCategory);
         registro.setFechaActualizacion(LocalDate.now());
-        registroRepo.save(registro);
+        movimientoRepo.save(registro);
         
         // Actualizar la categoría en la tabla MpImportedPayment
         MpImportedPayment mpImported = mpImportedRepo.findByRegistroId(registroId);

@@ -46,6 +46,7 @@ function App() {
         {/* Rutas públicas */}
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/confirm-account" element={<ConfirmAccount />} />
 
         {/* Rutas privadas (protegidas con RequireAuth) */}
         <Route element={<RequireAuth />}>

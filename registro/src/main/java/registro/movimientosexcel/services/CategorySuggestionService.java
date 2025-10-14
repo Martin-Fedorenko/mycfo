@@ -1,7 +1,7 @@
 package registro.movimientosexcel.services;
 
 import org.springframework.stereotype.Service;
-import registro.cargarDatos.models.TipoRegistro;
+import registro.cargarDatos.models.TipoMovimiento;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -48,16 +48,16 @@ public class CategorySuggestionService {
     /**
      * Sugiere una categoría basándose en la descripción y el tipo de registro
      */
-    public String sugerirCategoria(String descripcion, TipoRegistro tipo) {
+    public String sugerirCategoria(String descripcion, TipoMovimiento tipo) {
         if (descripcion == null || descripcion.trim().isEmpty()) {
-            return tipo == TipoRegistro.Egreso ? CAT_OTROS_EGRESOS : CAT_OTROS_INGRESOS;
+            return tipo == TipoMovimiento.Egreso ? CAT_OTROS_EGRESOS : CAT_OTROS_INGRESOS;
         }
         
         String descripcionLower = descripcion.toLowerCase().trim();
         
         // Elegir el mapa de patrones según el tipo
         Map<String, List<PatronCategoria>> patrones = 
-            tipo == TipoRegistro.Egreso ? patronesEgresos : patronesIngresos;
+            tipo == TipoMovimiento.Egreso ? patronesEgresos : patronesIngresos;
         
         // Buscar coincidencias con prioridad
         List<CoincidenciaCategoria> coincidencias = new ArrayList<>();
@@ -81,21 +81,21 @@ public class CategorySuggestionService {
         }
         
         // Categoría por defecto
-        return tipo == TipoRegistro.Egreso ? CAT_OTROS_EGRESOS : CAT_OTROS_INGRESOS;
+        return tipo == TipoMovimiento.Egreso ? CAT_OTROS_EGRESOS : CAT_OTROS_INGRESOS;
     }
     
     /**
      * Sobrecarga para compatibilidad con código existente (asume Egreso por defecto)
      */
     public String sugerirCategoria(String descripcion) {
-        return sugerirCategoria(descripcion, TipoRegistro.Egreso);
+        return sugerirCategoria(descripcion, TipoMovimiento.Egreso);
     }
     
     /**
      * Obtiene todas las categorías disponibles según el tipo de registro
      */
-    public List<String> obtenerCategorias(TipoRegistro tipo) {
-        if (tipo == TipoRegistro.Egreso) {
+    public List<String> obtenerCategorias(TipoMovimiento tipo) {
+        if (tipo == TipoMovimiento.Egreso) {
             return List.of(
                 CAT_ALIMENTOS, CAT_TRANSPORTE, CAT_VIVIENDA, CAT_SERVICIOS_BASICOS,
                 CAT_OCIO, CAT_COMPRAS_PERSONALES, CAT_SALUD, CAT_EDUCACION,
@@ -115,8 +115,8 @@ public class CategorySuggestionService {
      */
     public List<String> obtenerTodasLasCategorias() {
         List<String> todas = new ArrayList<>();
-        todas.addAll(obtenerCategorias(TipoRegistro.Egreso));
-        todas.addAll(obtenerCategorias(TipoRegistro.Ingreso));
+        todas.addAll(obtenerCategorias(TipoMovimiento.Egreso));
+        todas.addAll(obtenerCategorias(TipoMovimiento.Ingreso));
         return todas;
     }
     

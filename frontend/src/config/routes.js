@@ -25,7 +25,7 @@ import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCar
 import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
 import CargaGeneral from "../registro/carga-general/CargaGeneral";
 import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
-import TablaRegistros from "../registro/movimientos-cargados/TablaRegistros";
+import TablaRegistrosV2 from "../registro/movimientos-cargados/TablaRegistrosV2";
 import ConciliacionPanel from "../conciliacion/ConciliacionPanel";
 import CargaSeleccionTipo from "../registro/carga-general/CargaSeleccionTipo";
 import CargaSeleccionMetodo from "../registro/carga-general/CargaSeleccionMetodo";
@@ -33,10 +33,10 @@ import CargaVistaFinal from "../registro/carga-general/CargaVistaFinal";
 
 const routeConfig = [
   {
-  label: "Carga de datos",
-  path: "/carga",
-  icon: <DescriptionIcon />,
-  element: <CargaSeleccionTipo />,
+    label: "Carga de datos",
+    path: "/carga",
+    icon: <DescriptionIcon />,
+    element: <CargaSeleccionTipo />,
   },
   {
     path: "/carga/:tipo",
@@ -52,7 +52,7 @@ const routeConfig = [
     label: "Ver movimientos",
     path: "/ver-movimientos",
     icon: <DescriptionIcon />,
-    element: <TablaRegistros />,
+    element: <TablaRegistrosV2 />,
   },
   {
     label: "Conciliación",

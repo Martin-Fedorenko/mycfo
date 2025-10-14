@@ -2,6 +2,7 @@ package registro.cargarDatos.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import registro.cargarDatos.models.EstadoPago;
 import registro.cargarDatos.models.Factura;
 import registro.cargarDatos.repositories.FacturaRepository;
 
@@ -14,7 +15,10 @@ public class FacturaService {
     private final FacturaRepository facturaRepository;
 
     public Factura guardarFactura(Factura factura) {
-        // Podés setear valores internos antes de guardar si hace falta
+        // Setear estado de pago inicial
+        if (factura.getEstadoPago() == null) {
+            factura.setEstadoPago(EstadoPago.NO_PAGADO);
+        }
         return facturaRepository.save(factura);
     }
 

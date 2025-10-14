@@ -1,9 +1,9 @@
 package registro.cargarDatos.models;
 
-public enum TipoRegistro {
+public enum TipoMovimiento {
     Ingreso,
     Egreso,
     Deuda,
-    Acreencia,
-    Movimiento;
+    Acreencia
 }
+

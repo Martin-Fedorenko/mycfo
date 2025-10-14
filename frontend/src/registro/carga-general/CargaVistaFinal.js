@@ -14,18 +14,45 @@ export default function CargaVistaFinal() {
 
   const API_BASE = process.env.REACT_APP_URL_REGISTRO;
 
+  // Endpoint unificado para todos los tipos
+  const ENDPOINT_UNIFICADO = `${API_BASE}/api/carga-datos`;
+
   const endpointMap = {
     factura: {
-      formulario: `${API_BASE}/facturas/formulario`,
-      documento: `${API_BASE}/facturas/documento`,
-      foto: `${API_BASE}/facturas/foto`,
-      audio: `${API_BASE}/facturas/audio`,
+      formulario: ENDPOINT_UNIFICADO,
+      documento: `${API_BASE}/api/carga-datos`,
+      foto: `${API_BASE}/api/carga-datos`,
+      audio: `${API_BASE}/api/carga-datos/audio`,
     },
     movimiento: {
-      formulario: `${API_BASE}/registros/formulario`,
-      documento: `${API_BASE}/registros/documento`,
-      foto: `${API_BASE}/registros/foto`,
-      audio: `${API_BASE}/registros/audio`,
+      formulario: ENDPOINT_UNIFICADO,
+      documento: `${API_BASE}/api/carga-datos`,
+      foto: `${API_BASE}/api/carga-datos`,
+      audio: `${API_BASE}/api/carga-datos/audio`,
+    },
+    ingreso: {
+      formulario: ENDPOINT_UNIFICADO,
+      documento: `${API_BASE}/api/carga-datos`,
+      foto: `${API_BASE}/api/carga-datos`,
+      audio: `${API_BASE}/api/carga-datos/audio`,
+    },
+    egreso: {
+      formulario: ENDPOINT_UNIFICADO,
+      documento: `${API_BASE}/api/carga-datos`,
+      foto: `${API_BASE}/api/carga-datos`,
+      audio: `${API_BASE}/api/carga-datos/audio`,
+    },
+    deuda: {
+      formulario: ENDPOINT_UNIFICADO,
+      documento: `${API_BASE}/api/carga-datos`,
+      foto: `${API_BASE}/api/carga-datos`,
+      audio: `${API_BASE}/api/carga-datos/audio`,
+    },
+    acreencia: {
+      formulario: ENDPOINT_UNIFICADO,
+      documento: `${API_BASE}/api/carga-datos`,
+      foto: `${API_BASE}/api/carga-datos`,
+      audio: `${API_BASE}/api/carga-datos/audio`,
     },
   };
 

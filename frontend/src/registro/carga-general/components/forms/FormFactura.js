@@ -4,8 +4,6 @@ import {
   FormLabel,
   FormHelperText,
   OutlinedInput,
-  MenuItem,
-  TextField,
 } from "@mui/material";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
@@ -235,60 +233,6 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         </Box>
       </Box>
 
-      {/* 7️⃣ Datos fiscales */}
-      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>CAE</FormLabel>
-          <OutlinedInput
-            value={formData.cae || ""}
-            onChange={(e) => setFormData((p) => ({ ...p, cae: e.target.value }))}
-            size="small"
-            fullWidth
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Vencimiento CAE</FormLabel>
-          <CustomDatePicker
-            value={formData.vencimientoCae || null}
-            onChange={(fecha) =>
-              setFormData((p) => ({ ...p, vencimientoCae: fecha }))
-            }
-          />
-        </Box>
-      </Box>
-
-      {/* 8️⃣ Estado de Pago + Fecha de Pago */}
-      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Estado de Pago</FormLabel>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            value={formData.estadoPago || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, estadoPago: e.target.value }))
-            }
-          >
-            <MenuItem value="Pago">Pago</MenuItem>
-            <MenuItem value="Pago pendiente">Pago pendiente</MenuItem>
-          </TextField>
-        </Box>
-
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Fecha de Pago</FormLabel>
-          <CustomDatePicker
-            value={formData.fechaPago || null}
-            onChange={(fecha) =>
-              setFormData((p) => ({ ...p, fechaPago: fecha }))
-            }
-            error={!!errors.fechaPago}
-          />
-          {errors.fechaPago && (
-            <FormHelperText error>{errors.fechaPago}</FormHelperText>
-          )}
-        </Box>
-      </Box>
     </Box>
   );
 }

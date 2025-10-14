@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import registro.cargarDatos.models.Registro;
+import registro.cargarDatos.models.Movimiento;
 import registro.movimientosexcel.dtos.MovementEventPayload;
 
 import java.time.Instant;
@@ -28,21 +28,21 @@ public class NotificationsEventPublisher {
 
     /**
      * Publica un evento de movimiento a partir de un Registro.
-     * @param registro       Entidad Registro que disparará el evento.
+     * @param movimiento       Entidad Registro que disparará el evento.
      * @param fallbackUserId Id de usuario en caso de que el registro no tenga asociado un usuario explícito.
      */
-    public void publishMovement(Registro registro, Long fallbackUserId) {
+    public void publishMovement(Movimiento movimiento, Long fallbackUserId) {
         // Si no hay un identificador de referencia, usamos su ID de base de datos
-        String refId = (registro.getCategoria() != null && !registro.getCategoria().isEmpty())
-                ? registro.getCategoria()
-                : String.valueOf(registro.getId());
+        String refId = (movimiento.getCategoria() != null && !movimiento.getCategoria().isEmpty())
+                ? movimiento.getCategoria()
+                : String.valueOf(movimiento.getId());
 
         MovementEventPayload payload = new MovementEventPayload(
                 fallbackUserId != null ? fallbackUserId : 1L,
                 refId,
-                toInstant(registro),                    // LocalDate → Instant
-                registro.getMontoTotal(),               // Double → BigDecimal se maneja en MovementEventPayload
-                registro.getDescripcion()               // descripción libre del registro
+                toInstant(movimiento),                    // LocalDate → Instant
+                movimiento.getMontoTotal(),               // Double → BigDecimal se maneja en MovementEventPayload
+                movimiento.getDescripcion()               // descripción libre del registro
         );
 
         String url = baseUrl + "/api/events/movements";
@@ -58,11 +58,11 @@ public class NotificationsEventPublisher {
      * Convierte la fecha de emisión del registro en Instant, tomando inicio del día
      * en la zona horaria local.
      */
-    private Instant toInstant(Registro registro) {
-        if (registro.getFechaEmision() == null) {
+    private Instant toInstant(Movimiento movimiento) {
+        if (movimiento.getFechaEmision() == null) {
             return Instant.now(); // fallback en caso de no tener fecha
         }
-        return registro.getFechaEmision()
+        return movimiento.getFechaEmision()
                 .atStartOfDay(ZoneId.systemDefault())
                 .toInstant();
     }
