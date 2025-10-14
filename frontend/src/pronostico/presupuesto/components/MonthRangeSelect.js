@@ -178,12 +178,17 @@ export default function MonthRangeSelect({ value = {}, onChange, placeholder }) 
           vertical: 'top',
           horizontal: 'left',
         }}
-        PaperProps={{
-          sx: {
-            width: anchorEl?.offsetWidth,
-            maxHeight: 400,
-            overflowY: 'auto',
-            p: 2,
+        slotProps={{
+          paper: {
+            sx: {
+              width: 'fit-content',
+              minWidth: 'unset',
+              maxWidth: 'none',
+              overflowX: 'hidden',
+              maxHeight: 420,
+              overflowY: 'auto',
+              p: 2,
+            }
           }
         }}
       >
@@ -192,20 +197,20 @@ export default function MonthRangeSelect({ value = {}, onChange, placeholder }) 
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
               {year}
             </Typography>
-            <Grid container spacing={0.5}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: 1 }}>
               {Array.from({ length: 12 }, (_, monthIndex) => {
                 const month = String(monthIndex + 1).padStart(2, '0');
                 const yearMonth = `${year}-${month}`;
                 
                 return (
-                  <Grid item xs={3} key={monthIndex}>
                     <Button
-                      fullWidth
+                      key={monthIndex}
                       size="small"
                       onClick={() => handleMonthClick(yearMonth)}
                       variant={yearMonth === tempSelection.from || yearMonth === tempSelection.to ? "contained" : "outlined"}
                       color={yearMonth === tempSelection.from || yearMonth === tempSelection.to ? "primary" : "inherit"}
-                      sx={
+                      sx={[
+                        { minWidth: 72 },
                         isBetween(yearMonth, tempSelection.from, tempSelection.to)
                           ? {
                               bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
@@ -213,14 +218,13 @@ export default function MonthRangeSelect({ value = {}, onChange, placeholder }) 
                               color: 'primary.main',
                             }
                           : {}
-                      }
+                      ]}
                     >
                       {SHORT_MONTH_LABELS[monthIndex]}
                     </Button>
-                  </Grid>
                 );
               })}
-            </Grid>
+            </Box>
           </Box>
         ))}
         
