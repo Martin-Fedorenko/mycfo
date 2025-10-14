@@ -164,8 +164,9 @@ export default function SignIn(props) {
 
         setGlobalMsg("Login successful!");
 
-        // Redirigir al home
-        window.location.href = "http://localhost:3000/#";
+        // Redirigir al dashboard
+        const redirectUrl = `${window.location.origin}/#/dashboard`;
+        window.location.href = redirectUrl;
       },
       onFailure: (err) => {
         setLoading(false);

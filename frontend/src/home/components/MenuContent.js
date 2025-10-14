@@ -9,19 +9,23 @@ import {
   Collapse,
 } from "@mui/material";
 import Stack from "@mui/material/Stack";
-import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-import DescriptionIcon from "@mui/icons-material/Description";
-import StorageIcon from "@mui/icons-material/Storage";
 
 import routeConfig from '../../config/routes';
 
 
-export default function MenuContent() {
+export default function MenuContent({ onNavigate }) {
   const [openMenus, setOpenMenus] = React.useState({});
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    if (typeof onNavigate === "function") {
+      onNavigate();
+    }
+  };
 
   const handleToggle = (label) => {
   setOpenMenus((prev) => ({
@@ -48,7 +52,7 @@ export default function MenuContent() {
                   onClick={
                     item.children
                       ? () => handleToggle(item.label)
-                      : () => navigate(item.path)
+                      : () => handleNavigate(item.path)
                   }
                   selected={isParentActive}
                   sx={{ mb: 0.5 }}
@@ -80,7 +84,7 @@ export default function MenuContent() {
                       >
                         <ListItemButton
                           sx={{ pl: 4 }}
-                          onClick={() => navigate(child.path)}
+                          onClick={() => handleNavigate(child.path)}
                           selected={isActive(child.path)}
                         >
                           <ListItemIcon>{child.icon}</ListItemIcon>

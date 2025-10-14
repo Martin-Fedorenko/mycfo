@@ -79,7 +79,13 @@ export default function PresupuestoDetalle() {
       try {
         // 1) Buscar presupuesto por nombre
         const res = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
-        const lista = Array.isArray(res.data) ? res.data : [];
+        const listaPayload = res?.data;
+        let lista = [];
+        if (Array.isArray(listaPayload)) {
+          lista = listaPayload;
+        } else if (Array.isArray(listaPayload?.content)) {
+          lista = listaPayload.content;
+        }
 
         const slug = decodeURIComponent(nombreUrl || '')
           .trim()

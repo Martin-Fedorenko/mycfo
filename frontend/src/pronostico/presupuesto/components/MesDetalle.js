@@ -159,7 +159,13 @@ export default function MesDetalle() {
       try {
         // 1) buscar presupuesto por nombre
         const resPres = await http.get(`${baseURL}/api/presupuestos`);
-        const lista = Array.isArray(resPres.data) ? resPres.data : [];
+        const listaPayload = resPres?.data;
+        let lista = [];
+        if (Array.isArray(listaPayload)) {
+          lista = listaPayload;
+        } else if (Array.isArray(listaPayload?.content)) {
+          lista = listaPayload.content;
+        }
 
         const decodedNombre = decodeURIComponent(nombreUrl || '').trim().toLowerCase().replace(/\s+/g, '-');
         const p = lista.find(pp => (pp?.nombre || '').trim().toLowerCase().replace(/\s+/g, '-') === decodedNombre);
