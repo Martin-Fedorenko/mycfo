@@ -2,7 +2,7 @@ import * as React from 'react';
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableRow,
   TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
-  Stepper, Step, StepLabel, Alert, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch
+  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -40,6 +40,20 @@ function formatUTCToYearMonth(date) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   return `${year}-${month}`;
+}
+
+const SHORT_MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+function formatMonthLabel(ym) {
+  if (!ym) return '';
+  const [rawYear, rawMonth] = ym.split('-');
+  const year = rawYear ?? '';
+  const monthIndex = Number(rawMonth) - 1;
+  if (!Number.isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+    return ym;
+  }
+  const label = SHORT_MONTH_LABELS[monthIndex] ?? rawMonth;
+  return `${label} ${year}`.trim();
 }
 
 // Generar lista de meses entre dos fechas (YYYY-MM)
@@ -344,15 +358,64 @@ export default function PresupuestoNuevo() {
     });
   };
 
-  const totalIngresos = React.useMemo(() => {
-    return Object.values(presupuestoDataMes).reduce((total, cats) =>
-      total + Object.values(cats).reduce((acc, c) => (c.tipo === 'Ingreso' ? acc + (c.sugerido || 0) : acc), 0), 0);
-  }, [presupuestoDataMes]);
+  const { monthTotals, negativeMonths, totalIngresos, totalEgresos } = React.useMemo(() => {
+    const totals = {};
+    const negatives = [];
+    let ingresosAcumulados = 0;
+    let egresosAcumulados = 0;
 
-  const totalEgresos = React.useMemo(() => {
-    return Object.values(presupuestoDataMes).reduce((total, cats) =>
-      total + Object.values(cats).reduce((acc, c) => (c.tipo === 'Egreso' ? acc + (c.sugerido || 0) : acc), 0), 0);
-  }, [presupuestoDataMes]);
+    meses.forEach((mes) => {
+      const cats = presupuestoDataMes[mes] || {};
+      let ingresosMes = 0;
+      let egresosMes = 0;
+
+      Object.values(cats).forEach((cat) => {
+        const valor = Number(cat?.sugerido ?? 0);
+        if (!Number.isFinite(valor)) {
+          return;
+        }
+        const tipo = (cat?.tipo || '').toString().toUpperCase();
+        if (tipo === 'INGRESO') {
+          ingresosMes += valor;
+        } else if (tipo === 'EGRESO') {
+          egresosMes += valor;
+        }
+      });
+
+      const resultado = ingresosMes - egresosMes;
+      totals[mes] = { ingresos: ingresosMes, egresos: egresosMes, resultado };
+      ingresosAcumulados += ingresosMes;
+      egresosAcumulados += egresosMes;
+      if (resultado < 0) {
+        negatives.push({ mes, resultado });
+      }
+    });
+
+    return {
+      monthTotals: totals,
+      negativeMonths: negatives,
+      totalIngresos: ingresosAcumulados,
+      totalEgresos: egresosAcumulados
+    };
+  }, [meses, presupuestoDataMes]);
+
+  const resultadoTotal = React.useMemo(() => totalIngresos - totalEgresos, [totalIngresos, totalEgresos]);
+  const hasLosses = negativeMonths.length > 0;
+
+  const lossSummaryText = React.useMemo(() => {
+    if (!negativeMonths.length) {
+      return '';
+    }
+    const labels = negativeMonths
+      .slice(0, 6)
+      .map((item) => formatMonthLabel(item.mes));
+    let summary = labels.join(', ');
+    if (negativeMonths.length > 6) {
+      summary += ` y ${negativeMonths.length - 6} más`;
+    }
+    return summary;
+  }, [negativeMonths]);
+
 
   // Guardar (CAMBIO MÍNIMO: enviar payload nuevo con `plantilla`)
   const handleGuardar = async () => {
@@ -709,9 +772,22 @@ export default function PresupuestoNuevo() {
             <Stack direction="row" spacing={1} alignItems="center">
               <Chip label={`Ingresos: ${fmtARS(totalIngresos)}`} color="success" />
               <Chip label={`Egresos: ${fmtARS(totalEgresos)}`} color="error" />
-              <Chip label={`Resultado: ${fmtARS(totalIngresos - totalEgresos)}`} color={(totalIngresos - totalEgresos) >= 0 ? 'info' : 'warning'} />
+              <Chip label={`Resultado: ${fmtARS(resultadoTotal)}`} color={resultadoTotal >= 0 ? 'info' : 'error'} />
             </Stack>
           </Box>
+
+          {hasLosses && (
+            <Alert
+              severity="error"
+              variant="filled"
+              role="alert"
+              aria-live="polite"
+              sx={{ mb: 2 }}
+            >
+              <AlertTitle>Atención: hay meses en pérdida (resultado negativo).</AlertTitle>
+              Revisá los montos. Meses afectados: {lossSummaryText || 'ver detalle en la grilla.'}
+            </Alert>
+          )}
 
           <Paper sx={{ mt: 1, width: '100%', overflowX: 'auto' }}>
             <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
@@ -735,14 +811,14 @@ export default function PresupuestoNuevo() {
               </TableHead>
               <TableBody>
                 {meses.map(mes => {
-                  // calcular ingresos/egresos del mes
-                  const cats = presupuestoDataMes[mes] || {};
-                  const ingresoMes = Object.values(cats).reduce((acc, c) => (c.tipo === 'Ingreso' ? acc + (c.sugerido || 0) : acc), 0);
-                  const egresoMes  = Object.values(cats).reduce((acc, c) => (c.tipo === 'Egreso' ? acc + (c.sugerido || 0) : acc), 0);
-                  const resultadoMes = ingresoMes - egresoMes;
+                  const resumenMes = monthTotals[mes] || { ingresos: 0, egresos: 0, resultado: 0 };
+                  const esPerdidaMes = resumenMes.resultado < 0;
 
                   return (
-                    <TableRow key={mes} sx={tableRowStyle}>
+                    <TableRow
+                      key={mes}
+                      sx={tableRowStyle}
+                    >
                       <TableCell sx={tableCellStyle}>{mes}</TableCell>
                       {categorias.map((cat, idx) => {
                         const valores = presupuestoDataMes[mes]?.[cat.categoria] || { sugerido: 0 };
@@ -762,13 +838,35 @@ export default function PresupuestoNuevo() {
                       })}
                       {/* CELDAS DE TOTALES POR MES */}
                       <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#66bb6a' }}>
-                        {fmtARS(ingresoMes)}
+                        {fmtARS(resumenMes.ingresos)}
                       </TableCell>
                       <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#ef5350' }}>
-                        {fmtARS(egresoMes)}
+                        {fmtARS(resumenMes.egresos)}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: resultadoMes >= 0 ? '#29b6f6' : '#ffa726' }}>
-                        {fmtARS(resultadoMes)}
+                      <TableCell sx={{ ...tableCellStyle }}>
+                        <Tooltip
+                          title={esPerdidaMes ? 'Este mes los egresos superan a los ingresos.' : ''}
+                          disableHoverListener={!esPerdidaMes}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                            <Typography
+                              component="span"
+                              sx={{
+                                fontWeight: 700,
+                                color: esPerdidaMes ? 'error.main' : 'info.main'
+                              }}
+                            >
+                              {fmtARS(resumenMes.resultado)}
+                            </Typography>
+                            {esPerdidaMes && (
+                              <Chip
+                                size="small"
+                                color="error"
+                                label="En pérdida"
+                              />
+                            )}
+                          </Stack>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
