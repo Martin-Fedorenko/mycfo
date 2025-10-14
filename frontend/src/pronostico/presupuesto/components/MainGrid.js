@@ -590,11 +590,11 @@ export default function MainGrid() {
         }}
       >
         <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="presupuesto-year-label">Anio</InputLabel>
+          <InputLabel id="presupuesto-year-label">Año</InputLabel>
           <Select
             labelId="presupuesto-year-label"
             value={filters.year}
-            label="Anio"
+            label="Año"
             onChange={handleFilterChange("year")}
           >
             <MenuItem value="">
@@ -655,7 +655,7 @@ export default function MainGrid() {
         </Button>
       </Box>
       <TextField
-        label="Buscar por nombre, mes o anio"
+        label="Buscar por nombre, mes o año"
         variant="outlined"
         size="small"
         value={query}
