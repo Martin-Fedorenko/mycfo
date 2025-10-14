@@ -11,6 +11,42 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 const SHORT_MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
+const MonthCell = styled(Box)(({ theme, isStart, isEnd, isInRange }) => ({
+  padding: theme.spacing(1),
+  textAlign: 'center',
+  cursor: 'pointer',
+  borderRadius: theme.shape.borderRadius,
+  transition: 'all 0.2s ease',
+  
+  // Base state
+  backgroundColor: 'transparent',
+  
+  // Range state
+  ...(isInRange && {
+    backgroundColor: theme.palette.primary.light + '40',
+    color: theme.palette.text.primary,
+  }),
+  
+  // Start/End state
+  ...(isStart && {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    fontWeight: 'bold',
+  }),
+  ...(isEnd && {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    fontWeight: 'bold',
+  }),
+  
+  // Hover states
+  '&:hover': {
+    backgroundColor: isInRange 
+      ? theme.palette.primary.main + '60'
+      : theme.palette.action.hover,
+  },
+}));
+
 const SelectButton = styled(Button)(({ theme }) => ({
   width: '100%',
   justifyContent: 'flex-start',
@@ -40,6 +76,7 @@ function formatRangeLabel(from, to) {
 export default function MonthRangeSelect({ value = {}, onChange }) {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [tempSelection, setTempSelection] = React.useState({ from: value.from, to: value.to });
+  const [yearOffset, setYearOffset] = React.useState(0);
   const [yearOffset, setYearOffset] = React.useState(0);
   
   // Reset temp selection when value changes externally
@@ -88,19 +125,28 @@ export default function MonthRangeSelect({ value = {}, onChange }) {
     onChange(emptySelection);
   };
 
-  // Mostrar solo 2 años basados en el offset
   const years = React.useMemo(() => {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 2 }, (_, i) => currentYear + yearOffset + i);
   }, [yearOffset]);
 
+  const canNavigateUp = yearOffset < 2;  // Permitir subir hasta 2 años más
+  const canNavigateDown = yearOffset > -2;  // Permitir bajar hasta 2 años menos
+
   const handleNavigateYears = (direction) => {
-    setYearOffset(prev => prev + (direction === 'up' ? -2 : 2));
+    setYearOffset(prev => prev + (direction === 'up' ? 2 : -2));
   };
 
   const isBetween = (key, from, to) => {
     if (!from || !to) return false;
     return key > from && key < to;
+  };
+
+  const isInRange = (yearMonth) => {
+    if (!tempSelection.from || !tempSelection.to) return false;
+    return yearMonth === tempSelection.from || 
+           yearMonth === tempSelection.to || 
+           isBetween(yearMonth, tempSelection.from, tempSelection.to);
   };
 
   return (
@@ -146,40 +192,39 @@ export default function MonthRangeSelect({ value = {}, onChange }) {
               width: 'fit-content',
               minWidth: 'unset',
               maxWidth: 'none',
-              p: 1.5,
+              p: 2,
             }
           }
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Botón navegación arriba */}
-          <Button
-            fullWidth
-            size="small"
-            onClick={() => handleNavigateYears('up')}
-            sx={{ 
-              borderRadius: 1,
-              minHeight: '20px',
-              height: '20px',
-              py: 0,
-              color: 'text.secondary'
-            }}
-          >
-            ⮝
-          </Button>
+          {canNavigateUp && (
+            <Button
+              fullWidth
+              size="small"
+              onClick={() => handleNavigateYears('up')}
+              sx={{ 
+                borderRadius: 1,
+                minHeight: '24px',
+                color: 'text.secondary'
+              }}
+            >
+              ⮝
+            </Button>
+          )}
 
-          {/* Años visibles */}
           {years.map(year => (
-            <Box key={year} sx={{ mb: 0.5 }}>
-              <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 'bold' }}>
-                {year}
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: 1 }}>
-                {Array.from({ length: 12 }, (_, monthIndex) => {
-                  const month = String(monthIndex + 1).padStart(2, '0');
-                  const yearMonth = `${year}-${month}`;
-                  
-                  return (
+          <Box key={year} sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+              {year}
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: 1 }}>
+              {Array.from({ length: 12 }, (_, monthIndex) => {
+                const month = String(monthIndex + 1).padStart(2, '0');
+                const yearMonth = `${year}-${month}`;
+                
+                return (
                     <Button
                       key={monthIndex}
                       size="small"
@@ -199,65 +244,39 @@ export default function MonthRangeSelect({ value = {}, onChange }) {
                     >
                       {SHORT_MONTH_LABELS[monthIndex]}
                     </Button>
-                  );
-                })}
-              </Box>
+                );
+              })}
             </Box>
-          ))}
-
-          {/* Botón navegación abajo */}
-          <Button
-            fullWidth
+          </Box>
+        ))}
+        
+        <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
+          <Button 
             size="small"
-            onClick={() => handleNavigateYears('down')}
-            sx={{ 
-              borderRadius: 1,
-              minHeight: '20px',
-              height: '20px',
-              py: 0,
-              color: 'text.secondary'
+            onClick={handleClear}
+            color="inherit"
+          >
+            Limpiar
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={handleConfirm}
+            disabled={!tempSelection.from || !tempSelection.to}
+            sx={{
+              minWidth: '100px',
+              '&.Mui-disabled': {
+                backgroundColor: 'grey.200',
+                color: 'grey.600',
+                boxShadow: 'none',
+                '&:hover': {
+                  backgroundColor: 'grey.200'
+                }
+              }
             }}
           >
-            ⮟
+            Confirmar
           </Button>
-
-          {/* Botones de acción siempre visibles */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 1, 
-            mt: 1, 
-            justifyContent: 'flex-end',
-            borderTop: 1,
-            borderColor: 'divider',
-            pt: 1
-          }}>
-            <Button 
-              size="small"
-              onClick={handleClear}
-              color="inherit"
-            >
-              Limpiar
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              onClick={handleConfirm}
-              disabled={!tempSelection.from || !tempSelection.to}
-              sx={{
-                minWidth: '100px',
-                '&.Mui-disabled': {
-                  backgroundColor: 'grey.200',
-                  color: 'grey.600',
-                  boxShadow: 'none',
-                  '&:hover': {
-                    backgroundColor: 'grey.200'
-                  }
-                }
-              }}
-            >
-              Confirmar
-            </Button>
-          </Box>
         </Box>
       </Popover>
     </>
