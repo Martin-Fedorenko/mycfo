@@ -527,7 +527,6 @@ const Dashboard = () => {
               error={state.movements.error}
               onRetry={loadDashboardData}
               onNavigate={() => handleNavigate("/ver-movimientos")}
-              onCategorize={() => showMessage("IA ejecutando categorización...", "info")}
             />
           </Grid>
         </Grid>

@@ -28,7 +28,7 @@ const RecentMovementsWidget = ({
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Movimientos recientes & por categorizar" subheader="Cargando..." />
+        <CardHeader title="Movimientos" subheader="Cargando..." />
         <CardContent>
           <Skeleton variant="rectangular" height={180} />
         </CardContent>
@@ -39,7 +39,7 @@ const RecentMovementsWidget = ({
   if (error) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Movimientos recientes & por categorizar" />
+        <CardHeader title="Movimientos" />
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error">{error}</Alert>
           {onRetry ? (
@@ -57,7 +57,7 @@ const RecentMovementsWidget = ({
   return (
     <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <CardHeader
-        title="Movimientos recientes & por categorizar"
+        title="Movimientos"
         subheader="Últimos egresos e ingresos pendientes de clasificación"
       />
       <CardContent sx={{ flexGrow: 1 }}>
@@ -118,9 +118,6 @@ const RecentMovementsWidget = ({
         )}
       </CardContent>
       <CardActions sx={{ px: 3, pb: 2, gap: 1 }}>
-        <Button variant="outlined" color="secondary" onClick={onCategorize} disabled={!onCategorize}>
-          Categorizar con IA
-        </Button>
         <Button variant="outlined" onClick={onNavigate} disabled={!onNavigate}>
           Ver más
         </Button>
