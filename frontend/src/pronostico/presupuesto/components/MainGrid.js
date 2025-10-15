@@ -36,11 +36,13 @@ const tableRowStyle = {
   backgroundColor: "rgba(255, 255, 255, 0.02)",
   "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.05)" },
 };
-const tableCellStyle = { border: "1px solid rgba(255, 255, 255, 0.1)" };
-const headerCellStyle = {
-  ...tableCellStyle,
+const tableCellStyle = (theme) => ({
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
+});
+const headerCellStyle = (theme) => ({
+  ...tableCellStyle(theme),
   fontWeight: 600,
-};
+});
 const getColumnWidth = (statusFilter) => ({
   nombre: { width: statusFilter === "deleted" ? "20%" : "25%" },
   desde: { width: statusFilter === "deleted" ? "20%" : "25%" },
@@ -537,15 +539,24 @@ export default function MainGrid() {
       const buttonId = `acciones-presupuesto-${p.id}`;
       return (
         <TableRow key={p.id} sx={tableRowStyle}>
-          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }}>{p.nombre}</TableCell>
-          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }}>{monthName(p.desde)}</TableCell>
-          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }}>{monthName(p.hasta)}</TableCell>
+          <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).nombre })}>
+            {p.nombre}
+          </TableCell>
+          <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).desde })}>
+            {monthName(p.desde)}
+          </TableCell>
+          <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).hasta })}>
+            {monthName(p.hasta)}
+          </TableCell>
           {isDeleted && (
-            <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>
+            <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).eliminado })}>
               {formatDeletedAt(p.deletedAt)}
             </TableCell>
           )}
-          <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
+          <TableCell
+            sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).acciones })}
+            align="right"
+          >
             {isDeleted ? (
               <Button
                 variant="outlined"
@@ -730,7 +741,11 @@ export default function MainGrid() {
                 <TableRow>
                   <TableCell
                     colSpan={columnsCount}
-                    sx={{ textAlign: "center", py: 3 }}
+                    sx={(theme) => ({
+                      ...tableCellStyle(theme),
+                      textAlign: "center",
+                      py: 3,
+                    })}
                   >
                     Cargando presupuestos...
                   </TableCell>
@@ -744,20 +759,51 @@ export default function MainGrid() {
               <Table>
                 <TableHead>
                   <TableRow sx={tableRowStyle}>
-<TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).nombre,
+                      })}
+                      align="left"
+                    >
                       <HeaderLabelAligned label="Nombre" ghost={headerGhostSearch.nombre} />
                     </TableCell>
-                    <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).desde,
+                      })}
+                      align="left"
+                    >
                       <HeaderLabelAligned label="Desde" ghost={headerGhostSearch.desde} />
                     </TableCell>
-                    <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).hasta,
+                      })}
+                      align="left"
+                    >
+                      <HeaderLabelAligned label="Hasta" ghost={headerGhostSearch.hasta} />
                     </TableCell>
                     {statusFilter === "deleted" && (
-                      <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
+                      <TableCell
+                        sx={(theme) => ({
+                          ...headerCellStyle(theme),
+                          ...getColumnWidth(statusFilter).eliminado,
+                        })}
+                        align="left"
+                      >
                         <HeaderLabelAligned label="Eliminados" ghost={headerGhostSearch.eliminado} />
                       </TableCell>
                     )}
-                    <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).acciones,
+                      })}
+                      align="right"
+                    >
                       {/* Wrapper que replica el ancho del bloque de acciones */}
                       <Box sx={{ position: 'relative', display: 'inline-flex' }}>
                         {/* Contenido “fantasma” para medir ancho del bloque real */}
@@ -829,21 +875,51 @@ export default function MainGrid() {
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
-              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).nombre,
+                })}
+                align="left"
+              >
                 <HeaderLabelAligned label="Nombre" ghost={headerGhostMain.nombre} />
               </TableCell>
-              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).desde,
+                })}
+                align="left"
+              >
                 <HeaderLabelAligned label="Desde" ghost={headerGhostMain.desde} />
               </TableCell>
-              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).hasta,
+                })}
+                align="left"
+              >
                 <HeaderLabelAligned label="Hasta" ghost={headerGhostMain.hasta} />
               </TableCell>
               {statusFilter === "deleted" && (
-                <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
+                <TableCell
+                  sx={(theme) => ({
+                    ...headerCellStyle(theme),
+                    ...getColumnWidth(statusFilter).eliminado,
+                  })}
+                  align="left"
+                >
                   <HeaderLabelAligned label="Eliminados" ghost={headerGhostMain.eliminado} />
                 </TableCell>
               )}
-              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).acciones,
+                })}
+                align="right"
+              >
                 {/* Wrapper que replica el ancho del bloque de acciones */}
                 <Box sx={{ position: 'relative', display: 'inline-flex' }}>
                   {/* Contenido “fantasma” para medir ancho del bloque real */}
@@ -874,7 +950,11 @@ export default function MainGrid() {
               <TableRow>
                 <TableCell
                   colSpan={columnsCount}
-                  sx={{ textAlign: "center", py: 3 }}
+                  sx={(theme) => ({
+                    ...tableCellStyle(theme),
+                    textAlign: "center",
+                    py: 3,
+                  })}
                 >
                   No hay presupuestos para mostrar.
                 </TableCell>
@@ -884,7 +964,11 @@ export default function MainGrid() {
               <TableRow>
                 <TableCell
                   colSpan={columnsCount}
-                  sx={{ textAlign: "center", py: 3 }}
+                  sx={(theme) => ({
+                    ...tableCellStyle(theme),
+                    textAlign: "center",
+                    py: 3,
+                  })}
                 >
                   Cargando presupuestos...
                 </TableCell>
