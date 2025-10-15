@@ -85,6 +85,25 @@ const createEmptyPage = () => ({
   number: 0,
   size: PAGE_SIZE,
 });
+const HeaderLabelAligned = ({ label, ghost }) => (
+  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+    <Box
+      aria-hidden
+      sx={{
+        visibility: 'hidden',
+        pointerEvents: 'none',
+        display: 'inline-flex',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {ghost}
+    </Box>
+    <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', whiteSpace: 'nowrap' }}>
+      {label}
+    </Box>
+  </Box>
+);
+
 export default function MainGrid() {
   const navigate = useNavigate();
   const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
@@ -560,6 +579,31 @@ export default function MainGrid() {
         </TableRow>
       );
     });
+
+  const firstMain = React.useMemo(
+    () => (Array.isArray(presupuestosPage?.content) && presupuestosPage.content.length ? presupuestosPage.content[0] : null),
+    [presupuestosPage?.content]
+  );
+
+  const firstSearchRow = React.useMemo(
+    () => (searchPage && Array.isArray(searchPage.content) && searchPage.content.length ? searchPage.content[0] : null),
+    [searchPage]
+  );
+
+  const headerGhostMain = {
+    nombre: firstMain?.nombre || 'Nombre de ejemplo',
+    desde: monthName(firstMain?.desde || '2025-01'),
+    hasta: monthName(firstMain?.hasta || '2025-12'),
+    eliminado: formatDeletedAt(firstMain?.deletedAt || '2025-10-14T20:21:43Z'),
+  };
+
+  const headerGhostSearch = {
+    nombre: firstSearchRow?.nombre || 'Nombre de ejemplo',
+    desde: monthName(firstSearchRow?.desde || '2025-01'),
+    hasta: monthName(firstSearchRow?.hasta || '2025-12'),
+    eliminado: formatDeletedAt(firstSearchRow?.deletedAt || '2025-10-14T20:21:43Z'),
+  };
+
   return (
     <Box sx={{ width: "100%", p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -696,11 +740,19 @@ export default function MainGrid() {
               <Table>
                 <TableHead>
                   <TableRow sx={tableRowStyle}>
-                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }}>Nombre</TableCell>
-                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }}>Desde</TableCell>
-                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }}>Hasta</TableCell>
+                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
+                      <HeaderLabelAligned label="Nombre" ghost={headerGhostSearch.nombre} />
+                    </TableCell>
+                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
+                      <HeaderLabelAligned label="Desde" ghost={headerGhostSearch.desde} />
+                    </TableCell>
+                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
+                      <HeaderLabelAligned label="Hasta" ghost={headerGhostSearch.hasta} />
+                    </TableCell>
                     {statusFilter === "deleted" && (
-                      <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>Eliminado</TableCell>
+                      <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
+                        <HeaderLabelAligned label="Eliminado" ghost={headerGhostSearch.eliminado} />
+                      </TableCell>
                     )}
                     <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
                       {/* Wrapper que replica el ancho del bloque de acciones */}
@@ -774,11 +826,19 @@ export default function MainGrid() {
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
-              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }}>Nombre</TableCell>
-              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }}>Desde</TableCell>
-              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }}>Hasta</TableCell>
+              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
+                <HeaderLabelAligned label="Nombre" ghost={headerGhostMain.nombre} />
+              </TableCell>
+              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
+                <HeaderLabelAligned label="Desde" ghost={headerGhostMain.desde} />
+              </TableCell>
+              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
+                <HeaderLabelAligned label="Hasta" ghost={headerGhostMain.hasta} />
+              </TableCell>
               {statusFilter === "deleted" && (
-                <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>Eliminado</TableCell>
+                <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
+                  <HeaderLabelAligned label="Eliminado" ghost={headerGhostMain.eliminado} />
+                </TableCell>
               )}
               <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
                 {/* Wrapper que replica el ancho del bloque de acciones */}
