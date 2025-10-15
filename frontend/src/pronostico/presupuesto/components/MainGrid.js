@@ -37,6 +37,10 @@ const tableRowStyle = {
   "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.05)" },
 };
 const tableCellStyle = { border: "1px solid rgba(255, 255, 255, 0.1)" };
+const headerCellStyle = {
+  ...tableCellStyle,
+  fontWeight: 600,
+};
 const getColumnWidth = (statusFilter) => ({
   nombre: { width: statusFilter === "deleted" ? "20%" : "25%" },
   desde: { width: statusFilter === "deleted" ? "20%" : "25%" },
@@ -740,21 +744,20 @@ export default function MainGrid() {
               <Table>
                 <TableHead>
                   <TableRow sx={tableRowStyle}>
-                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
+<TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
                       <HeaderLabelAligned label="Nombre" ghost={headerGhostSearch.nombre} />
                     </TableCell>
-                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
+                    <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
                       <HeaderLabelAligned label="Desde" ghost={headerGhostSearch.desde} />
                     </TableCell>
-                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
-                      <HeaderLabelAligned label="Hasta" ghost={headerGhostSearch.hasta} />
+                    <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
                     </TableCell>
                     {statusFilter === "deleted" && (
-                      <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
-                        <HeaderLabelAligned label="Eliminado" ghost={headerGhostSearch.eliminado} />
+                      <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
+                        <HeaderLabelAligned label="Eliminados" ghost={headerGhostSearch.eliminado} />
                       </TableCell>
                     )}
-                    <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
+                    <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
                       {/* Wrapper que replica el ancho del bloque de acciones */}
                       <Box sx={{ position: 'relative', display: 'inline-flex' }}>
                         {/* Contenido “fantasma” para medir ancho del bloque real */}
@@ -772,7 +775,7 @@ export default function MainGrid() {
                           <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
                         </Box>
                         {/* Texto centrado exactamente sobre ese ancho */}
-                        <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap' }}>
+<Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
                           Acciones
                         </Box>
                       </Box>
@@ -826,21 +829,21 @@ export default function MainGrid() {
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
-              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
+              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).nombre }} align="left">
                 <HeaderLabelAligned label="Nombre" ghost={headerGhostMain.nombre} />
               </TableCell>
-              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
+              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).desde }} align="left">
                 <HeaderLabelAligned label="Desde" ghost={headerGhostMain.desde} />
               </TableCell>
-              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
+              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).hasta }} align="left">
                 <HeaderLabelAligned label="Hasta" ghost={headerGhostMain.hasta} />
               </TableCell>
               {statusFilter === "deleted" && (
-                <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
-                  <HeaderLabelAligned label="Eliminado" ghost={headerGhostMain.eliminado} />
+                <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).eliminado }} align="left">
+                  <HeaderLabelAligned label="Eliminados" ghost={headerGhostMain.eliminado} />
                 </TableCell>
               )}
-              <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
+              <TableCell sx={{ ...headerCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
                 {/* Wrapper que replica el ancho del bloque de acciones */}
                 <Box sx={{ position: 'relative', display: 'inline-flex' }}>
                   {/* Contenido “fantasma” para medir ancho del bloque real */}
@@ -858,7 +861,7 @@ export default function MainGrid() {
                     <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
                   </Box>
                   {/* Texto centrado exactamente sobre ese ancho */}
-                  <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap' }}>
+                  <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
                     Acciones
                   </Box>
                 </Box>
