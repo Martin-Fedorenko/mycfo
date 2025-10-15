@@ -323,13 +323,16 @@ export default function PresupuestoNuevo() {
 
           // Si hay interés, cuota de sistema francés: A = P * [ r(1+r)^n / ((1+r)^n - 1) ]
           let cuota = 0;
+          // helper
+          const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
+
+          // reemplazar el bloque por:
           if (r > 0) {
             const rn = Math.pow(1 + r, n);
-            cuota = Math.round(total * ((r * rn) / (rn - 1)));
+            cuota = round2(total * ((r * rn) / (rn - 1)));
           } else {
-            cuota = Math.round(total / n);
+            cuota = round2(total / n);
           }
-
           // Distribuir a partir de "inicio"
           const startIdx = meses.findIndex(m => m === inicio);
           meses.forEach((m, idx) => {
