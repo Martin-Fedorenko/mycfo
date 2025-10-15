@@ -703,7 +703,27 @@ export default function MainGrid() {
                       <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>Eliminado</TableCell>
                     )}
                     <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
-                      Acciones
+                      {/* Wrapper que replica el ancho del bloque de acciones */}
+                      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                        {/* Contenido “fantasma” para medir ancho del bloque real */}
+                        <Box
+                          aria-hidden
+                          sx={{
+                            visibility: 'hidden',
+                            pointerEvents: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Button variant="outlined" size="small">Ver detalle</Button>
+                          <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                        </Box>
+                        {/* Texto centrado exactamente sobre ese ancho */}
+                        <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap' }}>
+                          Acciones
+                        </Box>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -761,7 +781,27 @@ export default function MainGrid() {
                 <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).eliminado }}>Eliminado</TableCell>
               )}
               <TableCell sx={{ ...tableCellStyle, ...getColumnWidth(statusFilter).acciones }} align="right">
-                Acciones
+                {/* Wrapper que replica el ancho del bloque de acciones */}
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  {/* Contenido “fantasma” para medir ancho del bloque real */}
+                  <Box
+                    aria-hidden
+                    sx={{
+                      visibility: 'hidden',
+                      pointerEvents: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <Button variant="outlined" size="small">Ver detalle</Button>
+                    <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                  </Box>
+                  {/* Texto centrado exactamente sobre ese ancho */}
+                  <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap' }}>
+                    Acciones
+                  </Box>
+                </Box>
               </TableCell>
             </TableRow>
           </TableHead>
