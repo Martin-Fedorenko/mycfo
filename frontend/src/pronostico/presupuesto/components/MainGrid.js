@@ -660,7 +660,11 @@ export default function MainGrid() {
         size="small"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        sx={{ mt: 1, mb: 2, minWidth: 340, width: { xs: '100%', sm: 'auto' }, maxWidth: 360 }}
+        sx={{
+          mt: 1,
+          mb: 2,
+          width: { xs: '100%', sm: 250 },
+        }}
       />
       {searchError && (
         <Alert severity="error" sx={{ mb: 2 }}>
