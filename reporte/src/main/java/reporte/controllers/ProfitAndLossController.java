@@ -4,8 +4,6 @@ import org.springframework.web.bind.annotation.*;
 import reporte.dtos.ProfitAndLossDTO;
 import reporte.services.ProfitAndLossService;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/pyl")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -17,8 +15,11 @@ public class ProfitAndLossController {
         this.profitAndLossService = profitAndLossService;
     }
 
+    /**
+     * Devuelve el estado de resultados (Profit & Loss) del año solicitado.
+     */
     @GetMapping
-    public List<ProfitAndLossDTO> obtenerProfitAndLoss(@RequestParam int anio) {
+    public ProfitAndLossDTO obtenerProfitAndLoss(@RequestParam int anio) {
         return profitAndLossService.obtenerFacturasPorAnio(anio);
     }
 }

@@ -1,5 +1,7 @@
 package registro.cargarDatos.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,11 +25,13 @@ public class Pagare extends DocumentoComercial {
 
     // --- Relación con recibo ---
     @OneToMany(mappedBy = "pagare", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("pagare-recibos")
     private List<Recibo> recibos;
 
     // --- Factura asociada ---
     @ManyToOne
     @JoinColumn(name = "factura_id")
+    @JsonBackReference("factura-pagares")
     private Factura factura;
 
 
