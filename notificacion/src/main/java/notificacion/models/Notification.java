@@ -57,6 +57,11 @@ public class Notification {
     @Setter
     private String resourceId;
 
+    @Column(name = "action_url", length = 255)
+    @Getter
+    @Setter
+    private String actionUrl;
+
     @Column(name = "is_read", nullable = false)
     @Getter
     @Setter

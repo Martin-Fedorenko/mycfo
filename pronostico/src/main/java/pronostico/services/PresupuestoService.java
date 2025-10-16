@@ -118,6 +118,7 @@ public class PresupuestoService {
         existing.setDeletedBy(ownerSub);
         repo.save(existing);
         log.info("Presupuesto {} marcado como eliminado por {}", id, ownerSub);
+        eventService.sendBudgetDeletedEvent(existing);
     }
 
     @Transactional

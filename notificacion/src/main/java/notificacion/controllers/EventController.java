@@ -29,6 +29,12 @@ public class EventController {
         return ResponseEntity.accepted().build();
     }
 
+    @PostMapping("/budget-deleted")
+    public ResponseEntity<Void> onBudgetDeleted(@RequestBody @Valid BudgetDeletedEvent evt) {
+        eventService.handleBudgetDeleted(evt);
+        return ResponseEntity.accepted().build();
+    }
+
     @PostMapping("/budget-exceeded")
     public ResponseEntity<Void> onBudgetExceeded(@RequestBody BudgetExceededEvent evt) {
         eventService.handleBudgetExceeded(evt);
