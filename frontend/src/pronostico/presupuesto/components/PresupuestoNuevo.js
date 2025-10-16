@@ -625,13 +625,19 @@ export default function PresupuestoNuevo() {
                             <TextField
                               type="text"
                               label="Importe"
-                              value={formatCurrencyInput(r.importe)}
+                              placeholder="$ 0"
+                              value={
+                                r.importe === 0 || r.importe === '0' || r.importe === ''
+                                  ? ''
+                                  : formatCurrencyInput(r.importe)
+                              }
                               onChange={(e) => {
                                 const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                 handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
                               }}
                               size="small"
                               variant="standard"
+                              InputLabelProps={{ shrink: true }}
                               sx={{ maxWidth: 180 }}
                               inputProps={{ inputMode: 'numeric' }}
                             />
@@ -646,23 +652,35 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="text"
                                 label="Importe inicial"
-                                value={formatCurrencyInput(r.importe)}
+                                placeholder="$ 0"
+                                value={
+                                  r.importe === 0 || r.importe === '0' || r.importe === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.importe)
+                                }
                                 onChange={(e) => {
                                   const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                   handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
                                 }}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 140px', minWidth: 140 }}
                                 inputProps={{ inputMode: 'numeric' }}
                               />
                               <TextField
                                 type="number"
                                 label="% mensual"
-                                value={r.porcentaje ?? ''}
-                                onChange={e => handleCambioRegla(idx, 'porcentaje', e.target.value)}
+                                placeholder="% 0"
+                                value={
+                                  r.porcentaje === 0 || r.porcentaje === '0' || r.porcentaje === ''
+                                    ? ''
+                                    : r.porcentaje
+                                }
+                                onChange={(e) => handleCambioRegla(idx, 'porcentaje', e.target.value)}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 120px', minWidth: 120 }}
                                 inputProps={{ step: 0.1, inputMode: 'decimal' }}
                               />
