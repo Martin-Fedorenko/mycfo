@@ -1,5 +1,7 @@
 package registro.cargarDatos.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
@@ -9,19 +11,22 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.List;
 
-@Entity @Getter @Setter
+@Entity
+@Getter
+@Setter
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Factura extends DocumentoComercial {
 
-    private String tipoFactura; //obligatorio
+    private String tipoFactura; // obligatorio
 
     // --- Datos del vendedor ---
-    private String vendedorNombre; //obligatorio
+    private String vendedorNombre; // obligatorio
     private String vendedorCuit;
     private String vendedorCondicionIVA;
     private String vendedorDomicilio;
 
     // --- Datos del comprador ---
-    private String compradorNombre; //obligatorio
+    private String compradorNombre; // obligatorio
     private String compradorCuit;
     private String compradorCondicionIVA;
     private String compradorDomicilio;
@@ -32,15 +37,16 @@ public class Factura extends DocumentoComercial {
 
     // --- Relación con ítems ---
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("factura-items")
     private List<ItemFactura> items;
 
-    // --- Relación con recibo ---
+    // --- Relación con recibos ---
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("factura-recibos")
     private List<Recibo> recibos;
 
-    // --- Relación con pagaré ---
+    // --- Relación con pagarés ---
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Recibo> pagares;
-
-
+    @JsonManagedReference("factura-pagares")
+    private List<Pagare> pagares;
 }

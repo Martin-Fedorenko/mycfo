@@ -15,7 +15,7 @@
     "@mui/x-date-pickers": "^8.11.2",
     "@mui/x-tree-view": "^8.11.2",
     "@react-spring/web": "^10.0.2",
-    "@stomp/stompjs": "^7.2.0",
+    "@stomp/stompjs": "^7.2.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
