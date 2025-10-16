@@ -4,6 +4,7 @@ import {
   TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
   Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch
 } from '@mui/material';
+import MonthRangeSelect from './MonthRangeSelect';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -322,13 +323,16 @@ export default function PresupuestoNuevo() {
 
           // Si hay interés, cuota de sistema francés: A = P * [ r(1+r)^n / ((1+r)^n - 1) ]
           let cuota = 0;
+          // helper
+          const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
+
+          // reemplazar el bloque por:
           if (r > 0) {
             const rn = Math.pow(1 + r, n);
-            cuota = Math.round(total * ((r * rn) / (rn - 1)));
+            cuota = round2(total * ((r * rn) / (rn - 1)));
           } else {
-            cuota = Math.round(total / n);
+            cuota = round2(total / n);
           }
-
           // Distribuir a partir de "inicio"
           const startIdx = meses.findIndex(m => m === inicio);
           meses.forEach((m, idx) => {
@@ -506,10 +510,26 @@ export default function PresupuestoNuevo() {
       {/* PASO 1: Datos básicos */}
       {step === 0 && (
         <>
-          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-            <TextField label="Nombre del presupuesto" value={nombre} onChange={e => setNombre(e.target.value)} fullWidth variant="outlined" />
-            <TextField label="Desde" type="month" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} InputLabelProps={{ shrink: true }} />
-            <TextField label="Hasta" type="month" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} InputLabelProps={{ shrink: true }} />
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: 'column' }}>
+            <TextField 
+              label="Nombre del presupuesto" 
+              value={nombre} 
+              onChange={e => setNombre(e.target.value)} 
+              fullWidth 
+              variant="outlined" 
+            />
+            <Box sx={{ maxWidth: 300 }}>
+              <MonthRangeSelect
+                value={{
+                  from: fechaDesde,
+                  to: fechaHasta
+                }}
+                onChange={(range) => {
+                  setFechaDesde(range.from);
+                  setFechaHasta(range.to);
+                }}
+              />
+            </Box>
           </Box>
 
           <Divider sx={{ my: 2 }} />

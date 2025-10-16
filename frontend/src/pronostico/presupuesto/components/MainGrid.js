@@ -36,7 +36,20 @@ const tableRowStyle = {
   backgroundColor: "rgba(255, 255, 255, 0.02)",
   "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.05)" },
 };
-const tableCellStyle = { border: "1px solid rgba(255, 255, 255, 0.1)" };
+const tableCellStyle = (theme) => ({
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
+});
+const headerCellStyle = (theme) => ({
+  ...tableCellStyle(theme),
+  fontWeight: 600,
+});
+const getColumnWidth = (statusFilter) => ({
+  nombre: { width: statusFilter === "deleted" ? "20%" : "25%" },
+  desde: { width: statusFilter === "deleted" ? "20%" : "25%" },
+  hasta: { width: statusFilter === "deleted" ? "20%" : "25%" },
+  eliminado: { width: "20%" },
+  acciones: { width: statusFilter === "deleted" ? "20%" : "25%" },
+});
 const monthLabels = [
   "enero",
   "febrero",
@@ -78,6 +91,25 @@ const createEmptyPage = () => ({
   number: 0,
   size: PAGE_SIZE,
 });
+const HeaderLabelAligned = ({ label, ghost }) => (
+  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+    <Box
+      aria-hidden
+      sx={{
+        visibility: 'hidden',
+        pointerEvents: 'none',
+        display: 'inline-flex',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {ghost}
+    </Box>
+    <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', whiteSpace: 'nowrap' }}>
+      {label}
+    </Box>
+  </Box>
+);
+
 export default function MainGrid() {
   const navigate = useNavigate();
   const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
@@ -507,15 +539,24 @@ export default function MainGrid() {
       const buttonId = `acciones-presupuesto-${p.id}`;
       return (
         <TableRow key={p.id} sx={tableRowStyle}>
-          <TableCell sx={tableCellStyle}>{p.nombre}</TableCell>
-          <TableCell sx={tableCellStyle}>{monthName(p.desde)}</TableCell>
-          <TableCell sx={tableCellStyle}>{monthName(p.hasta)}</TableCell>
+          <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).nombre })}>
+            {p.nombre}
+          </TableCell>
+          <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).desde })}>
+            {monthName(p.desde)}
+          </TableCell>
+          <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).hasta })}>
+            {monthName(p.hasta)}
+          </TableCell>
           {isDeleted && (
-            <TableCell sx={tableCellStyle}>
+            <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).eliminado })}>
               {formatDeletedAt(p.deletedAt)}
             </TableCell>
           )}
-          <TableCell sx={{ ...tableCellStyle }} align="right">
+          <TableCell
+            sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).acciones })}
+            align="right"
+          >
             {isDeleted ? (
               <Button
                 variant="outlined"
@@ -553,6 +594,31 @@ export default function MainGrid() {
         </TableRow>
       );
     });
+
+  const firstMain = React.useMemo(
+    () => (Array.isArray(presupuestosPage?.content) && presupuestosPage.content.length ? presupuestosPage.content[0] : null),
+    [presupuestosPage?.content]
+  );
+
+  const firstSearchRow = React.useMemo(
+    () => (searchPage && Array.isArray(searchPage.content) && searchPage.content.length ? searchPage.content[0] : null),
+    [searchPage]
+  );
+
+  const headerGhostMain = {
+    nombre: firstMain?.nombre || 'Nombre de ejemplo',
+    desde: monthName(firstMain?.desde || '2025-01'),
+    hasta: monthName(firstMain?.hasta || '2025-12'),
+    eliminado: formatDeletedAt(firstMain?.deletedAt || '2025-10-14T20:21:43Z'),
+  };
+
+  const headerGhostSearch = {
+    nombre: firstSearchRow?.nombre || 'Nombre de ejemplo',
+    desde: monthName(firstSearchRow?.desde || '2025-01'),
+    hasta: monthName(firstSearchRow?.hasta || '2025-12'),
+    eliminado: formatDeletedAt(firstSearchRow?.deletedAt || '2025-10-14T20:21:43Z'),
+  };
+
   return (
     <Box sx={{ width: "100%", p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -583,11 +649,11 @@ export default function MainGrid() {
         }}
       >
         <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="presupuesto-year-label">Anio</InputLabel>
+          <InputLabel id="presupuesto-year-label">Año</InputLabel>
           <Select
             labelId="presupuesto-year-label"
             value={filters.year}
-            label="Anio"
+            label="Año"
             onChange={handleFilterChange("year")}
           >
             <MenuItem value="">
@@ -648,12 +714,16 @@ export default function MainGrid() {
         </Button>
       </Box>
       <TextField
-        label="Buscar por nombre, mes o anio"
+        label="Buscar por nombre, mes o año"
         variant="outlined"
         size="small"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        sx={{ mt: 1, mb: 2, maxWidth: 360 }}
+        sx={{
+          mt: 1,
+          mb: 2,
+          width: { xs: '100%', sm: 250 },
+        }}
       />
       {searchError && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -671,7 +741,11 @@ export default function MainGrid() {
                 <TableRow>
                   <TableCell
                     colSpan={columnsCount}
-                    sx={{ textAlign: "center", py: 3 }}
+                    sx={(theme) => ({
+                      ...tableCellStyle(theme),
+                      textAlign: "center",
+                      py: 3,
+                    })}
                   >
                     Cargando presupuestos...
                   </TableCell>
@@ -685,14 +759,72 @@ export default function MainGrid() {
               <Table>
                 <TableHead>
                   <TableRow sx={tableRowStyle}>
-                    <TableCell sx={tableCellStyle}>Nombre</TableCell>
-                    <TableCell sx={tableCellStyle}>Desde</TableCell>
-                    <TableCell sx={tableCellStyle}>Hasta</TableCell>
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).nombre,
+                      })}
+                      align="left"
+                    >
+                      <HeaderLabelAligned label="Nombre" ghost={headerGhostSearch.nombre} />
+                    </TableCell>
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).desde,
+                      })}
+                      align="left"
+                    >
+                      <HeaderLabelAligned label="Desde" ghost={headerGhostSearch.desde} />
+                    </TableCell>
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).hasta,
+                      })}
+                      align="left"
+                    >
+                      <HeaderLabelAligned label="Hasta" ghost={headerGhostSearch.hasta} />
+                    </TableCell>
                     {statusFilter === "deleted" && (
-                      <TableCell sx={tableCellStyle}>Eliminado</TableCell>
+                      <TableCell
+                        sx={(theme) => ({
+                          ...headerCellStyle(theme),
+                          ...getColumnWidth(statusFilter).eliminado,
+                        })}
+                        align="left"
+                      >
+                        <HeaderLabelAligned label="Eliminados" ghost={headerGhostSearch.eliminado} />
+                      </TableCell>
                     )}
-                    <TableCell sx={{ ...tableCellStyle }} align="right">
-                      Acciones
+                    <TableCell
+                      sx={(theme) => ({
+                        ...headerCellStyle(theme),
+                        ...getColumnWidth(statusFilter).acciones,
+                      })}
+                      align="right"
+                    >
+                      {/* Wrapper que replica el ancho del bloque de acciones */}
+                      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                        {/* Contenido “fantasma” para medir ancho del bloque real */}
+                        <Box
+                          aria-hidden
+                          sx={{
+                            visibility: 'hidden',
+                            pointerEvents: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Button variant="outlined" size="small">Ver detalle</Button>
+                          <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                        </Box>
+                        {/* Texto centrado exactamente sobre ese ancho */}
+<Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
+                          Acciones
+                        </Box>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -743,14 +875,72 @@ export default function MainGrid() {
         <Table>
           <TableHead>
             <TableRow sx={tableRowStyle}>
-              <TableCell sx={tableCellStyle}>Nombre</TableCell>
-              <TableCell sx={tableCellStyle}>Desde</TableCell>
-              <TableCell sx={tableCellStyle}>Hasta</TableCell>
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).nombre,
+                })}
+                align="left"
+              >
+                <HeaderLabelAligned label="Nombre" ghost={headerGhostMain.nombre} />
+              </TableCell>
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).desde,
+                })}
+                align="left"
+              >
+                <HeaderLabelAligned label="Desde" ghost={headerGhostMain.desde} />
+              </TableCell>
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).hasta,
+                })}
+                align="left"
+              >
+                <HeaderLabelAligned label="Hasta" ghost={headerGhostMain.hasta} />
+              </TableCell>
               {statusFilter === "deleted" && (
-                <TableCell sx={tableCellStyle}>Eliminado</TableCell>
+                <TableCell
+                  sx={(theme) => ({
+                    ...headerCellStyle(theme),
+                    ...getColumnWidth(statusFilter).eliminado,
+                  })}
+                  align="left"
+                >
+                  <HeaderLabelAligned label="Eliminados" ghost={headerGhostMain.eliminado} />
+                </TableCell>
               )}
-              <TableCell sx={{ ...tableCellStyle }} align="right">
-                Acciones
+              <TableCell
+                sx={(theme) => ({
+                  ...headerCellStyle(theme),
+                  ...getColumnWidth(statusFilter).acciones,
+                })}
+                align="right"
+              >
+                {/* Wrapper que replica el ancho del bloque de acciones */}
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  {/* Contenido “fantasma” para medir ancho del bloque real */}
+                  <Box
+                    aria-hidden
+                    sx={{
+                      visibility: 'hidden',
+                      pointerEvents: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <Button variant="outlined" size="small">Ver detalle</Button>
+                    <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                  </Box>
+                  {/* Texto centrado exactamente sobre ese ancho */}
+                  <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
+                    Acciones
+                  </Box>
+                </Box>
               </TableCell>
             </TableRow>
           </TableHead>
@@ -760,7 +950,11 @@ export default function MainGrid() {
               <TableRow>
                 <TableCell
                   colSpan={columnsCount}
-                  sx={{ textAlign: "center", py: 3 }}
+                  sx={(theme) => ({
+                    ...tableCellStyle(theme),
+                    textAlign: "center",
+                    py: 3,
+                  })}
                 >
                   No hay presupuestos para mostrar.
                 </TableCell>
@@ -770,7 +964,11 @@ export default function MainGrid() {
               <TableRow>
                 <TableCell
                   colSpan={columnsCount}
-                  sx={{ textAlign: "center", py: 3 }}
+                  sx={(theme) => ({
+                    ...tableCellStyle(theme),
+                    textAlign: "center",
+                    py: 3,
+                  })}
                 >
                   Cargando presupuestos...
                 </TableCell>

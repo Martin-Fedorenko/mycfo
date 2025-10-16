@@ -45,6 +45,7 @@ public class PresupuestoService {
 
     private final PresupuestoRepository repo;
     private final PresupuestoLineaRepository lineaRepo;
+    private final PresupuestoEventService eventService;
 
     public enum ListStatus {
         ACTIVE,
@@ -433,6 +434,7 @@ public class PresupuestoService {
             }
         }
 
+        eventService.sendBudgetCreatedEvent(presupuesto);
         return presupuesto;
     }
 }
