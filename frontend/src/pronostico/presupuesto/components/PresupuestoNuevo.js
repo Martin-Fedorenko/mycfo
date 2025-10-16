@@ -29,6 +29,11 @@ const tableCellStyle = {
   textAlign: 'center',
 };
 
+const headerCellStyle = (theme) => ({
+  ...tableCellStyle,   // reutiliza borde, padding, etc.
+  fontWeight: 600,     // seminegrita como en MainGrid
+});
+
 function startOfMonthUTC(year, monthZeroBased) {
   return new Date(Date.UTC(year, monthZeroBased, 1));
 }
@@ -568,11 +573,20 @@ export default function PresupuestoNuevo() {
             <Table size="small" sx={{ tableLayout: 'auto', width: '100%', minWidth: 720 }}>
               <TableHead>
                 <TableRow sx={tableRowStyle}>
-                  <TableCell sx={tableCellStyle}>Categoría</TableCell>
-                  <TableCell sx={tableCellStyle}>Tipo</TableCell>
-                  <TableCell sx={tableCellStyle}>Regla</TableCell>
-                  <TableCell sx={tableCellStyle}>Parámetros</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, width: 96, minWidth: 96, maxWidth: 96 }}>Acciones</TableCell>
+                  <TableCell sx={headerCellStyle}>Categoría</TableCell>
+                  <TableCell sx={headerCellStyle}>Tipo</TableCell>
+                  <TableCell sx={headerCellStyle}>Regla</TableCell>
+                  <TableCell sx={headerCellStyle}>Parámetros</TableCell>
+                  <TableCell
+                    sx={(theme) => ({
+                      ...headerCellStyle(theme),
+                      width: 96,
+                      minWidth: 96,
+                      maxWidth: 96,
+                    })}
+                  >
+                    Acciones
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -861,19 +875,40 @@ export default function PresupuestoNuevo() {
               <TableHead>
                 {/* Primera fila: nombres de categorías */}
                 <TableRow sx={tableRowStyle}>
-                  <TableCell sx={tableCellStyle}>Mes</TableCell>
+                  {/* Mes */}
+                  <TableCell sx={headerCellStyle}>Mes</TableCell>
+
+                  {/* Categorías creadas por el cliente */}
                   {categorias.map((cat, idx) => (
-                    <TableCell key={idx} sx={tableCellStyle}>
+                    <TableCell key={idx} sx={headerCellStyle}>
                       <Stack alignItems="center" spacing={0.5}>
-                        <Typography variant="body2" noWrap title={cat.categoria}>{cat.categoria}</Typography>
-                        <Chip size="small" label={cat.tipo} color={cat.tipo === 'Ingreso' ? 'success' : 'default'} />
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          title={cat.categoria}
+                          sx={{ fontWeight: 600 }}   // negrita del título de la categoría
+                        >
+                          {cat.categoria}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={cat.tipo}
+                          color={cat.tipo === 'Ingreso' ? 'success' : 'default'}
+                        />
                       </Stack>
                     </TableCell>
                   ))}
-                  {/* NUEVAS COLUMNAS DE TOTALES POR MES */}
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 120 }}>Ingresos (mes)</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 120 }}>Egresos (mes)</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 130 }}>Resultado (mes)</TableCell>
+
+                  {/* Columnas de totales por mes */}
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 120 })}>
+                    Ingresos (mes)
+                  </TableCell>
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 120 })}>
+                    Egresos (mes)
+                  </TableCell>
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 130 })}>
+                    Resultado (mes)
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
