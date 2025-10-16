@@ -16,6 +16,7 @@ import java.util.Objects;
 public class EventService {
 
     private final NotificationRepository repo;
+    private final NotificationService notificationService;
 
     @Value("${notifications.default-user-id:1}")
     private Long defaultUserId;
@@ -23,8 +24,10 @@ public class EventService {
     @Value("${notifications.high-threshold:100000}")
     private BigDecimal highThreshold;
 
-    public EventService(NotificationRepository repo) {
+    public EventService(NotificationRepository repo,
+                        NotificationService notificationService) {
         this.repo = repo;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -49,6 +52,31 @@ public class EventService {
         }
 
         // 3) (opcional v2) Duplicado por monto+descripcion en ventana — lo dejamos para luego
+    }
+
+    @Transactional
+    public void handleBudgetCreated(BudgetCreatedEvent evt) {
+        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
+        final Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
+        final String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
+
+        Notification notification = new Notification();
+        notification.setUserId(userId);
+        notification.setType(NotificationType.BUDGET_CREATED);
+        notification.setTitle("Presupuesto creado");
+        notification.setBody("Se creo el presupuesto %s%s".formatted(
+                budgetName,
+                (evt.period() != null && !evt.period().isBlank()) ? " (" + evt.period() + ")" : ""
+        ));
+        notification.setSeverity(Severity.INFO);
+        notification.setResourceType(ResourceType.BUDGET);
+        notification.setResourceId(String.valueOf(budgetId));
+        notification.setCreatedAt(Instant.now());
+        notification.setRead(false);
+
+        notificationService.create(notification);
+
+        System.out.println("Notificacion creada: Presupuesto creado para usuario " + userId);
     }
 
     @Transactional
