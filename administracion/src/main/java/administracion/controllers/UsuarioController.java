@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import administracion.dtos.ActualizarUsuarioDTO;
 import administracion.dtos.UsuarioDTO;
 import administracion.services.UsuarioService;
+import administracion.services.PermissionService;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ import java.util.List;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final PermissionService permissionService;
 
     @GetMapping("/perfil")
     public ResponseEntity<UsuarioDTO> obtenerPerfil(
@@ -52,26 +54,57 @@ public class UsuarioController {
 
     @PutMapping("/{sub}")
     public ResponseEntity<UsuarioDTO> actualizarEmpleado(
+            @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
             @PathVariable String sub,
             @RequestBody ActualizarUsuarioDTO dto) {
+        
+        // Verificar permisos: solo administradores pueden editar otros usuarios
+        if (!permissionService.puedeEditarUsuario(subUsuarioActual, sub)) {
+            return ResponseEntity.status(403).build();
+        }
+        
         UsuarioDTO actualizado = usuarioService.actualizarEmpleado(sub, dto);
         return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{sub}")
-    public ResponseEntity<Void> eliminarEmpleado(@PathVariable String sub) {
+    public ResponseEntity<Void> eliminarEmpleado(
+            @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
+            @PathVariable String sub) {
+        
+        // Verificar permisos: solo administradores pueden eliminar usuarios
+        if (!permissionService.esAdministrador(subUsuarioActual)) {
+            return ResponseEntity.status(403).build();
+        }
+        
         usuarioService.eliminarEmpleado(sub);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{sub}/desactivar")
-    public ResponseEntity<UsuarioDTO> desactivarEmpleado(@PathVariable String sub) {
+    public ResponseEntity<UsuarioDTO> desactivarEmpleado(
+            @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
+            @PathVariable String sub) {
+        
+        // Verificar permisos: solo administradores pueden desactivar usuarios
+        if (!permissionService.esAdministrador(subUsuarioActual)) {
+            return ResponseEntity.status(403).build();
+        }
+        
         UsuarioDTO desactivado = usuarioService.desactivarEmpleado(sub);
         return ResponseEntity.ok(desactivado);
     }
 
     @PutMapping("/{sub}/activar")
-    public ResponseEntity<UsuarioDTO> activarEmpleado(@PathVariable String sub) {
+    public ResponseEntity<UsuarioDTO> activarEmpleado(
+            @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
+            @PathVariable String sub) {
+        
+        // Verificar permisos: solo administradores pueden activar usuarios
+        if (!permissionService.esAdministrador(subUsuarioActual)) {
+            return ResponseEntity.status(403).build();
+        }
+        
         UsuarioDTO activado = usuarioService.activarEmpleado(sub);
         return ResponseEntity.ok(activado);
     }

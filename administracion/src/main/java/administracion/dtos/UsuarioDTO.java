@@ -12,5 +12,8 @@ public class UsuarioDTO {
     private Rol rol;
     private Long empresaId;
     private String empresaNombre;
+    private String empresaCuit;
+    private String empresaCondicionIVA;
+    private String empresaDomicilio;
     private Boolean activo;
 }

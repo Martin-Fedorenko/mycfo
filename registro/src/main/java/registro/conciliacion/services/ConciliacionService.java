@@ -414,8 +414,9 @@ public class ConciliacionService {
                 .collect(Collectors.toList());
         
         if (movimientos.isEmpty()) {
-            // Sin movimientos, marcar como NO_PAGADO
+            // Sin movimientos, marcar como NO_PAGADO y PagoPendiente
             factura.setEstadoPago(EstadoPago.NO_PAGADO);
+            factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.PagoPendiente);
         } else {
             // Sumar todos los montos de los movimientos
             double totalPagado = movimientos.stream()
@@ -431,12 +432,15 @@ public class ConciliacionService {
             if (diferencia <= tolerancia || totalPagado >= montoFactura) {
                 // Pago completo
                 factura.setEstadoPago(EstadoPago.PAGADO);
+                factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.Pago);
             } else if (totalPagado > 0) {
                 // Pago parcial
                 factura.setEstadoPago(EstadoPago.PARCIALMENTE_PAGADO);
+                factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.PagoParcialmente);
             } else {
                 // Sin pago
                 factura.setEstadoPago(EstadoPago.NO_PAGADO);
+                factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.PagoPendiente);
             }
         }
         

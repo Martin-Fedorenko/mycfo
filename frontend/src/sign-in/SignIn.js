@@ -143,8 +143,14 @@ export default function SignIn(props) {
           sessionStorage.setItem("email", userData.email);
           sessionStorage.setItem("nombre", userData.nombre);
           sessionStorage.setItem("telefono", userData.telefono || "");
-          sessionStorage.setItem("organizacionId", userData.empresaId);
-          sessionStorage.setItem("organizacion", userData.empresaNombre || "");
+          
+          // Guardar datos de la empresa (sin IDs)
+          if (userData.empresaId) {
+            sessionStorage.setItem("empresaNombre", userData.empresaNombre || "");
+            sessionStorage.setItem("empresaCuit", userData.empresaCuit || "");
+            sessionStorage.setItem("empresaCondicionIVA", userData.empresaCondicionIVA || "");
+            sessionStorage.setItem("empresaDomicilio", userData.empresaDomicilio || "");
+          }
 
           window.dispatchEvent(new Event("userDataUpdated"));
 

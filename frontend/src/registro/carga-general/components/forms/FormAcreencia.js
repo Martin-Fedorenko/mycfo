@@ -12,17 +12,18 @@ export default function FormAcreencia({
   setFormData,
   errors = {},
 }) {
-  // Setear fecha actual por defecto
+  // Establecer fecha de hoy por defecto si no hay fecha de emisión
   useEffect(() => {
     if (!formData.fechaEmision) {
-      setFormData((p) => ({ ...p, fechaEmision: dayjs() }));
+      const hoy = dayjs();
+      setFormData((p) => ({ ...p, fechaEmision: hoy }));
     }
-  }, []);
+  }, [formData.fechaEmision, setFormData]);
   return (
     <Box
       sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
     >
-      {/* 1️⃣ Monto total + Moneda + Monto pagado */}
+      {/* 1️⃣ Monto total + Moneda */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Monto total *</FormLabel>
@@ -52,18 +53,6 @@ export default function FormAcreencia({
           {errors.moneda && (
             <FormHelperText error>{errors.moneda}</FormHelperText>
           )}
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Monto cobrado (pagado)</FormLabel>
-          <OutlinedInput
-            type="number"
-            value={formData.montoPagado || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, montoPagado: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
         </Box>
       </Box>
 
@@ -119,42 +108,6 @@ export default function FormAcreencia({
         </Box>
       </Box>
 
-      {/* Datos de la empresa (destino) */}
-      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Nombre de la empresa (destino)</FormLabel>
-          <OutlinedInput
-            value={formData.destinoNombre || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, destinoNombre: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>CUIT de la empresa</FormLabel>
-          <OutlinedInput
-            value={formData.destinoCuit || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, destinoCuit: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Estado</FormLabel>
-          <CustomSelect
-            value={formData.estado || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, estado: valor }))
-            }
-            options={["PENDIENTE", "COBRADO", "VENCIDO", "PARCIAL"]}
-            width="100%"
-          />
-        </Box>
-      </Box>
 
       {/* 4️⃣ Información de cuotas y financiamiento */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>

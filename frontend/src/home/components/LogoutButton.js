@@ -3,6 +3,7 @@ import React from "react";
 import { Tooltip, IconButton } from "@mui/material";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import { CognitoUserPool } from "amazon-cognito-identity-js";
+import { sessionService } from "../../shared-services/sessionService";
 
 export default function LogoutButton() {
   const poolData = {
@@ -24,6 +25,7 @@ export default function LogoutButton() {
 
     // 🗑️ Limpiar todos los datos de sessionStorage
     sessionStorage.clear();
+    sessionService.limpiarSesion();
     console.log("🗑️ Todos los datos eliminados de sessionStorage.");
 
     // 🚀 Si querés logout global en Cognito Hosted UI

@@ -1,12 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, FormLabel, FormHelperText } from "@mui/material";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
+import dayjs from "dayjs";
 
 export default function FormPagare({ formData, setFormData, errors = {} }) {
+  // Establecer fecha de hoy por defecto si no hay fecha de emisión
+  useEffect(() => {
+    if (!formData.fechaEmision) {
+      const hoy = dayjs();
+      setFormData((p) => ({ ...p, fechaEmision: hoy }));
+    }
+  }, [formData.fechaEmision, setFormData]);
+
   return (
     <Box
       sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}

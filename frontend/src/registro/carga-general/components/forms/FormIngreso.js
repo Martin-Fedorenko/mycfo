@@ -12,12 +12,13 @@ export default function FormIngreso({
   setFormData,
   errors = {},
 }) {
-  // Setear fecha actual por defecto
+  // Establecer fecha de hoy por defecto si no hay fecha de emisión
   useEffect(() => {
     if (!formData.fechaEmision) {
-      setFormData((p) => ({ ...p, fechaEmision: dayjs() }));
+      const hoy = dayjs();
+      setFormData((p) => ({ ...p, fechaEmision: hoy }));
     }
-  }, []);
+  }, [formData.fechaEmision, setFormData]);
   return (
     <Box
       sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
@@ -116,31 +117,6 @@ export default function FormIngreso({
         </Box>
       </Box>
 
-      {/* Datos de la empresa (destino) */}
-      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Nombre de la empresa (destino)</FormLabel>
-          <OutlinedInput
-            value={formData.destinoNombre || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, destinoNombre: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>CUIT de la empresa</FormLabel>
-          <OutlinedInput
-            value={formData.destinoCuit || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, destinoCuit: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-      </Box>
 
       {/* 4️⃣ Categoría */}
       <Box>

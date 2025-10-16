@@ -9,7 +9,6 @@ import org.springframework.web.client.RestTemplate;
 import registro.cargarDatos.models.Movimiento;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,8 +21,8 @@ public class MovimientoEventService {
     @Value("${notificacion.service.url:http://localhost:8084}")
     private String notificacionServiceUrl;
 
-    public MovimientoEventService() {
-        this.restTemplate = new RestTemplate();
+    public MovimientoEventService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     public void sendMovementCreatedEvent(Movimiento movimiento) {

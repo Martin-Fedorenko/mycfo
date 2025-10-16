@@ -17,12 +17,18 @@ import java.util.Optional;
 public class MovimientoService {
 
     private final MovimientoRepository movimientoRepository;
+    private final EmpresaDataService empresaDataService;
 
     /**
      * Guarda un nuevo movimiento estableciendo el estado según el tipo
      */
     public Movimiento guardarMovimiento(Movimiento movimiento) {
         movimiento.setFechaCreacion(LocalDate.now());
+        
+        // Cargar datos de la empresa automáticamente si hay usuarioId
+        if (movimiento.getUsuarioId() != null && !movimiento.getUsuarioId().isEmpty()) {
+            empresaDataService.cargarDatosEmpresaEnMovimiento(movimiento, movimiento.getUsuarioId());
+        }
         
         // Establecer estado automáticamente según el tipo si no está definido
         if (movimiento.getEstado() == null) {

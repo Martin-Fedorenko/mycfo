@@ -168,6 +168,9 @@ public class UsuarioService {
         if (usuario.getEmpresa() != null) {
             dto.setEmpresaId(usuario.getEmpresa().getId());
             dto.setEmpresaNombre(usuario.getEmpresa().getNombre());
+            dto.setEmpresaCuit(usuario.getEmpresa().getCuit());
+            dto.setEmpresaCondicionIVA(usuario.getEmpresa().getCondicionIVA());
+            dto.setEmpresaDomicilio(usuario.getEmpresa().getDomicilio());
         }
         
         return dto;

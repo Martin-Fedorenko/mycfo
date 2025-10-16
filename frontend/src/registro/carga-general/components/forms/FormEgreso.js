@@ -12,12 +12,13 @@ export default function FormEgreso({
   setFormData,
   errors = {},
 }) {
-  // Setear fecha actual por defecto
+  // Establecer fecha de hoy por defecto si no hay fecha de emisión
   useEffect(() => {
     if (!formData.fechaEmision) {
-      setFormData((p) => ({ ...p, fechaEmision: dayjs() }));
+      const hoy = dayjs();
+      setFormData((p) => ({ ...p, fechaEmision: hoy }));
     }
-  }, []);
+  }, [formData.fechaEmision, setFormData]);
   return (
     <Box
       sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
@@ -90,31 +91,6 @@ export default function FormEgreso({
         </Box>
       </Box>
 
-      {/* 3️⃣ Datos de la empresa (origen) */}
-      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Nombre de la empresa (origen)</FormLabel>
-          <OutlinedInput
-            value={formData.origenNombre || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, origenNombre: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>CUIT de la empresa</FormLabel>
-          <OutlinedInput
-            value={formData.origenCuit || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, origenCuit: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-      </Box>
 
       {/* Datos del proveedor (destino) */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>

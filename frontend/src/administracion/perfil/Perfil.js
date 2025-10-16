@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import CampoEditable from "../../shared-components/CampoEditable";
 import BotonConsolidar from "../../shared-components/CustomButton";
+import { sessionService } from "../../shared-services/sessionService";
 import axios from "axios";
 
 export default function Perfil() {
@@ -13,32 +14,21 @@ export default function Perfil() {
   const [editados, setEditados] = useState({}); // campos editados
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Cargar datos desde la BD al montar el componente
+  // 🔹 Cargar datos desde la sesión al montar el componente
   useEffect(() => {
-    const cargarPerfil = async () => {
-      try {
-        const sub = sessionStorage.getItem("sub");
-        const response = await axios.get("http://localhost:8081/api/usuarios/perfil", {
-          headers: {
-            "X-Usuario-Sub": sub
-          }
-        });
+    const cargarDatos = () => {
+      // Cargar datos del usuario desde sesión
+      const usuario = sessionService.getUsuario();
+      setPerfil({
+        nombre: usuario.nombre || "",
+        telefono: usuario.telefono || "",
+        email: usuario.email || "",
+      });
 
-        const userData = response.data;
-        setPerfil({
-          nombre: userData.nombre || "",
-          telefono: userData.telefono || "",
-          email: userData.email || "",
-        });
-        setLoading(false);
-      } catch (error) {
-        console.error("Error cargando perfil:", error);
-        alert("Error al cargar el perfil");
-        setLoading(false);
-      }
+      setLoading(false);
     };
 
-    cargarPerfil();
+    cargarDatos();
   }, []);
 
   const handleChange = (campo, valor) => {
@@ -52,7 +42,7 @@ export default function Perfil() {
     try {
       const sub = sessionStorage.getItem("sub");
       
-      // 🔹 Actualizar en BD y Cognito mediante el backend
+      // 🔹 Actualizar datos del usuario en BD y Cognito mediante el backend
       await axios.put("http://localhost:8081/api/usuarios/perfil", {
         nombre: perfil.nombre,
         email: perfil.email,
@@ -63,7 +53,7 @@ export default function Perfil() {
         }
       });
 
-      // 🔹 Actualizar sessionStorage
+      // 🔹 Actualizar sessionStorage del usuario
       sessionStorage.setItem("nombre", perfil.nombre);
       sessionStorage.setItem("email", perfil.email);
       sessionStorage.setItem("telefono", perfil.telefono);

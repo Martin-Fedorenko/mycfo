@@ -1,17 +1,85 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   FormLabel,
   FormHelperText,
   OutlinedInput,
 } from "@mui/material";
+import dayjs from "dayjs";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
-import ConciliacionDialog from "../../../../shared-components/ConciliacionDialog";
+import { sessionService } from "../../../../shared-services/sessionService";
 
 export default function FormFactura({ formData, setFormData, errors = {} }) {
+  const [datosEmpresa, setDatosEmpresa] = useState(null);
+
+  // Establecer fecha de hoy por defecto si no hay fecha de emisión
+  useEffect(() => {
+    if (!formData.fechaEmision) {
+      const hoy = dayjs();
+      setFormData((p) => ({ ...p, fechaEmision: hoy }));
+    }
+  }, [formData.fechaEmision, setFormData]);
+
+  // Cargar datos de la empresa del usuario desde la sesión
+  useEffect(() => {
+    console.log('Cargando datos de la empresa desde sesión...');
+    const empresa = sessionService.getEmpresa();
+    console.log('Datos de empresa obtenidos:', empresa);
+    if (empresa) {
+      setDatosEmpresa(empresa);
+    } else {
+      console.log('No hay datos de empresa en la sesión');
+    }
+  }, []);
+
+  // Función para autocompletar datos según la versión
+  const autocompletarDatos = (version) => {
+    console.log('Autocompletando datos para versión:', version);
+    console.log('Datos de empresa disponibles:', datosEmpresa);
+    
+    if (!datosEmpresa) {
+      console.log('No hay datos de empresa disponibles');
+      return;
+    }
+
+    if (version === "Original") {
+      // Para Original: empresa va en comprador, limpiar vendedor
+      console.log('Autocompletando datos del comprador y limpiando vendedor');
+      setFormData((p) => ({
+        ...p,
+        // Autocompletar comprador
+        compradorNombre: datosEmpresa.nombre || "",
+        compradorCuit: datosEmpresa.cuit || "",
+        compradorCondicionIVA: datosEmpresa.condicionIVA || "",
+        compradorDomicilio: datosEmpresa.domicilio || "",
+        // Limpiar vendedor
+        vendedorNombre: "",
+        vendedorCuit: "",
+        vendedorCondicionIVA: "",
+        vendedorDomicilio: ""
+      }));
+    } else if (version === "Duplicado") {
+      // Para Duplicado: empresa va en vendedor, limpiar comprador
+      console.log('Autocompletando datos del vendedor y limpiando comprador');
+      setFormData((p) => ({
+        ...p,
+        // Limpiar comprador
+        compradorNombre: "",
+        compradorCuit: "",
+        compradorCondicionIVA: "",
+        compradorDomicilio: "",
+        // Autocompletar vendedor
+        vendedorNombre: datosEmpresa.nombre || "",
+        vendedorCuit: datosEmpresa.cuit || "",
+        vendedorCondicionIVA: datosEmpresa.condicionIVA || "",
+        vendedorDomicilio: datosEmpresa.domicilio || ""
+      }));
+    }
+  };
+
   return (
     <Box
       sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
@@ -39,9 +107,10 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>Versión *</FormLabel>
           <CustomSelect
             value={formData.versionDocumento || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, versionDocumento: valor }))
-            }
+            onChange={(valor) => {
+              setFormData((p) => ({ ...p, versionDocumento: valor }));
+              autocompletarDatos(valor);
+            }}
             options={["Original", "Duplicado"]}
             width="100%"
             error={!!errors.versionDocumento}
@@ -113,7 +182,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         </Box>
       </Box>
 
-      {/* 3️⃣ Categoría + Botón Conciliar */}
+      {/* 3️⃣ Categoría */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Categoría</FormLabel>
@@ -122,9 +191,6 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
             value={formData.categoria || ""}
             onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
           />
-        </Box>
-        <Box sx={{ flex: 1, display: "flex", alignItems: "flex-end" }}>
-          <ConciliacionDialog tipo="movimiento" width="100%" />
         </Box>
       </Box>
 

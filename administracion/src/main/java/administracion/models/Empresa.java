@@ -26,6 +26,11 @@ public class Empresa {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
+    // Datos fiscales de la empresa
+    private String cuit;
+    private String condicionIVA;
+    private String domicilio;
+
     private LocalDateTime fechaCreacion;
     
     private LocalDateTime fechaActualizacion;

@@ -12,17 +12,18 @@ export default function FormDeuda({
   setFormData,
   errors = {},
 }) {
-  // Setear fecha actual por defecto
+  // Establecer fecha de hoy por defecto si no hay fecha de emisión
   useEffect(() => {
     if (!formData.fechaEmision) {
-      setFormData((p) => ({ ...p, fechaEmision: dayjs() }));
+      const hoy = dayjs();
+      setFormData((p) => ({ ...p, fechaEmision: hoy }));
     }
-  }, []);
+  }, [formData.fechaEmision, setFormData]);
   return (
     <Box
       sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
     >
-      {/* 1️⃣ Monto total + Moneda + Monto pagado */}
+      {/* 1️⃣ Monto total + Moneda */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Monto total *</FormLabel>
@@ -53,18 +54,6 @@ export default function FormDeuda({
             <FormHelperText error>{errors.moneda}</FormHelperText>
           )}
         </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Monto pagado (abonado)</FormLabel>
-          <OutlinedInput
-            type="number"
-            value={formData.montoPagado || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, montoPagado: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
       </Box>
 
       {/* 2️⃣ Fecha emisión + Fecha vencimiento */}
@@ -93,31 +82,6 @@ export default function FormDeuda({
         </Box>
       </Box>
 
-      {/* 3️⃣ Datos de la empresa (origen) */}
-      <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Nombre de la empresa (origen)</FormLabel>
-          <OutlinedInput
-            value={formData.origenNombre || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, origenNombre: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>CUIT de la empresa</FormLabel>
-          <OutlinedInput
-            value={formData.origenCuit || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, origenCuit: e.target.value }))
-            }
-            size="small"
-            fullWidth
-          />
-        </Box>
-      </Box>
 
       {/* Datos del acreedor (destino) */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
@@ -141,17 +105,6 @@ export default function FormDeuda({
             }
             size="small"
             fullWidth
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel>Estado</FormLabel>
-          <CustomSelect
-            value={formData.estado || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, estado: valor }))
-            }
-            options={["PENDIENTE", "PAGADO", "VENCIDO", "PARCIAL"]}
-            width="100%"
           />
         </Box>
       </Box>

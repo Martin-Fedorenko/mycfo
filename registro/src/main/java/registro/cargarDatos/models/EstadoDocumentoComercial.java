@@ -1,9 +1,7 @@
 package registro.cargarDatos.models;
 
 public enum EstadoDocumentoComercial {
-    Pendiente,
+    PagoPendiente,
     Pago,
-    ParcialmentePago;
-
-
+    PagoParcialmente;
 }

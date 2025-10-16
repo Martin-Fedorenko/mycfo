@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import administracion.dtos.EmpresaDTO;
 import administracion.services.EmpresaService;
+import administracion.services.PermissionService;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import java.util.List;
 public class EmpresaController {
 
     private final EmpresaService empresaService;
+    private final PermissionService permissionService;
 
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaDTO> obtenerEmpresa(@PathVariable Long id) {
@@ -30,8 +32,15 @@ public class EmpresaController {
 
     @PutMapping("/{id}")
     public ResponseEntity<EmpresaDTO> actualizarEmpresa(
+            @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
             @PathVariable Long id,
             @RequestBody EmpresaDTO empresaDTO) {
+        
+        // Verificar permisos: solo administradores pueden editar empresa
+        if (!permissionService.puedeEditarEmpresa(subUsuarioActual, id)) {
+            return ResponseEntity.status(403).build();
+        }
+        
         EmpresaDTO actualizada = empresaService.actualizarEmpresa(id, empresaDTO);
         return ResponseEntity.ok(actualizada);
     }

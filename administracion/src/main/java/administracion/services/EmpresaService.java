@@ -25,6 +25,9 @@ public class EmpresaService {
         Empresa empresa = new Empresa();
         empresa.setNombre(empresaDTO.getNombre());
         empresa.setDescripcion(empresaDTO.getDescripcion());
+        empresa.setCuit(empresaDTO.getCuit());
+        empresa.setCondicionIVA(empresaDTO.getCondicionIVA());
+        empresa.setDomicilio(empresaDTO.getDomicilio());
         
         Empresa guardada = empresaRepository.save(empresa);
         return convertirADTO(guardada);
@@ -36,6 +39,9 @@ public class EmpresaService {
         
         empresa.setNombre(empresaDTO.getNombre());
         empresa.setDescripcion(empresaDTO.getDescripcion());
+        empresa.setCuit(empresaDTO.getCuit());
+        empresa.setCondicionIVA(empresaDTO.getCondicionIVA());
+        empresa.setDomicilio(empresaDTO.getDomicilio());
         
         Empresa actualizada = empresaRepository.save(empresa);
         return convertirADTO(actualizada);
@@ -52,6 +58,9 @@ public class EmpresaService {
         dto.setId(empresa.getId());
         dto.setNombre(empresa.getNombre());
         dto.setDescripcion(empresa.getDescripcion());
+        dto.setCuit(empresa.getCuit());
+        dto.setCondicionIVA(empresa.getCondicionIVA());
+        dto.setDomicilio(empresa.getDomicilio());
         return dto;
     }
 }
