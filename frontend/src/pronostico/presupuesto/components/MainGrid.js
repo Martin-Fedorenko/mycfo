@@ -26,6 +26,7 @@ import {
   Menu,
   Tooltip,
   Pagination,
+  CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import http from "../../../api/http";
@@ -140,6 +141,7 @@ export default function MainGrid() {
     message: "",
     action: null,
   });
+  const [deletingId, setDeletingId] = React.useState(null);
   const [menuState, setMenuState] = React.useState({
     anchorEl: null,
     presupuesto: null,
@@ -303,6 +305,7 @@ export default function MainGrid() {
     setMenuState({ anchorEl: null, presupuesto: null });
   };
   const openDeleteDialog = (presupuesto) => {
+    setDeletingId(null);
     setConfirmDialog({ open: true, presupuesto });
   };
   const handleSelectDelete = () => {
@@ -312,9 +315,9 @@ export default function MainGrid() {
       openDeleteDialog(presupuesto);
     }
   };
-  const closeDeleteDialog = () => {
+  const closeDeleteDialog = React.useCallback(() => {
     setConfirmDialog({ open: false, presupuesto: null });
-  };
+  }, []);
   const performRestore = React.useCallback(
     async (presupuesto, successMessage = "Presupuesto restaurado.") => {
       if (!presupuesto) {
@@ -376,10 +379,13 @@ export default function MainGrid() {
       closeDeleteDialog();
       return;
     }
+    if (deletingId === presupuesto.id) {
+      return;
+    }
+    setDeletingId(presupuesto.id);
     try {
       await http.delete(`${baseURL}/api/presupuestos/${presupuesto.id}`);
       lastDeletedRef.current = presupuesto;
-      closeDeleteDialog();
       await fetchPresupuestos(statusFilter, pageIndex);
       if (hasActiveSearch && searchParamsRef.current) {
         await fetchSearchPresupuestos(
@@ -409,6 +415,9 @@ export default function MainGrid() {
         message: "No se pudo eliminar el presupuesto.",
         action: null,
       });
+    } finally {
+      setDeletingId(null);
+      closeDeleteDialog();
     }
   };
   const handleSnackbarClose = (_, reason) => {
@@ -417,6 +426,7 @@ export default function MainGrid() {
     }
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
+  const isDeletingCurrent = deletingId === confirmDialog.presupuesto?.id;
   const monthOptions = React.useMemo(
     () =>
       monthLabels.map((label, index) => ({
@@ -1034,7 +1044,13 @@ export default function MainGrid() {
       </Menu>
       <Dialog
         open={confirmDialog.open}
-        onClose={closeDeleteDialog}
+        onClose={() => {
+          if (deletingId) {
+            return;
+          }
+          closeDeleteDialog();
+        }}
+        disableEscapeKeyDown={Boolean(deletingId)}
         maxWidth="xs"
         fullWidth
       >
@@ -1045,13 +1061,21 @@ export default function MainGrid() {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDeleteDialog}>Cancelar</Button>
+          <Button onClick={closeDeleteDialog} disabled={isDeletingCurrent}>
+            Cancelar
+          </Button>
           <Button
             color="error"
             variant="contained"
             onClick={handleConfirmDelete}
+            disabled={isDeletingCurrent}
+            startIcon={
+              isDeletingCurrent ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : null
+            }
           >
-            Eliminar
+            {isDeletingCurrent ? "Eliminando..." : "Eliminar"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -60,6 +60,18 @@ public class EventService {
         final Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
         final String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
 
+        Instant now = Instant.now();
+        boolean recentDuplicate = repo.existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+                userId,
+                NotificationType.BUDGET_CREATED,
+                ResourceType.BUDGET,
+                String.valueOf(budgetId),
+                now.minusSeconds(10)
+        );
+        if (recentDuplicate) {
+            return;
+        }
+
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setType(NotificationType.BUDGET_CREATED);
@@ -76,7 +88,7 @@ public class EventService {
                         ? evt.link()
                         : "/app/presupuestos/%d/detalle/actual".formatted(budgetId)
         );
-        notification.setCreatedAt(Instant.now());
+        notification.setCreatedAt(now);
         notification.setRead(false);
 
         notificationService.create(notification);
@@ -89,6 +101,18 @@ public class EventService {
         final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
         final Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
         final String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
+
+        Instant now = Instant.now();
+        boolean recentDuplicate = repo.existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+                userId,
+                NotificationType.BUDGET_DELETED,
+                ResourceType.BUDGET,
+                String.valueOf(budgetId),
+                now.minusSeconds(10)
+        );
+        if (recentDuplicate) {
+            return;
+        }
 
         Notification notification = new Notification();
         notification.setUserId(userId);
@@ -106,7 +130,7 @@ public class EventService {
                         ? evt.link()
                         : "/app/presupuestos?tab=eliminados"
         );
-        notification.setCreatedAt(Instant.now());
+        notification.setCreatedAt(now);
         notification.setRead(false);
 
         notificationService.create(notification);

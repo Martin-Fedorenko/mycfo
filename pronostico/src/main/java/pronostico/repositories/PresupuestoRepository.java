@@ -3,6 +3,7 @@ package pronostico.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pronostico.models.Presupuesto;
@@ -87,4 +88,17 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
 
     @Query("SELECT p.id FROM Presupuesto p WHERE p.deleted = true AND p.deletedAt < :cutoff")
     List<Long> findIdsDeletedBefore(@Param("cutoff") LocalDateTime cutoff);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        update Presupuesto p
+           set p.deleted = true,
+               p.deletedAt = :deletedAt,
+               p.deletedBy = :deletedBy
+         where p.id = :id and p.ownerSub = :ownerSub and p.deleted = false
+        """)
+    int markDeletedIfActive(@Param("id") Long id,
+                            @Param("ownerSub") String ownerSub,
+                            @Param("deletedAt") LocalDateTime deletedAt,
+                            @Param("deletedBy") String deletedBy);
 }

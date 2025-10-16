@@ -2,7 +2,7 @@ import * as React from 'react';
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableRow,
   TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
-  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch
+  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress
 } from '@mui/material';
 import MonthRangeSelect from './MonthRangeSelect';
 import { useNavigate } from 'react-router-dom';
@@ -111,6 +111,7 @@ export default function PresupuestoNuevo() {
 
   // Wizard
   const [step, setStep] = React.useState(0);
+  const [creating, setCreating] = React.useState(false);
 
   // Paso 1
   const [nombre, setNombre] = React.useState('');
@@ -423,10 +424,14 @@ export default function PresupuestoNuevo() {
 
   // Guardar (CAMBIO MÍNIMO: enviar payload nuevo con `plantilla`)
   const handleGuardar = async () => {
+    if (creating) {
+      return;
+    }
     // Validaciones finales
     const v1 = validarPaso1(); if (v1) return setErrors(v1);
     const v2 = validarPaso2(); if (v2) return setErrors(v2);
 
+    setCreating(true);
     try {
       // Normalizo meses a YYYY-MM (ya vienen así desde el input type="month")
       const dDesde = fechaDesde;
@@ -490,7 +495,13 @@ export default function PresupuestoNuevo() {
       navigate(`/presupuestos/${slug}`);
     } catch (error) {
       console.error("Error guardando presupuesto", error);
-      setErrors("No se pudo guardar el presupuesto. Probá de nuevo.");
+      if (error?.response?.status === 409) {
+        setErrors("Ya existe un presupuesto con el mismo nombre y período.");
+      } else {
+        setErrors("No se pudo guardar el presupuesto. Probá de nuevo.");
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -916,7 +927,17 @@ export default function PresupuestoNuevo() {
           </Paper>
 
           <Box mt={3} display="flex" gap={2} flexWrap="wrap">
-            <Button variant="contained" color="primary" onClick={handleGuardar}>Guardar presupuesto</Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleGuardar}
+              disabled={creating}
+              startIcon={
+                creating ? <CircularProgress size={16} color="inherit" /> : null
+              }
+            >
+              {creating ? "Guardando..." : "Guardar presupuesto"}
+            </Button>
             <Button variant="outlined" onClick={back}>Volver</Button>
             <Button variant="text" onClick={() => navigate(-1)}>Cancelar</Button>
           </Box>
