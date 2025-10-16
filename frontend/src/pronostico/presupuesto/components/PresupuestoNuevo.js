@@ -18,8 +18,8 @@ const tableRowStyle = {
   '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
 
-const tableCellStyle = {
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+const tableCellStyle = (theme) => ({
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
   maxWidth: 110,
   minWidth: 90,
   whiteSpace: 'nowrap',
@@ -27,11 +27,11 @@ const tableCellStyle = {
   textOverflow: 'ellipsis',
   padding: '4px 6px',
   textAlign: 'center',
-};
+});
 
 const headerCellStyle = (theme) => ({
-  ...tableCellStyle,   // reutiliza borde, padding, etc.
-  fontWeight: 600,     // seminegrita como en MainGrid
+  ...tableCellStyle(theme),
+  fontWeight: 600,
 });
 
 function startOfMonthUTC(year, monthZeroBased) {
@@ -569,7 +569,7 @@ export default function PresupuestoNuevo() {
             </Tooltip>
           </Box>
 
-          <Paper sx={{ p: 2, mb: 2, overflowX: 'auto' }}>
+          <Paper variant="outlined" sx={{ p: 0, mb: 2, overflowX: 'auto', borderColor: (t) => (t.vars || t).palette.divider, }}>
             <Table size="small" sx={{ tableLayout: 'auto', width: '100%', minWidth: 720 }}>
               <TableHead>
                 <TableRow sx={tableRowStyle}>
@@ -624,15 +624,15 @@ export default function PresupuestoNuevo() {
 
                       {/* Parámetros por modo */}
                       <TableCell
-                        sx={{
-                          ...tableCellStyle,
+                        sx={(theme) => ({
+                          ...tableCellStyle(theme),
                           textAlign: 'left',
                           whiteSpace: 'normal',
                           overflow: 'visible',
                           textOverflow: 'unset',
                           minWidth: 220,
                           maxWidth: 420,
-                        }}
+                        })}
                       >
                         {r.modo === 'FIJO' && (
                           <Stack spacing={0.75} alignItems="flex-start">
@@ -818,7 +818,7 @@ export default function PresupuestoNuevo() {
                         )}
                       </TableCell>
 
-                      <TableCell sx={{ ...tableCellStyle, width: 96, minWidth: 96, maxWidth: 96, px: 0.5 }}>
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), width: 96, minWidth: 96, maxWidth: 96, px: 0.5 })}>
                         <Stack direction="row" spacing={0.5} justifyContent="center">
                           <Tooltip title="Duplicar categoría">
                             <IconButton onClick={() => handleDuplicarCategoria(idx)} size="small"><ContentCopyIcon fontSize="small" /></IconButton>
@@ -870,7 +870,7 @@ export default function PresupuestoNuevo() {
             </Alert>
           )}
 
-          <Paper sx={{ mt: 1, width: '100%', overflowX: 'auto' }}>
+          <Paper variant="outlined" sx={{ mt: 1, width: '100%', overflowX: 'auto', p: 0, borderColor: (t) => (t.vars || t).palette.divider, }}>
             <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHead>
                 {/* Primera fila: nombres de categorías */}
@@ -939,13 +939,13 @@ export default function PresupuestoNuevo() {
                         );
                       })}
                       {/* CELDAS DE TOTALES POR MES */}
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#66bb6a' }}>
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700, color: '#66bb6a' })}>
                         {fmtARS(resumenMes.ingresos)}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#ef5350' }}>
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700, color: '#ef5350' })}>
                         {fmtARS(resumenMes.egresos)}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellStyle }}>
+                      <TableCell sx={tableCellStyle}>
                         <Tooltip
                           title={esPerdidaMes ? 'Este mes los egresos superan a los ingresos.' : ''}
                           disableHoverListener={!esPerdidaMes}
@@ -976,22 +976,29 @@ export default function PresupuestoNuevo() {
 
                 {/* Fila de totales por categoría en el período (se mantiene igual) */}
                 <TableRow>
-                  <TableCell sx={{ ...tableCellStyle, fontWeight: 700 }}>Totales mes</TableCell>
+                  <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700 })}>
+                    Totales mes
+                  </TableCell>
+
                   {categorias.map((cat, idx) => {
                     const totalCat = meses.reduce((acc, m) => {
                       const v = presupuestoDataMes[m]?.[cat.categoria]?.sugerido || 0;
                       return acc + Number(v || 0);
                     }, 0);
                     return (
-                      <TableCell key={idx} sx={{ ...tableCellStyle, fontWeight: 700 }}>
+                      <TableCell
+                        key={idx}
+                        sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700 })}
+                      >
                         {fmtARS(totalCat)}
                       </TableCell>
                     );
                   })}
+
                   {/* Columnas de totales por mes no tienen agregados en esta fila */}
-                  <TableCell sx={{ ...tableCellStyle }} />
-                  <TableCell sx={{ ...tableCellStyle }} />
-                  <TableCell sx={{ ...tableCellStyle }} />
+                  <TableCell sx={tableCellStyle} />
+                  <TableCell sx={tableCellStyle} />
+                  <TableCell sx={tableCellStyle} />
                 </TableRow>
               </TableBody>
             </Table>
