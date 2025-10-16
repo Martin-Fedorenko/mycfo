@@ -929,14 +929,22 @@ export default function PresupuestoNuevo() {
           <Box mt={3} display="flex" gap={2} flexWrap="wrap">
             <Button
               variant="contained"
-              color="primary"
               onClick={handleGuardar}
               disabled={creating}
-              startIcon={
-                creating ? <CircularProgress size={16} color="inherit" /> : null
-              }
+              startIcon={creating ? <CircularProgress size={16} color="inherit" /> : null}
+              disableElevation
+              sx={{
+                "&.Mui-disabled": {
+                  backgroundColor: (theme) =>
+                    `${theme.palette.action.disabledBackground} !important`,
+                  color: (theme) => `${theme.palette.text.disabled} !important`,
+                  backgroundImage: "none !important", // anula gradiente
+                  boxShadow: "none",
+                  borderColor: "transparent",
+                },
+              }}
             >
-              {creating ? "Guardando..." : "Guardar presupuesto"}
+              {creating ? "Guardando…" : "Guardar presupuesto"}
             </Button>
             <Button variant="outlined" onClick={back}>Volver</Button>
             <Button variant="text" onClick={() => navigate(-1)}>Cancelar</Button>
