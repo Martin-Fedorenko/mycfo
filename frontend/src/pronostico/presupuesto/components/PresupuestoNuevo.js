@@ -86,7 +86,7 @@ function generarMesesEntre(desde, hasta) {
 const roundTo2 = (value) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
-  return Math.round(num * 100) / 100;
+  return Math.round((num + Number.EPSILON) * 100) / 100;
 };
 
 // Helper ARS
@@ -297,7 +297,7 @@ export default function PresupuestoNuevo() {
           const base = Number(regla?.importe || 0);
           const p = Number(regla?.porcentaje || 0) / 100;
           meses.forEach((m, idx) => {
-            const valor = Math.round(base * Math.pow(1 + p, idx));
+            const valor = roundTo2(base * Math.pow(1 + p, idx));
             if (!nuevo[m]) nuevo[m] = {};
             if (!nuevo[m][categoria]) nuevo[m][categoria] = { sugerido: 0, tipo };
             nuevo[m][categoria].sugerido = valor;
@@ -711,13 +711,19 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="text"
                                 label="Importe"
-                                value={formatCurrencyInput(r.importe)}
+                                placeholder="$ 0"
+                                value={
+                                  r.importe === 0 || r.importe === '0' || r.importe === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.importe)
+                                }
                                 onChange={(e) => {
                                   const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                   handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
                                 }}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 140px', minWidth: 140 }}
                                 inputProps={{ inputMode: 'numeric' }}
                               />
@@ -733,13 +739,19 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="text"
                                 label="Monto total"
-                                value={formatCurrencyInput(r.montoTotal)}
+                                placeholder="$ 0"
+                                value={
+                                  r.montoTotal === 0 || r.montoTotal === '0' || r.montoTotal === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.montoTotal)
+                                }
                                 onChange={(e) => {
                                   const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                   handleCambioRegla(idx, 'montoTotal', parsed === '' ? '' : parsed);
                                 }}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 150px', minWidth: 150 }}
                                 inputProps={{ inputMode: 'numeric' }}
                               />
@@ -756,10 +768,16 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="number"
                                 label="% interés"
-                                value={r.interesMensual ?? ''}
-                                onChange={e => handleCambioRegla(idx, 'interesMensual', e.target.value)}
+                                placeholder="% 0"
+                                value={
+                                  r.interesMensual === 0 || r.interesMensual === '0' || r.interesMensual === ''
+                                    ? ''
+                                    : r.interesMensual
+                                }
+                                onChange={(e) => handleCambioRegla(idx, 'interesMensual', e.target.value)}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 120px', minWidth: 120 }}
                                 inputProps={{ step: 0.1, inputMode: 'decimal' }}
                               />
