@@ -15,11 +15,11 @@ const SelectButton = styled(Button)(({ theme }) => ({
   width: '100%',
   justifyContent: 'flex-start',
   textTransform: 'none',
-  color: theme.palette.text.primary,
-  backgroundColor: theme.palette.background.paper,
-  border: `1px solid ${theme.palette.divider}`,
+  color: (theme.vars || theme).palette.text.primary,
+  backgroundColor: (theme.vars || theme).palette.background.default,
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
   '&:hover': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: (theme.vars || theme).palette.action.hover,
   },
   padding: theme.spacing(1),
 }));
@@ -205,11 +205,25 @@ export default function MonthRangeSelect({ value = {}, onChange }) {
                       sx={[
                         { minWidth: 72 },
                         isBetween(yearMonth, tempSelection.from, tempSelection.to)
-                          ? {
-                              bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
-                              borderColor: 'primary.main',
-                              color: 'primary.main',
-                            }
+                          ? ((t) => {
+                              const p = (t.vars || t).palette;
+                              const dark = t.palette.mode === 'dark';
+
+                              // 1) Mejor caso: usar el canal para rgba(... / opacity)
+                              const bg =
+                                p.primary && p.primary.mainChannel
+                                  ? `rgba(${p.primary.mainChannel} / ${dark ? 0.22 : 0.15})`
+                                  // 2) Fallback seguro sin alpha() (usa un seleccionado neutro del theme)
+                                  : p.action?.selected ?? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)');
+
+                              return {
+                                bgcolor: bg,
+                                color: p.primary.main,        // soporta var(...)
+                                borderColor: p.primary.main,  // soporta var(...)
+                                // resalta el “marco” en dark sin romper layout
+                                boxShadow: `inset 0 0 0 1.5px ${p.primary.main}`,
+                              };
+                            })
                           : {}
                       ]}
                     >
