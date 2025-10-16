@@ -15,7 +15,8 @@ public class NotificationMapper {
                 n.isRead(),
                 n.getCreatedAt(),
                 n.getResourceType() != null ? n.getResourceType().name() : null,
-                n.getResourceId()
+                n.getResourceId(),
+                n.getActionUrl()
         );
     }
 

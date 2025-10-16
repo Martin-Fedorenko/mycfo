@@ -7,7 +7,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "presupuesto")
+@Table(
+        name = "presupuesto",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_presupuesto_owner_nombre_periodo",
+                columnNames = {"owner_sub", "nombre", "desde", "hasta"}
+        )
+)
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder

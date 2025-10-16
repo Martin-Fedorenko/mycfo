@@ -60,6 +60,18 @@ public class EventService {
         final Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
         final String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
 
+        Instant now = Instant.now();
+        boolean recentDuplicate = repo.existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+                userId,
+                NotificationType.BUDGET_CREATED,
+                ResourceType.BUDGET,
+                String.valueOf(budgetId),
+                now.minusSeconds(10)
+        );
+        if (recentDuplicate) {
+            return;
+        }
+
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setType(NotificationType.BUDGET_CREATED);
@@ -71,12 +83,59 @@ public class EventService {
         notification.setSeverity(Severity.INFO);
         notification.setResourceType(ResourceType.BUDGET);
         notification.setResourceId(String.valueOf(budgetId));
-        notification.setCreatedAt(Instant.now());
+        notification.setActionUrl(
+                (evt.link() != null && !evt.link().isBlank())
+                        ? evt.link()
+                        : "/app/presupuestos/%d/detalle/actual".formatted(budgetId)
+        );
+        notification.setCreatedAt(now);
         notification.setRead(false);
 
         notificationService.create(notification);
 
         System.out.println("Notificacion creada: Presupuesto creado para usuario " + userId);
+    }
+
+    @Transactional
+    public void handleBudgetDeleted(BudgetDeletedEvent evt) {
+        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
+        final Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
+        final String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
+
+        Instant now = Instant.now();
+        boolean recentDuplicate = repo.existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+                userId,
+                NotificationType.BUDGET_DELETED,
+                ResourceType.BUDGET,
+                String.valueOf(budgetId),
+                now.minusSeconds(10)
+        );
+        if (recentDuplicate) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setUserId(userId);
+        notification.setType(NotificationType.BUDGET_DELETED);
+        notification.setTitle("Presupuesto eliminado");
+        notification.setBody("Se elimino el presupuesto %s%s".formatted(
+                budgetName,
+                (evt.period() != null && !evt.period().isBlank()) ? " (" + evt.period() + ")" : ""
+        ));
+        notification.setSeverity(Severity.WARN);
+        notification.setResourceType(ResourceType.BUDGET);
+        notification.setResourceId(String.valueOf(budgetId));
+        notification.setActionUrl(
+                (evt.link() != null && !evt.link().isBlank())
+                        ? evt.link()
+                        : "/app/presupuestos?tab=eliminados"
+        );
+        notification.setCreatedAt(now);
+        notification.setRead(false);
+
+        notificationService.create(notification);
+
+        System.out.println("Notificacion creada: Presupuesto eliminado para usuario " + userId);
     }
 
     @Transactional

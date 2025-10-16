@@ -29,7 +29,7 @@ public class EmailNotificationService {
     private final NotificationPreferencesService preferencesService;
     private final TemplateEngine templateEngine;
 
-    @Value("${notifications.email.from}")
+    @Value("${notifications.email.from:${spring.mail.username}}")
     private String fromEmail;
 
     public EmailNotificationService(JavaMailSender mailSender, 

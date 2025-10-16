@@ -2,7 +2,7 @@ import * as React from 'react';
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableRow,
   TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
-  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch
+  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress
 } from '@mui/material';
 import MonthRangeSelect from './MonthRangeSelect';
 import { useNavigate } from 'react-router-dom';
@@ -18,8 +18,8 @@ const tableRowStyle = {
   '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
 
-const tableCellStyle = {
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+const tableCellStyle = (theme) => ({
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
   maxWidth: 110,
   minWidth: 90,
   whiteSpace: 'nowrap',
@@ -27,7 +27,12 @@ const tableCellStyle = {
   textOverflow: 'ellipsis',
   padding: '4px 6px',
   textAlign: 'center',
-};
+});
+
+const headerCellStyle = (theme) => ({
+  ...tableCellStyle(theme),
+  fontWeight: 600,
+});
 
 function startOfMonthUTC(year, monthZeroBased) {
   return new Date(Date.UTC(year, monthZeroBased, 1));
@@ -86,7 +91,7 @@ function generarMesesEntre(desde, hasta) {
 const roundTo2 = (value) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
-  return Math.round(num * 100) / 100;
+  return Math.round((num + Number.EPSILON) * 100) / 100;
 };
 
 // Helper ARS
@@ -111,6 +116,7 @@ export default function PresupuestoNuevo() {
 
   // Wizard
   const [step, setStep] = React.useState(0);
+  const [creating, setCreating] = React.useState(false);
 
   // Paso 1
   const [nombre, setNombre] = React.useState('');
@@ -296,7 +302,7 @@ export default function PresupuestoNuevo() {
           const base = Number(regla?.importe || 0);
           const p = Number(regla?.porcentaje || 0) / 100;
           meses.forEach((m, idx) => {
-            const valor = Math.round(base * Math.pow(1 + p, idx));
+            const valor = roundTo2(base * Math.pow(1 + p, idx));
             if (!nuevo[m]) nuevo[m] = {};
             if (!nuevo[m][categoria]) nuevo[m][categoria] = { sugerido: 0, tipo };
             nuevo[m][categoria].sugerido = valor;
@@ -423,10 +429,14 @@ export default function PresupuestoNuevo() {
 
   // Guardar (CAMBIO MÍNIMO: enviar payload nuevo con `plantilla`)
   const handleGuardar = async () => {
+    if (creating) {
+      return;
+    }
     // Validaciones finales
     const v1 = validarPaso1(); if (v1) return setErrors(v1);
     const v2 = validarPaso2(); if (v2) return setErrors(v2);
 
+    setCreating(true);
     try {
       // Normalizo meses a YYYY-MM (ya vienen así desde el input type="month")
       const dDesde = fechaDesde;
@@ -490,7 +500,13 @@ export default function PresupuestoNuevo() {
       navigate(`/presupuestos/${slug}`);
     } catch (error) {
       console.error("Error guardando presupuesto", error);
-      setErrors("No se pudo guardar el presupuesto. Probá de nuevo.");
+      if (error?.response?.status === 409) {
+        setErrors("Ya existe un presupuesto con el mismo nombre y período.");
+      } else {
+        setErrors("No se pudo guardar el presupuesto. Probá de nuevo.");
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -553,15 +569,24 @@ export default function PresupuestoNuevo() {
             </Tooltip>
           </Box>
 
-          <Paper sx={{ p: 2, mb: 2, overflowX: 'auto' }}>
+          <Paper variant="outlined" sx={{ p: 0, mb: 2, overflowX: 'auto', borderColor: (t) => (t.vars || t).palette.divider, }}>
             <Table size="small" sx={{ tableLayout: 'auto', width: '100%', minWidth: 720 }}>
               <TableHead>
                 <TableRow sx={tableRowStyle}>
-                  <TableCell sx={tableCellStyle}>Categoría</TableCell>
-                  <TableCell sx={tableCellStyle}>Tipo</TableCell>
-                  <TableCell sx={tableCellStyle}>Regla</TableCell>
-                  <TableCell sx={tableCellStyle}>Parámetros</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, width: 96, minWidth: 96, maxWidth: 96 }}>Acciones</TableCell>
+                  <TableCell sx={headerCellStyle}>Categoría</TableCell>
+                  <TableCell sx={headerCellStyle}>Tipo</TableCell>
+                  <TableCell sx={headerCellStyle}>Regla</TableCell>
+                  <TableCell sx={headerCellStyle}>Parámetros</TableCell>
+                  <TableCell
+                    sx={(theme) => ({
+                      ...headerCellStyle(theme),
+                      width: 96,
+                      minWidth: 96,
+                      maxWidth: 96,
+                    })}
+                  >
+                    Acciones
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -599,28 +624,34 @@ export default function PresupuestoNuevo() {
 
                       {/* Parámetros por modo */}
                       <TableCell
-                        sx={{
-                          ...tableCellStyle,
+                        sx={(theme) => ({
+                          ...tableCellStyle(theme),
                           textAlign: 'left',
                           whiteSpace: 'normal',
                           overflow: 'visible',
                           textOverflow: 'unset',
                           minWidth: 220,
                           maxWidth: 420,
-                        }}
+                        })}
                       >
                         {r.modo === 'FIJO' && (
                           <Stack spacing={0.75} alignItems="flex-start">
                             <TextField
                               type="text"
                               label="Importe"
-                              value={formatCurrencyInput(r.importe)}
+                              placeholder="$ 0"
+                              value={
+                                r.importe === 0 || r.importe === '0' || r.importe === ''
+                                  ? ''
+                                  : formatCurrencyInput(r.importe)
+                              }
                               onChange={(e) => {
                                 const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                 handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
                               }}
                               size="small"
                               variant="standard"
+                              InputLabelProps={{ shrink: true }}
                               sx={{ maxWidth: 180 }}
                               inputProps={{ inputMode: 'numeric' }}
                             />
@@ -635,23 +666,35 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="text"
                                 label="Importe inicial"
-                                value={formatCurrencyInput(r.importe)}
+                                placeholder="$ 0"
+                                value={
+                                  r.importe === 0 || r.importe === '0' || r.importe === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.importe)
+                                }
                                 onChange={(e) => {
                                   const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                   handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
                                 }}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 140px', minWidth: 140 }}
                                 inputProps={{ inputMode: 'numeric' }}
                               />
                               <TextField
                                 type="number"
                                 label="% mensual"
-                                value={r.porcentaje ?? ''}
-                                onChange={e => handleCambioRegla(idx, 'porcentaje', e.target.value)}
+                                placeholder="% 0"
+                                value={
+                                  r.porcentaje === 0 || r.porcentaje === '0' || r.porcentaje === ''
+                                    ? ''
+                                    : r.porcentaje
+                                }
+                                onChange={(e) => handleCambioRegla(idx, 'porcentaje', e.target.value)}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 120px', minWidth: 120 }}
                                 inputProps={{ step: 0.1, inputMode: 'decimal' }}
                               />
@@ -682,13 +725,19 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="text"
                                 label="Importe"
-                                value={formatCurrencyInput(r.importe)}
+                                placeholder="$ 0"
+                                value={
+                                  r.importe === 0 || r.importe === '0' || r.importe === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.importe)
+                                }
                                 onChange={(e) => {
                                   const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                   handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
                                 }}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 140px', minWidth: 140 }}
                                 inputProps={{ inputMode: 'numeric' }}
                               />
@@ -704,13 +753,19 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="text"
                                 label="Monto total"
-                                value={formatCurrencyInput(r.montoTotal)}
+                                placeholder="$ 0"
+                                value={
+                                  r.montoTotal === 0 || r.montoTotal === '0' || r.montoTotal === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.montoTotal)
+                                }
                                 onChange={(e) => {
                                   const parsed = parseCurrency(e.target.value, { returnEmpty: true });
                                   handleCambioRegla(idx, 'montoTotal', parsed === '' ? '' : parsed);
                                 }}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 150px', minWidth: 150 }}
                                 inputProps={{ inputMode: 'numeric' }}
                               />
@@ -727,10 +782,16 @@ export default function PresupuestoNuevo() {
                               <TextField
                                 type="number"
                                 label="% interés"
-                                value={r.interesMensual ?? ''}
-                                onChange={e => handleCambioRegla(idx, 'interesMensual', e.target.value)}
+                                placeholder="% 0"
+                                value={
+                                  r.interesMensual === 0 || r.interesMensual === '0' || r.interesMensual === ''
+                                    ? ''
+                                    : r.interesMensual
+                                }
+                                onChange={(e) => handleCambioRegla(idx, 'interesMensual', e.target.value)}
                                 size="small"
                                 variant="standard"
+                                InputLabelProps={{ shrink: true }}
                                 sx={{ flex: '1 1 120px', minWidth: 120 }}
                                 inputProps={{ step: 0.1, inputMode: 'decimal' }}
                               />
@@ -757,7 +818,7 @@ export default function PresupuestoNuevo() {
                         )}
                       </TableCell>
 
-                      <TableCell sx={{ ...tableCellStyle, width: 96, minWidth: 96, maxWidth: 96, px: 0.5 }}>
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), width: 96, minWidth: 96, maxWidth: 96, px: 0.5 })}>
                         <Stack direction="row" spacing={0.5} justifyContent="center">
                           <Tooltip title="Duplicar categoría">
                             <IconButton onClick={() => handleDuplicarCategoria(idx)} size="small"><ContentCopyIcon fontSize="small" /></IconButton>
@@ -809,24 +870,45 @@ export default function PresupuestoNuevo() {
             </Alert>
           )}
 
-          <Paper sx={{ mt: 1, width: '100%', overflowX: 'auto' }}>
+          <Paper variant="outlined" sx={{ mt: 1, width: '100%', overflowX: 'auto', p: 0, borderColor: (t) => (t.vars || t).palette.divider, }}>
             <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHead>
                 {/* Primera fila: nombres de categorías */}
                 <TableRow sx={tableRowStyle}>
-                  <TableCell sx={tableCellStyle}>Mes</TableCell>
+                  {/* Mes */}
+                  <TableCell sx={headerCellStyle}>Mes</TableCell>
+
+                  {/* Categorías creadas por el cliente */}
                   {categorias.map((cat, idx) => (
-                    <TableCell key={idx} sx={tableCellStyle}>
+                    <TableCell key={idx} sx={headerCellStyle}>
                       <Stack alignItems="center" spacing={0.5}>
-                        <Typography variant="body2" noWrap title={cat.categoria}>{cat.categoria}</Typography>
-                        <Chip size="small" label={cat.tipo} color={cat.tipo === 'Ingreso' ? 'success' : 'default'} />
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          title={cat.categoria}
+                          sx={{ fontWeight: 600 }}   // negrita del título de la categoría
+                        >
+                          {cat.categoria}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={cat.tipo}
+                          color={cat.tipo === 'Ingreso' ? 'success' : 'default'}
+                        />
                       </Stack>
                     </TableCell>
                   ))}
-                  {/* NUEVAS COLUMNAS DE TOTALES POR MES */}
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 120 }}>Ingresos (mes)</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 120 }}>Egresos (mes)</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 130 }}>Resultado (mes)</TableCell>
+
+                  {/* Columnas de totales por mes */}
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 120 })}>
+                    Ingresos (mes)
+                  </TableCell>
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 120 })}>
+                    Egresos (mes)
+                  </TableCell>
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 130 })}>
+                    Resultado (mes)
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -857,13 +939,13 @@ export default function PresupuestoNuevo() {
                         );
                       })}
                       {/* CELDAS DE TOTALES POR MES */}
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#66bb6a' }}>
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700, color: '#66bb6a' })}>
                         {fmtARS(resumenMes.ingresos)}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#ef5350' }}>
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700, color: '#ef5350' })}>
                         {fmtARS(resumenMes.egresos)}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellStyle }}>
+                      <TableCell sx={tableCellStyle}>
                         <Tooltip
                           title={esPerdidaMes ? 'Este mes los egresos superan a los ingresos.' : ''}
                           disableHoverListener={!esPerdidaMes}
@@ -894,29 +976,54 @@ export default function PresupuestoNuevo() {
 
                 {/* Fila de totales por categoría en el período (se mantiene igual) */}
                 <TableRow>
-                  <TableCell sx={{ ...tableCellStyle, fontWeight: 700 }}>Totales mes</TableCell>
+                  <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700 })}>
+                    Totales mes
+                  </TableCell>
+
                   {categorias.map((cat, idx) => {
                     const totalCat = meses.reduce((acc, m) => {
                       const v = presupuestoDataMes[m]?.[cat.categoria]?.sugerido || 0;
                       return acc + Number(v || 0);
                     }, 0);
                     return (
-                      <TableCell key={idx} sx={{ ...tableCellStyle, fontWeight: 700 }}>
+                      <TableCell
+                        key={idx}
+                        sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700 })}
+                      >
                         {fmtARS(totalCat)}
                       </TableCell>
                     );
                   })}
+
                   {/* Columnas de totales por mes no tienen agregados en esta fila */}
-                  <TableCell sx={{ ...tableCellStyle }} />
-                  <TableCell sx={{ ...tableCellStyle }} />
-                  <TableCell sx={{ ...tableCellStyle }} />
+                  <TableCell sx={tableCellStyle} />
+                  <TableCell sx={tableCellStyle} />
+                  <TableCell sx={tableCellStyle} />
                 </TableRow>
               </TableBody>
             </Table>
           </Paper>
 
           <Box mt={3} display="flex" gap={2} flexWrap="wrap">
-            <Button variant="contained" color="primary" onClick={handleGuardar}>Guardar presupuesto</Button>
+            <Button
+              variant="contained"
+              onClick={handleGuardar}
+              disabled={creating}
+              startIcon={creating ? <CircularProgress size={16} color="inherit" /> : null}
+              disableElevation
+              sx={{
+                "&.Mui-disabled": {
+                  backgroundColor: (theme) =>
+                    `${theme.palette.action.disabledBackground} !important`,
+                  color: (theme) => `${theme.palette.text.disabled} !important`,
+                  backgroundImage: "none !important", // anula gradiente
+                  boxShadow: "none",
+                  borderColor: "transparent",
+                },
+              }}
+            >
+              {creating ? "Guardando…" : "Guardar presupuesto"}
+            </Button>
             <Button variant="outlined" onClick={back}>Volver</Button>
             <Button variant="text" onClick={() => navigate(-1)}>Cancelar</Button>
           </Box>

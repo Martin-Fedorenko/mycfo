@@ -56,6 +56,7 @@ public class WebSocketNotificationService {
             false,
             java.time.Instant.now(),
             "SYSTEM",
+            null,
             null
         );
         
@@ -71,7 +72,8 @@ public class WebSocketNotificationService {
             notification.isRead(),
             notification.getCreatedAt(),
             notification.getResourceType() != null ? notification.getResourceType().name() : null,
-            notification.getResourceId()
+            notification.getResourceId(),
+            notification.getActionUrl()
         );
     }
 }

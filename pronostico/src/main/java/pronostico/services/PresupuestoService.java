@@ -2,6 +2,7 @@ package pronostico.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -112,12 +113,24 @@ public class PresupuestoService {
 
     @Transactional
     public void deleteOwned(Long id, String ownerSub) {
-        Presupuesto existing = mustOwnActive(id, ownerSub);
+        Presupuesto existing = mustOwnIncludingDeleted(id, ownerSub);
+        if (existing.isDeleted()) {
+            log.debug("Presupuesto {} ya estaba eliminado por {}", id, ownerSub);
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        int updated = repo.markDeletedIfActive(id, ownerSub, now, ownerSub);
+        if (updated == 0) {
+            log.debug("Otro proceso eliminó previamente el presupuesto {}", id);
+            return;
+        }
+
         existing.setDeleted(true);
-        existing.setDeletedAt(LocalDateTime.now());
+        existing.setDeletedAt(now);
         existing.setDeletedBy(ownerSub);
-        repo.save(existing);
         log.info("Presupuesto {} marcado como eliminado por {}", id, ownerSub);
+        eventService.sendBudgetDeletedEvent(existing);
     }
 
     @Transactional
@@ -383,7 +396,15 @@ public class PresupuestoService {
             .desde(formatYearMonthForStorage(desde, false))
             .hasta(formatYearMonthForStorage(hasta, true))
             .build();
-        repo.save(presupuesto);
+        try {
+            repo.save(presupuesto);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Ya existe un presupuesto con el mismo nombre y periodo para este usuario",
+                ex
+            );
+        }
 
         List<CrearPresupuestoRequest.PlantillaLinea> plantillaReq = req.getPlantilla();
 

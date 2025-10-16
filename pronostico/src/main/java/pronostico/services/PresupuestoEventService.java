@@ -19,8 +19,8 @@ public class PresupuestoEventService {
 
     private final RestTemplate restTemplate;
     
-    @Value("${notificacion.service.url:http://localhost:8084}")
-    private String notificacionServiceUrl;
+    @Value("${notifications.base-url:${notificacion.service.url:http://localhost:8084}}")
+    private String notificationsBaseUrl;
 
     public PresupuestoEventService() {
         this.restTemplate = new RestTemplate();
@@ -51,7 +51,7 @@ public class PresupuestoEventService {
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(event, headers);
             
             restTemplate.postForObject(
-                notificacionServiceUrl + "/api/events/budget-exceeded",
+                notificationsBaseUrl + "/api/events/budget-exceeded",
                 request,
                 Void.class
             );
@@ -79,13 +79,38 @@ public class PresupuestoEventService {
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(event, headers);
             
             restTemplate.postForObject(
-                notificacionServiceUrl + "/api/events/budget-created",
+                notificationsBaseUrl + "/api/events/budget-created",
                 request,
                 Void.class
             );
             
         } catch (Exception e) {
             System.err.println("Error enviando evento de presupuesto creado: " + e.getMessage());
+        }
+    }
+
+    public void sendBudgetDeletedEvent(Presupuesto presupuesto) {
+        try {
+            Map<String, Object> event = new HashMap<>();
+            event.put("userId", 1L); // TODO: Obtener del contexto de usuario
+            event.put("companyId", 1L); // TODO: Obtener el companyId real
+            event.put("budgetId", presupuesto.getId());
+            event.put("budgetName", presupuesto.getNombre());
+            event.put("period", buildPeriod(presupuesto));
+            event.put("link", "/app/presupuestos?tab=eliminados");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(event, headers);
+
+            restTemplate.postForObject(
+                    notificationsBaseUrl + "/api/events/budget-deleted",
+                    request,
+                    Void.class
+            );
+        } catch (Exception e) {
+            System.err.println("Error enviando evento de presupuesto eliminado: " + e.getMessage());
         }
     }
 
