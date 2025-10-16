@@ -1,5 +1,6 @@
 package notificacion.controllers;
 
+import jakarta.validation.Valid;
 import notificacion.dtos.*;
 import notificacion.services.EventService;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,12 @@ public class EventController {
     public ResponseEntity<Void> onMovement(@RequestBody MovementCreatedEvent evt) {
         eventService.handleMovementCreated(evt);
         return ResponseEntity.accepted().build(); // 202
+    }
+
+    @PostMapping("/budget-created")
+    public ResponseEntity<Void> onBudgetCreated(@RequestBody @Valid BudgetCreatedEvent evt) {
+        eventService.handleBudgetCreated(evt);
+        return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/budget-exceeded")

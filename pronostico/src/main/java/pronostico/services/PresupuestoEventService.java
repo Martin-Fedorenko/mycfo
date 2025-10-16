@@ -66,9 +66,11 @@ public class PresupuestoEventService {
             // Crear el evento
             Map<String, Object> event = new HashMap<>();
             event.put("userId", 1L); // TODO: Obtener del contexto de usuario
+            event.put("companyId", 1L); // TODO: Obtener el companyId real
             event.put("budgetId", presupuesto.getId());
             event.put("budgetName", presupuesto.getNombre());
-            event.put("occurredAt", Instant.now());
+            event.put("period", buildPeriod(presupuesto));
+            event.put("link", "/app/presupuestos/%d/detalle/actual".formatted(presupuesto.getId()));
 
             // Enviar al servicio de notificaciones
             HttpHeaders headers = new HttpHeaders();
@@ -85,5 +87,28 @@ public class PresupuestoEventService {
         } catch (Exception e) {
             System.err.println("Error enviando evento de presupuesto creado: " + e.getMessage());
         }
+    }
+
+    private String buildPeriod(Presupuesto presupuesto) {
+        String desde = presupuesto.getDesde();
+        String hasta = presupuesto.getHasta();
+
+        String desdeYm = extractYearMonth(desde);
+        String hastaYm = extractYearMonth(hasta);
+
+        if (desdeYm == null && hastaYm == null) {
+            return null;
+        }
+        if (desdeYm != null && hastaYm != null && !desdeYm.equals(hastaYm)) {
+            return desdeYm + " - " + hastaYm;
+        }
+        return desdeYm != null ? desdeYm : hastaYm;
+    }
+
+    private String extractYearMonth(String raw) {
+        if (raw == null || raw.length() < 7) {
+            return null;
+        }
+        return raw.substring(0, 7);
     }
 }
