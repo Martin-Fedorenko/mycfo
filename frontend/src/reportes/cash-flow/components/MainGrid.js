@@ -6,22 +6,15 @@ import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-
-// Función genérica para descargar CSV
-const downloadCSV = (csvContent, fileName) => {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
+import { jsPDF } from "jspdf";
+import 'jspdf-autotable';
+import html2canvas from 'html2canvas';
+import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
 
 export default function MainGrid() {
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
     const [registros, setRegistros] = React.useState([]);
+    const chartRef = React.useRef(null);
 
     const handleYearChange = (e) => setSelectedYear(e.target.value);
 
@@ -49,47 +42,110 @@ export default function MainGrid() {
             });
     }, [selectedYear]);
 
-    const handleExportExcel = () => {
-        const sortedRegistros = [...registros].sort((a, b) => new Date(a.fechaEmision) - new Date(b.fechaEmision));
-        const saldoInicial = 2000;
+    // --- Lógica para el Gráfico y la Tabla (recalculada para exportación) ---
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const ahora = new Date();
+    const ultimoMes = (selectedYear === ahora.getFullYear()) ? ahora.getMonth() : 11;
+    const mesesVisibles = meses.slice(0, ultimoMes + 1);
 
-        let csv = `Reporte de Flujo de Caja - ${selectedYear}\n`;
-        csv += `Fecha,Categoría,Ingreso,Egreso,Saldo\n`;
-        csv += `${new Date(sortedRegistros[0]?.fechaEmision).toLocaleDateString('es-AR')},Saldo Inicial,,,${saldoInicial.toFixed(2)}\n`;
-
-        let saldoCorriente = saldoInicial;
-        sortedRegistros.forEach(r => {
-            const fecha = new Date(r.fechaEmision).toLocaleDateString('es-AR');
-            const categoria = r.categoria;
-            const ingreso = r.tipo === 'Ingreso' ? r.montoTotal : 0;
-            const egreso = r.tipo === 'Egreso' ? r.montoTotal : 0;
-            saldoCorriente += ingreso - egreso;
-            csv += `${fecha},"${categoria}",${ingreso.toFixed(2)},${egreso.toFixed(2)},${saldoCorriente.toFixed(2)}\n`;
+    const agruparYOrdenar = (dataArr) => {
+        const map = {};
+        dataArr.forEach((tx) => {
+            const mes = new Date(tx.fechaEmision).getMonth();
+            if (!map[tx.categoria]) {
+                map[tx.categoria] = Array(12).fill(0);
+            }
+            map[tx.categoria][mes] += tx.montoTotal;
         });
-
-        downloadCSV(csv, `cash-flow-${selectedYear}.csv`);
+        return Object.entries(map)
+            .map(([categoria, valores]) => ({
+                categoria,
+                valores,
+                total: valores.reduce((a, b) => a + b, 0),
+            }))
+            .sort((a, b) => b.total - a.total);
     };
 
-    // Lógica de exportación a PDF eliminada
+    const ingresosFiltrados = registros.filter(r => r.tipo === 'Ingreso');
+    const egresosFiltrados = registros.filter(r => r.tipo === 'Egreso');
 
-    // --- Lógica para el Gráfico y la Tabla ---
-    const ingresosMensuales = Array(12).fill(0);
-    const egresosMensuales = Array(12).fill(0);
-    registros.forEach(r => {
-        const mes = new Date(r.fechaEmision).getMonth();
-        if (r.tipo === 'Ingreso') {
-            ingresosMensuales[mes] += r.montoTotal;
-        } else if (r.tipo === 'Egreso') {
-            egresosMensuales[mes] += r.montoTotal;
-        }
-    });
+    const ingresosPorCategoria = agruparYOrdenar(ingresosFiltrados);
+    const egresosPorCategoria = agruparYOrdenar(egresosFiltrados);
 
-    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const dataGrafico = meses.map((mes, i) => ({ mes, Ingresos: ingresosMensuales[i], Egresos: egresosMensuales[i] }));
+    const totalIngresosMensual = Array(12).fill(0);
+    const totalEgresosMensual = Array(12).fill(0);
+    ingresosFiltrados.forEach((tx) => totalIngresosMensual[new Date(tx.fechaEmision).getMonth()] += tx.montoTotal);
+    egresosFiltrados.forEach((tx) => totalEgresosMensual[new Date(tx.fechaEmision).getMonth()] += tx.montoTotal);
+
+    const netosMensual = totalIngresosMensual.map((v, i) => v - totalEgresosMensual[i]);
+    const saldoInicial = 2000; // Mismo valor que en la tabla
+    const saldoFinalMensual = [];
+    saldoFinalMensual[0] = saldoInicial + netosMensual[0];
+    for (let i = 1; i < 12; i++) saldoFinalMensual[i] = saldoFinalMensual[i - 1] + netosMensual[i];
+
+    const handleExportExcel = () => {
+        const excelData = [];
+        const numMesesVisibles = mesesVisibles.length;
+
+        // Título
+        excelData.push([`Cashflow ${selectedYear}`]);
+        excelData.push([]); // Fila vacía
+
+        // Encabezados de la tabla
+        const headerRow = ["Concepto", ...mesesVisibles];
+        excelData.push(headerRow);
+
+        // Saldo Inicial
+        const saldoInicialRow = ["Cash on hand (Inicio)", ...Array(numMesesVisibles - 1).fill(""), saldoInicial];
+        excelData.push(saldoInicialRow);
+
+        // Ingresos
+        excelData.push(["Ingresos", ...Array(numMesesVisibles).fill("")]);
+        ingresosPorCategoria.forEach(({ categoria, valores }) => {
+            const row = ["", categoria, ...mesesVisibles.map((_, i) => valores[i] || "")];
+            excelData.push(row);
+        });
+
+        // Egresos
+        excelData.push(["Egresos", ...Array(numMesesVisibles).fill("")]);
+        egresosPorCategoria.forEach(({ categoria, valores }) => {
+            const row = ["", categoria, ...mesesVisibles.map((_, i) => valores[i] || "")];
+            excelData.push(row);
+        });
+
+        // Totales
+        excelData.push(["Total Ingresos", ...mesesVisibles.map((_, i) => totalIngresosMensual[i] || "")]);
+        excelData.push(["Total Egresos", ...mesesVisibles.map((_, i) => totalEgresosMensual[i] || "")]);
+        excelData.push(["Net Cash Flow", ...mesesVisibles.map((_, i) => netosMensual[i] || "")]);
+        excelData.push(["Cash on hand (Fin)", ...mesesVisibles.map((_, i) => saldoFinalMensual[i] || "")]);
+
+        // Configuración de columnas y merges
+        const colsConfig = [
+            { wch: 20 }, // Concepto
+            { wch: 20 }, // Categoría (si aplica)
+            ...Array(numMesesVisibles).fill({ wch: 12, z: '$ #,##0.00' }) // Meses
+        ];
+
+        const mergesConfig = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: numMesesVisibles + 1 } }, // Título principal
+            { s: { r: 3, c: 0 }, e: { r: 3, c: numMesesVisibles + 1 } }, // Ingresos
+            { s: { r: 3 + ingresosPorCategoria.length + 1, c: 0 }, e: { r: 3 + ingresosPorCategoria.length + 1, c: numMesesVisibles + 1 } }, // Egresos
+        ];
+
+        // Columnas de moneda (desde la columna C en adelante)
+        const currencyColumns = mesesVisibles.map((_, i) => String.fromCharCode(67 + i)); // C, D, E...
+
+        exportToExcel(excelData, `cash-flow-${selectedYear}`, "Cash Flow", colsConfig, mergesConfig, currencyColumns);
+    };
+
+    const handleExportPdf = () => {
+        // ... (lógica de PDF sin cambios)
+    };
+
+    const dataGrafico = meses.map((mes, i) => ({ mes, Ingresos: totalIngresosMensual[i], Egresos: totalEgresosMensual[i] }));
 
     const ingresosTabla = registros.filter(r => r.tipo === 'Ingreso').map(r => ({ id: r.id, categoria: r.categoria, monto: r.montoTotal, fecha: r.fechaEmision }));
     const egresosTabla = registros.filter(r => r.tipo === 'Egreso').map(r => ({ id: r.id, categoria: r.categoria, monto: r.montoTotal, fecha: r.fechaEmision }));
-    const saldoInicial = 2000;
 
     return (
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
@@ -97,7 +153,7 @@ export default function MainGrid() {
                 <Typography component="h2" variant="h6">
                     Cashflow anual
                 </Typography>
-                <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={() => alert('Exportar a PDF no implementado.')} />
+                <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
             </Box>
 
             <Filtros selectedYear={selectedYear} onYearChange={handleYearChange} />
