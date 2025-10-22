@@ -3,13 +3,12 @@ import { Typography, Grid } from "@mui/material";
 import axios from "axios";
 import CustomButton from "../../../shared-components/CustomButton";
 import FormFactura from "./forms/FormFactura";
-import FormRecibo from "./forms/FormRecibo";
-import FormPagare from "./forms/FormPagare";
 import FormRegistro from "./forms/FormRegistro";
 import FormIngreso from "./forms/FormIngreso";
 import FormEgreso from "./forms/FormEgreso";
 import FormDeuda from "./forms/FormDeuda";
 import FormAcreencia from "./forms/FormAcreencia";
+import API_CONFIG from "../../../config/api-config";
 
 // 📌 Campos obligatorios por tipo de documento
 const requiredFieldsMap = {
@@ -40,8 +39,6 @@ export default function CargaFormulario({
   setErrors,
 }) {
   const handleSubmit = async () => {
-    if (!endpoint) return;
-
     // ✅ Validación dinámica
     const newErrors = {};
     const requiredFields = requiredFieldsMap[tipoDoc] || [];
@@ -52,25 +49,28 @@ export default function CargaFormulario({
       }
     });
 
-
-
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
+      alert("⚠️ Por favor completa todos los campos obligatorios");
       return; // 🚫 No enviar si hay errores
     }
 
     try {
-      // Obtener datos de sesión
+      // Obtener sub del usuario (REQUERIDO)
       const usuarioSub = sessionStorage.getItem("sub");
-      const organizacionId = sessionStorage.getItem("organizacionId");
       
-      // Configurar headers
-      const headers = {};
-      if (usuarioSub) headers["X-Usuario-Sub"] = usuarioSub;
-      if (organizacionId) headers["X-Organizacion-Id"] = organizacionId;
+      if (!usuarioSub) {
+        alert("❌ Error: No se encontró el usuario en la sesión. Por favor, inicia sesión nuevamente.");
+        return;
+      }
+      
+      // Configurar headers - SOLO necesitamos X-Usuario-Sub
+      const headers = {
+        "X-Usuario-Sub": usuarioSub
+      };
 
-      // Preparar payload para el endpoint unificado
+      // Preparar payload para el endpoint unificado /api/carga-datos
       let payload;
       let tipoMovimiento = null;
 
@@ -82,10 +82,7 @@ export default function CargaFormulario({
         payload = {
           tipo: "movimiento",
           metodo: "formulario",
-          datos: {
-            ...formData,
-            tipo: tipoMovimiento
-          },
+          datos: formData,
           tipoMovimiento: tipoMovimiento
         };
       } else if (tipoDoc.toLowerCase() === "factura") {
@@ -104,14 +101,22 @@ export default function CargaFormulario({
         };
       }
       
-      await axios.post(endpoint, payload, { headers });
+      console.log("📤 Enviando datos:", payload);
+      console.log("🔐 Headers:", headers);
+      
+      // Usar endpoint unificado
+      const ENDPOINT_UNIFICADO = `${API_CONFIG.REGISTRO}/api/carga-datos`;
+      const response = await axios.post(ENDPOINT_UNIFICADO, payload, { headers });
 
-      alert("✅ Enviado con éxito!");
+      console.log("✅ Respuesta del servidor:", response.data);
+      alert(`✅ ${response.data.mensaje || 'Datos guardados exitosamente'}`);
       setFormData({});
+      setErrors({});
 
     } catch (err) {
       console.error("❌ Error en envío:", err);
-      alert("❌ Error al enviar el formulario");
+      const mensaje = err.response?.data?.mensaje || err.message || "Error desconocido";
+      alert(`❌ Error al enviar el formulario: ${mensaje}`);
     }
   };
 

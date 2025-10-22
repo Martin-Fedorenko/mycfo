@@ -50,4 +50,32 @@ public class EmpresaController {
         List<EmpresaDTO> empresas = empresaService.listarEmpresas();
         return ResponseEntity.ok(empresas);
     }
+
+    /**
+     * Obtiene la empresa de un usuario por su sub (Cognito)
+     * Este endpoint es usado por otros microservicios
+     */
+    @GetMapping("/usuario/{sub}")
+    public ResponseEntity<EmpresaDTO> obtenerEmpresaPorUsuario(@PathVariable String sub) {
+        try {
+            EmpresaDTO empresa = empresaService.obtenerEmpresaPorUsuarioSub(sub);
+            return ResponseEntity.ok(empresa);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Obtiene solo el ID de empresa de un usuario por su sub
+     * Optimizado para llamadas rápidas desde otros microservicios
+     */
+    @GetMapping("/usuario/{sub}/id")
+    public ResponseEntity<Long> obtenerEmpresaIdPorUsuario(@PathVariable String sub) {
+        try {
+            Long empresaId = empresaService.obtenerEmpresaIdPorUsuarioSub(sub);
+            return ResponseEntity.ok(empresaId);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

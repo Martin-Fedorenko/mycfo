@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import administracion.dtos.EmpresaDTO;
 import administracion.models.Empresa;
+import administracion.models.Usuario;
 import administracion.repositories.EmpresaRepository;
+import administracion.repositories.UsuarioRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
 public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public EmpresaDTO obtenerEmpresa(Long id) {
         Empresa empresa = empresaRepository.findById(id)
@@ -51,6 +54,36 @@ public class EmpresaService {
         return empresaRepository.findAll().stream()
                 .map(this::convertirADTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene la empresa del usuario por su sub (Cognito)
+     * Usado por otros microservicios para obtener el ID de empresa automáticamente
+     */
+    public EmpresaDTO obtenerEmpresaPorUsuarioSub(String sub) {
+        Usuario usuario = usuarioRepository.findBySub(sub)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con sub: " + sub));
+        
+        if (usuario.getEmpresa() == null) {
+            throw new RuntimeException("El usuario no tiene una empresa asociada");
+        }
+        
+        return convertirADTO(usuario.getEmpresa());
+    }
+
+    /**
+     * Obtiene solo el ID de empresa del usuario por su sub
+     * Optimizado para llamadas rápidas desde otros microservicios
+     */
+    public Long obtenerEmpresaIdPorUsuarioSub(String sub) {
+        Usuario usuario = usuarioRepository.findBySub(sub)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con sub: " + sub));
+        
+        if (usuario.getEmpresa() == null) {
+            throw new RuntimeException("El usuario no tiene una empresa asociada");
+        }
+        
+        return usuario.getEmpresa().getId();
     }
 
     private EmpresaDTO convertirADTO(Empresa empresa) {

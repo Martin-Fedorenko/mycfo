@@ -18,7 +18,7 @@ public class EmpresaDataService {
 
     private final RestTemplate restTemplate;
     
-    @Value("${mycfo.administracion.url:http://localhost:8081}")
+    @Value("${mycfo.administracion.url}")
     private String administracionUrl;
 
     /**

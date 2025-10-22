@@ -2,8 +2,6 @@ import StorageIcon from "@mui/icons-material/Storage";
 import DescriptionIcon from "@mui/icons-material/Description";
 import LinkIcon from "@mui/icons-material/Link";
 
-import CargaManual from "../registro/carga-manual/CargaManual";
-import CargaDocumento from "../registro/carga-documento/CargaDocumento";
 import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
 import ExcelManagement from "../consolidacion/carga-movimientos/ExcelManagement";
 import CashFlow from "../reportes/cash-flow/CashFlow";
@@ -23,7 +21,6 @@ import Roles from "../administracion/roles/Roles";
 import Invitaciones from "../administracion/invitaciones/Invitaciones";
 import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCargados";
 import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
-import CargaGeneral from "../registro/carga-general/CargaGeneral";
 import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
 import TablaRegistrosV2 from "../registro/movimientos-cargados/TablaRegistrosV2";
 import ConciliacionPanel from "../conciliacion/ConciliacionPanel";
@@ -41,7 +38,7 @@ const routeConfig = [
   {
     path: "/carga/:tipo",
     element: <CargaSeleccionMetodo />,
-    hidden: true, // 👈 no aparece en menú
+    hidden: true,
   },
   {
     path: "/carga/:tipo/:modo",

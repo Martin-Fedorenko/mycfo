@@ -1,67 +1,58 @@
 package registro.cargarDatos.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.services.MovimientoService;
+import registro.services.AdministracionService;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/movimientos")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@Slf4j
 public class MovimientoController {
 
     private final MovimientoService movimientoService;
+    private final AdministracionService administracionService;
 
     /**
      * Crear un nuevo movimiento
+     * El usuario envía el sub en el header X-Usuario-Sub
+     * El sistema obtiene automáticamente el ID de empresa del usuario
      */
     @PostMapping
     public ResponseEntity<Movimiento> crearMovimiento(
             @RequestBody Movimiento movimiento,
-            @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSub,
-            @RequestHeader(value = "X-Organizacion-Id", required = false) String organizacionId) {
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub) {
         
-        // Establecer usuario y organización desde los headers
-        if (usuarioSub != null) {
+        try {
+            // Establecer usuario desde el header
             movimiento.setUsuarioId(usuarioSub);
+            
+            // Obtener ID de empresa automáticamente desde administración
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            movimiento.setOrganizacionId(empresaId);
+            
+            log.info("Creando movimiento para usuario: {} en empresa: {}", usuarioSub, empresaId);
+            
+            Movimiento guardado = movimientoService.guardarMovimiento(movimiento);
+            return ResponseEntity.ok(guardado);
+            
+        } catch (RuntimeException e) {
+            log.error("Error al crear movimiento: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
-        if (organizacionId != null) {
-            movimiento.setOrganizacionId(Long.parseLong(organizacionId));
-        }
-        
-        Movimiento guardado = movimientoService.guardarMovimiento(movimiento);
-        return ResponseEntity.ok(guardado);
-    }
-
-    /**
-     * Obtener movimientos por organización
-     */
-    @GetMapping("/organizacion/{organizacionId}")
-    public ResponseEntity<List<Movimiento>> listarPorOrganizacion(@PathVariable Long organizacionId) {
-        return ResponseEntity.ok(movimientoService.listarPorOrganizacion(organizacionId));
-    }
-
-    /**
-     * Obtener movimientos por tipo
-     */
-    @GetMapping("/tipo/{tipo}")
-    public ResponseEntity<List<Movimiento>> listarPorTipo(@PathVariable TipoMovimiento tipo) {
-        return ResponseEntity.ok(movimientoService.listarPorTipo(tipo));
-    }
-
-    /**
-     * Obtener movimientos por tipo y organización
-     */
-    @GetMapping("/tipo/{tipo}/organizacion/{organizacionId}")
-    public ResponseEntity<List<Movimiento>> listarPorTipoYOrganizacion(
-            @PathVariable TipoMovimiento tipo,
-            @PathVariable Long organizacionId) {
-        return ResponseEntity.ok(movimientoService.listarPorTipoYOrganizacion(tipo, organizacionId));
     }
 
     /**
@@ -82,12 +73,29 @@ public class MovimientoController {
     @PutMapping("/{id}")
     public ResponseEntity<Movimiento> actualizarMovimiento(
             @PathVariable Long id,
-            @RequestBody Movimiento movimiento) {
+            @RequestBody Movimiento movimiento,
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub) {
         try {
+            // Obtener el movimiento existente para verificar permisos
+            Movimiento existente = movimientoService.obtenerMovimiento(id);
+            if (existente == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Verificar que el usuario tenga permisos (mismo usuario o misma empresa)
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            if (!existente.getOrganizacionId().equals(empresaId)) {
+                log.warn("Usuario {} intentó editar movimiento de otra empresa", usuarioSub);
+                return ResponseEntity.status(403).build();
+            }
+            
+            log.info("Actualizando movimiento {} para usuario: {}", id, usuarioSub);
             Movimiento actualizado = movimientoService.actualizarMovimiento(id, movimiento);
             return ResponseEntity.ok(actualizado);
+            
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            log.error("Error al actualizar movimiento {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -95,9 +103,76 @@ public class MovimientoController {
      * Eliminar un movimiento
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarMovimiento(@PathVariable Long id) {
-        movimientoService.eliminarMovimiento(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> eliminarMovimiento(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub) {
+        try {
+            // Obtener el movimiento existente para verificar permisos
+            Movimiento existente = movimientoService.obtenerMovimiento(id);
+            if (existente == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Verificar que el usuario tenga permisos
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            if (!existente.getOrganizacionId().equals(empresaId)) {
+                log.warn("Usuario {} intentó eliminar movimiento de otra empresa", usuarioSub);
+                return ResponseEntity.status(403).build();
+            }
+            
+            log.info("Eliminando movimiento {} para usuario: {}", id, usuarioSub);
+            movimientoService.eliminarMovimiento(id);
+            return ResponseEntity.noContent().build();
+            
+        } catch (RuntimeException e) {
+            log.error("Error al eliminar movimiento {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
-}
 
+    /**
+     * Obtener movimientos del usuario actual con filtros y paginación
+     * Automáticamente filtra por la empresa del usuario
+     */
+    @GetMapping
+    public ResponseEntity<Page<Movimiento>> obtenerMovimientos(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
+            @RequestParam(required = false) List<TipoMovimiento> tipos,
+            @RequestParam(required = false) Boolean conciliado,
+            @RequestParam(required = false) String nombreRelacionado,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fechaEmision") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        try {
+            // Obtener empresa del usuario
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            
+            Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+            
+            log.debug("Obteniendo movimientos para empresa: {}", empresaId);
+            
+            Page<Movimiento> movimientos = movimientoService.obtenerMovimientos(
+                    empresaId,
+                    null, // usuarioId - null para traer todos de la empresa
+                    fechaDesde,
+                    fechaHasta,
+                    tipos,
+                    conciliado,
+                    nombreRelacionado,
+                    pageable
+            );
+            
+            return ResponseEntity.ok(movimientos);
+            
+        } catch (RuntimeException e) {
+            log.error("Error al obtener movimientos: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+}

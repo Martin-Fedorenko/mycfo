@@ -2,16 +2,14 @@ package registro.cargarDatos.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import registro.cargarDatos.dtos.CargaDatosResponse;
 import registro.cargarDatos.models.*;
 import registro.cargarDatos.services.*;
-import registro.movimientosexcel.dtos.PreviewDataDTO;
-import registro.movimientosexcel.dtos.ResumenCargaDTO;
-import registro.movimientosexcel.services.ExcelImportService;
+import registro.services.AdministracionService;
 
 import java.util.Map;
 
@@ -19,41 +17,72 @@ import java.util.Map;
  * Controlador unificado para la carga de datos
  * Maneja facturas, recibos, pagarés y movimientos
  * Soporta múltiples métodos: formulario, excel, voz, audio
+ * 
+ * FLUJO:
+ * 1. Usuario envía datos con header X-Usuario-Sub
+ * 2. Sistema obtiene automáticamente el ID de empresa desde Administración
+ * 3. Guarda el documento/movimiento con empresa asignada
  */
 @RestController
 @RequestMapping("/api/carga-datos")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@Slf4j
 public class CargaDatosController {
 
     private final FacturaService facturaService;
     private final MovimientoService movimientoService;
-    private final ExcelImportService excelImportService;
+    private final AdministracionService administracionService;
     private final ObjectMapper objectMapper;
 
     /**
      * Endpoint unificado para cargar datos mediante formulario, voz o audio
      * POST /api/carga-datos
+     * 
+     * El usuario envía:
+     * - Header: X-Usuario-Sub (requerido)
+     * - Body: { tipo, metodo, tipoMovimiento (opcional), datos }
+     * 
+     * El sistema obtiene automáticamente el ID de empresa del usuario
      */
     @PostMapping
     public ResponseEntity<CargaDatosResponse> cargarDatos(
             @RequestBody Map<String, Object> payload,
-            @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSub,
-            @RequestHeader(value = "X-Organizacion-Id", required = false) String organizacionId) {
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub) {
         
         try {
+            // Validar que el usuarioSub esté presente
+            if (usuarioSub == null || usuarioSub.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(
+                    new CargaDatosResponse(false, "Header X-Usuario-Sub es requerido", null, null)
+                );
+            }
+            
+            // Obtener empresa del usuario automáticamente
+            Long empresaId;
+            try {
+                empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+                log.info("Empresa ID obtenida: {} para usuario: {}", empresaId, usuarioSub);
+            } catch (RuntimeException e) {
+                log.error("Error obteniendo empresa del usuario: {}", e.getMessage());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new CargaDatosResponse(false, "Usuario no tiene empresa asociada: " + e.getMessage(), null, null)
+                );
+            }
+            
             String tipo = (String) payload.get("tipo");
             String metodo = (String) payload.get("metodo");
             @SuppressWarnings("unchecked")
             Map<String, Object> datos = (Map<String, Object>) payload.get("datos");
             
-            // Establecer usuario y organización
-            if (usuarioSub != null && datos != null) {
-                datos.put("usuarioId", usuarioSub);
+            if (tipo == null || datos == null) {
+                return ResponseEntity.badRequest().body(
+                    new CargaDatosResponse(false, "Faltan campos requeridos: tipo y datos", null, null)
+                );
             }
-            if (organizacionId != null && datos != null) {
-                datos.put("organizacionId", Long.parseLong(organizacionId));
-            }
+            
+            // Establecer usuario y organización automáticamente
+            datos.put("usuarioId", usuarioSub);
+            datos.put("organizacionId", empresaId);
             
             Object resultado = null;
             Long id = null;
@@ -61,6 +90,7 @@ public class CargaDatosController {
             // Procesar según el tipo de documento/movimiento
             switch (tipo.toLowerCase()) {
                 case "factura":
+                    log.info("Guardando factura para usuario: {} en empresa: {}", usuarioSub, empresaId);
                     Factura factura = objectMapper.convertValue(datos, Factura.class);
                     Factura facturaGuardada = facturaService.guardarFactura(factura);
                     resultado = facturaGuardada;
@@ -68,6 +98,7 @@ public class CargaDatosController {
                     break;
                     
                 case "movimiento":
+                    log.info("Guardando movimiento para usuario: {} en empresa: {}", usuarioSub, empresaId);
                     Movimiento movimiento = objectMapper.convertValue(datos, Movimiento.class);
                     
                     // Setear el tipo de movimiento si viene en el payload
@@ -88,6 +119,8 @@ public class CargaDatosController {
             }
             
             String mensajeMetodo = metodo != null ? " mediante " + metodo : "";
+            log.info("{} guardado exitosamente con ID: {}", tipo, id);
+            
             return ResponseEntity.ok(
                 new CargaDatosResponse(
                     true, 
@@ -97,93 +130,17 @@ public class CargaDatosController {
                 )
             );
             
+        } catch (IllegalArgumentException e) {
+            log.error("Error de validación: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(
+                new CargaDatosResponse(false, "Datos inválidos: " + e.getMessage(), null, null)
+            );
         } catch (Exception e) {
+            log.error("Error procesando solicitud: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 new CargaDatosResponse(false, "Error al procesar la solicitud: " + e.getMessage(), null, null)
             );
         }
     }
 
-    /**
-     * Endpoint para cargar datos mediante Excel
-     * POST /api/carga-datos/excel/preview
-     */
-    @PostMapping("/excel/preview")
-    public ResponseEntity<PreviewDataDTO> previewExcel(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "tipo", required = false, defaultValue = "movimiento") String tipo,
-            @RequestParam(value = "tipoOrigen", required = false, defaultValue = "mycfo") String tipoOrigen) {
-        
-        try {
-            PreviewDataDTO resultado = excelImportService.procesarArchivoParaPreview(file, tipoOrigen);
-            return ResponseEntity.ok(resultado);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
-    }
-
-    /**
-     * Endpoint para importar Excel directamente
-     * POST /api/carga-datos/excel
-     */
-    @PostMapping("/excel")
-    public ResponseEntity<ResumenCargaDTO> importarExcel(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "tipo", required = false, defaultValue = "movimiento") String tipo,
-            @RequestParam(value = "tipoOrigen", required = false, defaultValue = "mycfo") String tipoOrigen) {
-        
-        try {
-            ResumenCargaDTO resultado = excelImportService.procesarArchivo(file, tipoOrigen);
-            return ResponseEntity.ok(resultado);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                new ResumenCargaDTO(0, 0, java.util.List.of())
-            );
-        }
-    }
-
-    /**
-     * Endpoint para procesar datos de voz (transcripción)
-     * POST /api/carga-datos/voz
-     */
-    @PostMapping("/voz")
-    public ResponseEntity<CargaDatosResponse> procesarVoz(
-            @RequestBody Map<String, Object> payload,
-            @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSub,
-            @RequestHeader(value = "X-Organizacion-Id", required = false) String organizacionId) {
-        
-        // Similar al método cargarDatos, pero procesando transcripción de voz
-        // La transcripción ya viene en el payload como texto procesado
-        return cargarDatos(payload, usuarioSub, organizacionId);
-    }
-
-    /**
-     * Endpoint para procesar archivos de audio
-     * POST /api/carga-datos/audio
-     */
-    @PostMapping("/audio")
-    public ResponseEntity<CargaDatosResponse> procesarAudio(
-            @RequestParam("file") MultipartFile audioFile,
-            @RequestParam("tipo") String tipo,
-            @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSub,
-            @RequestHeader(value = "X-Organizacion-Id", required = false) String organizacionId) {
-        
-        try {
-            // TODO: Implementar servicio de transcripción de audio
-            // Por ahora retornamos un mensaje indicando que está en desarrollo
-            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(
-                new CargaDatosResponse(
-                    false, 
-                    "La carga mediante audio está en desarrollo. Por favor, use otro método.",
-                    null,
-                    null
-                )
-            );
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                new CargaDatosResponse(false, "Error al procesar audio: " + e.getMessage(), null, null)
-            );
-        }
-    }
 }
-

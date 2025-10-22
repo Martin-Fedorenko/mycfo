@@ -18,7 +18,7 @@ public class MovimientoEventService {
 
     private final RestTemplate restTemplate;
     
-    @Value("${notificacion.service.url:http://localhost:8084}")
+    @Value("${notificacion.service.url}")
     private String notificacionServiceUrl;
 
     public MovimientoEventService(RestTemplate restTemplate) {

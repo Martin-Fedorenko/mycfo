@@ -21,7 +21,7 @@ public class NotificationsEventPublisher {
 
     public NotificationsEventPublisher(
             RestTemplate rest,
-            @Value("${notifications.url:http://localhost:8084}") String baseUrl) {
+            @Value("${notificacion.service.url}") String baseUrl) {
         this.rest = rest;
         this.baseUrl = baseUrl.replaceAll("/+$", ""); // sin slash final
     }
