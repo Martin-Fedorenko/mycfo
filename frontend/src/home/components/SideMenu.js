@@ -12,7 +12,7 @@ import Tooltip from '@mui/material/Tooltip';
 import LogoutButton from './LogoutButton';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import ApartmentIcon from '@mui/icons-material/Apartment';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 const drawerWidth = 380;
 
@@ -20,7 +20,6 @@ const Drawer = styled(MuiDrawer)({
   width: drawerWidth,
   flexShrink: 0,
   boxSizing: 'border-box',
-  mt: 10,
   [`& .${drawerClasses.paper}`]: {
     width: drawerWidth,
     boxSizing: 'border-box',
@@ -49,8 +48,14 @@ const CustomIcon = () => {
   );
 };
 
-export default function SideMenu() {
+export default function SideMenu({
+  variant = 'permanent',
+  open = true,
+  onClose,
+  onNavigate,
+}) {
   const navigate = useNavigate();
+  const isTemporary = variant !== 'permanent';
 
   // 🔹 Datos de usuario obtenidos del sessionStorage (desde la BD)
   const [userData, setUserData] = React.useState({
@@ -81,19 +86,34 @@ React.useEffect(() => {
 
   return (
     <Drawer
-      variant="permanent"
+      variant={variant}
+      open={isTemporary ? open : undefined}
+      onClose={isTemporary ? onClose : undefined}
+      ModalProps={
+        isTemporary
+          ? {
+              keepMounted: true,
+            }
+          : undefined
+      }
       sx={{
-        display: { xs: 'none', md: 'block' },
+        display: isTemporary ? 'block' : { xs: 'none', md: 'block' },
         [`& .${drawerClasses.paper}`]: {
           backgroundColor: 'background.paper',
         },
       }}
     >
       <Box
+        component={RouterLink}
+        to="/dashboard"
+        aria-label="Ir al dashboard"
         sx={{
           display: 'flex',
-          mt: 'calc(var(--template-frame-height, 0px) + 4px)',
+          mt: isTemporary ? 2 : 'calc(var(--template-frame-height, 0px) + 4px)',
           p: 1.5,
+          textDecoration: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
         }}
       >
         <CustomIcon />
@@ -114,7 +134,7 @@ React.useEffect(() => {
           flexDirection: 'column',
         }}
       >
-        <MenuContent />
+        <MenuContent onNavigate={onNavigate || onClose} />
       </Box>
 
       {/* Pie con datos del usuario */}

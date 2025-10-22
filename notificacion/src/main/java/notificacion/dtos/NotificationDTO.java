@@ -11,5 +11,6 @@ public record NotificationDTO(
         boolean is_read,
         Instant date,
         String resource_type,
-        String resource_id
+        String resource_id,
+        String action_url
 ) {}

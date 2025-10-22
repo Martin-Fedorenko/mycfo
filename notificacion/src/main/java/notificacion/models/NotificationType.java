@@ -10,6 +10,7 @@ public enum NotificationType {
     
     // PRESUPUESTOS Y PRONÓSTICOS
     BUDGET_CREATED,         // Presupuesto creado
+    BUDGET_DELETED,         // Presupuesto eliminado
     BUDGET_EXCEEDED,        // Presupuesto excedido
     BUDGET_WARNING,         // Presupuesto cerca del límite (80%)
     BUDGET_COMPLETED,       // Presupuesto completado

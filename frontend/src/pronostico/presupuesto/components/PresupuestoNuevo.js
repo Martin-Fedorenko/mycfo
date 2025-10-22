@@ -2,22 +2,24 @@ import * as React from 'react';
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableRow,
   TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
-  Stepper, Step, StepLabel, Alert, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch
+  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress
 } from '@mui/material';
+import MonthRangeSelect from './MonthRangeSelect';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
-import axios from 'axios';
+import http from '../../../api/http';
+import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
   '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
 };
 
-const tableCellStyle = {
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+const tableCellStyle = (theme) => ({
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
   maxWidth: 110,
   minWidth: 90,
   whiteSpace: 'nowrap',
@@ -25,27 +27,75 @@ const tableCellStyle = {
   textOverflow: 'ellipsis',
   padding: '4px 6px',
   textAlign: 'center',
-};
+});
+
+const headerCellStyle = (theme) => ({
+  ...tableCellStyle(theme),
+  fontWeight: 600,
+});
+
+function startOfMonthUTC(year, monthZeroBased) {
+  return new Date(Date.UTC(year, monthZeroBased, 1));
+}
+
+function addMonthsUTC(date, count) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + count, 1));
+}
+
+function formatUTCToYearMonth(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+const SHORT_MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+function formatMonthLabel(ym) {
+  if (!ym) return '';
+  const [rawYear, rawMonth] = ym.split('-');
+  const year = rawYear ?? '';
+  const monthIndex = Number(rawMonth) - 1;
+  if (!Number.isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+    return ym;
+  }
+  const label = SHORT_MONTH_LABELS[monthIndex] ?? rawMonth;
+  return `${label} ${year}`.trim();
+}
 
 // Generar lista de meses entre dos fechas (YYYY-MM)
 function generarMesesEntre(desde, hasta) {
   const meses = [];
   if (!desde || !hasta) return meses;
 
-  let desdeDate = new Date(desde + '-01');
-  let hastaDate = new Date(hasta + '-01');
+  const [desdeYear, desdeMonth] = desde.split('-').map(Number);
+  const [hastaYear, hastaMonth] = hasta.split('-').map(Number);
+  if (
+    !Number.isFinite(desdeYear) ||
+    !Number.isFinite(desdeMonth) ||
+    !Number.isFinite(hastaYear) ||
+    !Number.isFinite(hastaMonth)
+  ) {
+    return meses;
+  }
 
-  while (desdeDate <= hastaDate) {
-    const y = desdeDate.getFullYear();
-    const m = (desdeDate.getMonth() + 1).toString().padStart(2, '0');
-    meses.push(`${y}-${m}`);
-    desdeDate.setMonth(desdeDate.getMonth() + 1);
+  let cursor = startOfMonthUTC(desdeYear, desdeMonth - 1);
+  const end = startOfMonthUTC(hastaYear, hastaMonth - 1);
+
+  while (cursor.getTime() <= end.getTime()) {
+    meses.push(formatUTCToYearMonth(cursor));
+    cursor = addMonthsUTC(cursor, 1);
   }
   return meses;
 }
 
+const roundTo2 = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+};
+
 // Helper ARS
-const fmtARS = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Number(n || 0));
+const fmtARS = (n) => formatCurrency(n);
 
 /**
  * Modo de regla por categoría:
@@ -66,6 +116,7 @@ export default function PresupuestoNuevo() {
 
   // Wizard
   const [step, setStep] = React.useState(0);
+  const [creating, setCreating] = React.useState(false);
 
   // Paso 1
   const [nombre, setNombre] = React.useState('');
@@ -86,7 +137,7 @@ export default function PresupuestoNuevo() {
 
   const meses = React.useMemo(() => {
     if (!fechaDesde || !fechaHasta) return [];
-    return generarMesesEntre(fechaDesde.slice(0, 7), fechaHasta.slice(0, 7));
+    return generarMesesEntre(fechaDesde, fechaHasta);
   }, [fechaDesde, fechaHasta]);
 
   // Mantener coherencia de estructura al cambiar meses/categorías
@@ -125,8 +176,8 @@ export default function PresupuestoNuevo() {
   // Validaciones básicas
   const validarPaso1 = () => {
     if (!nombre) return 'Ingresá un nombre para el presupuesto.';
-    if (!fechaDesde || !fechaHasta) return 'Completá las fechas.';
-    if (fechaDesde > fechaHasta) return 'La fecha "Desde" no puede ser posterior a "Hasta".';
+    if (!fechaDesde || !fechaHasta) return 'Completá los meses.';
+    if (fechaDesde > fechaHasta) return 'El mes "Desde" no puede ser posterior a "Hasta".';
     return null;
   };
   const validarPaso2 = () => {
@@ -226,7 +277,7 @@ export default function PresupuestoNuevo() {
   // Aplicar reglas a la grilla
   const aplicarReglas = () => {
     if (meses.length === 0) {
-      setErrors('Definí el rango de fechas primero.');
+      setErrors('Definí el rango de meses primero.');
       return;
     }
     setErrors(null);
@@ -251,7 +302,7 @@ export default function PresupuestoNuevo() {
           const base = Number(regla?.importe || 0);
           const p = Number(regla?.porcentaje || 0) / 100;
           meses.forEach((m, idx) => {
-            const valor = Math.round(base * Math.pow(1 + p, idx));
+            const valor = roundTo2(base * Math.pow(1 + p, idx));
             if (!nuevo[m]) nuevo[m] = {};
             if (!nuevo[m][categoria]) nuevo[m][categoria] = { sugerido: 0, tipo };
             nuevo[m][categoria].sugerido = valor;
@@ -278,13 +329,16 @@ export default function PresupuestoNuevo() {
 
           // Si hay interés, cuota de sistema francés: A = P * [ r(1+r)^n / ((1+r)^n - 1) ]
           let cuota = 0;
+          // helper
+          const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
+
+          // reemplazar el bloque por:
           if (r > 0) {
             const rn = Math.pow(1 + r, n);
-            cuota = Math.round(total * ((r * rn) / (rn - 1)));
+            cuota = round2(total * ((r * rn) / (rn - 1)));
           } else {
-            cuota = Math.round(total / n);
+            cuota = round2(total / n);
           }
-
           // Distribuir a partir de "inicio"
           const startIdx = meses.findIndex(m => m === inicio);
           meses.forEach((m, idx) => {
@@ -302,7 +356,8 @@ export default function PresupuestoNuevo() {
 
   // Edición manual de la grilla
   const handleCambioMonto = (mes, categoria, campo, valor) => {
-    const num = Number(valor);
+    const num = valor === '' ? 0 : Number(valor);
+    if (Number.isNaN(num)) return;
     if (lockNegative && num < 0) return;
     setPresupuestoDataMes(oldData => {
       const newData = { ...oldData };
@@ -313,47 +368,115 @@ export default function PresupuestoNuevo() {
     });
   };
 
-  const totalIngresos = React.useMemo(() => {
-    return Object.values(presupuestoDataMes).reduce((total, cats) =>
-      total + Object.values(cats).reduce((acc, c) => (c.tipo === 'Ingreso' ? acc + (c.sugerido || 0) : acc), 0), 0);
-  }, [presupuestoDataMes]);
+  const { monthTotals, negativeMonths, totalIngresos, totalEgresos } = React.useMemo(() => {
+    const totals = {};
+    const negatives = [];
+    let ingresosAcumulados = 0;
+    let egresosAcumulados = 0;
 
-  const totalEgresos = React.useMemo(() => {
-    return Object.values(presupuestoDataMes).reduce((total, cats) =>
-      total + Object.values(cats).reduce((acc, c) => (c.tipo === 'Egreso' ? acc + (c.sugerido || 0) : acc), 0), 0);
-  }, [presupuestoDataMes]);
+    meses.forEach((mes) => {
+      const cats = presupuestoDataMes[mes] || {};
+      let ingresosMes = 0;
+      let egresosMes = 0;
+
+      Object.values(cats).forEach((cat) => {
+        const valor = Number(cat?.sugerido ?? 0);
+        if (!Number.isFinite(valor)) {
+          return;
+        }
+        const tipo = (cat?.tipo || '').toString().toUpperCase();
+        if (tipo === 'INGRESO') {
+          ingresosMes += valor;
+        } else if (tipo === 'EGRESO') {
+          egresosMes += valor;
+        }
+      });
+
+      const resultado = ingresosMes - egresosMes;
+      totals[mes] = { ingresos: ingresosMes, egresos: egresosMes, resultado };
+      ingresosAcumulados += ingresosMes;
+      egresosAcumulados += egresosMes;
+      if (resultado < 0) {
+        negatives.push({ mes, resultado });
+      }
+    });
+
+    return {
+      monthTotals: totals,
+      negativeMonths: negatives,
+      totalIngresos: ingresosAcumulados,
+      totalEgresos: egresosAcumulados
+    };
+  }, [meses, presupuestoDataMes]);
+
+  const resultadoTotal = React.useMemo(() => totalIngresos - totalEgresos, [totalIngresos, totalEgresos]);
+  const hasLosses = negativeMonths.length > 0;
+
+  const lossSummaryText = React.useMemo(() => {
+    if (!negativeMonths.length) {
+      return '';
+    }
+    const labels = negativeMonths
+      .slice(0, 6)
+      .map((item) => formatMonthLabel(item.mes));
+    let summary = labels.join(', ');
+    if (negativeMonths.length > 6) {
+      summary += ` y ${negativeMonths.length - 6} más`;
+    }
+    return summary;
+  }, [negativeMonths]);
+
 
   // Guardar (CAMBIO MÍNIMO: enviar payload nuevo con `plantilla`)
   const handleGuardar = async () => {
+    if (creating) {
+      return;
+    }
     // Validaciones finales
     const v1 = validarPaso1(); if (v1) return setErrors(v1);
     const v2 = validarPaso2(); if (v2) return setErrors(v2);
 
+    setCreating(true);
     try {
-      // Normalizo fechas a YYYY-MM-DD (ya vienen así desde el input type="date")
+      // Normalizo meses a YYYY-MM (ya vienen así desde el input type="month")
       const dDesde = fechaDesde;
       const dHasta = fechaHasta;
 
       // Tomo como base el PRIMER mes para cada categoría (si hay grilla calculada),
       // y si no existe, uso el importe de la regla (FIJO/UNICO/etc.).
       const firstMonth = meses[0];
-      const plantilla = categorias.map(c => {
+      const plantilla = categorias.map((c) => {
         const catName = (c.categoria || '').trim();
         const tipo = (c.tipo || '').toString().toUpperCase(); // "INGRESO"/"EGRESO"
 
-        const sugeridoDeGrilla = firstMonth
+        const fallbackDeRegla = c?.regla?.importe ?? c?.regla?.montoTotal ?? 0;
+
+        const detalles = meses.map((mes) => {
+          const registroMes = presupuestoDataMes?.[mes]?.[catName];
+          const sugerido = registroMes?.sugerido ?? 0;
+          const real = registroMes?.montoReal ?? registroMes?.real ?? null;
+          const estimadoRedondeado = roundTo2(sugerido);
+          const realRedondeado = real == null ? null : roundTo2(real);
+          return {
+            mes,
+            montoEstimado: estimadoRedondeado,
+            montoReal: realRedondeado,
+          };
+        });
+
+        const montoBase = firstMonth
           ? presupuestoDataMes?.[firstMonth]?.[catName]?.sugerido
           : undefined;
 
-        const fallbackDeRegla = c?.regla?.importe ?? c?.regla?.montoTotal ?? 0;
+        const montoEstimadoPrincipal =
+          montoBase != null ? roundTo2(montoBase) : roundTo2(fallbackDeRegla || 0);
 
         return {
           categoria: catName,
           tipo,
-          montoEstimado: Number(
-            sugeridoDeGrilla != null ? sugeridoDeGrilla : fallbackDeRegla || 0
-          ),
-          montoReal: null
+          montoEstimado: montoEstimadoPrincipal,
+          montoReal: null,
+          meses: detalles,
         };
       });
 
@@ -365,7 +488,7 @@ export default function PresupuestoNuevo() {
         plantilla
       };
 
-      const res = await axios.post(
+      const res = await http.post(
         `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`,
         payload
       );
@@ -377,7 +500,13 @@ export default function PresupuestoNuevo() {
       navigate(`/presupuestos/${slug}`);
     } catch (error) {
       console.error("Error guardando presupuesto", error);
-      setErrors("No se pudo guardar el presupuesto. Probá de nuevo.");
+      if (error?.response?.status === 409) {
+        setErrors("Ya existe un presupuesto con el mismo nombre y período.");
+      } else {
+        setErrors("No se pudo guardar el presupuesto. Probá de nuevo.");
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -397,10 +526,26 @@ export default function PresupuestoNuevo() {
       {/* PASO 1: Datos básicos */}
       {step === 0 && (
         <>
-          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-            <TextField label="Nombre del presupuesto" value={nombre} onChange={e => setNombre(e.target.value)} fullWidth variant="outlined" />
-            <TextField label="Desde" type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} InputLabelProps={{ shrink: true }} />
-            <TextField label="Hasta" type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} InputLabelProps={{ shrink: true }} />
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: 'column' }}>
+            <TextField 
+              label="Nombre del presupuesto" 
+              value={nombre} 
+              onChange={e => setNombre(e.target.value)} 
+              fullWidth 
+              variant="outlined" 
+            />
+            <Box sx={{ maxWidth: 300 }}>
+              <MonthRangeSelect
+                value={{
+                  from: fechaDesde,
+                  to: fechaHasta
+                }}
+                onChange={(range) => {
+                  setFechaDesde(range.from);
+                  setFechaHasta(range.to);
+                }}
+              />
+            </Box>
           </Box>
 
           <Divider sx={{ my: 2 }} />
@@ -424,15 +569,24 @@ export default function PresupuestoNuevo() {
             </Tooltip>
           </Box>
 
-          <Paper sx={{ p: 2, mb: 2, overflowX: 'auto' }}>
-            <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
+          <Paper variant="outlined" sx={{ p: 0, mb: 2, overflowX: 'auto', borderColor: (t) => (t.vars || t).palette.divider, }}>
+            <Table size="small" sx={{ tableLayout: 'auto', width: '100%', minWidth: 720 }}>
               <TableHead>
                 <TableRow sx={tableRowStyle}>
-                  <TableCell sx={tableCellStyle}>Categoría</TableCell>
-                  <TableCell sx={tableCellStyle}>Tipo</TableCell>
-                  <TableCell sx={tableCellStyle}>Regla</TableCell>
-                  <TableCell sx={tableCellStyle}>Parámetros</TableCell>
-                  <TableCell sx={tableCellStyle}>Acciones</TableCell>
+                  <TableCell sx={headerCellStyle}>Categoría</TableCell>
+                  <TableCell sx={headerCellStyle}>Tipo</TableCell>
+                  <TableCell sx={headerCellStyle}>Regla</TableCell>
+                  <TableCell sx={headerCellStyle}>Parámetros</TableCell>
+                  <TableCell
+                    sx={(theme) => ({
+                      ...headerCellStyle(theme),
+                      width: 96,
+                      minWidth: 96,
+                      maxWidth: 96,
+                    })}
+                  >
+                    Acciones
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -469,93 +623,203 @@ export default function PresupuestoNuevo() {
                       </TableCell>
 
                       {/* Parámetros por modo */}
-                      <TableCell sx={{ ...tableCellStyle, textAlign: 'left' }}>
+                      <TableCell
+                        sx={(theme) => ({
+                          ...tableCellStyle(theme),
+                          textAlign: 'left',
+                          whiteSpace: 'normal',
+                          overflow: 'visible',
+                          textOverflow: 'unset',
+                          minWidth: 220,
+                          maxWidth: 420,
+                        })}
+                      >
                         {r.modo === 'FIJO' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
+                          <Stack spacing={0.75} alignItems="flex-start">
                             <TextField
-                              type="number" label="Importe"
-                              value={r.importe ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'importe', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 120 }}
-                              inputProps={{ min: 0 }}
+                              type="text"
+                              label="Importe"
+                              placeholder="$ 0"
+                              value={
+                                r.importe === 0 || r.importe === '0' || r.importe === ''
+                                  ? ''
+                                  : formatCurrencyInput(r.importe)
+                              }
+                              onChange={(e) => {
+                                const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
+                              }}
+                              size="small"
+                              variant="standard"
+                              InputLabelProps={{ shrink: true }}
+                              sx={{ maxWidth: 180 }}
+                              inputProps={{ inputMode: 'numeric' }}
                             />
-                            <Chip label="Mismo importe todos los meses" size="small" />
+                            <Typography variant="caption" color="text.secondary">
+                              Mismo importe para cada mes del rango
+                            </Typography>
                           </Stack>
                         )}
                         {r.modo === 'AJUSTE' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <TextField
-                              type="number" label="Importe inicial"
-                              value={r.importe ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'importe', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 140 }}
-                              inputProps={{ min: 0 }}
-                            />
-                            <TextField
-                              type="number" label="% mensual"
-                              value={r.porcentaje ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'porcentaje', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 120 }}
-                              inputProps={{ step: 0.1 }}
-                            />
-                            <Chip label="Crecimiento compuesto" size="small" color="info" />
+                          <Stack spacing={0.75} alignItems="flex-start">
+                            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
+                              <TextField
+                                type="text"
+                                label="Importe inicial"
+                                placeholder="$ 0"
+                                value={
+                                  r.importe === 0 || r.importe === '0' || r.importe === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.importe)
+                                }
+                                onChange={(e) => {
+                                  const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                  handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
+                                }}
+                                size="small"
+                                variant="standard"
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                                inputProps={{ inputMode: 'numeric' }}
+                              />
+                              <TextField
+                                type="number"
+                                label="% mensual"
+                                placeholder="% 0"
+                                value={
+                                  r.porcentaje === 0 || r.porcentaje === '0' || r.porcentaje === ''
+                                    ? ''
+                                    : r.porcentaje
+                                }
+                                onChange={(e) => handleCambioRegla(idx, 'porcentaje', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ flex: '1 1 120px', minWidth: 120 }}
+                                inputProps={{ step: 0.1, inputMode: 'decimal' }}
+                              />
+                            </Stack>
+                            <Typography variant="caption" color="info.main">
+                              Crecimiento compuesto mes a mes
+                            </Typography>
                           </Stack>
                         )}
                         {r.modo === 'UNICO' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <TextField
-                              select label="Mes" value={r.mesUnico || ''} onChange={e => handleCambioRegla(idx, 'mesUnico', e.target.value)}
-                              size="small" variant="standard" sx={{ minWidth: 120 }}
-                            >
-                              {meses.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-                            </TextField>
-                            <TextField
-                              type="number" label="Importe"
-                              value={r.importe ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'importe', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 120 }}
-                              inputProps={{ min: 0 }}
-                            />
-                            <Chip label="Solo un mes" size="small" />
+                          <Stack spacing={0.75} alignItems="flex-start">
+                            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
+                              <TextField
+                                select
+                                label="Mes"
+                                value={r.mesUnico || ''}
+                                onChange={e => handleCambioRegla(idx, 'mesUnico', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                              >
+                                {meses.map(m => (
+                                  <MenuItem key={m} value={m}>
+                                    {m}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                              <TextField
+                                type="text"
+                                label="Importe"
+                                placeholder="$ 0"
+                                value={
+                                  r.importe === 0 || r.importe === '0' || r.importe === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.importe)
+                                }
+                                onChange={(e) => {
+                                  const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                  handleCambioRegla(idx, 'importe', parsed === '' ? '' : parsed);
+                                }}
+                                size="small"
+                                variant="standard"
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                                inputProps={{ inputMode: 'numeric' }}
+                              />
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary">
+                              Se aplica solo al mes seleccionado
+                            </Typography>
                           </Stack>
                         )}
                         {r.modo === 'CUOTAS' && (
-                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                            <TextField
-                              type="number" label="Monto total"
-                              value={r.montoTotal ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'montoTotal', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 140 }}
-                              inputProps={{ min: 0 }}
-                            />
-                            <TextField
-                              type="number" label="Cuotas"
-                              value={r.cuotas ?? 2}
-                              onChange={e => handleCambioRegla(idx, 'cuotas', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 100 }}
-                              inputProps={{ min: 1 }}
-                            />
-                            <TextField
-                              type="number" label="% interés mensual"
-                              value={r.interesMensual ?? 0}
-                              onChange={e => handleCambioRegla(idx, 'interesMensual', Number(e.target.value))}
-                              size="small" variant="standard" sx={{ maxWidth: 150 }}
-                              inputProps={{ step: 0.1 }}
-                            />
-                            <TextField
-                              select label="Comienza" value={r.comienza || (meses[0] || '')}
-                              onChange={e => handleCambioRegla(idx, 'comienza', e.target.value)}
-                              size="small" variant="standard" sx={{ minWidth: 130 }}
-                            >
-                              {meses.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-                            </TextField>
-                            <Chip label="Sistema francés si hay interés" size="small" color="warning" />
+                          <Stack spacing={0.75} alignItems="flex-start">
+                            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ width: '100%' }}>
+                              <TextField
+                                type="text"
+                                label="Monto total"
+                                placeholder="$ 0"
+                                value={
+                                  r.montoTotal === 0 || r.montoTotal === '0' || r.montoTotal === ''
+                                    ? ''
+                                    : formatCurrencyInput(r.montoTotal)
+                                }
+                                onChange={(e) => {
+                                  const parsed = parseCurrency(e.target.value, { returnEmpty: true });
+                                  handleCambioRegla(idx, 'montoTotal', parsed === '' ? '' : parsed);
+                                }}
+                                size="small"
+                                variant="standard"
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ flex: '1 1 150px', minWidth: 150 }}
+                                inputProps={{ inputMode: 'numeric' }}
+                              />
+                              <TextField
+                                type="number"
+                                label="Cuotas"
+                                value={r.cuotas ?? ''}
+                                onChange={e => handleCambioRegla(idx, 'cuotas', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 110px', minWidth: 110 }}
+                                inputProps={{ min: 1, step: 1, inputMode: 'numeric' }}
+                              />
+                              <TextField
+                                type="number"
+                                label="% interés"
+                                placeholder="% 0"
+                                value={
+                                  r.interesMensual === 0 || r.interesMensual === '0' || r.interesMensual === ''
+                                    ? ''
+                                    : r.interesMensual
+                                }
+                                onChange={(e) => handleCambioRegla(idx, 'interesMensual', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ flex: '1 1 120px', minWidth: 120 }}
+                                inputProps={{ step: 0.1, inputMode: 'decimal' }}
+                              />
+                              <TextField
+                                select
+                                label="Comienza"
+                                value={r.comienza || meses[0] || ''}
+                                onChange={e => handleCambioRegla(idx, 'comienza', e.target.value)}
+                                size="small"
+                                variant="standard"
+                                sx={{ flex: '1 1 140px', minWidth: 140 }}
+                              >
+                                {meses.map(m => (
+                                  <MenuItem key={m} value={m}>
+                                    {m}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            </Stack>
+                            <Typography variant="caption" color="warning.main">
+                              Calcula cuotas estilo francés cuando hay interés
+                            </Typography>
                           </Stack>
                         )}
                       </TableCell>
 
-                      <TableCell sx={tableCellStyle}>
-                        <Stack direction="row" spacing={1} justifyContent="center">
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), width: 96, minWidth: 96, maxWidth: 96, px: 0.5 })}>
+                        <Stack direction="row" spacing={0.5} justifyContent="center">
                           <Tooltip title="Duplicar categoría">
                             <IconButton onClick={() => handleDuplicarCategoria(idx)} size="small"><ContentCopyIcon fontSize="small" /></IconButton>
                           </Tooltip>
@@ -589,66 +853,122 @@ export default function PresupuestoNuevo() {
             <Stack direction="row" spacing={1} alignItems="center">
               <Chip label={`Ingresos: ${fmtARS(totalIngresos)}`} color="success" />
               <Chip label={`Egresos: ${fmtARS(totalEgresos)}`} color="error" />
-              <Chip label={`Resultado: ${fmtARS(totalIngresos - totalEgresos)}`} color={(totalIngresos - totalEgresos) >= 0 ? 'info' : 'warning'} />
+              <Chip label={`Resultado: ${fmtARS(resultadoTotal)}`} color={resultadoTotal >= 0 ? 'info' : 'error'} />
             </Stack>
           </Box>
 
-          <Paper sx={{ mt: 1, width: '100%', overflowX: 'auto' }}>
+          {hasLosses && (
+            <Alert
+              severity="error"
+              variant="filled"
+              role="alert"
+              aria-live="polite"
+              sx={{ mb: 2 }}
+            >
+              <AlertTitle>Atención: hay meses en pérdida (resultado negativo).</AlertTitle>
+              Revisá los montos. Meses afectados: {lossSummaryText || 'ver detalle en la grilla.'}
+            </Alert>
+          )}
+
+          <Paper variant="outlined" sx={{ mt: 1, width: '100%', overflowX: 'auto', p: 0, borderColor: (t) => (t.vars || t).palette.divider, }}>
             <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHead>
                 {/* Primera fila: nombres de categorías */}
                 <TableRow sx={tableRowStyle}>
-                  <TableCell sx={tableCellStyle}>Mes</TableCell>
+                  {/* Mes */}
+                  <TableCell sx={headerCellStyle}>Mes</TableCell>
+
+                  {/* Categorías creadas por el cliente */}
                   {categorias.map((cat, idx) => (
-                    <TableCell key={idx} sx={tableCellStyle}>
+                    <TableCell key={idx} sx={headerCellStyle}>
                       <Stack alignItems="center" spacing={0.5}>
-                        <Typography variant="body2" noWrap title={cat.categoria}>{cat.categoria}</Typography>
-                        <Chip size="small" label={cat.tipo} color={cat.tipo === 'Ingreso' ? 'success' : 'default'} />
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          title={cat.categoria}
+                          sx={{ fontWeight: 600 }}   // negrita del título de la categoría
+                        >
+                          {cat.categoria}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={cat.tipo}
+                          color={cat.tipo === 'Ingreso' ? 'success' : 'default'}
+                        />
                       </Stack>
                     </TableCell>
                   ))}
-                  {/* NUEVAS COLUMNAS DE TOTALES POR MES */}
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 120 }}>Ingresos (mes)</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 120 }}>Egresos (mes)</TableCell>
-                  <TableCell sx={{ ...tableCellStyle, minWidth: 130 }}>Resultado (mes)</TableCell>
+
+                  {/* Columnas de totales por mes */}
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 120 })}>
+                    Ingresos (mes)
+                  </TableCell>
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 120 })}>
+                    Egresos (mes)
+                  </TableCell>
+                  <TableCell sx={(theme) => ({ ...headerCellStyle(theme), minWidth: 130 })}>
+                    Resultado (mes)
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {meses.map(mes => {
-                  // calcular ingresos/egresos del mes
-                  const cats = presupuestoDataMes[mes] || {};
-                  const ingresoMes = Object.values(cats).reduce((acc, c) => (c.tipo === 'Ingreso' ? acc + (c.sugerido || 0) : acc), 0);
-                  const egresoMes  = Object.values(cats).reduce((acc, c) => (c.tipo === 'Egreso' ? acc + (c.sugerido || 0) : acc), 0);
-                  const resultadoMes = ingresoMes - egresoMes;
+                  const resumenMes = monthTotals[mes] || { ingresos: 0, egresos: 0, resultado: 0 };
+                  const esPerdidaMes = resumenMes.resultado < 0;
 
                   return (
-                    <TableRow key={mes} sx={tableRowStyle}>
+                    <TableRow
+                      key={mes}
+                      sx={tableRowStyle}
+                    >
                       <TableCell sx={tableCellStyle}>{mes}</TableCell>
                       {categorias.map((cat, idx) => {
                         const valores = presupuestoDataMes[mes]?.[cat.categoria] || { sugerido: 0 };
                         return (
                           <TableCell key={idx} sx={tableCellStyle}>
                             <TextField
-                              type="number"
+                              type="text"
                               variant="standard"
                               size="small"
-                              value={Number(valores.sugerido || 0)}
-                              onChange={e => handleCambioMonto(mes, cat.categoria, 'sugerido', e.target.value)}
-                              inputProps={{ min: 0, style: { padding: '4px 6px', textAlign: 'right' } }}
+                              value={formatCurrencyInput(valores.sugerido)}
+                              onChange={(e) => handleCambioMonto(mes, cat.categoria, 'sugerido', parseCurrency(e.target.value, { returnEmpty: true }))}
+                              inputProps={{ inputMode: 'numeric', style: { padding: '4px 6px', textAlign: 'right' } }}
                               sx={{ maxWidth: 90 }}
                             />
                           </TableCell>
                         );
                       })}
                       {/* CELDAS DE TOTALES POR MES */}
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#66bb6a' }}>
-                        {fmtARS(ingresoMes)}
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700, color: '#66bb6a' })}>
+                        {fmtARS(resumenMes.ingresos)}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: '#ef5350' }}>
-                        {fmtARS(egresoMes)}
+                      <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700, color: '#ef5350' })}>
+                        {fmtARS(resumenMes.egresos)}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellStyle, fontWeight: 700, color: resultadoMes >= 0 ? '#29b6f6' : '#ffa726' }}>
-                        {fmtARS(resultadoMes)}
+                      <TableCell sx={tableCellStyle}>
+                        <Tooltip
+                          title={esPerdidaMes ? 'Este mes los egresos superan a los ingresos.' : ''}
+                          disableHoverListener={!esPerdidaMes}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                            <Typography
+                              component="span"
+                              sx={{
+                                fontWeight: 700,
+                                color: esPerdidaMes ? 'error.main' : 'info.main'
+                              }}
+                            >
+                              {fmtARS(resumenMes.resultado)}
+                            </Typography>
+                            {esPerdidaMes && (
+                              <Chip
+                                size="small"
+                                color="error"
+                                label="En pérdida"
+                              />
+                            )}
+                          </Stack>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
@@ -656,29 +976,54 @@ export default function PresupuestoNuevo() {
 
                 {/* Fila de totales por categoría en el período (se mantiene igual) */}
                 <TableRow>
-                  <TableCell sx={{ ...tableCellStyle, fontWeight: 700 }}>Totales mes</TableCell>
+                  <TableCell sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700 })}>
+                    Totales mes
+                  </TableCell>
+
                   {categorias.map((cat, idx) => {
                     const totalCat = meses.reduce((acc, m) => {
                       const v = presupuestoDataMes[m]?.[cat.categoria]?.sugerido || 0;
                       return acc + Number(v || 0);
                     }, 0);
                     return (
-                      <TableCell key={idx} sx={{ ...tableCellStyle, fontWeight: 700 }}>
+                      <TableCell
+                        key={idx}
+                        sx={(theme) => ({ ...tableCellStyle(theme), fontWeight: 700 })}
+                      >
                         {fmtARS(totalCat)}
                       </TableCell>
                     );
                   })}
+
                   {/* Columnas de totales por mes no tienen agregados en esta fila */}
-                  <TableCell sx={{ ...tableCellStyle }} />
-                  <TableCell sx={{ ...tableCellStyle }} />
-                  <TableCell sx={{ ...tableCellStyle }} />
+                  <TableCell sx={tableCellStyle} />
+                  <TableCell sx={tableCellStyle} />
+                  <TableCell sx={tableCellStyle} />
                 </TableRow>
               </TableBody>
             </Table>
           </Paper>
 
           <Box mt={3} display="flex" gap={2} flexWrap="wrap">
-            <Button variant="contained" color="primary" onClick={handleGuardar}>Guardar presupuesto</Button>
+            <Button
+              variant="contained"
+              onClick={handleGuardar}
+              disabled={creating}
+              startIcon={creating ? <CircularProgress size={16} color="inherit" /> : null}
+              disableElevation
+              sx={{
+                "&.Mui-disabled": {
+                  backgroundColor: (theme) =>
+                    `${theme.palette.action.disabledBackground} !important`,
+                  color: (theme) => `${theme.palette.text.disabled} !important`,
+                  backgroundImage: "none !important", // anula gradiente
+                  boxShadow: "none",
+                  borderColor: "transparent",
+                },
+              }}
+            >
+              {creating ? "Guardando…" : "Guardar presupuesto"}
+            </Button>
             <Button variant="outlined" onClick={back}>Volver</Button>
             <Button variant="text" onClick={() => navigate(-1)}>Cancelar</Button>
           </Box>
@@ -687,3 +1032,4 @@ export default function PresupuestoNuevo() {
     </Box>
   );
 }
+

@@ -6,7 +6,8 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
-import axios from 'axios';
+import http from '../../../api/http';
+import { formatCurrency } from '../../../utils/currency';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend,
   LineChart, Line, Area, ReferenceLine
@@ -15,7 +16,6 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -48,7 +48,8 @@ function semaforoPorCumplimiento(pct) {
 // Formatear diferencia
 const formatDiff = (est, real) => {
   const diff = safeNumber(real) - safeNumber(est);
-  return diff >= 0 ? `+$${diff.toLocaleString()}` : `-$${Math.abs(diff).toLocaleString()}`;
+  const formatted = formatCurrency(Math.abs(diff));
+  return diff >= 0 ? `+${formatted}` : `-${formatted}`;
 };
 
 export default function PresupuestoDetalle() {
@@ -72,14 +73,19 @@ export default function PresupuestoDetalle() {
   // Panel lateral (KPIs clicables)
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [drawerTipo, setDrawerTipo] = React.useState('ingresos'); // 'ingresos' | 'egresos' | 'resultado'
-  const [simulacion, setSimulacion] = React.useState(false); // sandbox visual (no persiste cambios)
 
   React.useEffect(() => {
     const cargar = async () => {
       try {
         // 1) Buscar presupuesto por nombre
-        const res = await axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
-        const lista = Array.isArray(res.data) ? res.data : [];
+        const res = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
+        const listaPayload = res?.data;
+        let lista = [];
+        if (Array.isArray(listaPayload)) {
+          lista = listaPayload;
+        } else if (Array.isArray(listaPayload?.content)) {
+          lista = listaPayload.content;
+        }
 
         const slug = decodeURIComponent(nombreUrl || '')
           .trim()
@@ -98,12 +104,12 @@ export default function PresupuestoDetalle() {
         // 2) (opcional) obtener nombre "oficial" desde header
         let nombreOficial = encontrado.nombre;
         try {
-          const resHeader = await axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}`);
+          const resHeader = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}`);
           if (resHeader?.data?.nombre) nombreOficial = resHeader.data.nombre;
         } catch { /* no crítico */ }
 
         // 3) Traer TOTALES mensuales del backend nuevo
-        const resTot = await axios.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}/totales`);
+        const resTot = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}/totales`);
         const totales = Array.isArray(resTot.data) ? resTot.data : [];
 
         // 4) Mapear a la forma que usa el front
@@ -321,7 +327,6 @@ export default function PresupuestoDetalle() {
         </Tabs>
 
         <Stack direction="row" spacing={1} alignItems="center">
-          <Chip icon={<InfoOutlinedIcon />} label={simulacion ? 'Simulación' : 'Lectura'} color={simulacion ? 'warning' : 'default'} variant={simulacion ? 'filled' : 'outlined'} />
           <Tooltip title="Filtros">
             <IconButton onClick={handleOpenMenu}><FilterAltOutlinedIcon /></IconButton>
           </Tooltip>
@@ -362,7 +367,7 @@ export default function PresupuestoDetalle() {
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
                 <Typography variant="h4" fontWeight="bold">
-                  ${totalIngresoReal.toLocaleString()}
+                  {formatCurrency(totalIngresoReal)}
                 </Typography>
                 <Typography variant="body2">
                   {formatDiff(totalIngresoEst, totalIngresoReal)}
@@ -384,7 +389,7 @@ export default function PresupuestoDetalle() {
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
                 <Typography variant="h4" fontWeight="bold">
-                  ${totalEgresoReal.toLocaleString()}
+                  {formatCurrency(totalEgresoReal)}
                 </Typography>
                 <Typography variant="body2">
                   {formatDiff(totalEgresoEst, totalEgresoReal)}
@@ -425,7 +430,7 @@ export default function PresupuestoDetalle() {
                 </Avatar>
                 <Typography variant="h6">Resultado</Typography>
                 <Typography variant="h4" fontWeight="bold">
-                  ${resultadoReal.toLocaleString()}
+                  {formatCurrency(resultadoReal)}
                 </Typography>
                 <Typography variant="body2">
                   {resultadoReal >= 0 ? 'Superávit' : 'Déficit'}
@@ -450,10 +455,6 @@ export default function PresupuestoDetalle() {
                   <Typography variant="body2" color="text.secondary">
                     Cumplimiento: {(pctCumplimientoGlobal * 100).toFixed(0)}%
                   </Typography>
-                  <FormControlLabel
-                    control={<Switch checked={simulacion} onChange={(_, v) => setSimulacion(v)} />}
-                    label={<Stack direction="row" spacing={1} alignItems="center"><ScienceOutlinedIcon fontSize="small" /> <span>Simulación</span></Stack>}
-                  />
                 </Stack>
               </Paper>
             </Grid>
@@ -486,9 +487,9 @@ export default function PresupuestoDetalle() {
                             <BarChart data={[{ name: item.mes, valor: item.estimado }]} layout="vertical">
                               <XAxis type="number" domain={[0, max]} hide />
                               <YAxis type="category" dataKey="name" hide />
-                              <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                              <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                               <Bar dataKey="valor" fill={INGRESO_EST_COLOR} radius={[4, 4, 4, 4]}
-                                   label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                   label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                             </BarChart>
                           </ResponsiveContainer>
                         </Box>
@@ -504,9 +505,9 @@ export default function PresupuestoDetalle() {
                               <BarChart data={[{ name: item.mes, valor: item.real }]} layout="vertical">
                                 <XAxis type="number" domain={[0, max]} hide />
                                 <YAxis type="category" dataKey="name" hide />
-                                <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                                <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                                 <Bar dataKey="valor" fill={INGRESO_REAL_COLOR} radius={[4, 4, 4, 4]}
-                                     label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                     label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                               </BarChart>
                             </ResponsiveContainer>
                           </Box>
@@ -543,9 +544,9 @@ export default function PresupuestoDetalle() {
                             <BarChart data={[{ name: item.mes, valor: item.estimado }]} layout="vertical">
                               <XAxis type="number" domain={[0, max]} hide />
                               <YAxis type="category" dataKey="name" hide />
-                              <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                              <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                               <Bar dataKey="valor" fill={EGRESO_EST_COLOR} radius={[4, 4, 4, 4]}
-                                   label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                   label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                             </BarChart>
                           </ResponsiveContainer>
                         </Box>
@@ -561,9 +562,9 @@ export default function PresupuestoDetalle() {
                               <BarChart data={[{ name: item.mes, valor: item.real }]} layout="vertical">
                                 <XAxis type="number" domain={[0, max]} hide />
                                 <YAxis type="category" dataKey="name" hide />
-                                <RTooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                                <RTooltip formatter={(value) => [formatCurrency(value), '']} />
                                 <Bar dataKey="valor" fill={EGRESO_REAL_COLOR} radius={[4, 4, 4, 4]}
-                                     label={{ position: 'right', formatter: (v) => `$${Number(v).toLocaleString()}` }} />
+                                     label={{ position: 'right', formatter: (v) => formatCurrency(v) }} />
                               </BarChart>
                             </ResponsiveContainer>
                           </Box>
@@ -613,14 +614,14 @@ export default function PresupuestoDetalle() {
                 <YAxis
                   yAxisId="left"
                   domain={[dataMin => Math.min(dataMin, 0), dataMax => Math.max(dataMax, 0)]}
-                  tickFormatter={(value) => `$${Number(value).toLocaleString()}`}
+                  tickFormatter={(value) => formatCurrency(value)}
                   width={70}
                 />
                 <RTooltip
                   formatter={(value) => [
                     Number(value) >= 0
-                      ? `Superávit: $${Number(value).toLocaleString()}`
-                      : `Déficit: -$${Math.abs(Number(value)).toLocaleString()}`,
+                      ? `Superávit: ${formatCurrency(value)}`
+                      : `Déficit: ${formatCurrency(value)}`,
                     'Resultado'
                   ]}
                   contentStyle={{ color: 'black' }}
@@ -670,28 +671,16 @@ export default function PresupuestoDetalle() {
                         {fila.mes}
                         {totalReal < 0 && <Chip size="small" sx={{ ml: 1 }} color="warning" label="⚠ déficit" />}
                       </td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>${ingresoEst.toLocaleString()}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>${ingresoReal.toLocaleString()}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>${egresoEst.toLocaleString()}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>${egresoReal.toLocaleString()}</td>
+                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(ingresoEst)}</td>
+                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(ingresoReal)}</td>
+                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(egresoEst)}</td>
+                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(egresoReal)}</td>
                       <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', fontWeight: 700, color: totalReal >= 0 ? '#29b6f6' : '#ffa726' }}>
-                        ${totalReal.toLocaleString()} <span style={{ color: pct >= 0 ? '#66bb6a' : '#ef5350' }}>({pct.toFixed(0)}%)</span>
+                        {formatCurrency(totalReal)} <span style={{ color: pct >= 0 ? '#66bb6a' : '#ef5350' }}>({pct.toFixed(0)}%)</span>
                       </td>
                       <td style={{ padding: 12 }}>
                         <Stack direction="row" spacing={1}>
                           <Button size="small" variant="contained" onClick={() => goToMes(fila)}>Ver mes</Button>
-                          <Tooltip title="Simular ajuste +10% (visual)">
-                            <span>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                disabled={!simulacion}
-                                onClick={() => window.alert('Solo visual: acá aplicarías un +10% al Estimado del mes (sandbox).')}
-                              >
-                                +10% Est.
-                              </Button>
-                            </span>
-                          </Tooltip>
                         </Stack>
                       </td>
                     </tr>
@@ -749,7 +738,7 @@ export default function PresupuestoDetalle() {
                     primary={fila.mes}
                     secondary={
                       <span style={{ color: valor >= 0 ? '#66bb6a' : '#ef5350' }}>
-                        {valor >= 0 ? '+' : '-'}${Math.abs(valor).toLocaleString()}
+                        {valor >= 0 ? '+' : '-'}{formatCurrency(Math.abs(valor))}
                       </span>
                     }
                   />
@@ -762,3 +751,4 @@ export default function PresupuestoDetalle() {
     </Box>
   );
 }
+

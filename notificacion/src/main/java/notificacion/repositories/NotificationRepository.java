@@ -3,6 +3,7 @@ package notificacion.repositories;
 
 import notificacion.models.Notification;
 import notificacion.models.NotificationType;
+import notificacion.models.ResourceType;
 import notificacion.models.Severity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,5 +39,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
            "LOWER(n.body) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
            "ORDER BY n.createdAt DESC")
     Page<Notification> findByUserIdAndSearchTerm(@Param("userId") Long userId, @Param("searchTerm") String searchTerm, Pageable pageable);
+
+    boolean existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+            Long userId,
+            NotificationType type,
+            ResourceType resourceType,
+            String resourceId,
+            Instant createdAt);
 }
 
