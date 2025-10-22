@@ -1,6 +1,6 @@
 package registro.movimientosexcel.controllers;
 
-import registro.cargarDatos.models.TipoRegistro;
+import registro.cargarDatos.models.TipoMovimiento;
 import registro.movimientosexcel.dtos.*;
 import registro.movimientosexcel.services.CategorySuggestionService;
 import registro.movimientosexcel.services.ExcelImportService;
@@ -14,7 +14,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
 public class ExcelImportController {
 
     @Autowired
@@ -69,7 +68,7 @@ public class ExcelImportController {
         List<String> categorias;
         if (tipo != null && !tipo.isEmpty()) {
             try {
-                TipoRegistro tipoRegistro = TipoRegistro.valueOf(tipo);
+                TipoMovimiento tipoRegistro = TipoMovimiento.valueOf(tipo);
                 categorias = categorySuggestionService.obtenerCategorias(tipoRegistro);
             } catch (IllegalArgumentException e) {
                 categorias = categorySuggestionService.obtenerTodasLasCategorias();

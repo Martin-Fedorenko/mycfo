@@ -5,11 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import registro.movimientosexcel.dtos.*;
-import registro.cargarDatos.models.Registro;
+import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMedioPago;
 import registro.cargarDatos.models.TipoMoneda;
-import registro.cargarDatos.models.TipoRegistro;
-import registro.cargarDatos.repositories.RegistroRepository;
+import registro.cargarDatos.models.TipoMovimiento;
+import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.movimientosexcel.models.ExcelImportHistory;
 import registro.movimientosexcel.repositories.ExcelImportHistoryRepository;
 
@@ -22,7 +22,7 @@ import java.util.*;
 public class ExcelImportService {
 
     @Autowired
-    private RegistroRepository registroRepository;
+    private MovimientoRepository movimientoRepo;
 
     @Autowired
     private NotificationsEventPublisher notifications;
@@ -69,14 +69,14 @@ public class ExcelImportService {
         try {
             for (RegistroPreviewDTO preview : registrosSeleccionados) {
                 try {
-                    Registro registro = convertirPreviewARegistro(preview);
-                    registro.setUsuario(usuario);
-                    registro.setFechaCreacion(LocalDate.now());
-                    registro.setFechaActualizacion(LocalDate.now());
+                    Movimiento movimiento = convertirPreviewAMovimiento(preview);
+                    movimiento.setUsuarioId(usuario.toString());
+                    movimiento.setFechaCreacion(LocalDate.now());
+                    movimiento.setFechaActualizacion(LocalDate.now());
                     
-                    registroRepository.save(registro);
+                    movimientoRepo.save(movimiento);
                     totalGuardados++;
-                    notifications.publishMovement(registro, 1L);
+                    notifications.publishMovement(movimiento, 1L);
                     
                 } catch (Exception e) {
                     errores.add(new FilaConErrorDTO(preview.getFilaExcel(), e.getMessage()));
@@ -145,18 +145,18 @@ public class ExcelImportService {
                             ? medioPago.getStringCellValue()
                             : String.valueOf(medioPago.getNumericCellValue());
 
-                    Registro reg = new Registro();
-                    reg.setTipo(determinarTipoRegistro(montoValor));
+                    Movimiento reg = new Movimiento();
+                    reg.setTipo(determinarTipoMovimiento(montoValor));
                     reg.setMontoTotal(montoValor);
                     reg.setFechaEmision(fechaLocal);
                     reg.setDescripcion(descripcionStr);
                     reg.setMedioPago(parseMedioPago(medioPagoStr));
                     reg.setMoneda(TipoMoneda.ARS);
-                    reg.setOrigen("MYCFO");
+                    reg.setOrigenNombre("MYCFO");
                     reg.setFechaCreacion(LocalDate.now());
                     reg.setFechaActualizacion(LocalDate.now());
 
-                    registroRepository.save(reg);
+                    movimientoRepo.save(reg);
                     correctos++;
 
                 } catch (Exception e) {
@@ -223,20 +223,20 @@ public class ExcelImportService {
                     LocalDate fechaLocal = parseFechaMercadoPago(fila.getCell(idx.get("FECHA")));
                     Double montoValor = parseMontoEsAr(rawMonto);
 
-                    Registro reg = new Registro();
-                    reg.setTipo(determinarTipoRegistro(montoValor));
-                    reg.setMontoTotal(montoValor);
-                    reg.setFechaEmision(fechaLocal);
-                    reg.setDescripcion(rawTipo);
-                    reg.setMedioPago(parseMedioPago("Mercado Pago"));
-                    reg.setMoneda(TipoMoneda.ARS);
-                    reg.setOrigen("MERCADO_PAGO");
-                    reg.setFechaCreacion(LocalDate.now());
-                    reg.setFechaActualizacion(LocalDate.now());
+                    Movimiento mov = new Movimiento();
+                    mov.setTipo(determinarTipoMovimiento(montoValor));
+                    mov.setMontoTotal(montoValor);
+                    mov.setFechaEmision(fechaLocal);
+                    mov.setDescripcion(rawTipo);
+                    mov.setMedioPago(parseMedioPago("Mercado Pago"));
+                    mov.setMoneda(TipoMoneda.ARS);
+                    mov.setOrigenNombre("MERCADO_PAGO");
+                    mov.setFechaCreacion(LocalDate.now());
+                    mov.setFechaActualizacion(LocalDate.now());
 
-                    registroRepository.save(reg);
+                    movimientoRepo.save(mov);
                     correctos++;
-                    notifications.publishMovement(reg, 1L);
+                    notifications.publishMovement(mov, 1L);
 
                 } catch (Exception ex) {
                     errores.add(new FilaConErrorDTO(i + 1, ex.getMessage()));
@@ -288,17 +288,17 @@ public class ExcelImportService {
         return new ResumenCargaDTO(0, 0, new ArrayList<>());
     }
     
-    private Registro convertirPreviewARegistro(RegistroPreviewDTO preview) {
-        Registro registro = new Registro();
-        registro.setTipo(preview.getTipo());
-        registro.setMontoTotal(preview.getMontoTotal());
-        registro.setFechaEmision(preview.getFechaEmision());
-        registro.setDescripcion(preview.getDescripcion());
-        registro.setOrigen(preview.getOrigen());
-        registro.setMedioPago(preview.getMedioPago());
-        registro.setMoneda(preview.getMoneda());
-        registro.setCategoria(preview.getCategoriaSugerida());
-        return registro;
+    private Movimiento convertirPreviewAMovimiento(RegistroPreviewDTO preview) {
+        Movimiento mov = new Movimiento();
+        mov.setTipo(preview.getTipo());
+        mov.setMontoTotal(preview.getMontoTotal());
+        mov.setFechaEmision(preview.getFechaEmision());
+        mov.setDescripcion(preview.getDescripcion());
+        mov.setOrigenNombre(preview.getOrigen()); // DTO usa 'origen' pero mapea a origenNombre
+        mov.setMedioPago(preview.getMedioPago());
+        mov.setMoneda(preview.getMoneda());
+        mov.setCategoria(preview.getCategoriaSugerida());
+        return mov;
     }
     
     private PreviewDataDTO procesarGenericoParaPreview(MultipartFile file) {
@@ -346,14 +346,14 @@ public class ExcelImportService {
                             ? medioPago.getStringCellValue()
                             : String.valueOf(medioPago.getNumericCellValue());
                     
-                    TipoRegistro tipoReg = determinarTipoRegistro(montoValor);
+                    TipoMovimiento tipoMov = determinarTipoMovimiento(montoValor);
                     RegistroPreviewDTO preview = new RegistroPreviewDTO(
-                            i + 1, tipoReg, montoValor, fechaLocal, 
+                            i + 1, tipoMov, montoValor, fechaLocal, 
                             descripcionStr, "MYCFO", parseMedioPago(medioPagoStr), TipoMoneda.ARS
                     );
                     
                     // Sugerir categoría usando el tipo de registro para mejor precisión
-                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(descripcionStr, tipoReg));
+                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(descripcionStr, tipoMov));
                     
                     // Verificar duplicados
                     verificarDuplicado(preview, registros);
@@ -423,15 +423,15 @@ public class ExcelImportService {
                     
                     LocalDate fechaLocal = parseFechaMercadoPago(fila.getCell(idx.get("FECHA")));
                     Double montoValor = parseMontoEsAr(rawMonto);
-                    TipoRegistro tipoReg = determinarTipoRegistro(montoValor);
+                    TipoMovimiento tipoMov = determinarTipoMovimiento(montoValor);
                     
                     RegistroPreviewDTO preview = new RegistroPreviewDTO(
-                            i + 1, tipoReg, montoValor, fechaLocal,
+                            i + 1, tipoMov, montoValor, fechaLocal,
                             rawTipo, "MERCADO_PAGO", parseMedioPago("Mercado Pago"), TipoMoneda.ARS
                     );
                     
                     // Sugerir categoría usando el tipo de registro para mejor precisión
-                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(rawTipo, tipoReg));
+                    preview.setCategoriaSugerida(categorySuggestionService.sugerirCategoria(rawTipo, tipoMov));
                     
                     // Verificar duplicados
                     verificarDuplicado(preview, registros);
@@ -480,8 +480,8 @@ public class ExcelImportService {
      * @param monto Monto del movimiento
      * @return TipoRegistro.Ingreso si es positivo, TipoRegistro.Egreso si es negativo
      */
-    private TipoRegistro determinarTipoRegistro(Double monto) {
-        if (monto == null) return TipoRegistro.Ingreso;
-        return monto >= 0 ? TipoRegistro.Ingreso : TipoRegistro.Egreso;
+    private TipoMovimiento determinarTipoMovimiento(Double monto) {
+        if (monto == null) return TipoMovimiento.Ingreso;
+        return monto >= 0 ? TipoMovimiento.Ingreso : TipoMovimiento.Egreso;
     }
 }

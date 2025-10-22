@@ -3,9 +3,12 @@ import { Typography, Grid } from "@mui/material";
 import axios from "axios";
 import CustomButton from "../../../shared-components/CustomButton";
 import FormFactura from "./forms/FormFactura";
-import FormRecibo from "./forms/FormRecibo";
-import FormPagare from "./forms/FormPagare";
 import FormRegistro from "./forms/FormRegistro";
+import FormIngreso from "./forms/FormIngreso";
+import FormEgreso from "./forms/FormEgreso";
+import FormDeuda from "./forms/FormDeuda";
+import FormAcreencia from "./forms/FormAcreencia";
+import API_CONFIG from "../../../config/api-config";
 
 // 📌 Campos obligatorios por tipo de documento
 const requiredFieldsMap = {
@@ -21,6 +24,10 @@ const requiredFieldsMap = {
     "compradorNombre",
   ],
   Movimiento: ["montoTotal", "moneda", "medioPago", "fechaEmision"],
+  Ingreso: ["montoTotal", "moneda", "fechaEmision"],
+  Egreso: ["montoTotal", "moneda", "fechaEmision"],
+  Deuda: ["montoTotal", "moneda", "fechaEmision"],
+  Acreencia: ["montoTotal", "moneda", "fechaEmision"],
 };
 
 export default function CargaFormulario({
@@ -32,8 +39,6 @@ export default function CargaFormulario({
   setErrors,
 }) {
   const handleSubmit = async () => {
-    if (!endpoint) return;
-
     // ✅ Validación dinámica
     const newErrors = {};
     const requiredFields = requiredFieldsMap[tipoDoc] || [];
@@ -44,26 +49,74 @@ export default function CargaFormulario({
       }
     });
 
-
-
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
+      alert("⚠️ Por favor completa todos los campos obligatorios");
       return; // 🚫 No enviar si hay errores
     }
 
     try {
-      const payload = { ...formData, tipoDocumento: tipoDoc };
-      await axios.post(endpoint, payload);
+      // Obtener sub del usuario (REQUERIDO)
+      const usuarioSub = sessionStorage.getItem("sub");
+      
+      if (!usuarioSub) {
+        alert("❌ Error: No se encontró el usuario en la sesión. Por favor, inicia sesión nuevamente.");
+        return;
+      }
+      
+      // Configurar headers - SOLO necesitamos X-Usuario-Sub
+      const headers = {
+        "X-Usuario-Sub": usuarioSub
+      };
 
+      // Preparar payload para el endpoint unificado /api/carga-datos
+      let payload;
+      let tipoMovimiento = null;
 
+      // Determinar tipo y tipoMovimiento
+      if (["ingreso", "egreso", "deuda", "acreencia"].includes(tipoDoc.toLowerCase())) {
+        // Es un movimiento
+        tipoMovimiento = tipoDoc.charAt(0).toUpperCase() + tipoDoc.slice(1); // Ingreso, Egreso, Deuda, Acreencia
+        
+        payload = {
+          tipo: "movimiento",
+          metodo: "formulario",
+          datos: formData,
+          tipoMovimiento: tipoMovimiento
+        };
+      } else if (tipoDoc.toLowerCase() === "factura") {
+        // Es una factura
+        payload = {
+          tipo: "factura",
+          metodo: "formulario",
+          datos: formData
+        };
+      } else {
+        // Movimiento genérico
+        payload = {
+          tipo: "movimiento",
+          metodo: "formulario",
+          datos: formData
+        };
+      }
+      
+      console.log("📤 Enviando datos:", payload);
+      console.log("🔐 Headers:", headers);
+      
+      // Usar endpoint unificado
+      const ENDPOINT_UNIFICADO = `${API_CONFIG.REGISTRO}/api/carga-datos`;
+      const response = await axios.post(ENDPOINT_UNIFICADO, payload, { headers });
 
-      alert("✅ Enviado con éxito!");
+      console.log("✅ Respuesta del servidor:", response.data);
+      alert(`✅ ${response.data.mensaje || 'Datos guardados exitosamente'}`);
       setFormData({});
+      setErrors({});
 
     } catch (err) {
       console.error("❌ Error en envío:", err);
-      alert("❌ Error al enviar el formulario");
+      const mensaje = err.response?.data?.mensaje || err.message || "Error desconocido";
+      alert(`❌ Error al enviar el formulario: ${mensaje}`);
     }
   };
 
@@ -81,6 +134,38 @@ export default function CargaFormulario({
         return (
           <FormRegistro
             tipoDoc={tipoDoc}
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
+        );
+      case "ingreso":
+        return (
+          <FormIngreso
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
+        );
+      case "egreso":
+        return (
+          <FormEgreso
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
+        );
+      case "deuda":
+        return (
+          <FormDeuda
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
+        );
+      case "acreencia":
+        return (
+          <FormAcreencia
             formData={formData}
             setFormData={setFormData}
             errors={errors}

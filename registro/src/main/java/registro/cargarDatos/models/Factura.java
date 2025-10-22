@@ -31,9 +31,9 @@ public class Factura extends DocumentoComercial {
     private String compradorCondicionIVA;
     private String compradorDomicilio;
 
-    // --- Datos fiscales ---
-    private String cae;
-    private LocalDate vencimientoCae;
+    // --- Estado de pago ---
+    @Enumerated(EnumType.STRING)
+    private EstadoPago estadoPago;
 
     // --- Relación con ítems ---
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)

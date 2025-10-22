@@ -36,19 +36,46 @@ export default function CargaGeneral() {
       foto: `${API_BASE}/facturas/foto`,
       audio: `${API_BASE}/facturas/audio`,
     },
+    // Todos los movimientos usan el mismo endpoint unificado
     Movimiento: {
-      formulario: `${API_BASE}/registros/formulario`,
-      documento: `${API_BASE}/registros/documento`,
-      foto: `${API_BASE}/registros/foto`,
-      audio: `${API_BASE}/registros/audio`,
+      formulario: `${API_BASE}/movimientos`,
+      documento: `${API_BASE}/movimientos/documento`,
+      foto: `${API_BASE}/movimientos/foto`,
+      audio: `${API_BASE}/movimientos/audio`,
+    },
+    Ingreso: {
+      formulario: `${API_BASE}/movimientos`,
+      documento: `${API_BASE}/movimientos/documento`,
+      foto: `${API_BASE}/movimientos/foto`,
+      audio: `${API_BASE}/movimientos/audio`,
+    },
+    Egreso: {
+      formulario: `${API_BASE}/movimientos`,
+      documento: `${API_BASE}/movimientos/documento`,
+      foto: `${API_BASE}/movimientos/foto`,
+      audio: `${API_BASE}/movimientos/audio`,
+    },
+    Deuda: {
+      formulario: `${API_BASE}/movimientos`,
+      documento: `${API_BASE}/movimientos/documento`,
+      foto: `${API_BASE}/movimientos/foto`,
+      audio: `${API_BASE}/movimientos/audio`,
+    },
+    Acreencia: {
+      formulario: `${API_BASE}/movimientos`,
+      documento: `${API_BASE}/movimientos/documento`,
+      foto: `${API_BASE}/movimientos/foto`,
+      audio: `${API_BASE}/movimientos/audio`,
     },
   };
 
   // Botones disponibles de tipo de documento
   const tipos = [
     { key: "Factura", label: "Factura", icon: <Receipt fontSize="large" /> },
-    { key: "Movimiento", label: "Movimiento", icon: <SwapHoriz fontSize="large" /> },
-    // 🔹 futuro: agregar más aquí fácilmente
+    { key: "Ingreso", label: "Ingreso", icon: <SwapHoriz fontSize="large" /> },
+    { key: "Egreso", label: "Egreso", icon: <SwapHoriz fontSize="large" /> },
+    { key: "Deuda", label: "Deuda", icon: <SwapHoriz fontSize="large" /> },
+    { key: "Acreencia", label: "Acreencia", icon: <SwapHoriz fontSize="large" /> },
   ];
 
   // Botones disponibles de método de carga

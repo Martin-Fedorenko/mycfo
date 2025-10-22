@@ -6,6 +6,7 @@ import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
 import ConciliacionDialog from "../../../../shared-components/ConciliacionDialog";
+import dayjs from "dayjs";
 
 export default function FormRegistro({
   tipoDoc,
@@ -22,6 +23,14 @@ export default function FormRegistro({
       }));
     }
   }, [tipoDoc, setFormData, formData.montoTotal]);
+
+  // Establecer fecha de hoy por defecto si no hay fecha de emisión
+  useEffect(() => {
+    if (!formData.fechaEmision) {
+      const hoy = dayjs();
+      setFormData((p) => ({ ...p, fechaEmision: hoy }));
+    }
+  }, [formData.fechaEmision, setFormData]);
 
   return (
     <Box

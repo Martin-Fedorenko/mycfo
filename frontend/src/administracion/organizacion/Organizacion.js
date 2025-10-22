@@ -1,124 +1,138 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   IconButton,
   Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
-  Alert
+  Alert,
+  CircularProgress,
+  Paper,
+  Chip
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
-  PersonAdd as PersonAddIcon
+  PersonAdd as PersonAddIcon,
+  Business as BusinessIcon,
+  AdminPanelSettings as AdminIcon
 } from "@mui/icons-material";
-import CampoEditable from "../../shared-components/CampoEditable";
-import BotonConsolidar from "../../shared-components/CustomButton";
-import CustomMultiLine from "../../shared-components/CustomMultiLine";
-import CustomButton from "../../shared-components/CustomButton";
+import axios from "axios";
+import CampoEditable from "../../shared-components/CustomButton";
+import { sessionService } from "../../shared-services/sessionService";
+import { organizacionService } from "../../shared-services/organizacionService";
 
-// Datos iniciales hardcodeados
-const initialOrganizationData = {
-  nombre: "MyCFO Solutions",
-  descripcion: "Empresa líder en soluciones financieras y contables para PyMEs",
-};
-
-// Empleados iniciales hardcodeados
-const initialEmployees = [
-  {
-    id: 1,
-    nombre: "Martín",
-    apellido: "Fedorenko",
-    email: "martin@mycfo.com",
-    puesto: "CTO"
-  },
-  {
-    id: 2,
-    nombre: "Ana",
-    apellido: "Gómez",
-    email: "ana.gomez@mycfo.com",
-    puesto: "CFO"
-  },
-  {
-    id: 3,
-    nombre: "Carlos",
-    apellido: "López",
-    email: "carlos.lopez@mycfo.com",
-    puesto: "Desarrollador Senior"
-  }
-];
+const API_URL = "http://localhost:8081";
 
 export default function Organizacion() {
-  const [organizacion, setOrganizacion] = useState(initialOrganizationData);
-  const [empleados, setEmpleados] = useState(initialEmployees);
-  const [editados, setEditados] = useState({});
-  const [emailsInvitacion, setEmailsInvitacion] = useState([]);
+  const [empresa, setEmpresa] = useState(null);
+  const [empleados, setEmpleados] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editandoEmpleado, setEditandoEmpleado] = useState(null);
   const [empleadoEditado, setEmpleadoEditado] = useState({});
-  const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  const [usuarioRol, setUsuarioRol] = useState(null);
+  const [editandoEmpresa, setEditandoEmpresa] = useState(false);
+  const [empresaEditada, setEmpresaEditada] = useState({});
 
-  // Manejar cambios en los datos de la organización
-  const handleChangeOrganizacion = (campo, valor) => {
-    setOrganizacion(prev => ({ ...prev, [campo]: valor }));
-    setEditados(prev => ({ ...prev, [campo]: true }));
+  const sub = sessionStorage.getItem("sub");
+  const organizacionId = sessionStorage.getItem("organizacionId");
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    cargarDatosEmpresaYEmpleados();
+  }, []);
+
+  const cargarDatosEmpresaYEmpleados = async () => {
+    setLoading(true);
+    try {
+      console.log('Cargando datos de organización...');
+      console.log('Sub del usuario:', sub);
+      
+      // Cargar datos del perfil del usuario para saber su rol
+      const perfilResponse = await axios.get(`${API_URL}/api/usuarios/perfil`, {
+        headers: { "X-Usuario-Sub": sub }
+      });
+      console.log('Perfil del usuario:', perfilResponse.data);
+      setUsuarioRol(perfilResponse.data.rol);
+
+      // Cargar datos de la organización usando el servicio
+      console.log('Obteniendo datos de la organización...');
+      const organizacionData = await organizacionService.obtenerOrganizacionUsuario();
+      console.log('Datos de organización obtenidos:', organizacionData);
+      if (organizacionData) {
+        setEmpresa(organizacionData);
+      }
+
+      // Cargar empleados de la organización usando el servicio
+      console.log('Obteniendo empleados de la organización...');
+      const empleadosData = await organizacionService.obtenerEmpleadosOrganizacion();
+      console.log('Empleados obtenidos:', empleadosData);
+      setEmpleados(empleadosData);
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+      setMensaje({ tipo: 'error', texto: 'Error al cargar los datos de la organización' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Manejar envío de cambios de la organización
-  const handleConsolidarOrganizacion = () => {
-    console.log("Datos de organización enviados:", organizacion);
-    setMensaje({ tipo: 'success', texto: 'Cambios guardados con éxito' });
-    setEditados({});
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
-  };
-
-  // Eliminar empleado
-  const handleEliminarEmpleado = (id) => {
-    setEmpleados(prev => prev.filter(emp => emp.id !== id));
-    setMensaje({ tipo: 'info', texto: 'Empleado eliminado' });
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
-  };
-
-  // Abrir diálogo para editar empleado
-  const handleAbrirDialogoEdicion = (empleado) => {
-    setEditandoEmpleado(empleado.id);
+  // Abrir edición inline de empleado
+  const handleAbrirEdicionEmpleado = (empleado) => {
+    setEditandoEmpleado(empleado.sub);
     setEmpleadoEditado({ ...empleado });
-    setDialogoAbierto(true);
   };
 
-  // Cerrar diálogo de edición
-  const handleCerrarDialogo = () => {
-    setDialogoAbierto(false);
+  // Cerrar edición de empleado
+  const handleCerrarEdicionEmpleado = () => {
     setEditandoEmpleado(null);
     setEmpleadoEditado({});
   };
 
   // Guardar cambios del empleado
-  const handleGuardarEmpleado = () => {
-    setEmpleados(prev => 
-      prev.map(emp => 
-        emp.id === editandoEmpleado ? { ...empleadoEditado } : emp
-      )
-    );
-    setMensaje({ tipo: 'success', texto: 'Cambios del empleado guardados' });
-    handleCerrarDialogo();
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+  const handleGuardarEmpleado = async () => {
+    try {
+      await organizacionService.actualizarEmpleado(editandoEmpleado, {
+        nombre: empleadoEditado.nombre,
+        email: empleadoEditado.email,
+        telefono: empleadoEditado.telefono,
+        rol: empleadoEditado.rol
+      });
+
+      setMensaje({ tipo: 'success', texto: 'Cambios del empleado guardados exitosamente' });
+      handleCerrarEdicionEmpleado();
+      
+      // Recargar lista de empleados
+      cargarDatosEmpresaYEmpleados();
+      
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+    } catch (error) {
+      console.error("Error guardando empleado:", error);
+      setMensaje({ tipo: 'error', texto: 'Error al guardar los cambios del empleado' });
+    }
+  };
+
+  // Eliminar empleado
+  const handleEliminarEmpleado = async (empleadoSub) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este empleado?")) {
+      return;
+    }
+
+    try {
+      await organizacionService.eliminarEmpleado(empleadoSub);
+
+      setMensaje({ tipo: 'success', texto: 'Empleado eliminado exitosamente' });
+      
+      // Recargar lista de empleados
+      cargarDatosEmpresaYEmpleados();
+      
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+    } catch (error) {
+      console.error("Error eliminando empleado:", error);
+      setMensaje({ tipo: 'error', texto: 'Error al eliminar el empleado' });
+    }
   };
 
   // Manejar cambios en el formulario de edición
@@ -126,21 +140,45 @@ export default function Organizacion() {
     setEmpleadoEditado(prev => ({ ...prev, [campo]: valor }));
   };
 
-  // Manejar envío de invitaciones
-  const handleEnviarInvitaciones = () => {
-    if (emailsInvitacion.length === 0) {
-      setMensaje({ tipo: 'error', texto: 'Debe ingresar al menos un email' });
-    } else {
-      console.log("Invitaciones enviadas a:", emailsInvitacion);
-      setMensaje({ tipo: 'success', texto: `Invitaciones enviadas a ${emailsInvitacion.length} contactos` });
-      setEmailsInvitacion([]);
-    }
-    
-    // Limpiar mensaje después de 3 segundos
-    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+  // Funciones para editar empresa
+  const handleAbrirEdicionEmpresa = () => {
+    setEmpresaEditada({ ...empresa });
+    setEditandoEmpresa(true);
   };
 
-  const hayCambios = Object.keys(editados).length > 0;
+  const handleCerrarEdicionEmpresa = () => {
+    setEditandoEmpresa(false);
+    setEmpresaEditada({});
+  };
+
+  const handleChangeEmpresa = (campo, valor) => {
+    setEmpresaEditada(prev => ({ ...prev, [campo]: valor }));
+  };
+
+  const handleGuardarEmpresa = async () => {
+    try {
+      await organizacionService.actualizarOrganizacion(empresaEditada);
+      
+      setEmpresa(empresaEditada);
+      setMensaje({ tipo: 'success', texto: 'Datos de la empresa actualizados exitosamente' });
+      handleCerrarEdicionEmpresa();
+      
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+    } catch (error) {
+      console.error("Error actualizando empresa:", error);
+      setMensaje({ tipo: 'error', texto: 'Error al actualizar los datos de la empresa' });
+    }
+  };
+
+  const esAdministrador = usuarioRol === "ADMINISTRADOR";
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
@@ -153,160 +191,343 @@ export default function Organizacion() {
       <Typography variant="h4" gutterBottom>
         Gestión de Organización
       </Typography>
-      <Typography variant="subtitle1" sx={{ mb: 4 }}>
-        Administra la información de tu empresa y empleados
+      <Typography variant="subtitle1" sx={{ mb: 4, color: 'text.secondary' }}>
+        Visualiza la información de tu empresa y empleados
       </Typography>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2 }}>
-        Información de la Empresa
-      </Typography>
-      
-      <CampoEditable
-        label="Nombre de la Empresa"
-        value={organizacion.nombre}
-        onChange={(v) => handleChangeOrganizacion("nombre", v)}
-      />
-      <CampoEditable
-        label="Descripción"
-        value={organizacion.descripcion}
-        multiline
-        rows={3}
-        onChange={(v) => handleChangeOrganizacion("descripcion", v)}
-      />
+      {/* Información de la Empresa */}
+      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        {empresa ? (
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
+                Información de la Empresa
+              </Typography>
+              {esAdministrador && !editandoEmpresa && (
+                <Button
+                  variant="outlined"
+                  startIcon={<EditIcon />}
+                  onClick={handleAbrirEdicionEmpresa}
+                  color="primary"
+                >
+                  Editar
+                </Button>
+              )}
+            </Box>
 
-      {hayCambios && (
-        <BotonConsolidar
-          label="Guardar Cambios de Empresa"
-          onClick={handleConsolidarOrganizacion}
-          width="100%"
-        />
-      )}
+            {!editandoEmpresa ? (
+              <Box>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Nombre de la Empresa
+                  </Typography>
+                  <Typography variant="h6">
+                    {empresa.nombre}
+                  </Typography>
+                </Box>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 6, mb: 2 }}>
-        Empleados de la Organización
-      </Typography>
-      
-      {empleados.length === 0 ? (
-        <Typography variant="body2" color="textSecondary" sx={{ py: 2 }}>
-          No hay empleados registrados en la organización.
+                {empresa.cuit && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      CUIT
+                    </Typography>
+                    <Typography variant="body1">
+                      {empresa.cuit}
+                    </Typography>
+                  </Box>
+                )}
+
+                {empresa.condicionIVA && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Condición IVA
+                    </Typography>
+                    <Typography variant="body1">
+                      {empresa.condicionIVA}
+                    </Typography>
+                  </Box>
+                )}
+
+                {empresa.domicilio && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Domicilio
+                    </Typography>
+                    <Typography variant="body1">
+                      {empresa.domicilio}
+                    </Typography>
+                  </Box>
+                )}
+
+                {!esAdministrador && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    Solo los administradores pueden modificar los datos de la empresa
+                  </Alert>
+                )}
+              </Box>
+            ) : (
+              <Box>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Nombre de la Empresa
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={empresaEditada.nombre || ''}
+                    onChange={(e) => handleChangeEmpresa('nombre', e.target.value)}
+                  />
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    CUIT
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={empresaEditada.cuit || ''}
+                    onChange={(e) => handleChangeEmpresa('cuit', e.target.value)}
+                  />
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Condición IVA
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={empresaEditada.condicionIVA || ''}
+                    onChange={(e) => handleChangeEmpresa('condicionIVA', e.target.value)}
+                  />
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Domicilio
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={empresaEditada.domicilio || ''}
+                    onChange={(e) => handleChangeEmpresa('domicilio', e.target.value)}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={handleGuardarEmpresa}
+                    color="primary"
+                  >
+                    Guardar
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={handleCerrarEdicionEmpresa}
+                    color="secondary"
+                  >
+                    Cancelar
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          <Alert severity="warning">
+            No se encontraron datos de la empresa. Los datos se cargan automáticamente al iniciar sesión.
+          </Alert>
+        )}
+      </Paper>
+
+      {/* Empleados de la Organización */}
+      <Paper elevation={2} sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+          Empleados de la Organización ({empleados.length})
         </Typography>
-      ) : (
-        <List sx={{ width: '100%',  mb: 3 }}>
-          {empleados.map((empleado, index) => (
-            <React.Fragment key={empleado.id}>
-              <ListItem alignItems="flex-start">
-                <ListItemText
-                  primary={`${empleado.nombre} ${empleado.apellido}`}
-                  secondary={
-                    <Box>
-                      <Typography variant="body2" component="span">
-                        {empleado.puesto}
+        
+        {empleados.length === 0 ? (
+          <Typography variant="body2" color="textSecondary" sx={{ py: 2 }}>
+            No hay empleados registrados en la organización.
+          </Typography>
+        ) : (
+          <Box>
+            {empleados.map((empleado, index) => (
+              <Box key={empleado.sub}>
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="h6">
+                        {editandoEmpleado === empleado.sub ? empleadoEditado.nombre : empleado.nombre}
                       </Typography>
-                      <Typography variant="body2" component="div" color="textSecondary">
+                      {(editandoEmpleado === empleado.sub ? empleadoEditado.rol : empleado.rol) === "ADMINISTRADOR" && (
+                        <Chip 
+                          icon={<AdminIcon />} 
+                          label="Admin" 
+                          size="small" 
+                          color="primary" 
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                    {esAdministrador && (
+                      <Box>
+                        {editandoEmpleado === empleado.sub ? (
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="contained"
+                              startIcon={<SaveIcon />}
+                              onClick={handleGuardarEmpleado}
+                              size="small"
+                              color="primary"
+                            >
+                              Guardar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              onClick={handleCerrarEdicionEmpleado}
+                              size="small"
+                              color="secondary"
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Box>
+                            <IconButton 
+                              aria-label="editar"
+                              onClick={() => handleAbrirEdicionEmpleado(empleado)}
+                              sx={{ mr: 1 }}
+                              color="primary"
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton 
+                              aria-label="eliminar"
+                              onClick={() => handleEliminarEmpleado(empleado.sub)}
+                              color="error"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+
+                {editandoEmpleado === empleado.sub ? (
+                  <Box>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Nombre
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        value={empleadoEditado.nombre || ''}
+                        onChange={(e) => handleChangeEmpleado('nombre', e.target.value)}
+                      />
+                    </Box>
+
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Email
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        value={empleadoEditado.email || ''}
+                        onChange={(e) => handleChangeEmpleado('email', e.target.value)}
+                      />
+                    </Box>
+
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Teléfono
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        value={empleadoEditado.telefono || ''}
+                        onChange={(e) => handleChangeEmpleado('telefono', e.target.value)}
+                      />
+                    </Box>
+
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Rol
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        select
+                        SelectProps={{ native: true }}
+                        value={empleadoEditado.rol || ''}
+                        onChange={(e) => handleChangeEmpleado('rol', e.target.value)}
+                      >
+                        <option value="NORMAL">NORMAL</option>
+                        <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+                      </TextField>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Email
+                      </Typography>
+                      <Typography variant="body1">
                         {empleado.email}
                       </Typography>
                     </Box>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="editar"
-                    onClick={() => handleAbrirDialogoEdicion(empleado)}
-                    sx={{ mr: 1 }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="eliminar"
-                    onClick={() => handleEliminarEmpleado(empleado.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-              {index < empleados.length - 1 && <Divider variant="inset" component="li" />}
-            </React.Fragment>
-          ))}
-        </List>
-      )}
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 6, mb: 2 }}>
-        Invitar nuevos miembros
-      </Typography>
-      <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-        Ingresa las direcciones de correo electrónico de las personas que deseas invitar a tu organización
-      </Typography>
-      
-      <CustomMultiLine
-        value={emailsInvitacion}
-        onChange={setEmailsInvitacion}
-        placeholder="Ingresa emails separados por coma o presiona Enter"
-      />
+                    {empleado.telefono && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Teléfono
+                        </Typography>
+                        <Typography variant="body1">
+                          {empleado.telefono}
+                        </Typography>
+                      </Box>
+                    )}
 
-      <CustomButton
-        label="Enviar Invitaciones"
-        width="100%"
-        onClick={handleEnviarInvitaciones}
-      />
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Rol
+                      </Typography>
+                      <Typography variant="body1">
+                        {empleado.rol}
+                      </Typography>
+                    </Box>
 
-      {/* Diálogo para editar empleado */}
-      <Dialog open={dialogoAbierto} onClose={handleCerrarDialogo} maxWidth="sm" fullWidth>
-        <DialogTitle>Editar Empleado</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Nombre"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={empleadoEditado.nombre || ''}
-            onChange={(e) => handleChangeEmpleado('nombre', e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Apellido"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={empleadoEditado.apellido || ''}
-            onChange={(e) => handleChangeEmpleado('apellido', e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Email"
-            type="email"
-            fullWidth
-            variant="outlined"
-            value={empleadoEditado.email || ''}
-            disabled
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Puesto"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={empleadoEditado.puesto || ''}
-            onChange={(e) => handleChangeEmpleado('puesto', e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCerrarDialogo}>Cancelar</Button>
-          <Button 
-            onClick={handleGuardarEmpleado} 
-            variant="contained" 
-            startIcon={<SaveIcon />}
-          >
-            Guardar Cambios
-          </Button>
-        </DialogActions>
-      </Dialog>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Estado
+                      </Typography>
+                      <Typography variant="body1">
+                        {empleado.activo ? "Activo" : "Inactivo"}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {index < empleados.length - 1 && <Divider sx={{ my: 2 }} />}
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {!esAdministrador && empleados.length > 0 && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Solo los administradores pueden modificar o eliminar empleados
+          </Alert>
+        )}
+      </Paper>
+
     </Box>
   );
 }

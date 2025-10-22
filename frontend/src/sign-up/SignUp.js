@@ -17,11 +17,7 @@ import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { useNavigate } from "react-router-dom";
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
 
-import {
-  CognitoUserPool,
-  CognitoUserAttribute,
-  CognitoUser,
-} from "amazon-cognito-identity-js";
+import axios from "axios";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -68,73 +64,67 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 export default function SignUp(props) {
   const navigate = useNavigate();
 
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [code, setCode] = React.useState("");
+  const [formData, setFormData] = React.useState({
+    email: "",
+    password: "",
+    nombre: "",
+    apellido: "",
+    nombreEmpresa: "",
+  });
   const [errors, setErrors] = React.useState({});
   const [loading, setLoading] = React.useState(false);
   const [successMsg, setSuccessMsg] = React.useState("");
-  const [isConfirmStep, setIsConfirmStep] = React.useState(false);
-
-  const poolData = {
-    UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID,
-    ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,
-  };
-  const userPool = new CognitoUserPool(poolData);
 
   const validateInputs = () => {
     let errs = {};
-    if (!/\S+@\S+\.\S+/.test(email)) {
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errs.email = "Please enter a valid email address.";
     }
-    if (!isConfirmStep && (!password || password.length < 6)) {
+    if (!formData.password || formData.password.length < 6) {
       errs.password = "Password must be at least 6 characters long.";
     }
-    if (isConfirmStep && !code) {
-      errs.code = "Please enter the code you received by email.";
+    if (!formData.nombre || formData.nombre.trim() === "") {
+      errs.nombre = "Name is required.";
+    }
+    if (!formData.apellido || formData.apellido.trim() === "") {
+      errs.apellido = "Last name is required.";
+    }
+    if (!formData.nombreEmpresa || formData.nombreEmpresa.trim() === "") {
+      errs.nombreEmpresa = "Company name is required.";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validateInputs()) return;
 
     setLoading(true);
     setSuccessMsg("");
 
-    if (!isConfirmStep) {
-      // Paso 1: Registro
-      const attributeList = [new CognitoUserAttribute({ Name: "email", Value: email })];
-
-      userPool.signUp(email, password, attributeList, null, (err, result) => {
-        setLoading(false);
-        if (err) {
-          console.error("SignUp Error", err);
-          setErrors({ global: err.message || JSON.stringify(err) });
-          return;
-        }
-        console.log("User created:", result);
-        setSuccessMsg("Account created! Please check your email for the confirmation code.");
-        setIsConfirmStep(true);
+    try {
+      // Registrar usuario completo en backend
+      const response = await axios.post("http://localhost:8081/api/auth/registro", {
+        email: formData.email,
+        password: formData.password,
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        nombreEmpresa: formData.nombreEmpresa,
       });
-    } else {
-      // Paso 2: Confirmación
-      const userData = { Username: email, Pool: userPool };
-      const cognitoUser = new CognitoUser(userData);
 
-      cognitoUser.confirmRegistration(code, true, (err, result) => {
-        setLoading(false);
-        if (err) {
-          console.error("Confirm Error", err);
-          setErrors({ global: err.message || JSON.stringify(err) });
-          return;
-        }
-        console.log("Confirm result:", result);
-        setSuccessMsg("Account confirmed! Redirecting to Sign in...");
-        setTimeout(() => navigate("/signin"), 1500);
-      });
+      console.log("Usuario registrado:", response.data);
+      
+      // Guardar email temporalmente para la confirmación
+      sessionStorage.setItem("tempEmail", formData.email);
+      
+      setSuccessMsg(response.data.mensaje || "Account created successfully!");
+      setTimeout(() => navigate("/confirm-account"), 1500);
+    } catch (err) {
+      console.error("SignUp Error", err);
+      setErrors({ global: err.response?.data?.error || "Error creating account" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -150,7 +140,7 @@ export default function SignUp(props) {
             variant="h4"
             sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
           >
-            {isConfirmStep ? "Confirm your account" : "Sign up"}
+            Sign up
           </Typography>
 
           <Box
@@ -158,104 +148,110 @@ export default function SignUp(props) {
             onSubmit={handleSubmit}
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl sx={{ flex: 1 }}>
+                <FormLabel>Nombre</FormLabel>
+                <TextField
+                  required
+                  fullWidth
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  error={!!errors.nombre}
+                  helperText={errors.nombre}
+                />
+              </FormControl>
+
+              <FormControl sx={{ flex: 1 }}>
+                <FormLabel>Apellido</FormLabel>
+                <TextField
+                  required
+                  fullWidth
+                  value={formData.apellido}
+                  onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
+                  error={!!errors.apellido}
+                  helperText={errors.apellido}
+                />
+              </FormControl>
+            </Box>
+
+            <FormControl>
+              <FormLabel>Nombre de Empresa</FormLabel>
+              <TextField
+                required
+                fullWidth
+                value={formData.nombreEmpresa}
+                onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })}
+                error={!!errors.nombreEmpresa}
+                helperText={errors.nombreEmpresa}
+              />
+            </FormControl>
+
             <FormControl>
               <FormLabel>Email</FormLabel>
               <TextField
                 required
                 fullWidth
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isConfirmStep} // no editable en confirmación
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 error={!!errors.email}
                 helperText={errors.email}
               />
             </FormControl>
 
-            {!isConfirmStep && (
-              <FormControl>
-                <FormLabel>Password</FormLabel>
-                <TextField
-                  required
-                  fullWidth
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  error={!!errors.password}
-                  helperText={errors.password}
-                />
-              </FormControl>
-            )}
-
-            {isConfirmStep && (
-              <>
-                <FormControl>
-                  <FormLabel>Confirmation Code</FormLabel>
-                  <TextField
-                    required
-                    fullWidth
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    error={!!errors.code}
-                    helperText={errors.code}
-                  />
-                </FormControl>
-                <Typography variant="body2" color="text.secondary">
-                  Please enter the code we sent to your email to confirm your account.
-                </Typography>
-              </>
-            )}
+            <FormControl>
+              <FormLabel>Password</FormLabel>
+              <TextField
+                required
+                fullWidth
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                error={!!errors.password}
+                helperText={errors.password}
+              />
+            </FormControl>
 
             {errors.global && <Typography color="error">{errors.global}</Typography>}
             {successMsg && <Typography color="primary">{successMsg}</Typography>}
 
             <Button type="submit" fullWidth variant="contained" disabled={loading}>
-              {loading
-                ? isConfirmStep
-                  ? "Confirming..."
-                  : "Creating..."
-                : isConfirmStep
-                ? "Confirm account"
-                : "Sign up"}
+              {loading ? "Creating account..." : "Sign up"}
             </Button>
           </Box>
 
-          {!isConfirmStep && (
-            <>
-              <Divider>
-                <Typography sx={{ color: "text.secondary" }}>or</Typography>
-              </Divider>
+          <Divider>
+            <Typography sx={{ color: "text.secondary" }}>or</Typography>
+          </Divider>
 
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  onClick={() =>
-                    alert("Sign up with Google (configure Cognito Hosted UI)")
-                  }
-                  startIcon={<GoogleIcon />}
-                >
-                  Sign up with Google
-                </Button>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  onClick={() =>
-                    alert("Sign up with Facebook (configure Cognito Hosted UI)")
-                  }
-                  startIcon={<FacebookIcon />}
-                >
-                  Sign up with Facebook
-                </Button>
-                <Typography sx={{ textAlign: "center" }}>
-                  Already have an account?{" "}
-                  <Link href="/#/signin" variant="body2" sx={{ alignSelf: "center" }}>
-                    Sign in
-                  </Link>
-                </Typography>
-              </Box>
-            </>
-          )}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() =>
+                alert("Sign up with Google (configure Cognito Hosted UI)")
+              }
+              startIcon={<GoogleIcon />}
+            >
+              Sign up with Google
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() =>
+                alert("Sign up with Facebook (configure Cognito Hosted UI)")
+              }
+              startIcon={<FacebookIcon />}
+            >
+              Sign up with Facebook
+            </Button>
+            <Typography sx={{ textAlign: "center" }}>
+              Already have an account?{" "}
+              <Link href="/#/signin" variant="body2" sx={{ alignSelf: "center" }}>
+                Sign in
+              </Link>
+            </Typography>
+          </Box>
         </Card>
       </SignUpContainer>
     </AppTheme>

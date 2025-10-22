@@ -16,7 +16,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/conciliacion")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ConciliacionController {
 
     private final ConciliacionService conciliacionService;

@@ -7,7 +7,7 @@ import registro.cargarDatos.models.*;
 import registro.cargarDatos.repositories.FacturaRepository;
 import registro.cargarDatos.repositories.PagareRepository;
 import registro.cargarDatos.repositories.ReciboRepository;
-import registro.cargarDatos.repositories.RegistroRepository;
+import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.conciliacion.dtos.DocumentoSugeridoDTO;
 import registro.conciliacion.dtos.MovimientoDTO;
 
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConciliacionService {
 
-    private final RegistroRepository registroRepository;
+    private final MovimientoRepository movimientoRepository;
     private final FacturaRepository facturaRepository;
     private final PagareRepository pagareRepository;
     private final ReciboRepository reciboRepository;
@@ -30,7 +30,7 @@ public class ConciliacionService {
      * Obtiene todos los movimientos sin conciliar
      */
     public List<MovimientoDTO> obtenerMovimientosSinConciliar() {
-        List<Registro> registros = registroRepository.findAll();
+        List<Movimiento> registros = movimientoRepository.findAll();
         
         return registros.stream()
                 .filter(r -> r.getDocumentoComercial() == null)
@@ -42,7 +42,7 @@ public class ConciliacionService {
      * Obtiene todos los movimientos (conciliados y sin conciliar)
      */
     public List<MovimientoDTO> obtenerTodosLosMovimientos() {
-        List<Registro> registros = registroRepository.findAll();
+        List<Movimiento> registros = movimientoRepository.findAll();
         
         return registros.stream()
                 .map(this::convertirAMovimientoDTO)
@@ -53,7 +53,7 @@ public class ConciliacionService {
      * Sugiere documentos para un movimiento específico usando algoritmo de matching
      */
     public List<DocumentoSugeridoDTO> sugerirDocumentos(Long movimientoId) {
-        Registro movimiento = registroRepository.findById(movimientoId)
+        Movimiento movimiento = movimientoRepository.findById(movimientoId)
                 .orElseThrow(() -> new RuntimeException("Movimiento no encontrado"));
 
         List<DocumentoSugeridoDTO> sugerencias = new ArrayList<>();
@@ -97,7 +97,7 @@ public class ConciliacionService {
      */
     @Transactional
     public MovimientoDTO vincularMovimientoConDocumento(Long movimientoId, Long documentoId) {
-        Registro movimiento = registroRepository.findById(movimientoId)
+        Movimiento movimiento = movimientoRepository.findById(movimientoId)
                 .orElseThrow(() -> new RuntimeException("Movimiento no encontrado"));
 
         // Buscar el documento en todas las tablas
@@ -108,7 +108,12 @@ public class ConciliacionService {
         }
 
         movimiento.setDocumentoComercial(documento);
-        Registro guardado = registroRepository.save(movimiento);
+        Movimiento guardado = movimientoRepository.save(movimiento);
+        
+        // Actualizar estado de pago si el documento es una Factura
+        if (documento instanceof Factura) {
+            actualizarEstadoPagoFactura((Factura) documento);
+        }
 
         return convertirAMovimientoDTO(guardado);
     }
@@ -118,11 +123,17 @@ public class ConciliacionService {
      */
     @Transactional
     public MovimientoDTO desvincularMovimiento(Long movimientoId) {
-        Registro movimiento = registroRepository.findById(movimientoId)
+        Movimiento movimiento = movimientoRepository.findById(movimientoId)
                 .orElseThrow(() -> new RuntimeException("Movimiento no encontrado"));
 
+        DocumentoComercial documento = movimiento.getDocumentoComercial();
         movimiento.setDocumentoComercial(null);
-        Registro guardado = registroRepository.save(movimiento);
+        Movimiento guardado = movimientoRepository.save(movimiento);
+        
+        // Actualizar estado de pago si el documento era una Factura
+        if (documento instanceof Factura) {
+            actualizarEstadoPagoFactura((Factura) documento);
+        }
 
         return convertirAMovimientoDTO(guardado);
     }
@@ -130,7 +141,7 @@ public class ConciliacionService {
     /**
      * Algoritmo de scoring para calcular coincidencia entre movimiento y documento
      */
-    private int calcularScore(Registro movimiento, DocumentoComercial documento) {
+    private int calcularScore(Movimiento movimiento, DocumentoComercial documento) {
         int score = 0;
 
         // 1. Coincidencia de fecha (40 puntos)
@@ -183,11 +194,11 @@ public class ConciliacionService {
     /**
      * Calcula similitud de texto entre movimiento y documento
      */
-    private int calcularSimilitudTexto(Registro movimiento, DocumentoComercial documento) {
+    private int calcularSimilitudTexto(Movimiento movimiento, DocumentoComercial documento) {
         int score = 0;
 
-        String origen = movimiento.getOrigen() != null ? movimiento.getOrigen().toLowerCase() : "";
-        String destino = movimiento.getDestino() != null ? movimiento.getDestino().toLowerCase() : "";
+        String origenNombre = movimiento.getOrigenNombre() != null ? movimiento.getOrigenNombre().toLowerCase() : "";
+        String destinoNombre = movimiento.getDestinoNombre() != null ? movimiento.getDestinoNombre().toLowerCase() : "";
         String descripcion = movimiento.getDescripcion() != null ? movimiento.getDescripcion().toLowerCase() : "";
 
         List<String> nombresDocumento = obtenerNombresDelDocumento(documento);
@@ -196,10 +207,10 @@ public class ConciliacionService {
             String nombreLower = nombre.toLowerCase();
             
             // Verificar si el nombre está contenido en origen, destino o descripción
-            if (origen.contains(nombreLower) || nombreLower.contains(origen)) {
+            if (origenNombre.contains(nombreLower) || nombreLower.contains(origenNombre)) {
                 score += 7;
             }
-            if (destino.contains(nombreLower) || nombreLower.contains(destino)) {
+            if (destinoNombre.contains(nombreLower) || nombreLower.contains(destinoNombre)) {
                 score += 7;
             }
             if (descripcion.contains(nombreLower) || nombreLower.contains(descripcion)) {
@@ -256,15 +267,15 @@ public class ConciliacionService {
     /**
      * Convierte un Registro a MovimientoDTO
      */
-    private MovimientoDTO convertirAMovimientoDTO(Registro registro) {
+    private MovimientoDTO convertirAMovimientoDTO(Movimiento registro) {
         MovimientoDTO dto = new MovimientoDTO();
         dto.setId(registro.getId());
         dto.setTipo(registro.getTipo());
         dto.setMontoTotal(registro.getMontoTotal());
         dto.setFechaEmision(registro.getFechaEmision());
         dto.setCategoria(registro.getCategoria());
-        dto.setOrigen(registro.getOrigen());
-        dto.setDestino(registro.getDestino());
+        dto.setOrigen(registro.getOrigenNombre()); // Mapeo a origenNombre
+        dto.setDestino(registro.getDestinoNombre()); // Mapeo a destinoNombre
         dto.setDescripcion(registro.getDescripcion());
         dto.setMedioPago(registro.getMedioPago());
         dto.setMoneda(registro.getMoneda());
@@ -288,9 +299,9 @@ public class ConciliacionService {
     /**
      * Determina la fuente de origen del registro
      */
-    private String determinarFuenteOrigen(Registro registro) {
+    private String determinarFuenteOrigen(Movimiento registro) {
         // Si el origen contiene "MercadoPago" o similar
-        if (registro.getOrigen() != null && registro.getOrigen().toLowerCase().contains("mercadopago")) {
+        if (registro.getOrigenNombre() != null && registro.getOrigenNombre().toLowerCase().contains("mercadopago")) {
             return "MERCADOPAGO";
         }
         
@@ -390,6 +401,50 @@ public class ConciliacionService {
         } else {
             return "Coincidencia baja, verificar manualmente";
         }
+    }
+    
+    /**
+     * Actualiza el estado de pago de una factura basado en los movimientos conciliados
+     */
+    private void actualizarEstadoPagoFactura(Factura factura) {
+        // Obtener todos los movimientos conciliados con esta factura
+        List<Movimiento> movimientos = movimientoRepository.findAll().stream()
+                .filter(r -> r.getDocumentoComercial() != null && 
+                            r.getDocumentoComercial().getIdDocumento().equals(factura.getIdDocumento()))
+                .collect(Collectors.toList());
+        
+        if (movimientos.isEmpty()) {
+            // Sin movimientos, marcar como NO_PAGADO y PagoPendiente
+            factura.setEstadoPago(EstadoPago.NO_PAGADO);
+            factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.PagoPendiente);
+        } else {
+            // Sumar todos los montos de los movimientos
+            double totalPagado = movimientos.stream()
+                    .mapToDouble(r -> Math.abs(r.getMontoTotal() != null ? r.getMontoTotal() : 0.0))
+                    .sum();
+            
+            double montoFactura = Math.abs(factura.getMontoTotal() != null ? factura.getMontoTotal() : 0.0);
+            
+            // Comparar con tolerancia del 1% para errores de redondeo
+            double diferencia = Math.abs(totalPagado - montoFactura);
+            double tolerancia = montoFactura * 0.01;
+            
+            if (diferencia <= tolerancia || totalPagado >= montoFactura) {
+                // Pago completo
+                factura.setEstadoPago(EstadoPago.PAGADO);
+                factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.Pago);
+            } else if (totalPagado > 0) {
+                // Pago parcial
+                factura.setEstadoPago(EstadoPago.PARCIALMENTE_PAGADO);
+                factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.PagoParcialmente);
+            } else {
+                // Sin pago
+                factura.setEstadoPago(EstadoPago.NO_PAGADO);
+                factura.setEstadoDocumentoComercial(EstadoDocumentoComercial.PagoPendiente);
+            }
+        }
+        
+        facturaRepository.save(factura);
     }
 }
 

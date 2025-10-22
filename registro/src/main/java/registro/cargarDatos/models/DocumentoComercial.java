@@ -40,6 +40,11 @@ public abstract class DocumentoComercial {
     // historial
     private LocalDate fechaCreacion; //interno
     private LocalDate fechaActualizacion; //interno
-    private UUID usuario; //interno
+    
+    // Usuario que creó el documento (sub de Cognito)
+    private String usuarioId; //interno
+    
+    // Organización a la que pertenece el documento
+    private Long organizacionId; //interno
 
 }

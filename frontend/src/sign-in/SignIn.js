@@ -18,6 +18,8 @@ import ForgotPassword from "./components/ForgotPassword";
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import {
   CognitoUserPool,
@@ -68,6 +70,7 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignIn(props) {
+  const navigate = useNavigate();
   const [formValues, setFormValues] = React.useState({
     email: "",
     password: "",
@@ -113,60 +116,54 @@ export default function SignIn(props) {
     });
 
     cognitoUser.authenticateUser(authenticationDetails, {
-      onSuccess: (result) => {
-        setLoading(false);
+      onSuccess: async (result) => {
         console.log("Login success", result);
 
         const accessToken = result.getAccessToken().getJwtToken();
         const idToken = result.getIdToken().getJwtToken();
         const refreshToken = result.getRefreshToken().getToken();
+        const sub = result.getIdToken().payload.sub;
 
-        // ✅ Guardar tokens en sessionStorage
+        // Guardar tokens
         sessionStorage.setItem("accessToken", accessToken);
         sessionStorage.setItem("idToken", idToken);
         sessionStorage.setItem("refreshToken", refreshToken);
 
-        // ✅ Obtener atributos del usuario
-        cognitoUser.getUserAttributes((err, attributes) => {
-          if (err) {
-            console.error("Error obteniendo atributos:", err);
-          } else {
-            const attrMap = {};
-            attributes.forEach((attr) => {
-              attrMap[attr.Name] = attr.Value;
-            });
+        try {
+          // Obtener datos del usuario desde la BD
+          const perfilResponse = await axios.get("http://localhost:8081/api/usuarios/perfil", {
+            headers: {
+              "X-Usuario-Sub": sub
+            }
+          });
 
-            // Guardar los atributos si están presentes
-            if (attrMap.email) {
-              sessionStorage.setItem("email", attrMap.email);
-            }
-            if (attrMap.name) {
-              sessionStorage.setItem("name", attrMap.name);
-            }
-            if (attrMap.family_name) {
-              sessionStorage.setItem("family_name", attrMap.family_name);
-            }
-            if (attrMap["custom:organizacion"]) {
-              sessionStorage.setItem("organizacion", attrMap["custom:organizacion"]);
-            }
-            if (attrMap.phone_number) {
-              sessionStorage.setItem("phone_number", attrMap.phone_number);
-            }
-            if (attrMap["custom:puesto"]) {
-              sessionStorage.setItem("custom:puesto", attrMap["custom:puesto"]);
-            }
-
-            window.dispatchEvent(new Event("userDataUpdated"));
-
-            console.log("Atributos del usuario:", attrMap);
+          // Guardar datos del usuario desde la BD
+          const userData = perfilResponse.data;
+          sessionStorage.setItem("sub", sub);
+          sessionStorage.setItem("email", userData.email);
+          sessionStorage.setItem("nombre", userData.nombre);
+          sessionStorage.setItem("telefono", userData.telefono || "");
+          
+          // Guardar datos de la empresa (sin IDs)
+          if (userData.empresaId) {
+            sessionStorage.setItem("empresaNombre", userData.empresaNombre || "");
+            sessionStorage.setItem("empresaCuit", userData.empresaCuit || "");
+            sessionStorage.setItem("empresaCondicionIVA", userData.empresaCondicionIVA || "");
+            sessionStorage.setItem("empresaDomicilio", userData.empresaDomicilio || "");
           }
-        });
 
-        setGlobalMsg("Login successful!");
+          window.dispatchEvent(new Event("userDataUpdated"));
 
-        // Redirigir al dashboard
-        const redirectUrl = `${window.location.origin}/#/dashboard`;
-        window.location.href = redirectUrl;
+          setGlobalMsg("Login successful!");
+          setLoading(false);
+
+          // Redirigir al home
+          window.location.href = "http://localhost:3000/#";
+        } catch (err) {
+          setLoading(false);
+          console.error("Error loading user profile:", err);
+          setGlobalMsg("Error loading user profile. Please contact support.");
+        }
       },
       onFailure: (err) => {
         setLoading(false);

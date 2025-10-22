@@ -2,8 +2,8 @@ package registro.movimientosexcel.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import registro.cargarDatos.models.Registro;
-import registro.cargarDatos.repositories.RegistroRepository;
+import registro.cargarDatos.models.Movimiento;
+import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.movimientosexcel.dtos.RegistroPreviewDTO;
 
 import java.time.LocalDate;
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 public class DuplicateDetectionService {
     
     @Autowired
-    private RegistroRepository registroRepository;
+    private MovimientoRepository MovimientoRepository;
     
     /**
      * Detecta duplicados en la base de datos para una lista de registros preview
@@ -29,21 +29,21 @@ public class DuplicateDetectionService {
         
         // Crear un set de registros únicos para verificar eficientemente
         Set<RegistroKey> registrosParaVerificar = registrosPreview.stream()
-            .map(this::crearRegistroKey)
+            .map(this::crearMovimientoKey)
             .collect(Collectors.toSet());
         
         // Buscar duplicados en la BD de una sola vez
-        List<Registro> duplicadosEnBD = buscarDuplicadosEnBD(registrosParaVerificar);
+        List<Movimiento> duplicadosEnBD = buscarDuplicadosEnBD(registrosParaVerificar);
         
         // Crear un set de duplicados para búsqueda rápida
         Set<RegistroKey> duplicadosSet = duplicadosEnBD.stream()
-            .map(this::crearRegistroKey)
+            .map(this::crearMovimientoKey)
             .collect(Collectors.toSet());
         
         // Marcar duplicados en los registros preview
         return registrosPreview.stream()
             .map(registro -> {
-                RegistroKey key = crearRegistroKey(registro);
+                RegistroKey key = crearMovimientoKey(registro);
                 if (duplicadosSet.contains(key)) {
                     registro.setEsDuplicado(true);
                     registro.setMotivoDuplicado("Movimiento ya existe en la base de datos");
@@ -56,19 +56,19 @@ public class DuplicateDetectionService {
     /**
      * Busca duplicados en la base de datos usando una consulta optimizada
      */
-    private List<Registro> buscarDuplicadosEnBD(Set<RegistroKey> registrosParaVerificar) {
+    private List<Movimiento> buscarDuplicadosEnBD(Set<RegistroKey> registrosParaVerificar) {
         // Obtener todas las fechas únicas para optimizar la consulta
         Set<LocalDate> fechasUnicas = registrosParaVerificar.stream()
             .map(RegistroKey::getFechaEmision)
             .collect(Collectors.toSet());
         
         // Buscar registros que coincidan en fecha (primer filtro)
-        List<Registro> registrosPorFecha = registroRepository.findByFechaEmisionIn(fechasUnicas);
+        List<Movimiento> registrosPorFecha = MovimientoRepository.findByFechaEmisionIn(fechasUnicas);
         
         // Filtrar los que realmente son duplicados
         return registrosPorFecha.stream()
             .filter(registro -> {
-                RegistroKey key = crearRegistroKey(registro);
+                RegistroKey key = crearMovimientoKey(registro);
                 return registrosParaVerificar.contains(key);
             })
             .collect(Collectors.toList());
@@ -77,24 +77,24 @@ public class DuplicateDetectionService {
     /**
      * Crea una clave única para identificar registros duplicados
      */
-    private RegistroKey crearRegistroKey(RegistroPreviewDTO registro) {
+    private RegistroKey crearMovimientoKey(RegistroPreviewDTO movimiento) {
         return new RegistroKey(
-            registro.getFechaEmision(),
-            registro.getMontoTotal(),
-            registro.getDescripcion(),
-            registro.getOrigen()
+            movimiento.getFechaEmision(),
+            movimiento.getMontoTotal(),
+            movimiento.getDescripcion(),
+            movimiento.getOrigen()
         );
     }
     
     /**
      * Crea una clave única para identificar registros duplicados desde la BD
      */
-    private RegistroKey crearRegistroKey(Registro registro) {
+    private RegistroKey crearMovimientoKey(Movimiento movimiento) {
         return new RegistroKey(
-            registro.getFechaEmision(),
-            registro.getMontoTotal(),
-            registro.getDescripcion(),
-            registro.getOrigen()
+            movimiento.getFechaEmision(),
+            movimiento.getMontoTotal(),
+            movimiento.getDescripcion(),
+            movimiento.getOrigenNombre()
         );
     }
     

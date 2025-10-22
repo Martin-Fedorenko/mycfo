@@ -1,33 +1,45 @@
-HELP.md
+# Maven
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
+# IDE
+.idea/
 *.iws
 *.iml
 *.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
 .vscode/
+
+# Environment files - NUNCA SUBIR CREDENCIALES
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# Docker
+docker-compose.override.yml
+
+# Application properties con credenciales
+application-local.properties
+application-dev.properties
+application-prod.properties
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Spring Boot
+HELP.md
+.mvn/wrapper/maven-wrapper.jar

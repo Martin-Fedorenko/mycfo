@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import registro.cargarDatos.models.TipoMedioPago;
 import registro.cargarDatos.models.TipoMoneda;
-import registro.cargarDatos.models.TipoRegistro;
+import registro.cargarDatos.models.TipoMovimiento;
 
 import java.time.LocalDate;
 
@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Setter
 public class RegistroPreviewDTO {
     private Integer filaExcel;
-    private TipoRegistro tipo;
+    private TipoMovimiento tipo;
     private Double montoTotal;
     private LocalDate fechaEmision;
     private String descripcion;
@@ -23,7 +23,7 @@ public class RegistroPreviewDTO {
     private Boolean esDuplicado;
     private String motivoDuplicado;
     
-    public RegistroPreviewDTO(Integer filaExcel, TipoRegistro tipo, Double montoTotal, 
+    public RegistroPreviewDTO(Integer filaExcel, TipoMovimiento tipo, Double montoTotal, 
                              LocalDate fechaEmision, String descripcion, String origen,
                              TipoMedioPago medioPago, TipoMoneda moneda) {
         this.filaExcel = filaExcel;

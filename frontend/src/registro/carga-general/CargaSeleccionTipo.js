@@ -1,15 +1,18 @@
 import React from "react";
 import { Box, Typography, Grid, ButtonBase } from "@mui/material";
-import { Receipt, SwapHoriz } from "@mui/icons-material";
+import { Receipt, TrendingUp, TrendingDown, AccountBalance, Wallet, Handshake } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
 export default function CargaSeleccionTipo() {
   const navigate = useNavigate();
 
   const tipos = [
+    { key: "Ingreso", label: "Ingreso", icon: <TrendingUp fontSize="large" /> },
+    { key: "Egreso", label: "Egreso", icon: <TrendingDown fontSize="large" /> },
+    { key: "Deuda", label: "Deuda", icon: <AccountBalance fontSize="large" /> },
+    { key: "Acreencia", label: "Acreencia", icon: <Wallet fontSize="large" /> },
     { key: "Factura", label: "Factura", icon: <Receipt fontSize="large" /> },
-    { key: "Movimiento", label: "Movimiento", icon: <SwapHoriz fontSize="large" /> },
-    // 🔹 más tipos en el futuro
+    { key: "Movimientos", label: "Movimientos bancarios", icon: <Handshake fontSize="large" /> },
   ];
 
   return (
