@@ -202,7 +202,7 @@ const getRecentPeriods = (count = 6) =>
     return { label, value };
   });
 
-const Dashboard = () => {
+const Dashboard = React.memo(() => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -226,19 +226,17 @@ const Dashboard = () => {
       return next;
     });
 
-    clearTimeout(fetchTimeoutRef.current);
-    fetchTimeoutRef.current = setTimeout(() => {
-      setState({
-        kpis: { loading: false, error: null, data: mockKpis },
-        budget: { loading: false, error: null, data: mockBudget },
-        cashflow: { loading: false, error: null, data: mockCashflow },
-        dueDates: { loading: false, error: null, data: mockDueDates },
-        tasks: { loading: false, error: null, data: mockTasks },
-        movements: { loading: false, error: null, data: mockMovements },
-        reconciliation: { loading: false, error: null, data: mockReconciliation },
-        billing: { loading: false, error: null, data: mockBilling },
-      });
-    }, 700);
+    // Carga inmediata sin timeout artificial para navegación instantánea
+    setState({
+      kpis: { loading: false, error: null, data: mockKpis },
+      budget: { loading: false, error: null, data: mockBudget },
+      cashflow: { loading: false, error: null, data: mockCashflow },
+      dueDates: { loading: false, error: null, data: mockDueDates },
+      tasks: { loading: false, error: null, data: mockTasks },
+      movements: { loading: false, error: null, data: mockMovements },
+      reconciliation: { loading: false, error: null, data: mockReconciliation },
+      billing: { loading: false, error: null, data: mockBilling },
+    });
   }, []);
 
   React.useEffect(() => {
@@ -578,6 +576,6 @@ const Dashboard = () => {
       </Snackbar>
     </Box>
   );
-};
+});
 
 export default Dashboard;

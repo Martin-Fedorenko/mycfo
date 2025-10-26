@@ -23,16 +23,21 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
     }
   }, [formData.fechaEmision, setFormData]);
 
-  // Cargar datos de la empresa del usuario desde la sesión
+  // Cargar datos de la empresa del usuario desde la sesión (diferido)
   useEffect(() => {
-    console.log('Cargando datos de la empresa desde sesión...');
-    const empresa = sessionService.getEmpresa();
-    console.log('Datos de empresa obtenidos:', empresa);
-    if (empresa) {
-      setDatosEmpresa(empresa);
-    } else {
-      console.log('No hay datos de empresa en la sesión');
-    }
+    // Pequeño delay para evitar bloquear la navegación
+    const timer = setTimeout(() => {
+      console.log('Cargando datos de la empresa desde sesión...');
+      const empresa = sessionService.getEmpresa();
+      console.log('Datos de empresa obtenidos:', empresa);
+      if (empresa) {
+        setDatosEmpresa(empresa);
+      } else {
+        console.log('No hay datos de empresa en la sesión');
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Función para autocompletar datos según la versión

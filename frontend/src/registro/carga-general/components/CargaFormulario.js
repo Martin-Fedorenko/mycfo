@@ -2,13 +2,16 @@ import React from "react";
 import { Typography, Grid } from "@mui/material";
 import axios from "axios";
 import CustomButton from "../../../shared-components/CustomButton";
-import FormFactura from "./forms/FormFactura";
-import FormRegistro from "./forms/FormRegistro";
-import FormIngreso from "./forms/FormIngreso";
-import FormEgreso from "./forms/FormEgreso";
-import FormDeuda from "./forms/FormDeuda";
-import FormAcreencia from "./forms/FormAcreencia";
+import LazyFormWrapper from "./LazyFormWrapper";
 import API_CONFIG from "../../../config/api-config";
+
+// Lazy loading para formularios específicos
+const FormFactura = React.lazy(() => import("./forms/FormFactura"));
+const FormRegistro = React.lazy(() => import("./forms/FormRegistro"));
+const FormIngreso = React.lazy(() => import("./forms/FormIngreso"));
+const FormEgreso = React.lazy(() => import("./forms/FormEgreso"));
+const FormDeuda = React.lazy(() => import("./forms/FormDeuda"));
+const FormAcreencia = React.lazy(() => import("./forms/FormAcreencia"));
 
 // 📌 Campos obligatorios por tipo de documento
 const requiredFieldsMap = {
@@ -124,52 +127,64 @@ export default function CargaFormulario({
     switch (tipoDoc) {
       case "factura":
         return (
-          <FormFactura
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormFactura
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+            />
+          </LazyFormWrapper>
         );
       case "movimiento":
         return (
-          <FormRegistro
-            tipoDoc={tipoDoc}
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormRegistro
+              tipoDoc={tipoDoc}
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+            />
+          </LazyFormWrapper>
         );
       case "ingreso":
         return (
-          <FormIngreso
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormIngreso
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+            />
+          </LazyFormWrapper>
         );
       case "egreso":
         return (
-          <FormEgreso
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormEgreso
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+            />
+          </LazyFormWrapper>
         );
       case "deuda":
         return (
-          <FormDeuda
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormDeuda
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+            />
+          </LazyFormWrapper>
         );
       case "acreencia":
         return (
-          <FormAcreencia
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormAcreencia
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+            />
+          </LazyFormWrapper>
         );
       default:
         return <Typography>No hay formulario definido para {tipoDoc}</Typography>;

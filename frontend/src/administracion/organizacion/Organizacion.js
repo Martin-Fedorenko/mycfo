@@ -23,6 +23,7 @@ import axios from "axios";
 import CampoEditable from "../../shared-components/CustomButton";
 import { sessionService } from "../../shared-services/sessionService";
 import { organizacionService } from "../../shared-services/organizacionService";
+import InvitarColaboradores from "../invitaciones/InvitarColaboradores";
 
 const API_URL = "http://localhost:8081";
 
@@ -56,6 +57,8 @@ export default function Organizacion() {
         headers: { "X-Usuario-Sub": sub }
       });
       console.log('Perfil del usuario:', perfilResponse.data);
+      console.log('EmpresaId del usuario:', perfilResponse.data.empresaId);
+      console.log('EmpresaNombre del usuario:', perfilResponse.data.empresaNombre);
       setUsuarioRol(perfilResponse.data.rol);
 
       // Cargar datos de la organización usando el servicio
@@ -110,7 +113,14 @@ export default function Organizacion() {
       setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
     } catch (error) {
       console.error("Error guardando empleado:", error);
-      setMensaje({ tipo: 'error', texto: 'Error al guardar los cambios del empleado' });
+      
+      // Mostrar mensaje específico según el tipo de error
+      let mensajeError = 'Error al guardar los cambios del empleado';
+      if (error.response?.status === 403) {
+        mensajeError = 'Solo los administradores pueden actualizar empleados.';
+      }
+      
+      setMensaje({ tipo: 'error', texto: mensajeError });
     }
   };
 
@@ -131,7 +141,18 @@ export default function Organizacion() {
       setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
     } catch (error) {
       console.error("Error eliminando empleado:", error);
-      setMensaje({ tipo: 'error', texto: 'Error al eliminar el empleado' });
+      
+      // Mostrar mensaje específico según el tipo de error
+      let mensajeError = 'Error al eliminar el empleado';
+      if (error.response?.status === 403) {
+        if (empleadoSub === sub) {
+          mensajeError = 'No puedes eliminar tu propia cuenta. Debe hacerlo otro administrador.';
+        } else {
+          mensajeError = 'Solo los administradores pueden eliminar empleados.';
+        }
+      }
+      
+      setMensaje({ tipo: 'error', texto: mensajeError });
     }
   };
 
@@ -371,6 +392,14 @@ export default function Organizacion() {
                           variant="outlined"
                         />
                       )}
+                      {empleado.sub === sub && (
+                        <Chip 
+                          label="Tú" 
+                          size="small" 
+                          color="secondary" 
+                          variant="outlined"
+                        />
+                      )}
                     </Box>
                     {esAdministrador && (
                       <Box>
@@ -404,13 +433,16 @@ export default function Organizacion() {
                             >
                               <EditIcon />
                             </IconButton>
-                            <IconButton 
-                              aria-label="eliminar"
-                              onClick={() => handleEliminarEmpleado(empleado.sub)}
-                              color="error"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
+                            {/* Solo mostrar botón eliminar si no es el propio usuario */}
+                            {empleado.sub !== sub && (
+                              <IconButton 
+                                aria-label="eliminar"
+                                onClick={() => handleEliminarEmpleado(empleado.sub)}
+                                color="error"
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            )}
                           </Box>
                         )}
                       </Box>
@@ -527,6 +559,12 @@ export default function Organizacion() {
           </Alert>
         )}
       </Paper>
+
+      {/* Invitar Colaboradores */}
+      <InvitarColaboradores 
+        empresaNombre={empresa?.nombre} 
+        esAdministrador={esAdministrador} 
+      />
 
     </Box>
   );

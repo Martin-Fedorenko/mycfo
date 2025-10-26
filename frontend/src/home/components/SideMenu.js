@@ -48,14 +48,11 @@ const CustomIcon = () => {
   );
 };
 
-export default function SideMenu({
+const SideMenu = React.memo(function SideMenu({
   variant = 'permanent',
-  open = true,
-  onClose,
   onNavigate,
 }) {
   const navigate = useNavigate();
-  const isTemporary = variant !== 'permanent';
 
   // 🔹 Datos de usuario obtenidos del sessionStorage (desde la BD)
   const [userData, setUserData] = React.useState({
@@ -87,17 +84,8 @@ React.useEffect(() => {
   return (
     <Drawer
       variant={variant}
-      open={isTemporary ? open : undefined}
-      onClose={isTemporary ? onClose : undefined}
-      ModalProps={
-        isTemporary
-          ? {
-              keepMounted: true,
-            }
-          : undefined
-      }
       sx={{
-        display: isTemporary ? 'block' : { xs: 'none', md: 'block' },
+        display: { xs: 'none', md: 'block' },
         [`& .${drawerClasses.paper}`]: {
           backgroundColor: 'background.paper',
         },
@@ -105,11 +93,11 @@ React.useEffect(() => {
     >
       <Box
         component={RouterLink}
-        to="/dashboard"
-        aria-label="Ir al dashboard"
+        to="/"
+        aria-label="Ir al inicio"
         sx={{
           display: 'flex',
-          mt: isTemporary ? 2 : 'calc(var(--template-frame-height, 0px) + 4px)',
+          mt: 'calc(var(--template-frame-height, 0px) + 4px)',
           p: 1.5,
           textDecoration: 'none',
           color: 'inherit',
@@ -134,7 +122,7 @@ React.useEffect(() => {
           flexDirection: 'column',
         }}
       >
-        <MenuContent onNavigate={onNavigate || onClose} />
+        <MenuContent onNavigate={onNavigate} />
       </Box>
 
       {/* Pie con datos del usuario */}
@@ -187,4 +175,6 @@ React.useEffect(() => {
       </Stack>
     </Drawer>
   );
-}
+});
+
+export default SideMenu;

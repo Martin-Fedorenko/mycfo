@@ -1,11 +1,12 @@
-import React, { useState } from "react";
-import { Box, Typography } from "@mui/material";
+import React, { useState, Suspense } from "react";
+import { Box, Typography, CircularProgress } from "@mui/material";
 import { useParams } from "react-router-dom";
 
-import CargaFormulario from "./components/CargaFormulario";
-import CargaDocumento from "./components/CargaDocumento";
-import CargaImagen from "./components/CargaImagen";
-import CargaAudio from "./components/CargaAudio";
+// Lazy loading para componentes pesados
+const CargaFormulario = React.lazy(() => import("./components/CargaFormulario"));
+const CargaDocumento = React.lazy(() => import("./components/CargaDocumento"));
+const CargaImagen = React.lazy(() => import("./components/CargaImagen"));
+const CargaAudio = React.lazy(() => import("./components/CargaAudio"));
 
 export default function CargaVistaFinal() {
   const { tipo, modo } = useParams();
@@ -59,24 +60,44 @@ export default function CargaVistaFinal() {
   const endpoint = endpointMap[tipo]?.[modo];
 
   const renderContenido = () => {
+    const LoadingFallback = () => (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+        <CircularProgress />
+      </Box>
+    );
+
     switch (modo) {
       case "formulario":
         return (
-          <CargaFormulario
-            tipoDoc={tipo}
-            endpoint={endpoint}
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-            setErrors={setErrors}
-          />
+          <Suspense fallback={<LoadingFallback />}>
+            <CargaFormulario
+              tipoDoc={tipo}
+              endpoint={endpoint}
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+              setErrors={setErrors}
+            />
+          </Suspense>
         );
       case "documento":
-        return <CargaDocumento tipoDoc={tipo} endpoint={endpoint} />;
+        return (
+          <Suspense fallback={<LoadingFallback />}>
+            <CargaDocumento tipoDoc={tipo} endpoint={endpoint} />
+          </Suspense>
+        );
       case "foto":
-        return <CargaImagen tipoDoc={tipo} endpoint={endpoint} />;
+        return (
+          <Suspense fallback={<LoadingFallback />}>
+            <CargaImagen tipoDoc={tipo} endpoint={endpoint} />
+          </Suspense>
+        );
       case "audio":
-        return <CargaAudio tipoDoc={tipo} endpoint={endpoint} />;
+        return (
+          <Suspense fallback={<LoadingFallback />}>
+            <CargaAudio tipoDoc={tipo} endpoint={endpoint} />
+          </Suspense>
+        );
       default:
         return <Typography>No se encontró vista</Typography>;
     }

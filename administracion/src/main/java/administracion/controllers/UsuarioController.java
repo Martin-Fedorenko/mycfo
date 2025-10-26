@@ -58,13 +58,12 @@ public class UsuarioController {
             @PathVariable String sub,
             @RequestBody ActualizarUsuarioDTO dto) {
         
-        // Verificar permisos: solo administradores pueden editar otros usuarios
-        if (!permissionService.puedeEditarUsuario(subUsuarioActual, sub)) {
-            return ResponseEntity.status(403).build();
+        try {
+            UsuarioDTO actualizado = usuarioService.actualizarEmpleado(sub, dto, subUsuarioActual);
+            return ResponseEntity.ok(actualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).body(null);
         }
-        
-        UsuarioDTO actualizado = usuarioService.actualizarEmpleado(sub, dto);
-        return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{sub}")
@@ -72,13 +71,12 @@ public class UsuarioController {
             @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
             @PathVariable String sub) {
         
-        // Verificar permisos: solo administradores pueden eliminar usuarios
-        if (!permissionService.esAdministrador(subUsuarioActual)) {
+        try {
+            usuarioService.eliminarEmpleado(sub, subUsuarioActual);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
             return ResponseEntity.status(403).build();
         }
-        
-        usuarioService.eliminarEmpleado(sub);
-        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{sub}/desactivar")
@@ -86,13 +84,12 @@ public class UsuarioController {
             @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
             @PathVariable String sub) {
         
-        // Verificar permisos: solo administradores pueden desactivar usuarios
-        if (!permissionService.esAdministrador(subUsuarioActual)) {
+        try {
+            UsuarioDTO desactivado = usuarioService.desactivarEmpleado(sub, subUsuarioActual);
+            return ResponseEntity.ok(desactivado);
+        } catch (RuntimeException e) {
             return ResponseEntity.status(403).build();
         }
-        
-        UsuarioDTO desactivado = usuarioService.desactivarEmpleado(sub);
-        return ResponseEntity.ok(desactivado);
     }
 
     @PutMapping("/{sub}/activar")
@@ -100,12 +97,11 @@ public class UsuarioController {
             @RequestHeader(value = "X-Usuario-Sub") String subUsuarioActual,
             @PathVariable String sub) {
         
-        // Verificar permisos: solo administradores pueden activar usuarios
-        if (!permissionService.esAdministrador(subUsuarioActual)) {
+        try {
+            UsuarioDTO activado = usuarioService.activarEmpleado(sub, subUsuarioActual);
+            return ResponseEntity.ok(activado);
+        } catch (RuntimeException e) {
             return ResponseEntity.status(403).build();
         }
-        
-        UsuarioDTO activado = usuarioService.activarEmpleado(sub);
-        return ResponseEntity.ok(activado);
     }
 }

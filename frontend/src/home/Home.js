@@ -13,33 +13,17 @@ import Header from './components/Header';
 
 
 
-export default function Home(props) {
+// Memoizar el componente Home para evitar re-renderizados innecesarios
+const Home = React.memo(function Home(props) {
   const location = useLocation();
-  const isDashboard = location.pathname === '/dashboard';
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
-
-  const handleToggleSidebar = React.useCallback(() => {
-    setSidebarOpen((prev) => !prev);
-  }, []);
-
-  const handleCloseSidebar = React.useCallback(() => {
-    setSidebarOpen(false);
-  }, []);
 
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <Box sx={{ display: 'flex' }}>
         <SideMenu
-          variant={isDashboard ? 'temporary' : 'permanent'}
-          open={isDashboard ? sidebarOpen : undefined}
-          onClose={handleCloseSidebar}
-          onNavigate={handleCloseSidebar}
-          isDashboard={isDashboard}
+          variant="permanent"
+          onNavigate={() => {}}
         />
         <AppNavbar />
         {/* Main content */}
@@ -62,17 +46,16 @@ export default function Home(props) {
             mt: { xs: 8, md: 0 },
           }}
         >
-          <Header
-            isDashboard={isDashboard}
-            onToggleSidebar={isDashboard ? handleToggleSidebar : undefined}
-          />
+          <Header />
           <Outlet />
           </Stack>
         </Box>
       </Box>
     </AppTheme>
   );
-}
+});
+
+export default Home;
 
 
 

@@ -14,7 +14,7 @@ import MuiCard from "@mui/material/Card";
 import { styled } from "@mui/material/styles";
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
 
 import axios from "axios";
@@ -63,17 +63,23 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 
 export default function SignUp(props) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Verificar si viene de una invitación
+  const empresaInvitacion = searchParams.get('empresa');
+  const esInvitacion = !!empresaInvitacion;
 
   const [formData, setFormData] = React.useState({
     email: "",
     password: "",
     nombre: "",
     apellido: "",
-    nombreEmpresa: "",
+    nombreEmpresa: empresaInvitacion || "",
   });
   const [errors, setErrors] = React.useState({});
   const [loading, setLoading] = React.useState(false);
   const [successMsg, setSuccessMsg] = React.useState("");
+  // No hay validación de token, solo pre-llenar empresa
 
   const validateInputs = () => {
     let errs = {};
@@ -111,6 +117,7 @@ export default function SignUp(props) {
         nombre: formData.nombre,
         apellido: formData.apellido,
         nombreEmpresa: formData.nombreEmpresa,
+        esInvitacion: esInvitacion
       });
 
       console.log("Usuario registrado:", response.data);
@@ -140,8 +147,14 @@ export default function SignUp(props) {
             variant="h4"
             sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
           >
-            Sign up
+            {esInvitacion ? "Unirse a la Empresa" : "Sign up"}
           </Typography>
+          
+          {esInvitacion && (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+              Has sido invitado a unirte a <strong>{formData.nombreEmpresa}</strong>
+            </Typography>
+          )}
 
           <Box
             component="form"
@@ -183,7 +196,16 @@ export default function SignUp(props) {
                 onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })}
                 error={!!errors.nombreEmpresa}
                 helperText={errors.nombreEmpresa}
+                disabled={esInvitacion}
+                InputProps={{
+                  readOnly: esInvitacion,
+                }}
               />
+              {esInvitacion && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Empresa predefinida por invitación
+                </Typography>
+              )}
             </FormControl>
 
             <FormControl>
