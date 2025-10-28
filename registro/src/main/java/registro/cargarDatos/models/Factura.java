@@ -1,53 +1,46 @@
 package registro.cargarDatos.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.List;
 
-@Entity
-@Getter
-@Setter
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Entity @Getter @Setter
 public class Factura extends DocumentoComercial {
 
-    private String tipoFactura; // obligatorio
+    private String tipoFactura; //obligatorio
 
     // --- Datos del vendedor ---
-    private String vendedorNombre; // obligatorio
+    private String vendedorNombre; //obligatorio
     private String vendedorCuit;
     private String vendedorCondicionIVA;
     private String vendedorDomicilio;
 
     // --- Datos del comprador ---
-    private String compradorNombre; // obligatorio
+    private String compradorNombre; //obligatorio
     private String compradorCuit;
     private String compradorCondicionIVA;
     private String compradorDomicilio;
 
-    // --- Estado de pago ---
-    @Enumerated(EnumType.STRING)
-    private EstadoPago estadoPago;
+    // --- Datos fiscales ---
+    private String cae;
+    private LocalDate vencimientoCae;
 
     // --- Relación con ítems ---
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("factura-items")
     private List<ItemFactura> items;
 
-    // --- Relación con recibos ---
+    // --- Relación con recibo ---
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("factura-recibos")
     private List<Recibo> recibos;
 
-    // --- Relación con pagarés ---
+    // --- Relación con pagaré ---
     @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("factura-pagares")
-    private List<Pagare> pagares;
+    private List<Recibo> pagares;
+
+
 }

@@ -1,15 +1,10 @@
 package registro.cargarDatos.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-@Entity
-@Getter
-@Setter
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Entity @Getter @Setter
 public class ItemFactura {
 
     @Id
@@ -23,8 +18,8 @@ public class ItemFactura {
     private Double alicuotaIva;
     private Double montoTotalItem;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "factura_id")
-    @JsonBackReference("factura-items") // rompe el ciclo Factura -> ItemFactura -> Factura
     private Factura factura;
+
 }

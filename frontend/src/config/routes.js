@@ -2,10 +2,11 @@ import StorageIcon from "@mui/icons-material/Storage";
 import DescriptionIcon from "@mui/icons-material/Description";
 import LinkIcon from "@mui/icons-material/Link";
 
+import CargaManual from "../registro/carga-manual/CargaManual";
+import CargaDocumento from "../registro/carga-documento/CargaDocumento";
 import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
 import ExcelManagement from "../consolidacion/carga-movimientos/ExcelManagement";
 import CashFlow from "../reportes/cash-flow/CashFlow";
-import ProfitLoss from "../reportes/ProfitAndLoss/ProfitLoss";
 import Notificaciones from "../notificaciones/listado-notificaciones/Notificaciones";
 import NotificationCenter from "../notificaciones/components/NotificationCenter/NotificationCenter";
 import ReminderManager from "../notificaciones/components/ReminderManager/ReminderManager";
@@ -22,8 +23,9 @@ import Roles from "../administracion/roles/Roles";
 import Invitaciones from "../administracion/invitaciones/Invitaciones";
 import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCargados";
 import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
+import CargaGeneral from "../registro/carga-general/CargaGeneral";
 import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
-import TablaRegistrosV2 from "../registro/movimientos-cargados/TablaRegistrosV2";
+import TablaRegistros from "../registro/movimientos-cargados/TablaRegistros";
 import ConciliacionPanel from "../conciliacion/ConciliacionPanel";
 import CargaSeleccionTipo from "../registro/carga-general/CargaSeleccionTipo";
 import CargaSeleccionMetodo from "../registro/carga-general/CargaSeleccionMetodo";
@@ -31,15 +33,15 @@ import CargaVistaFinal from "../registro/carga-general/CargaVistaFinal";
 
 const routeConfig = [
   {
-    label: "Carga de datos",
-    path: "/carga",
-    icon: <DescriptionIcon />,
-    element: <CargaSeleccionTipo />,
+  label: "Carga de datos",
+  path: "/carga",
+  icon: <DescriptionIcon />,
+  element: <CargaSeleccionTipo />,
   },
   {
     path: "/carga/:tipo",
     element: <CargaSeleccionMetodo />,
-    hidden: true,
+    hidden: true, // 👈 no aparece en menú
   },
   {
     path: "/carga/:tipo/:modo",
@@ -50,7 +52,7 @@ const routeConfig = [
     label: "Ver movimientos",
     path: "/ver-movimientos",
     icon: <DescriptionIcon />,
-    element: <TablaRegistrosV2 />,
+    element: <TablaRegistros />,
   },
   {
     label: "Conciliación",
@@ -74,12 +76,7 @@ const routeConfig = [
         icon: <DescriptionIcon />,
         element: <MercadoPagoPage />,
       },
-      { 
-        label: "Ver movimientos consolidados", 
-        icon: <DescriptionIcon />,
-        path: "/ver-movimientos-consolidados",
-        element: <TablaRegistrosV2 />
-      },
+      { label: "Ver movimientos consolidados", icon: <DescriptionIcon /> },
     ],
   },
   {
@@ -98,12 +95,7 @@ const routeConfig = [
         icon: <DescriptionIcon />,
         element: <CashFlow />,
       },
-      {
-        label: "Profit & Loss",
-        path: "/profit-loss",
-        icon: <DescriptionIcon />,
-        element: <ProfitLoss />,
-      },
+      { label: "Profit & Loss", icon: <DescriptionIcon /> },
     ],
   },
   {
@@ -166,7 +158,7 @@ const routeConfig = [
       },
       {
         label: "Historial de cambios",
-        path: "/historial",
+        path: "/Historial",
         icon: <DescriptionIcon />,
         element: <HistorialCambios />,
       },
