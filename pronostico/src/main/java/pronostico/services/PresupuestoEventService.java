@@ -66,7 +66,7 @@ public class PresupuestoEventService {
             // Crear el evento
             Map<String, Object> event = new HashMap<>();
             event.put("userId", 1L); // TODO: Obtener del contexto de usuario
-            event.put("companyId", 1L); // TODO: Obtener el companyId real
+            event.put("companyId", presupuesto.getOrganizacionId());
             event.put("budgetId", presupuesto.getId());
             event.put("budgetName", presupuesto.getNombre());
             event.put("period", buildPeriod(presupuesto));
@@ -93,7 +93,7 @@ public class PresupuestoEventService {
         try {
             Map<String, Object> event = new HashMap<>();
             event.put("userId", 1L); // TODO: Obtener del contexto de usuario
-            event.put("companyId", 1L); // TODO: Obtener el companyId real
+            event.put("companyId", presupuesto.getOrganizacionId());
             event.put("budgetId", presupuesto.getId());
             event.put("budgetName", presupuesto.getNombre());
             event.put("period", buildPeriod(presupuesto));

@@ -19,6 +19,7 @@ import pronostico.models.Presupuesto;
 import pronostico.models.PresupuestoLinea;
 import pronostico.models.PresupuestoLinea.Tipo;
 import pronostico.repositories.PresupuestoLineaRepository;
+import pronostico.services.AdministracionService;
 import pronostico.services.PresupuestoService;
 import pronostico.services.PresupuestoService.ListStatus;
 
@@ -41,6 +42,7 @@ public class PresupuestoController {
 
     private final PresupuestoService service;
     private final PresupuestoLineaRepository presupuestoLineaRepository;
+    private final AdministracionService administracionService;
 
     private static final DateTimeFormatter YM = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final Pattern YM_PATTERN = Pattern.compile("^(\\d{4})-(\\d{1,2})(?:-(\\d{1,2}))?$");
@@ -54,9 +56,10 @@ public class PresupuestoController {
         @RequestParam(value = "page", defaultValue = "0") int page,
         @RequestParam(value = "size", defaultValue = "3") int size,
         @RequestParam(value = "sort", defaultValue = "createdAt,desc") String sortParam,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
         @AuthenticationPrincipal Jwt jwt
     ) {
-        String sub = requireSub(jwt);
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
         ListStatus status = ListStatus.from(statusParam);
         try {
             Pageable pageable = buildPageable(page, size, sortParam);
@@ -64,24 +67,28 @@ public class PresupuestoController {
                 if (from == null || to == null) {
                     throw new IllegalArgumentException("Debe especificar las fechas 'from' y 'to' para el rango");
                 }
-                return service.findByRange(from, to, sub, status, pageable);
+                return service.findByRange(from, to, ctx.organizacionId(), status, pageable);
             }
             if (year != null) {
                 LocalDate start = LocalDate.of(year, 1, 1);
                 LocalDate end = LocalDate.of(year, 12, 31);
-                return service.findByRange(start, end, sub, status, pageable);
+                return service.findByRange(start, end, ctx.organizacionId(), status, pageable);
             }
-            return service.listByStatus(sub, status, pageable);
+            return service.listByStatus(ctx.organizacionId(), status, pageable);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
     }
 
     @GetMapping("/presupuestos/{id}")
-    public ResponseEntity<PresupuestoDTO> getById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        String sub = requireSub(jwt);
+    public ResponseEntity<PresupuestoDTO> getById(
+        @PathVariable Long id,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
         try {
-            return ResponseEntity.ok(service.getOneOwned(id, sub));
+            return ResponseEntity.ok(service.getOneForOrganizacion(id, ctx.organizacionId()));
         } catch (ResponseStatusException ex) {
             if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
                 return ResponseEntity.notFound().build();
@@ -91,10 +98,14 @@ public class PresupuestoController {
     }
 
     @PostMapping(value = "/presupuestos", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> crear(@RequestBody CrearPresupuestoRequest req, @AuthenticationPrincipal Jwt jwt) {
-        String sub = requireSub(jwt);
+    public ResponseEntity<?> crear(
+        @RequestBody CrearPresupuestoRequest req,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
         try {
-            Presupuesto presupuesto = service.crearPresupuesto(req, sub);
+            Presupuesto presupuesto = service.crearPresupuesto(req, ctx.organizacionId(), ctx.sub());
             PresupuestoDTO dto = PresupuestoDTO.builder()
                 .id(presupuesto.getId())
                 .nombre(presupuesto.getNombre())
@@ -112,10 +123,15 @@ public class PresupuestoController {
     }
 
     @PutMapping("/presupuestos/{id}")
-    public ResponseEntity<Presupuesto> update(@PathVariable Long id, @RequestBody Presupuesto payload, @AuthenticationPrincipal Jwt jwt) {
-        String sub = requireSub(jwt);
+    public ResponseEntity<Presupuesto> update(
+        @PathVariable Long id,
+        @RequestBody Presupuesto payload,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
         try {
-            Presupuesto updated = service.updateOwned(id, payload, sub);
+            Presupuesto updated = service.updateOwned(id, payload, ctx.sub(), ctx.organizacionId());
             return ResponseEntity.ok(updated);
         } catch (ResponseStatusException ex) {
             if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
@@ -126,10 +142,14 @@ public class PresupuestoController {
     }
 
     @DeleteMapping("/presupuestos/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        String sub = requireSub(jwt);
+    public ResponseEntity<Void> delete(
+        @PathVariable Long id,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
         try {
-            service.deleteOwned(id, sub);
+            service.deleteOwned(id, ctx.sub(), ctx.organizacionId());
             return ResponseEntity.noContent().build();
         } catch (ResponseStatusException ex) {
             if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
@@ -140,10 +160,14 @@ public class PresupuestoController {
     }
 
     @PostMapping("/presupuestos/{id}/restore")
-    public ResponseEntity<PresupuestoDTO> restore(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        String sub = requireSub(jwt);
+    public ResponseEntity<PresupuestoDTO> restore(
+        @PathVariable Long id,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
         try {
-            PresupuestoDTO restored = service.restoreOwned(id, sub);
+            PresupuestoDTO restored = service.restoreOwned(id, ctx.sub(), ctx.organizacionId());
             return ResponseEntity.ok(restored);
         } catch (ResponseStatusException ex) {
             if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
@@ -154,8 +178,13 @@ public class PresupuestoController {
     }
 
     @GetMapping("/presupuestos/{id}/totales")
-    public ResponseEntity<List<Map<String, Object>>> getTotalesPorMes(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        service.mustOwn(id, requireSub(jwt));
+    public ResponseEntity<List<Map<String, Object>>> getTotalesPorMes(
+        @PathVariable Long id,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
+        service.mustOwn(id, ctx.sub(), ctx.organizacionId());
 
         List<PresupuestoLinea> lineas = presupuestoLineaRepository.findByPresupuesto_Id(id);
         Map<String, List<PresupuestoLinea>> porMes = lineas.stream()
@@ -173,9 +202,11 @@ public class PresupuestoController {
     public ResponseEntity<List<Map<String, Object>>> getLineasMes(
         @PathVariable Long id,
         @PathVariable String ym,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
         @AuthenticationPrincipal Jwt jwt
     ) {
-        service.mustOwn(id, requireSub(jwt));
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
+        service.mustOwn(id, ctx.sub(), ctx.organizacionId());
 
         String normalized = normalizeYM(ym);
         List<Map<String, Object>> out = presupuestoLineaRepository.findByPresupuesto_Id(id).stream()
@@ -191,9 +222,11 @@ public class PresupuestoController {
         @PathVariable Long id,
         @PathVariable String ym,
         @RequestBody LineaUpsertRequest req,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
         @AuthenticationPrincipal Jwt jwt
     ) {
-        Presupuesto presupuesto = service.mustOwn(id, requireSub(jwt));
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
+        Presupuesto presupuesto = service.mustOwn(id, ctx.sub(), ctx.organizacionId());
 
         String normalized = normalizeYM(ym);
         PresupuestoLinea linea = new PresupuestoLinea();
@@ -214,9 +247,11 @@ public class PresupuestoController {
         @PathVariable String ym,
         @PathVariable Long lineaId,
         @RequestBody LineaUpsertRequest req,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
         @AuthenticationPrincipal Jwt jwt
     ) {
-        Presupuesto presupuesto = service.mustOwn(id, requireSub(jwt));
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
+        Presupuesto presupuesto = service.mustOwn(id, ctx.sub(), ctx.organizacionId());
         return upsertLinea(presupuesto, ym, lineaId, req, true);
     }
 
@@ -226,9 +261,11 @@ public class PresupuestoController {
         @PathVariable String ym,
         @PathVariable Long lineaId,
         @RequestBody LineaUpsertRequest req,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
         @AuthenticationPrincipal Jwt jwt
     ) {
-        Presupuesto presupuesto = service.mustOwn(id, requireSub(jwt));
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
+        Presupuesto presupuesto = service.mustOwn(id, ctx.sub(), ctx.organizacionId());
         return upsertLinea(presupuesto, ym, lineaId, req, false);
     }
 
@@ -237,9 +274,11 @@ public class PresupuestoController {
         @PathVariable Long id,
         @PathVariable String ym,
         @PathVariable Long lineaId,
+        @RequestHeader(value = "X-Usuario-Sub", required = false) String usuarioSubHeader,
         @AuthenticationPrincipal Jwt jwt
     ) {
-        service.mustOwn(id, requireSub(jwt));
+        RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
+        service.mustOwn(id, ctx.sub(), ctx.organizacionId());
 
         PresupuestoLinea linea = presupuestoLineaRepository.findById(lineaId).orElse(null);
         if (linea == null) {
@@ -416,11 +455,50 @@ public class PresupuestoController {
         };
     }
 
+    private RequestContext resolveContext(String headerSub, Jwt jwt) {
+        String sub = resolveEffectiveSub(headerSub, jwt);
+        Long organizacionId = resolveOrganizacionId(sub);
+        return new RequestContext(sub, organizacionId);
+    }
+
+    private String resolveEffectiveSub(String headerSub, Jwt jwt) {
+        if (headerSub != null && !headerSub.isBlank()) {
+            return headerSub.trim();
+        }
+        return requireSub(jwt);
+    }
+
+    private Long resolveOrganizacionId(String sub) {
+        try {
+            return administracionService.obtenerEmpresaIdPorUsuarioSub(sub);
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, ex.getMessage(), ex);
+        }
+    }
+
     private String requireSub(Jwt jwt) {
         if (jwt == null || jwt.getSubject() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token invalido");
         }
         return jwt.getSubject();
+    }
+
+    private static final class RequestContext {
+        private final String sub;
+        private final Long organizacionId;
+
+        private RequestContext(String sub, Long organizacionId) {
+            this.sub = sub;
+            this.organizacionId = organizacionId;
+        }
+
+        String sub() {
+            return sub;
+        }
+
+        Long organizacionId() {
+            return organizacionId;
+        }
     }
 
     @lombok.Data

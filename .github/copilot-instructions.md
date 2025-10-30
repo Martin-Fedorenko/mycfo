@@ -32,7 +32,7 @@ Each service has:
 - consolidacion_db
 - ia_db
 - notificacion_db
-- pronostico_db_test
+- pronostico_db
 - registro_db
 - reporte_db
 ```

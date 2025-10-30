@@ -14,6 +14,107 @@ import java.util.Optional;
 
 public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> {
 
+    // --- Scoped por organizacion ---
+    List<Presupuesto> findByOrganizacionId(Long organizacionId);
+
+    Page<Presupuesto> findByOrganizacionId(Long organizacionId, Pageable pageable);
+
+    List<Presupuesto> findByOrganizacionIdAndDeletedFalse(Long organizacionId);
+
+    Page<Presupuesto> findByOrganizacionIdAndDeletedFalse(Long organizacionId, Pageable pageable);
+
+    List<Presupuesto> findByOrganizacionIdAndDeletedTrue(Long organizacionId);
+
+    Page<Presupuesto> findByOrganizacionIdAndDeletedTrue(Long organizacionId, Pageable pageable);
+
+    boolean existsByIdAndOrganizacionId(Long id, Long organizacionId);
+
+    Optional<Presupuesto> findByIdAndOrganizacionId(Long id, Long organizacionId);
+
+    Optional<Presupuesto> findByIdAndOrganizacionIdAndDeletedFalse(Long id, Long organizacionId);
+
+    List<Presupuesto> findTop100ByOrganizacionIdIsNullOrderByIdAsc();
+
+    @Query("""
+        SELECT p FROM Presupuesto p
+         WHERE p.organizacionId = :organizacionId
+           AND p.desde <= :to
+           AND p.hasta >= :from
+           AND p.deleted = false
+    """)
+    Page<Presupuesto> findActiveOverlappingByOrganizacionId(
+        @Param("organizacionId") Long organizacionId,
+        @Param("from") String from,
+        @Param("to") String to,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT p FROM Presupuesto p
+         WHERE p.organizacionId = :organizacionId
+           AND p.desde <= :to
+           AND p.hasta >= :from
+           AND p.deleted = false
+    """)
+    List<Presupuesto> findActiveOverlappingByOrganizacionId(
+        @Param("organizacionId") Long organizacionId,
+        @Param("from") String from,
+        @Param("to") String to
+    );
+
+    @Query("""
+        SELECT p FROM Presupuesto p
+         WHERE p.organizacionId = :organizacionId
+           AND p.desde <= :to
+           AND p.hasta >= :from
+           AND p.deleted = true
+    """)
+    Page<Presupuesto> findDeletedOverlappingByOrganizacionId(
+        @Param("organizacionId") Long organizacionId,
+        @Param("from") String from,
+        @Param("to") String to,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT p FROM Presupuesto p
+         WHERE p.organizacionId = :organizacionId
+           AND p.desde <= :to
+           AND p.hasta >= :from
+           AND p.deleted = true
+    """)
+    List<Presupuesto> findDeletedOverlappingByOrganizacionId(
+        @Param("organizacionId") Long organizacionId,
+        @Param("from") String from,
+        @Param("to") String to
+    );
+
+    @Query("""
+        SELECT p FROM Presupuesto p
+         WHERE p.organizacionId = :organizacionId
+           AND p.desde <= :to
+           AND p.hasta >= :from
+    """)
+    Page<Presupuesto> findAnyOverlappingByOrganizacionId(
+        @Param("organizacionId") Long organizacionId,
+        @Param("from") String from,
+        @Param("to") String to,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT p FROM Presupuesto p
+         WHERE p.organizacionId = :organizacionId
+           AND p.desde <= :to
+           AND p.hasta >= :from
+    """)
+    List<Presupuesto> findAnyOverlappingByOrganizacionId(
+        @Param("organizacionId") Long organizacionId,
+        @Param("from") String from,
+        @Param("to") String to
+    );
+
+    // --- Compatibilidad por owner (mantener hasta refactor completo) ---
     List<Presupuesto> findByOwnerSub(String ownerSub);
 
     Page<Presupuesto> findByOwnerSub(String ownerSub, Pageable pageable);
@@ -95,10 +196,14 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
            set p.deleted = true,
                p.deletedAt = :deletedAt,
                p.deletedBy = :deletedBy
-         where p.id = :id and p.ownerSub = :ownerSub and p.deleted = false
+        where p.id = :id
+          and p.ownerSub = :ownerSub
+          and p.organizacionId = :organizacionId
+          and p.deleted = false
         """)
     int markDeletedIfActive(@Param("id") Long id,
                             @Param("ownerSub") String ownerSub,
+                            @Param("organizacionId") Long organizacionId,
                             @Param("deletedAt") LocalDateTime deletedAt,
                             @Param("deletedBy") String deletedBy);
 }

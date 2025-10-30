@@ -16,6 +16,7 @@ import pronostico.models.Presupuesto;
 import pronostico.models.PresupuestoLinea;
 import pronostico.repositories.PresupuestoLineaRepository;
 import pronostico.repositories.PresupuestoRepository;
+import pronostico.services.AdministracionService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -47,6 +48,7 @@ public class PresupuestoService {
     private final PresupuestoRepository repo;
     private final PresupuestoLineaRepository lineaRepo;
     private final PresupuestoEventService eventService;
+    private final AdministracionService administracionService;
 
     public enum ListStatus {
         ACTIVE,
@@ -65,19 +67,39 @@ public class PresupuestoService {
         }
     }
 
-    public List<PresupuestoDTO> findAllByOwner(String ownerSub) {
-        return listByStatus(ownerSub, ListStatus.ACTIVE, Pageable.unpaged()).getContent();
-    }
 
-    public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub) {
-        return findByRange(from, to, ownerSub, ListStatus.ACTIVE, Pageable.unpaged()).getContent();
+private void backfillOrganizacionIdsIfNeeded() {
+    List<Presupuesto> pendientes = repo.findTop100ByOrganizacionIdIsNullOrderByIdAsc();
+    if (pendientes.isEmpty()) {
+        return;
     }
-
-    public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub, ListStatus status) {
-        return findByRange(from, to, ownerSub, status, Pageable.unpaged()).getContent();
+    Map<String, Long> cache = new HashMap<>();
+    List<Presupuesto> actualizados = pendientes.stream()
+        .peek(presupuesto -> {
+            if (presupuesto.getOrganizacionId() != null) {
+                return;
+            }
+            String owner = presupuesto.getOwnerSub();
+            try {
+                Long resolved = cache.computeIfAbsent(owner, administracionService::obtenerEmpresaIdPorUsuarioSub);
+                presupuesto.setOrganizacionId(resolved);
+            } catch (RuntimeException ex) {
+                log.warn("No se pudo asignar organizacion al presupuesto {} (ownerSub={})", presupuesto.getId(), owner);
+            }
+        })
+        .filter(p -> p.getOrganizacionId() != null)
+        .collect(Collectors.toList());
+    if (!actualizados.isEmpty()) {
+        repo.saveAll(actualizados);
     }
+}
 
-    public Page<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, String ownerSub, ListStatus status, Pageable pageable) {
+    public Page<PresupuestoDTO> findByRange(LocalDate from,
+                                            LocalDate to,
+                                            Long organizacionId,
+                                            ListStatus status,
+                                            Pageable pageable) {
+        backfillOrganizacionIdsIfNeeded();
         if (from == null || to == null) {
             throw new IllegalArgumentException("El rango debe incluir fechas 'from' y 'to'");
         }
@@ -88,23 +110,32 @@ public class PresupuestoService {
         String toStr = to.format(ISO_DATE);
         Pageable safePageable = pageable != null ? pageable : Pageable.unpaged();
         Page<Presupuesto> result = switch (status) {
-            case ACTIVE -> repo.findActiveOverlapping(ownerSub, fromStr, toStr, safePageable);
-            case DELETED -> repo.findDeletedOverlapping(ownerSub, fromStr, toStr, safePageable);
-            case ALL -> repo.findAnyOverlapping(ownerSub, fromStr, toStr, safePageable);
+            case ACTIVE -> repo.findActiveOverlappingByOrganizacionId(organizacionId, fromStr, toStr, safePageable);
+            case DELETED -> repo.findDeletedOverlappingByOrganizacionId(organizacionId, fromStr, toStr, safePageable);
+            case ALL -> repo.findAnyOverlappingByOrganizacionId(organizacionId, fromStr, toStr, safePageable);
         };
         return result.map(this::toDto);
     }
 
-    public Optional<PresupuestoDTO> findByIdDTO(Long id, String ownerSub) {
-        return repo.findByIdAndOwnerSubAndDeletedFalse(id, ownerSub).map(this::toDto);
+    public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, Long organizacionId) {
+        return findByRange(from, to, organizacionId, ListStatus.ACTIVE, Pageable.unpaged()).getContent();
     }
 
-    public PresupuestoDTO getOneOwned(Long id, String ownerSub) {
-        return toDto(mustOwnActive(id, ownerSub));
+    public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, Long organizacionId, ListStatus status) {
+        return findByRange(from, to, organizacionId, status, Pageable.unpaged()).getContent();
     }
 
-    public Presupuesto updateOwned(Long id, Presupuesto payload, String ownerSub) {
-        Presupuesto existing = mustOwnActive(id, ownerSub);
+    public Optional<PresupuestoDTO> findByIdDTO(Long id, Long organizacionId) {
+        return repo.findByIdAndOrganizacionIdAndDeletedFalse(id, organizacionId).map(this::toDto);
+    }
+
+    public PresupuestoDTO getOneForOrganizacion(Long id, Long organizacionId) {
+        backfillOrganizacionIdsIfNeeded();
+        return toDto(mustBelongToOrganizacion(id, organizacionId, true));
+    }
+
+    public Presupuesto updateOwned(Long id, Presupuesto payload, String ownerSub, Long organizacionId) {
+        Presupuesto existing = mustOwnActive(id, ownerSub, organizacionId);
         existing.setNombre(payload.getNombre());
         existing.setDesde(payload.getDesde());
         existing.setHasta(payload.getHasta());
@@ -112,17 +143,17 @@ public class PresupuestoService {
     }
 
     @Transactional
-    public void deleteOwned(Long id, String ownerSub) {
-        Presupuesto existing = mustOwnIncludingDeleted(id, ownerSub);
+    public void deleteOwned(Long id, String ownerSub, Long organizacionId) {
+        Presupuesto existing = mustOwnIncludingDeleted(id, ownerSub, organizacionId);
         if (existing.isDeleted()) {
             log.debug("Presupuesto {} ya estaba eliminado por {}", id, ownerSub);
             return;
         }
 
         LocalDateTime now = LocalDateTime.now();
-        int updated = repo.markDeletedIfActive(id, ownerSub, now, ownerSub);
+        int updated = repo.markDeletedIfActive(id, ownerSub, organizacionId, now, ownerSub);
         if (updated == 0) {
-            log.debug("Otro proceso eliminó previamente el presupuesto {}", id);
+            log.debug("Otro proceso elimino previamente el presupuesto {}", id);
             return;
         }
 
@@ -134,8 +165,8 @@ public class PresupuestoService {
     }
 
     @Transactional
-    public PresupuestoDTO restoreOwned(Long id, String ownerSub) {
-        Presupuesto presupuesto = mustOwnIncludingDeleted(id, ownerSub);
+    public PresupuestoDTO restoreOwned(Long id, String ownerSub, Long organizacionId) {
+        Presupuesto presupuesto = mustOwnIncludingDeleted(id, ownerSub, organizacionId);
         if (!presupuesto.isDeleted()) {
             return toDto(presupuesto);
         }
@@ -147,55 +178,78 @@ public class PresupuestoService {
         return toDto(restored);
     }
 
-    public Page<PresupuestoDTO> listByStatus(String ownerSub, ListStatus status, Pageable pageable) {
+    public Page<PresupuestoDTO> listByStatus(Long organizacionId, ListStatus status, Pageable pageable) {
+        backfillOrganizacionIdsIfNeeded();
         Pageable safePageable = pageable != null ? pageable : Pageable.unpaged();
-        return selectByStatus(ownerSub, status, safePageable).map(this::toDto);
+        return selectByStatus(organizacionId, status, safePageable).map(this::toDto);
     }
 
-    public List<PresupuestoDTO> listByStatus(String ownerSub, ListStatus status) {
-        return listByStatus(ownerSub, status, Pageable.unpaged()).getContent();
+    public List<PresupuestoDTO> listByStatus(Long organizacionId, ListStatus status) {
+        return listByStatus(organizacionId, status, Pageable.unpaged()).getContent();
     }
 
-    public List<PresupuestoDTO> listByStatus(String ownerSub, String status) {
-        return listByStatus(ownerSub, ListStatus.from(status));
+    public List<PresupuestoDTO> listByStatus(Long organizacionId, String status) {
+        return listByStatus(organizacionId, ListStatus.from(status));
     }
 
-    public List<PresupuestoDTO> listActive(String ownerSub) {
-        return listByStatus(ownerSub, ListStatus.ACTIVE);
+    public List<PresupuestoDTO> listActive(Long organizacionId) {
+        return listByStatus(organizacionId, ListStatus.ACTIVE);
     }
 
-    public List<PresupuestoDTO> listDeleted(String ownerSub) {
-        return listByStatus(ownerSub, ListStatus.DELETED);
+    public List<PresupuestoDTO> listDeleted(Long organizacionId) {
+        return listByStatus(organizacionId, ListStatus.DELETED);
     }
 
-    private Page<Presupuesto> selectByStatus(String ownerSub, ListStatus status, Pageable pageable) {
+    private Page<Presupuesto> selectByStatus(Long organizacionId, ListStatus status, Pageable pageable) {
         return switch (status) {
-            case ACTIVE -> repo.findByOwnerSubAndDeletedFalse(ownerSub, pageable);
-            case DELETED -> repo.findByOwnerSubAndDeletedTrue(ownerSub, pageable);
-            case ALL -> repo.findByOwnerSub(ownerSub, pageable);
+            case ACTIVE -> repo.findByOrganizacionIdAndDeletedFalse(organizacionId, pageable);
+            case DELETED -> repo.findByOrganizacionIdAndDeletedTrue(organizacionId, pageable);
+            case ALL -> repo.findByOrganizacionId(organizacionId, pageable);
         };
     }
 
-    private Presupuesto mustOwnActive(Long id, String ownerSub) {
-        Presupuesto presupuesto = mustOwnIncludingDeleted(id, ownerSub);
+    private Presupuesto mustOwnActive(Long id, String ownerSub, Long organizacionId) {
+        Presupuesto presupuesto = mustOwnIncludingDeleted(id, ownerSub, organizacionId);
         if (presupuesto.isDeleted()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Presupuesto no encontrado");
         }
         return presupuesto;
     }
 
-    public Presupuesto mustOwn(Long id, String ownerSub) {
-        return mustOwnActive(id, ownerSub);
+    public Presupuesto mustOwn(Long id, String ownerSub, Long organizacionId) {
+        return mustOwnActive(id, ownerSub, organizacionId);
     }
 
-    public Presupuesto mustOwnIncludingDeleted(Long id, String ownerSub) {
+    public Presupuesto mustOwnIncludingDeleted(Long id, String ownerSub, Long organizacionId) {
         Presupuesto presupuesto = repo.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Presupuesto no encontrado"));
+        if (presupuesto.getOrganizacionId() == null) {
+            try {
+                Long resolved = administracionService.obtenerEmpresaIdPorUsuarioSub(presupuesto.getOwnerSub());
+                presupuesto.setOrganizacionId(resolved);
+                repo.save(presupuesto);
+            } catch (RuntimeException ex) {
+                log.warn("No se pudo actualizar organizacion para el presupuesto {} (ownerSub={})", presupuesto.getId(), presupuesto.getOwnerSub());
+            }
+        }
+        if (!Objects.equals(presupuesto.getOrganizacionId(), organizacionId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No autorizado");
+        }
         if (!Objects.equals(presupuesto.getOwnerSub(), ownerSub)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No autorizado");
         }
         return presupuesto;
     }
+
+    private Presupuesto mustBelongToOrganizacion(Long id, Long organizacionId, boolean enforceActive) {
+        Presupuesto presupuesto = repo.findByIdAndOrganizacionId(id, organizacionId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Presupuesto no encontrado"));
+        if (enforceActive && presupuesto.isDeleted()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Presupuesto no encontrado");
+        }
+        return presupuesto;
+    }
+
     private PresupuestoDTO toDto(Presupuesto p) {
         return PresupuestoDTO.builder()
             .id(p.getId())
@@ -383,7 +437,7 @@ public class PresupuestoService {
     }
 
     @Transactional
-    public Presupuesto crearPresupuesto(CrearPresupuestoRequest req, String ownerSub) {
+    public Presupuesto crearPresupuesto(CrearPresupuestoRequest req, Long organizacionId, String ownerSub) {
         YearMonth desde = parseYearMonth(req.getDesde(), "desde");
         YearMonth hasta = parseYearMonth(req.getHasta(), "hasta");
         if (hasta.isBefore(desde)) {
@@ -391,6 +445,7 @@ public class PresupuestoService {
         }
 
         Presupuesto presupuesto = Presupuesto.builder()
+            .organizacionId(organizacionId)
             .ownerSub(ownerSub)
             .nombre(req.getNombre())
             .desde(formatYearMonthForStorage(desde, false))
@@ -401,7 +456,7 @@ public class PresupuestoService {
         } catch (DataIntegrityViolationException ex) {
             throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
-                "Ya existe un presupuesto con el mismo nombre y periodo para este usuario",
+                "Ya existe un presupuesto con el mismo nombre y periodo para esta organizacion",
                 ex
             );
         }
