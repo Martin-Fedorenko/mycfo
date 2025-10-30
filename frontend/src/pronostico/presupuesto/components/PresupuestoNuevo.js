@@ -2,8 +2,9 @@ import * as React from 'react';
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableRow,
   TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
-  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress
+  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress, Autocomplete
 } from '@mui/material';
+import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
 import MonthRangeSelect from './MonthRangeSelect';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -129,6 +130,22 @@ export default function PresupuestoNuevo() {
     { categoria: 'Sueldos', tipo: 'Egreso', regla: { modo: 'AJUSTE', importe: 0, porcentaje: 0 } },
     { categoria: 'Ventas esperadas', tipo: 'Ingreso', regla: { modo: 'FIJO', importe: 0 } },
   ]);
+  const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
+
+  React.useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const response = await http.get(`${process.env.REACT_APP_URL_REGISTRO}/api/categorias`);
+        if (response.data && response.data.length > 0) {
+          setCategoriasOptions(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories, using fallback", error);
+      }
+    };
+
+    fetchCategorias();
+  }, []);
 
   // Paso 3: tabla generada + editable
   const [presupuestoDataMes, setPresupuestoDataMes] = React.useState({});
@@ -595,11 +612,23 @@ export default function PresupuestoNuevo() {
                   return (
                     <TableRow key={idx} sx={tableRowStyle}>
                       <TableCell sx={tableCellStyle}>
-                        <TextField
+                        <Autocomplete
                           value={cat.categoria}
-                          onChange={e => handleCambioCategoriaCampo(idx, 'categoria', e.target.value)}
-                          variant="standard" size="small" placeholder="Nombre"
-                          sx={{ minWidth: 140, maxWidth: 220 }}
+                          onChange={(event, newValue) => {
+                            handleCambioCategoriaCampo(idx, 'categoria', newValue || '');
+                          }}
+                          options={categoriasOptions}
+                          freeSolo={false}
+                          disableClearable
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              variant="standard"
+                              size="small"
+                              placeholder="Nombre"
+                              sx={{ minWidth: 140, maxWidth: 220 }}
+                            />
+                          )}
                         />
                       </TableCell>
                       <TableCell sx={tableCellStyle}>
@@ -1032,4 +1061,3 @@ export default function PresupuestoNuevo() {
     </Box>
   );
 }
-
