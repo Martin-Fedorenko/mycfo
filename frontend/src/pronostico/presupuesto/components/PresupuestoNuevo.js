@@ -127,9 +127,9 @@ export default function PresupuestoNuevo() {
 
   // Paso 2: categorías + reglas
   const [categorias, setCategorias] = React.useState([
-    { categoria: 'Alquiler', tipo: 'Egreso', regla: { modo: 'FIJO', importe: 0 } },
-    { categoria: 'Sueldos', tipo: 'Egreso', regla: { modo: 'AJUSTE', importe: 0, porcentaje: 0 } },
-    { categoria: 'Ventas esperadas', tipo: 'Ingreso', regla: { modo: 'FIJO', importe: 0 } },
+    { categoria: '', tipo: '', regla: { modo: 'FIJO', importe: 0 } },
+    { categoria: '', tipo: '', regla: { modo: 'AJUSTE', importe: 0, porcentaje: 0 } },
+    { categoria: '', tipo: '', regla: { modo: 'FIJO', importe: 0 } },
   ]);
   const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
 
@@ -170,6 +170,7 @@ export default function PresupuestoNuevo() {
       meses.forEach(mes => {
         if (!newData[mes]) newData[mes] = {};
         categorias.forEach(cat => {
+          if (!cat.categoria?.trim()) return;
           if (!newData[mes][cat.categoria]) {
             newData[mes][cat.categoria] = { sugerido: 0, tipo: cat.tipo };
           } else {
@@ -201,6 +202,62 @@ export default function PresupuestoNuevo() {
   const validarPaso2 = () => {
     if (categorias.length === 0) return 'Agregá al menos una categoría.';
     if (categorias.some(c => !c.categoria?.trim())) return 'Todas las categorías deben tener nombre.';
+    if (categorias.some(c => !c.tipo?.trim())) return 'Todas las categorías deben tener tipo.';
+    
+    // Helper numérico
+    const isBlankNum = (v) => v === '' || v == null || Number.isNaN(Number(v));
+    const isPositiveInt = (v) => Number.isInteger(Number(v)) && Number(v) >= 1;
+
+    // Validación de parámetros por modo
+    for (let i = 0; i < categorias.length; i++) {
+      const c = categorias[i];
+      // si el nombre está vacío, ya lo validamos arriba
+      if (!c.categoria?.trim()) continue;
+      const nombre = c.categoria.trim() || `Categoría #${i + 1}`;
+      const regla = c.regla || {};
+      const modo = (regla.modo || 'FIJO').toUpperCase();
+
+      if (modo === 'FIJO') {
+        if (isBlankNum(regla.importe)) {
+          return `Completá el importe en "${nombre}" (Regla: Fijo mensual).`;
+        }
+      }
+
+      if (modo === 'AJUSTE') {
+        if (isBlankNum(regla.importe)) {
+          return `Completá el importe inicial en "${nombre}" (Regla: Ajuste % mensual).`;
+        }
+        if (isBlankNum(regla.porcentaje)) {
+          return `Completá el porcentaje mensual en "${nombre}" (Regla: Ajuste % mensual).`;
+        }
+      }
+
+      if (modo === 'UNICO') {
+        if (!regla.mesUnico) {
+          return `Elegí el mes en "${nombre}" (Regla: Único).`;
+        }
+        if (isBlankNum(regla.importe)) {
+          return `Completá el importe en "${nombre}" (Regla: Único).`;
+        }
+      }
+
+      if (modo === 'CUOTAS') {
+        if (isBlankNum(regla.montoTotal)) {
+          return `Completá el monto total en "${nombre}" (Regla: En cuotas).`;
+        }
+        if (!isPositiveInt(regla.cuotas)) {
+          return `Indicá la cantidad de cuotas (>= 1) en "${nombre}" (Regla: En cuotas).`;
+        }
+        // interés puede ser 0; sólo marcamos error si no es número
+        if (regla.interesMensual !== '' && regla.interesMensual != null && Number.isNaN(Number(regla.interesMensual))) {
+          return `El interés mensual debe ser numérico en "${nombre}" (Regla: En cuotas).`;
+        }
+        if (!regla.comienza) {
+          return `Elegí el mes de inicio en "${nombre}" (Regla: En cuotas).`;
+        }
+      }
+    }
+
     return null;
   };
 
@@ -303,6 +360,7 @@ export default function PresupuestoNuevo() {
     setPresupuestoDataMes(old => {
       const nuevo = { ...old };
       categorias.forEach(cat => {
+        if (!cat.categoria?.trim()) return;
         const { tipo, categoria, regla } = cat;
         const modo = (regla?.modo || 'FIJO').toUpperCase();
 
@@ -614,7 +672,7 @@ export default function PresupuestoNuevo() {
                     <TableRow key={idx} sx={tableRowStyle}>
                       <TableCell sx={tableCellStyle}>
                         <Autocomplete
-                          value={cat.categoria}
+                          value={cat.categoria || null}
                           onChange={(e, newValue) =>
                             handleCambioCategoriaCampo(idx, 'categoria', newValue || '')
                           }
@@ -652,7 +710,7 @@ export default function PresupuestoNuevo() {
                               {...params}
                               variant="standard"
                               size="small"
-                              placeholder="Nombre"
+                              placeholder="Categoría"
                               sx={{ minWidth: 140, maxWidth: 220 }}
                             />
                           )}
