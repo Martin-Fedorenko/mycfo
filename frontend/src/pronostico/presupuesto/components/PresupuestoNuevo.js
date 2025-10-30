@@ -11,6 +11,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import http from '../../../api/http';
 import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
 
@@ -614,12 +615,38 @@ export default function PresupuestoNuevo() {
                       <TableCell sx={tableCellStyle}>
                         <Autocomplete
                           value={cat.categoria}
-                          onChange={(event, newValue) => {
-                            handleCambioCategoriaCampo(idx, 'categoria', newValue || '');
-                          }}
+                          onChange={(e, newValue) =>
+                            handleCambioCategoriaCampo(idx, 'categoria', newValue || '')
+                          }
                           options={categoriasOptions}
                           freeSolo={false}
                           disableClearable
+                          forcePopupIcon
+                          popupIcon={<KeyboardArrowDownIcon />}            // mismo ícono que Select
+                          componentsProps={{
+                            popupIndicator: {
+                              disableRipple: true,
+                              disableFocusRipple: true,
+                              sx: {
+                                p: 0,
+                                m: 0,
+                                bgcolor: 'transparent',                    // sin fondo
+                                border: 'none',
+                                boxShadow: 'none',
+                                '&:hover': { bgcolor: 'transparent' },
+                                '& .MuiTouchRipple-root': { display: 'none' },
+                                '& .MuiSvgIcon-root': { fontSize: 24 },    // igual que Select
+                              },
+                            },
+                            clearIndicator: { sx: { display: 'none' } },
+                          }}
+                          sx={{
+                            // misma posición del ícono que el Select estándar
+                            '& .MuiAutocomplete-endAdornment': { right: 0, top: '50%', transform: 'translateY(-50%)' },
+                            '& .MuiAutocomplete-popupIndicator': { p: 0 }, // sin padding extra
+                            // no gires la flecha al abrir
+                            '& .MuiAutocomplete-popupIndicatorOpen .MuiSvgIcon-root': { transform: 'none' },
+                          }}
                           renderInput={(params) => (
                             <TextField
                               {...params}
