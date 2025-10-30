@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import {
   Box, Typography, Paper, Grid, Button, Tabs, Tab, Avatar, Chip, Stack, Tooltip,
   IconButton, Divider, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -8,6 +8,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
 import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
+import dayjs from 'dayjs';
+import { format as formatDate, startOfMonth, endOfMonth } from 'date-fns';
+import { getMovimientosPorRango } from '../../../reportes/reportes.service';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend
 } from 'recharts';
@@ -37,7 +40,7 @@ const GUARD_MESSAGES = {
     body: 'La categor\u00eda ayuda a ordenar tus an\u00e1lisis. Cambiarla manualmente puede afectar reportes y automatizaciones. \u00bfQuer\u00e9s habilitar la edici\u00f3n manual?',
     confirmLabel: 'Habilitar edici\u00f3n'
   },
-  montoReal: {
+  real: {
     title: 'Editar monto real',
     body: 'El monto real refleja los registros consolidados. Si lo modificas manualmente ya no coincidira con tus movimientos cargados. Queres continuar?',
     confirmLabel: 'Habilitar Edicion'
@@ -46,7 +49,7 @@ const GUARD_MESSAGES = {
 
 const GUARD_FIELD_LABELS = {
   categoria: 'la categor\u00eda',
-  montoReal: 'el monto real'
+  real: 'el monto real'
 };
 const INGRESO_COLOR = '#4caf50';
 const EGRESO_COLOR = '#f44336';
@@ -67,7 +70,7 @@ const formatearMes = (ym) => {
   return isNaN(i) ? ym : `${nombres[i-1]} ${anio}`;
 };
 
-// YYYY-MM → YYYY-MM-01
+// YYYY-MM â†’ YYYY-MM-01
 const ymToYmd = (ym) => `${ym}-01`;
 
 // Devuelve array de YYYY-MM entre from y to (inclusive)
@@ -91,8 +94,10 @@ const normalizeLine = (x) => ({
   categoria: x.categoria,
   tipo: x.tipo, // "INGRESO" | "EGRESO"
   montoEstimado: x.montoEstimado ?? x.monto_estimado ?? 0,
-  montoReal: x.montoReal ?? x.monto_real ?? null,
+  real: 0,
 });
+
+const normCat = (value) => (value || '').trim().toLowerCase();
 
 export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
@@ -100,8 +105,8 @@ export default function MesDetalle() {
 
   // ===== State principal =====
   const [lineas, setLineas] = React.useState([]);
-  const [edits, setEdits] = React.useState({}); // { [id]: {categoria, tipo, montoEstimado, montoReal} }
-  const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, montoReal: bool } }
+  const [edits, setEdits] = React.useState({}); // { [id]: {categoria, tipo, montoEstimado, real} }
+  const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, real: bool } }
   const [guardPrompt, setGuardPrompt] = React.useState({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
   const [nombreMes, setNombreMes] = React.useState('Mes desconocido');
   const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
@@ -115,7 +120,7 @@ export default function MesDetalle() {
   const [rowMenuIdx, setRowMenuIdx] = React.useState(null);
   const [snack, setSnack] = React.useState({ open: false, message: '', severity: 'success' });
 
-  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' });
+  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'EGRESO', montoEstimado: '', real: '' });
   const [agregando, setAgregando] = React.useState(false);
 
   const [dlgReglas, setDlgReglas] = React.useState(false);
@@ -126,7 +131,7 @@ export default function MesDetalle() {
   const [deletePrompt, setDeletePrompt] = React.useState({ open: false, id: null, categoria: '', tipo: '' });
 
   // ===== Carga de datos =====
-  const fetchMes = React.useCallback(async (pid, ymStr) => {
+  const fetchMes = React.useCallback(async (pid, ymStr, { skipStateUpdate = false } = {}) => {
     if (!pid || !ymStr) return;
 
     // 1) intento con YYYY-MM
@@ -151,8 +156,63 @@ export default function MesDetalle() {
 
     let l = await tryFetch(url1);
     if (!l || l.length === 0) l = await tryFetch(url2);
-    setLineas(l || []);
+    const finalLineas = l || [];
+    if (!skipStateUpdate) setLineas(finalLineas);
+    return finalLineas;
   }, []);
+
+  const cargarLineasConReales = React.useCallback(async (pid, ymStr) => {
+    const lineasBase = (await fetchMes(pid, ymStr, { skipStateUpdate: true })) || [];
+    const ymKey = typeof ymStr === 'string' ? ymStr.slice(0, 7) : '';
+    const referencia = dayjs(`${ymKey}-01`);
+    if (!referencia.isValid()) {
+      setLineas(lineasBase.map((linea) => ({ ...linea, real: 0 })));
+      return lineasBase.map((linea) => ({ ...linea, real: 0 }));
+    }
+
+    try {
+      const refDate = referencia.toDate();
+      const fechaDesde = formatDate(startOfMonth(refDate), 'yyyy-MM-dd');
+      const fechaHasta = formatDate(endOfMonth(refDate), 'yyyy-MM-dd');
+
+      const resp = await getMovimientosPorRango({
+        fechaDesde,
+        fechaHasta,
+        tipos: 'EGRESO',
+      });
+      const movimientos = Array.isArray(resp?.content) ? resp.content : (Array.isArray(resp) ? resp : []);
+
+      const realesPorCategoria = movimientos.reduce((acc, movimiento) => {
+        const key = normCat(
+          movimiento?.categoriaNombre || movimiento?.categoria || movimiento?.categoria_id_nombre
+        );
+        if (!key) return acc;
+        const monto = Math.abs(Number(movimiento?.monto ?? movimiento?.montoTotal ?? 0));
+        if (!Number.isFinite(monto)) return acc;
+        acc[key] = (acc[key] || 0) + monto;
+        return acc;
+      }, {});
+
+      const lineasConReales = lineasBase.map((linea) => {
+        const key = normCat(linea.categoria);
+        return {
+          ...linea,
+          real: realesPorCategoria[key] || 0,
+        };
+      });
+      setLineas(lineasConReales);
+      return lineasConReales;
+    } catch (movErr) {
+      console.error('Error al obtener datos reales del mes:', movErr);
+      const fallback = lineasBase.map((linea) => ({
+        ...linea,
+        real: 0,
+      }));
+      setLineas(fallback);
+      setSnack({ open: true, message: 'No se pudieron cargar los datos reales del mes.', severity: 'error' });
+      return fallback;
+    }
+  }, [fetchMes, setSnack]);
 
   React.useEffect(() => {
     const cargar = async () => {
@@ -176,7 +236,7 @@ export default function MesDetalle() {
 
       // 2) resolver YYYY-MM desde mesNombreUrl usando /totales
       const mesNumStr = mesANumero[(mesNombreUrl || '').toLowerCase().trim()];
-      if (!mesNumStr) throw new Error('Mes no válido');
+      if (!mesNumStr) throw new Error('Mes no vÃ¡lido');
 
       const resTot = await http.get(`${baseURL}/api/presupuestos/${p.id}/totales`);
       const totales = Array.isArray(resTot.data) ? resTot.data : [];
@@ -186,8 +246,8 @@ export default function MesDetalle() {
       setYm(item.mes);
       setNombreMes(formatearMes(item.mes));
 
-      // 3) traer líneas
-      await fetchMes(p.id, item.mes);
+      // 3) cargar lineas reales
+      await cargarLineasConReales(p.id, item.mes);
   
       } catch (err) {
         console.error(err);
@@ -198,7 +258,7 @@ export default function MesDetalle() {
     };
 
     if (nombreUrl && mesNombreUrl) cargar();
-  }, [nombreUrl, mesNombreUrl, fetchMes]);
+  }, [nombreUrl, mesNombreUrl, cargarLineasConReales]);
 
   // Sincronizo `edits` cuando cambian las lineas
   React.useEffect(() => {
@@ -208,7 +268,7 @@ export default function MesDetalle() {
         categoria: l.categoria,
         tipo: l.tipo,
         montoEstimado: safeNumber(l.montoEstimado),
-        montoReal: l.montoReal === null || typeof l.montoReal === 'undefined' ? '' : safeNumber(l.montoReal)
+        real: l.real === null || typeof l.real === 'undefined' ? '' : safeNumber(l.real)
       };
     }
     setEdits(nextEdits);
@@ -217,7 +277,7 @@ export default function MesDetalle() {
       for (const l of lineas) {
         nextGuards[l.id] = {
           categoria: prev[l.id]?.categoria || false,
-          montoReal: prev[l.id]?.montoReal || false,
+          real: prev[l.id]?.real || false,
         };
       }
       return nextGuards;
@@ -249,8 +309,8 @@ export default function MesDetalle() {
     if (!enabled) {
       const linea = lineas.find((l) => l.id === id);
       if (linea) {
-        const restoredValue = field === 'montoReal'
-          ? (linea.montoReal === null || typeof linea.montoReal === 'undefined' ? '' : safeNumber(linea.montoReal))
+        const restoredValue = field === 'real'
+          ? (linea.real === null || typeof linea.real === 'undefined' ? '' : safeNumber(linea.real))
           : linea.categoria;
         setEdits((prev) => ({
           ...prev,
@@ -274,15 +334,15 @@ export default function MesDetalle() {
   const isFieldUnlocked = React.useCallback((id, field) => manualGuards[id]?.[field] === true, [manualGuards]);
 
   const reloadMes = React.useCallback(async () => {
-    if (presupuestoId && ym) await fetchMes(presupuestoId, ym);
-  }, [presupuestoId, ym, fetchMes]);
+    if (presupuestoId && ym) await cargarLineasConReales(presupuestoId, ym);
+  }, [presupuestoId, ym, cargarLineasConReales]);
 
   // ===== Derivados =====
   const ingresos = React.useMemo(() => lineas.filter((c) => c.tipo === 'INGRESO'), [lineas]);
   const egresos = React.useMemo(() => lineas.filter((c) => c.tipo === 'EGRESO'), [lineas]);
 
-  const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.montoReal), 0);
-  const totalEgresos = egresos.reduce((acc, c) => acc + safeNumber(c.montoReal), 0);
+  const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
+  const totalEgresos = egresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
   const resultado = totalIngresos - totalEgresos;
 
   const estimadoTotal = lineas.reduce(
@@ -292,26 +352,26 @@ export default function MesDetalle() {
   const cumplimiento = Math.abs(estimadoTotal) > 0 ? (resultado / Math.abs(estimadoTotal)) : 0;
 
   const vencidosEstimados = lineas.filter(
-    (c) => safeNumber(c.montoEstimado) !== 0 && safeNumber(c.montoReal) === 0
+    (c) => safeNumber(c.montoEstimado) !== 0 && safeNumber(c.real) === 0
   ).length;
 
-  const pieDataIngresos = ingresos.map((i) => ({ name: i.categoria, value: safeNumber(i.montoReal) }));
-  const barDataIngresos = ingresos.map((i) => ({ name: i.categoria, estimado: safeNumber(i.montoEstimado), real: safeNumber(i.montoReal) }));
-  const pieDataEgresos = egresos.map((e) => ({ name: e.categoria, value: safeNumber(e.montoReal) }));
-  const barDataEgresos = egresos.map((e) => ({ name: e.categoria, estimado: safeNumber(e.montoEstimado), real: safeNumber(e.montoReal) }));
+  const pieDataIngresos = ingresos.map((i) => ({ name: i.categoria, value: safeNumber(i.real) }));
+  const barDataIngresos = ingresos.map((i) => ({ name: i.categoria, estimado: safeNumber(i.montoEstimado), real: safeNumber(i.real) }));
+  const pieDataEgresos = egresos.map((e) => ({ name: e.categoria, value: safeNumber(e.real) }));
+  const barDataEgresos = egresos.map((e) => ({ name: e.categoria, estimado: safeNumber(e.montoEstimado), real: safeNumber(e.real) }));
 
   // ===== Export =====
   const handleExportExcel = () => {
     const data = [
-      ['Categoría', 'Tipo', 'Monto Estimado', 'Monto Registrado', 'Desvío'],
+      ['CategorÃ­a', 'Tipo', 'Monto Estimado', 'Monto Registrado', 'DesvÃ­o'],
       ...lineas.map((item) => [
         item.categoria,
         item.tipo,
         safeNumber(item.montoEstimado),
-        safeNumber(item.montoReal),
+        safeNumber(item.real),
         (item.tipo === 'EGRESO'
-            ? safeNumber(item.montoEstimado) - safeNumber(item.montoReal)
-            : safeNumber(item.montoReal) - safeNumber(item.montoEstimado)),
+            ? safeNumber(item.montoEstimado) - safeNumber(item.real)
+            : safeNumber(item.real) - safeNumber(item.montoEstimado)),
       ]),
     ];
     data.push(['', '', '', '', '']);
@@ -339,7 +399,7 @@ export default function MesDetalle() {
     });
   };
 
-  // ===== Menú por fila =====
+  // ===== MenÃº por fila =====
   const abrirMenuFila = (e, idx) => { setAnchorRowMenu(e.currentTarget); setRowMenuIdx(idx); };
   const cerrarMenuFila = () => { setAnchorRowMenu(null); setRowMenuIdx(null); };
 
@@ -348,14 +408,14 @@ export default function MesDetalle() {
     categoria: l.categoria,
     tipo: l.tipo,
     montoEstimado: Number(l.montoEstimado ?? 0),
-    montoReal: l.montoReal === '' || l.montoReal == null ? null : Number(l.montoReal),
+    real: l.real === '' || l.real == null ? null : Number(l.real),
   });
 
   const toSnakePayload = (l) => ({
     categoria: l.categoria,
     tipo: l.tipo,
     monto_estimado: Number(l.montoEstimado ?? 0),
-    monto_real: l.montoReal === '' || l.montoReal == null ? null : Number(l.montoReal),
+    real: l.real === '' || l.real == null ? null : Number(l.real),
   });
 
   const tryPatchOrPut = async (method, url, data) => {
@@ -383,10 +443,10 @@ export default function MesDetalle() {
             await tryPatchOrPut(method, url, payloads[0]);
             setManualGuards((prev) => {
               if (!prev || !prev[l.id]) return prev;
-              return { ...prev, [l.id]: { categoria: false, montoReal: false } };
+              return { ...prev, [l.id]: { categoria: false, real: false } };
             });
             await reloadMes();
-            setSnack({ open: true, message: 'Línea actualizada', severity: 'success' });
+            setSnack({ open: true, message: 'LÃ­nea actualizada', severity: 'success' });
             return;
           } catch (e1) {
             lastErr = e1;
@@ -397,16 +457,16 @@ export default function MesDetalle() {
                 await tryPatchOrPut(method, url, payloads[1]);
                 setManualGuards((prev) => {
                   if (!prev || !prev[l.id]) return prev;
-                  return { ...prev, [l.id]: { categoria: false, montoReal: false } };
+                  return { ...prev, [l.id]: { categoria: false, real: false } };
                 });
                 await reloadMes();
-                setSnack({ open: true, message: 'Línea actualizada', severity: 'success' });
+                setSnack({ open: true, message: 'LÃ­nea actualizada', severity: 'success' });
                 return;
               } catch (e2) {
                 lastErr = e2;
               }
             }
-            // si 404/405 seguimos probando con otra URL o método
+            // si 404/405 seguimos probando con otra URL o mÃ©todo
           }
         }
       }
@@ -440,7 +500,7 @@ export default function MesDetalle() {
       if (!presupuestoId || !ym || !lineaId) return;
       await http.delete(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas/${lineaId}`);
       await reloadMes();
-      setSnack({ open: true, message: 'Línea eliminada', severity: 'success' });
+      setSnack({ open: true, message: 'LÃ­nea eliminada', severity: 'success' });
     } catch (e) {
       console.error(e);
       setSnack({ open: true, message: 'Error al eliminar', severity: 'error' });
@@ -460,20 +520,20 @@ export default function MesDetalle() {
     try {
       if (!presupuestoId || !ym) return;
       if (!nueva.categoria || !nueva.tipo) {
-        setSnack({ open: true, message: 'Completá categoría y tipo', severity: 'warning' });
+        setSnack({ open: true, message: 'CompletÃ¡ categorÃ­a y tipo', severity: 'warning' });
         return;
       }
       const payload = {
         categoria: nueva.categoria,
         tipo: nueva.tipo,
         montoEstimado: Number(nueva.montoEstimado || 0),
-        montoReal: nueva.montoReal === '' || nueva.montoReal == null ? null : Number(nueva.montoReal),
+        real: nueva.real === '' || nueva.real == null ? null : Number(nueva.real),
       };
       await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
-      setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' });
+      setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', real: '' });
       setAgregando(false);
       await reloadMes();
-      setSnack({ open: true, message: 'Línea agregada', severity: 'success' });
+      setSnack({ open: true, message: 'LÃ­nea agregada', severity: 'success' });
     } catch (e) {
       console.error(e);
       setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
@@ -496,12 +556,12 @@ export default function MesDetalle() {
 
       const { accion, desde, hasta } = bulkCfg;
       if (!desde || !hasta) {
-        setSnack({ open: true, message: 'Completá rango de meses', severity: 'warning' });
+        setSnack({ open: true, message: 'CompletÃ¡ rango de meses', severity: 'warning' });
         return;
       }
       const meses = mesesEntre(desde, hasta);
       if (meses.length === 0) {
-        setSnack({ open: true, message: 'Rango inválido', severity: 'warning' });
+        setSnack({ open: true, message: 'Rango invÃ¡lido', severity: 'warning' });
         return;
       }
 
@@ -510,7 +570,7 @@ export default function MesDetalle() {
           categoria: l.categoria,
           tipo: l.tipo,
           montoEstimado: Number(l.montoEstimado || 0),
-          montoReal: l.montoReal === '' || l.montoReal == null ? null : Number(l.montoReal),
+          real: l.real === '' || l.real == null ? null : Number(l.real),
         };
         for (const ymX of meses) {
           await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ymX}/lineas`, payload);
@@ -547,13 +607,13 @@ export default function MesDetalle() {
       await reloadMes();
     } catch (e) {
       console.error(e);
-      setSnack({ open: true, message: 'Error en operación por múltiples meses', severity: 'error' });
+      setSnack({ open: true, message: 'Error en operaciÃ³n por mÃºltiples meses', severity: 'error' });
     }
   };
   // ===== Render =====
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
-      <Typography variant="overline" color="text.secondary">Presupuestos → {presupuestoNombre}</Typography>
+      <Typography variant="overline" color="text.secondary">Presupuestos â†’ {presupuestoNombre}</Typography>
       <Typography variant="h4" gutterBottom fontWeight="600">{nombreMes}</Typography>
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
@@ -576,7 +636,7 @@ export default function MesDetalle() {
         </Tabs>
       </Box>
 
-      {/* === Pestaña 0 === */}
+      {/* === PestaÃ±a 0 === */}
       {tab === 0 && (
         <>
           <Grid container spacing={3} mb={2}>
@@ -597,7 +657,7 @@ export default function MesDetalle() {
             <Grid item xs={12} sm={6} md={4}>
               <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? 'info.light' : 'warning.light', color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: resultado >= 0 ? 'info.main' : 'warning.main', mx: 'auto', mb: 1 }}>
-                  {resultado >= 0 ? '✓' : '⚠'}
+                  {resultado >= 0 ? 'âœ“' : 'âš '}
                 </Avatar>
                 <Typography variant="h6">Resultado</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(resultado)}</Typography>
@@ -605,10 +665,10 @@ export default function MesDetalle() {
             </Grid>
           </Grid>
 
-          {/* Gráficos */}
+          {/* GrÃ¡ficos */}
           {pieDataIngresos.length > 0 ? (
             <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">Distribución de Ingresos por Categoría</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">DistribuciÃ³n de Ingresos por CategorÃ­a</Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie data={pieDataIngresos} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
@@ -628,7 +688,7 @@ export default function MesDetalle() {
 
           {barDataIngresos.length > 0 && (
             <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">Ingresos: Estimado vs Real por Categoría</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">Ingresos: Estimado vs Real por CategorÃ­a</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataIngresos.map((item, index) => {
                   const max = Math.max(item.estimado, item.real) * 1.2 || 1;
@@ -674,7 +734,7 @@ export default function MesDetalle() {
 
           {pieDataEgresos.length > 0 ? (
             <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">Distribución de Egresos por Categoría</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">DistribuciÃ³n de Egresos por CategorÃ­a</Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie data={pieDataEgresos} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
@@ -694,7 +754,7 @@ export default function MesDetalle() {
 
           {barDataEgresos.length > 0 && (
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">Egresos: Estimado vs Real por Categoría</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">Egresos: Estimado vs Real por CategorÃ­a</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataEgresos.map((item, index) => {
                   const max = Math.max(item.estimado, item.real) * 1.2 || 1;
@@ -740,19 +800,19 @@ export default function MesDetalle() {
         </>
       )}
 
-      {/* === Pestaña 1: Tabla editable === */}
+      {/* === PestaÃ±a 1: Tabla editable === */}
       {tab === 1 && (
         <Paper sx={{ p: 2 }}>
-          {/* Agregar nueva línea */}
+          {/* Agregar nueva lÃ­nea */}
           <Box sx={{ mb: 2 }}>
             {!agregando ? (
               <Button startIcon={<AddCircleOutlineIcon />} variant="contained" onClick={() => setAgregando(true)}>
-                Agregar categoría
+                Agregar categorÃ­a
               </Button>
             ) : (
               <Grid container spacing={1} alignItems="center">
                 <Grid item xs={12} md={3}>
-                  <TextField label="Categoría" fullWidth value={nueva.categoria}
+                  <TextField label="CategorÃ­a" fullWidth value={nueva.categoria}
                     onChange={(e) => setNueva((s) => ({ ...s, categoria: e.target.value }))} />
                 </Grid>
                 <Grid item xs={12} md={2}>
@@ -783,16 +843,16 @@ export default function MesDetalle() {
                     label="Real (opcional)"
                     type="text"
                     fullWidth
-                    value={formatCurrencyInput(nueva.montoReal)}
+                    value={formatCurrencyInput(nueva.real)}
                     onChange={(e) => {
                       const parsed = parseCurrency(e.target.value, { returnEmpty: true });
-                      setNueva((s) => ({ ...s, montoReal: parsed === '' ? '' : parsed }));
+                      setNueva((s) => ({ ...s, real: parsed === '' ? '' : parsed }));
                     }}
                     inputProps={{ inputMode: 'numeric' }}
                   />
                 </Grid>
                 <Grid item xs={12} md={3} display="flex" gap={1} justifyContent="flex-end">
-                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' }); }}>
+                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', real: '' }); }}>
                     Cancelar
                   </Button>
                   <Button variant="contained" onClick={addLinea}>Guardar</Button>
@@ -807,23 +867,23 @@ export default function MesDetalle() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ fontWeight: 'bold', borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Categoría</th>
+                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>CategorÃ­a</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Tipo</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Estimado</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Real</th>
-                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Desvío</th>
+                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>DesvÃ­o</th>
                   <th style={{ padding: 12 }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {lineas.length > 0 ? (
                   lineas.map((item, idx) => {
-                    const e = edits[item.id] || { categoria: '', tipo: 'EGRESO', montoEstimado: 0, montoReal: '' };
+                    const e = edits[item.id] || { categoria: '', tipo: 'EGRESO', montoEstimado: 0, real: '' };
                     const estimadoN = safeNumber(e.montoEstimado);
-                    const realN = e.montoReal === '' ? 0 : safeNumber(e.montoReal);
+                    const realN = e.real === '' ? 0 : safeNumber(e.real);
                     const desvio = e.tipo === 'EGRESO' ? (estimadoN - realN) : (realN - estimadoN);
                     const allowCategoria = isFieldUnlocked(item.id, 'categoria');
-                    const allowReal = isFieldUnlocked(item.id, 'montoReal');
+                    const allowReal = isFieldUnlocked(item.id, 'real');
 
                     const updateField = (field, value) =>
                       setEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], [field]: value } }));
@@ -880,22 +940,22 @@ export default function MesDetalle() {
                               size="small"
                               type="text"
                               fullWidth
-                              value={formatCurrencyInput(e.montoReal)}
+                              value={formatCurrencyInput(e.real)}
                               InputProps={{ readOnly: !allowReal }}
                               onChange={(ev) => {
-                                if (allowReal) updateField('montoReal', parseCurrency(ev.target.value, { returnEmpty: true }));
+                                if (allowReal) updateField('real', parseCurrency(ev.target.value, { returnEmpty: true }));
                               }}
                               inputProps={{ inputMode: 'numeric' }}
                             />
                             {allowReal ? (
                               <Tooltip title="Bloquear edicion manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'montoReal', false)}>
+                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'real', false)}>
                                   <LockOpenOutlinedIcon fontSize="small" color="warning" />
                                 </IconButton>
                               </Tooltip>
                             ) : (
                               <Tooltip title="Editar monto real manualmente">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'montoReal')}>
+                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'real')}>
                                   <LockOutlinedIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -911,12 +971,12 @@ export default function MesDetalle() {
                               <SaveOutlinedIcon />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Eliminar esta línea">
+                          <Tooltip title="Eliminar esta lÃ­nea">
                             <IconButton size="small" onClick={() => openDeletePrompt(item)}>
                               <DeleteOutlineIcon />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Aplicar esta línea a varios meses">
+                          <Tooltip title="Aplicar esta lÃ­nea a varios meses">
                             <IconButton size="small" onClick={() => { setRowMenuIdx(idx); abrirDlgVariosConFila(); }}>
                               <ContentCopyIcon />
                             </IconButton>
@@ -944,16 +1004,16 @@ export default function MesDetalle() {
         <Button variant="outlined" onClick={() => navigate(-1)}>Volver</Button>
       </Box>
 
-      {/* Menú fila */}
+      {/* MenÃº fila */}
       <Menu anchorEl={anchorRowMenu} open={Boolean(anchorRowMenu)} onClose={cerrarMenuFila}>
         <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Editar regla (visual).'); }}>
           <RuleOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Editar regla (este mes / rango)
         </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Reasignar a otra categoría (visual).'); }}>
-          <SwapHorizOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Reasignar a otra categoría
+        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Reasignar a otra categorÃ­a (visual).'); }}>
+          <SwapHorizOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Reasignar a otra categorÃ­a
         </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Distribuir en subcategorías (visual).'); }}>
-          <PlaylistAddOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Distribuir en subcategorías
+        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Distribuir en subcategorÃ­as (visual).'); }}>
+          <PlaylistAddOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Distribuir en subcategorÃ­as
         </MenuItem>
         <MenuItem onClick={() => { cerrarMenuFila(); abrirDlgVariosConFila(); }}>
           <ContentCopyIcon fontSize="small" style={{ marginRight: 8 }} /> Aplicar a varios meses
@@ -992,14 +1052,14 @@ export default function MesDetalle() {
         </DialogActions>
       </Dialog>
 
-      {/* Di�logo Reglas r�pidas (visual) */}
+      {/* Diálogo Reglas rápidas (visual) */}
       <Dialog open={dlgReglas} onClose={() => setDlgReglas(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Reglas r�pidas (simulaci�n)</DialogTitle>
+        <DialogTitle>Reglas rápidas (simulación)</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField select label="�mbito" value={regla.ambito} onChange={(e) => setRegla((r) => ({ ...r, ambito: e.target.value }))}>
+            <TextField select label="Ámbito" value={regla.ambito} onChange={(e) => setRegla((r) => ({ ...r, ambito: e.target.value }))}>
               <MenuItem value="este_mes">Este mes</MenuItem>
-              <MenuItem value="hasta_fin">Desde este mes hasta fin de a�o</MenuItem>
+              <MenuItem value="hasta_fin">Desde este mes hasta fin de año</MenuItem>
               <MenuItem value="rango">Rango personalizado</MenuItem>
             </TextField>
             {regla.ambito === 'rango' && (
@@ -1011,7 +1071,7 @@ export default function MesDetalle() {
             <TextField select label="Modo" value={regla.modo} onChange={(e) => setRegla((r) => ({ ...r, modo: e.target.value }))}>
               <MenuItem value="FIJO">Monto fijo</MenuItem>
               <MenuItem value="AJUSTE_PCT">% Ajuste mensual</MenuItem>
-              <MenuItem value="UNICO">�nico (1 mes)</MenuItem>
+              <MenuItem value="UNICO">Único (1 mes)</MenuItem>
               <MenuItem value="CUOTAS">En cuotas</MenuItem>
             </TextField>
             <TextField
@@ -1034,9 +1094,9 @@ export default function MesDetalle() {
               <MenuItem value="egresos">Solo egresos</MenuItem>
             </TextField>
             <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>Previsualizaci�n (conceptual)</Typography>
+              <Typography variant="subtitle2" gutterBottom>Previsualización (conceptual)</Typography>
               <Typography variant="body2" color="text.secondary">
-                Aqu� mostrar�as una mini-grilla con las celdas impactadas antes de confirmar.
+                Aquí mostrarías una mini-grilla con las celdas impactadas antes de confirmar.
               </Typography>
             </Paper>
             <FormControlLabel control={<Switch checked={simulacion} onChange={(_, v) => setSimulacion(v)} />} label="Simular cambios (no impacta datos reales)" />
@@ -1044,13 +1104,13 @@ export default function MesDetalle() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDlgReglas(false)}>Cerrar</Button>
-          <Button variant="contained" disabled={!simulacion} onClick={() => { setDlgReglas(false); window.alert('Simulaci�n: regla aplicada (visual).'); }}>
+          <Button variant="contained" disabled={!simulacion} onClick={() => { setDlgReglas(false); window.alert('Simulación: regla aplicada (visual).'); }}>
             Aplicar (visual)
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Di�logo varios meses */}
+      {/* Diálogo varios meses */}
       <Dialog open={dlgVarios} onClose={() => setDlgVarios(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aplicar a varios meses</DialogTitle>
         <DialogContent dividers>
@@ -1073,9 +1133,7 @@ export default function MesDetalle() {
           <Button onClick={() => setDlgVarios(false)}>Cancelar</Button>
           <Button variant="contained" onClick={ejecutarBulk}>Confirmar</Button>
         </DialogActions>
-      </Dialog>
-
-      {/* Snackbar */}
+      </Dialog>      {/* Snackbar */}
       <Snackbar
         open={snack.open}
         autoHideDuration={3000}
@@ -1089,6 +1147,9 @@ export default function MesDetalle() {
     </Box>
   );
 }
+
+
+
 
 
 

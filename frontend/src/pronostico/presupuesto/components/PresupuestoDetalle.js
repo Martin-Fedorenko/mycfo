@@ -8,6 +8,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
 import { formatCurrency } from '../../../utils/currency';
+import { eachMonthOfInterval, startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
+import { getMovimientosPorRango } from '../../../reportes/reportes.service';
+import { obtenerRangoPresupuesto } from '../../../shared-services/reportes.service';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend,
   LineChart, Line, Area, ReferenceLine
@@ -52,6 +55,48 @@ const formatDiff = (est, real) => {
   return diff >= 0 ? `+${formatted}` : `-${formatted}`;
 };
 
+const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
+
+const toDateSafe = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  const [yearStr, monthStr, dayStr] = value.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  const date = new Date(year, month - 1, day);
+  return isValidDate(date) ? date : null;
+};
+
+async function getRealPorMes({ desdeDate, hastaDate }) {
+  if (!isValidDate(desdeDate) || !isValidDate(hastaDate)) return {};
+
+  const start = startOfMonth(desdeDate);
+  const end = endOfMonth(hastaDate);
+  const meses = eachMonthOfInterval({ start, end });
+  const out = {};
+
+  for (const d of meses) {
+    const desde = formatDate(startOfMonth(d), 'yyyy-MM-dd');
+    const hasta = formatDate(endOfMonth(d), 'yyyy-MM-dd');
+    const mesKey = formatDate(d, 'yyyy-MM');
+    try {
+      const resp = await getMovimientosPorRango({ fechaDesde: desde, fechaHasta: hasta, tipos: 'EGRESO' });
+      const movimientos = Array.isArray(resp?.content) ? resp.content : (Array.isArray(resp) ? resp : []);
+      const totalMes = movimientos.reduce((acc, movimiento) => {
+        const monto = Math.abs(Number(movimiento?.monto ?? movimiento?.montoTotal ?? 0));
+        return Number.isFinite(monto) ? acc + monto : acc;
+      }, 0);
+      out[mesKey] = totalMes;
+    } catch (error) {
+      console.error(`Error al obtener movimientos del mes ${mesKey}:`, error);
+      out[mesKey] = 0;
+    }
+  }
+
+  return out;
+}
+
 export default function PresupuestoDetalle() {
   const { nombre: nombreUrl } = useParams();
   const navigate = useNavigate();
@@ -61,6 +106,8 @@ export default function PresupuestoDetalle() {
     nombre: '',
     detalleMensual: [],
   });
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
   const [tab, setTab] = React.useState(0); // 0: resumen, 1: tabla
 
@@ -77,6 +124,9 @@ export default function PresupuestoDetalle() {
   React.useEffect(() => {
     const cargar = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         // 1) Buscar presupuesto por nombre
         const res = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
         const listaPayload = res?.data;
@@ -98,6 +148,7 @@ export default function PresupuestoDetalle() {
 
         if (!encontrado?.id) {
           setPresupuesto({ id: null, nombre: 'No encontrado', detalleMensual: [] });
+          setLoading(false);
           return;
         }
 
@@ -116,29 +167,55 @@ export default function PresupuestoDetalle() {
         const detalleMensual = totales.map((t, idx) => {
           const ingresoEst = safeNumber(t.ingresoEstimado);
           const egresoEst = safeNumber(t.egresoEstimado);
-          const ingresoReal = safeNumber(t.ingresoReal);
-          const egresoReal = safeNumber(t.egresoReal);
           return {
-            // id sintético solo para keys (no lo usamos para lógica)
             id: idx + 1,
             mes: t.mes, // "YYYY-MM"
             ingresoEst,
-            ingresoReal,
+            ingresoReal: 0, // Inicializar en 0
             egresoEst,
-            egresoReal,
+            egresoReal: 0, // Inicializar en 0
             totalEst: ingresoEst - egresoEst,
-            totalReal: ingresoReal - egresoReal,
+            totalReal: 0,
+          };
+        });
+
+        let realesPorMes = {};
+        try {
+          const { desde, hasta } = obtenerRangoPresupuesto(detalleMensual);
+          const desdeDate = toDateSafe(desde);
+          const hastaDate = toDateSafe(hasta);
+          if (desdeDate && hastaDate) {
+            realesPorMes = await getRealPorMes({ desdeDate, hastaDate });
+          }
+        } catch (movError) {
+          console.error('Error al obtener datos reales del presupuesto:', movError);
+          setError((prev) => prev ?? 'No se pudieron cargar los datos reales del presupuesto.');
+        }
+
+        const detalleMensualCompleto = detalleMensual.map((detalle) => {
+          const mesKey = (detalle?.mes || '').slice(0, 7);
+          const egresoReal = safeNumber(realesPorMes[mesKey] || 0);
+
+          return {
+            ...detalle,
+            ingresoReal: 0,
+            egresoReal,
+            totalReal: 0 - egresoReal,
           };
         });
 
         setPresupuesto({
           id: encontrado.id,
           nombre: nombreOficial,
-          detalleMensual,
+          detalleMensual: detalleMensualCompleto,
         });
+
       } catch (error) {
         console.error('Error al cargar presupuesto:', error);
+        setError('Error al cargar el presupuesto');
         setPresupuesto({ id: null, nombre: 'Error', detalleMensual: [] });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -751,4 +828,3 @@ export default function PresupuestoDetalle() {
     </Box>
   );
 }
-
