@@ -48,3 +48,5 @@ SET @create_idx_sql := (
 PREPARE stmt FROM @create_idx_sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- TODO: realizar backfill de presupuesto.organizacion_id cuando existan filas NULL detectadas durante el arranque.

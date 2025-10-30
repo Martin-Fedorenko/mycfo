@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PresupuestoService {
 
-    private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter ISO_DATE_TIME = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     private static final int CURRENCY_SCALE = 2;
     private static final BigDecimal ZERO_AMOUNT = BigDecimal.ZERO.setScale(CURRENCY_SCALE);
@@ -68,31 +67,39 @@ public class PresupuestoService {
     }
 
 
-private void backfillOrganizacionIdsIfNeeded() {
-    List<Presupuesto> pendientes = repo.findTop100ByOrganizacionIdIsNullOrderByIdAsc();
-    if (pendientes.isEmpty()) {
-        return;
+    private static String statusKey(ListStatus status) {
+        return switch (status) {
+            case ACTIVE -> "active";
+            case DELETED -> "deleted";
+            case ALL -> "all";
+        };
     }
-    Map<String, Long> cache = new HashMap<>();
-    List<Presupuesto> actualizados = pendientes.stream()
-        .peek(presupuesto -> {
-            if (presupuesto.getOrganizacionId() != null) {
-                return;
-            }
-            String owner = presupuesto.getOwnerSub();
-            try {
-                Long resolved = cache.computeIfAbsent(owner, administracionService::obtenerEmpresaIdPorUsuarioSub);
-                presupuesto.setOrganizacionId(resolved);
-            } catch (RuntimeException ex) {
-                log.warn("No se pudo asignar organizacion al presupuesto {} (ownerSub={})", presupuesto.getId(), owner);
-            }
-        })
-        .filter(p -> p.getOrganizacionId() != null)
-        .collect(Collectors.toList());
-    if (!actualizados.isEmpty()) {
-        repo.saveAll(actualizados);
+
+    private void backfillOrganizacionIdsIfNeeded() {
+        List<Presupuesto> pendientes = repo.findTop100ByOrganizacionIdIsNullOrderByIdAsc();
+        if (pendientes.isEmpty()) {
+            return;
+        }
+        Map<String, Long> cache = new HashMap<>();
+        List<Presupuesto> actualizados = pendientes.stream()
+            .peek(presupuesto -> {
+                if (presupuesto.getOrganizacionId() != null) {
+                    return;
+                }
+                String owner = presupuesto.getOwnerSub();
+                try {
+                    Long resolved = cache.computeIfAbsent(owner, administracionService::obtenerEmpresaIdPorUsuarioSub);
+                    presupuesto.setOrganizacionId(resolved);
+                } catch (RuntimeException ex) {
+                    log.warn("No se pudo asignar organizacion al presupuesto {} (ownerSub={})", presupuesto.getId(), owner);
+                }
+            })
+            .filter(p -> p.getOrganizacionId() != null)
+            .collect(Collectors.toList());
+        if (!actualizados.isEmpty()) {
+            repo.saveAll(actualizados);
+        }
     }
-}
 
     public Page<PresupuestoDTO> findByRange(LocalDate from,
                                             LocalDate to,
@@ -106,14 +113,8 @@ private void backfillOrganizacionIdsIfNeeded() {
         if (to.isBefore(from)) {
             throw new IllegalArgumentException("'to' no puede ser anterior a 'from'");
         }
-        String fromStr = from.format(ISO_DATE);
-        String toStr = to.format(ISO_DATE);
         Pageable safePageable = pageable != null ? pageable : Pageable.unpaged();
-        Page<Presupuesto> result = switch (status) {
-            case ACTIVE -> repo.findActiveOverlappingByOrganizacionId(organizacionId, fromStr, toStr, safePageable);
-            case DELETED -> repo.findDeletedOverlappingByOrganizacionId(organizacionId, fromStr, toStr, safePageable);
-            case ALL -> repo.findAnyOverlappingByOrganizacionId(organizacionId, fromStr, toStr, safePageable);
-        };
+        Page<Presupuesto> result = repo.searchByOrganizacion(organizacionId, from, to, statusKey(status), safePageable);
         return result.map(this::toDto);
     }
 
@@ -123,6 +124,12 @@ private void backfillOrganizacionIdsIfNeeded() {
 
     public List<PresupuestoDTO> findByRange(LocalDate from, LocalDate to, Long organizacionId, ListStatus status) {
         return findByRange(from, to, organizacionId, status, Pageable.unpaged()).getContent();
+    }
+
+    public Optional<Presupuesto> obtenerPresupuestoActualParaDashboard(Long organizacionId, LocalDate hoy) {
+        backfillOrganizacionIdsIfNeeded();
+        LocalDate referenceDate = hoy != null ? hoy : LocalDate.now();
+        return repo.findCurrentByOrganizacionId(organizacionId, referenceDate).stream().findFirst();
     }
 
     public Optional<PresupuestoDTO> findByIdDTO(Long id, Long organizacionId) {
@@ -239,6 +246,14 @@ private void backfillOrganizacionIdsIfNeeded() {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No autorizado");
         }
         return presupuesto;
+    }
+
+    public Presupuesto mustBelong(Long id, Long organizacionId) {
+        return mustBelongToOrganizacion(id, organizacionId, true);
+    }
+
+    public Presupuesto mustBelongIncludingDeleted(Long id, Long organizacionId) {
+        return mustBelongToOrganizacion(id, organizacionId, false);
     }
 
     private Presupuesto mustBelongToOrganizacion(Long id, Long organizacionId, boolean enforceActive) {

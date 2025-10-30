@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pronostico.models.Presupuesto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +35,51 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
     Optional<Presupuesto> findByIdAndOrganizacionIdAndDeletedFalse(Long id, Long organizacionId);
 
     List<Presupuesto> findTop100ByOrganizacionIdIsNullOrderByIdAsc();
+
+    @Query("""
+        SELECT p FROM Presupuesto p
+         WHERE p.organizacionId = :organizacionId
+           AND FUNCTION('STR_TO_DATE', p.desde, '%Y-%m-%d') <= :hoy
+           AND FUNCTION('STR_TO_DATE', p.hasta, '%Y-%m-%d') >= :hoy
+           AND p.deleted = false
+         ORDER BY p.desde DESC, p.hasta DESC, p.id DESC
+    """)
+    List<Presupuesto> findCurrentByOrganizacionId(
+        @Param("organizacionId") Long organizacionId,
+        @Param("hoy") LocalDate hoy
+    );
+
+    @Query(
+        value = """
+            SELECT p FROM Presupuesto p
+             WHERE p.organizacionId = :organizacionId
+               AND FUNCTION('STR_TO_DATE', p.desde, '%Y-%m-%d') <= :to
+               AND FUNCTION('STR_TO_DATE', p.hasta, '%Y-%m-%d') >= :from
+               AND (
+                    :status = 'all'
+                 OR (:status = 'active' AND p.deleted = false)
+                 OR (:status = 'deleted' AND p.deleted = true)
+               )
+        """,
+        countQuery = """
+            SELECT COUNT(p) FROM Presupuesto p
+             WHERE p.organizacionId = :organizacionId
+               AND FUNCTION('STR_TO_DATE', p.desde, '%Y-%m-%d') <= :to
+               AND FUNCTION('STR_TO_DATE', p.hasta, '%Y-%m-%d') >= :from
+               AND (
+                    :status = 'all'
+                 OR (:status = 'active' AND p.deleted = false)
+                 OR (:status = 'deleted' AND p.deleted = true)
+               )
+        """
+    )
+    Page<Presupuesto> searchByOrganizacion(
+        @Param("organizacionId") Long organizacionId,
+        @Param("from") LocalDate from,
+        @Param("to") LocalDate to,
+        @Param("status") String status,
+        Pageable pageable
+    );
 
     @Query("""
         SELECT p FROM Presupuesto p

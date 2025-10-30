@@ -184,9 +184,9 @@ public class PresupuestoController {
         @AuthenticationPrincipal Jwt jwt
     ) {
         RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
-        service.mustOwn(id, ctx.sub(), ctx.organizacionId());
+        Presupuesto presupuesto = service.mustBelong(id, ctx.organizacionId());
 
-        List<PresupuestoLinea> lineas = presupuestoLineaRepository.findByPresupuesto_Id(id);
+        List<PresupuestoLinea> lineas = presupuestoLineaRepository.findByPresupuesto_Id(presupuesto.getId());
         Map<String, List<PresupuestoLinea>> porMes = lineas.stream()
             .collect(Collectors.groupingBy(l -> normalizeYM(getMesAsString(l))));
 
@@ -206,10 +206,10 @@ public class PresupuestoController {
         @AuthenticationPrincipal Jwt jwt
     ) {
         RequestContext ctx = resolveContext(usuarioSubHeader, jwt);
-        service.mustOwn(id, ctx.sub(), ctx.organizacionId());
+        Presupuesto presupuesto = service.mustBelong(id, ctx.organizacionId());
 
         String normalized = normalizeYM(ym);
-        List<Map<String, Object>> out = presupuestoLineaRepository.findByPresupuesto_Id(id).stream()
+        List<Map<String, Object>> out = presupuestoLineaRepository.findByPresupuesto_Id(presupuesto.getId()).stream()
             .filter(l -> Objects.equals(normalizeYM(l.getMes()), normalized))
             .map(this::toLineaDTO)
             .collect(Collectors.toList());
