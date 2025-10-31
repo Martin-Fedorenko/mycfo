@@ -36,19 +36,19 @@ const baseURL = process.env.REACT_APP_URL_PRONOSTICO;
 
 const GUARD_MESSAGES = {
   categoria: {
-    title: 'Habilitar edici\u00f3n de categor\u00eda',
-    body: 'La categor\u00eda ayuda a ordenar tus an\u00e1lisis. Cambiarla manualmente puede afectar reportes y automatizaciones. \u00bfQuer\u00e9s habilitar la edici\u00f3n manual?',
-    confirmLabel: 'Habilitar edici\u00f3n'
+    title: 'Habilitar edición de categoría',
+    body: 'La categoría ayuda a ordenar tus análisis. Cambiarla manualmente puede afectar reportes y automatizaciones. ¿Querés habilitar la edición manual?',
+    confirmLabel: 'Habilitar edición'
   },
   real: {
     title: 'Editar monto real',
     body: 'El monto real refleja los registros consolidados. Si lo modificas manualmente ya no coincidira con tus movimientos cargados. Queres continuar?',
-    confirmLabel: 'Habilitar Edicion'
+    confirmLabel: 'Habilitar edición'
   }
 };
 
 const GUARD_FIELD_LABELS = {
-  categoria: 'la categor\u00eda',
+  categoria: 'la categoría',
   real: 'el monto real'
 };
 const INGRESO_COLOR = '#4caf50';
@@ -70,7 +70,7 @@ const formatearMes = (ym) => {
   return isNaN(i) ? ym : `${nombres[i-1]} ${anio}`;
 };
 
-// YYYY-MM â†’ YYYY-MM-01
+// YYYY-MM → YYYY-MM-01
 const ymToYmd = (ym) => `${ym}-01`;
 
 // Devuelve array de YYYY-MM entre from y to (inclusive)
@@ -92,7 +92,7 @@ const mesesEntre = (fromYM, toYM) => {
 const normalizeLine = (x) => ({
   id: x.id,
   categoria: x.categoria,
-  tipo: x.tipo, // "INGRESO" | "EGRESO"
+  tipo: normalizeTipo(x.tipo),
   montoEstimado: x.montoEstimado ?? x.monto_estimado ?? 0,
   real: 0,
 });
@@ -103,6 +103,13 @@ const normCat = (value) =>
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase();
+
+const normalizeTipo = (value) => {
+  const upper = (value || '').toString().toUpperCase();
+  if (upper === 'INGRESO') return 'Ingreso';
+  if (upper === 'EGRESO') return 'Egreso';
+  return value || '';
+};
 
 export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
@@ -251,7 +258,7 @@ export default function MesDetalle() {
             adicionales.push({
               id: `real-only-${tipoKey}-${key}`,
               categoria: data.label || 'Sin categoría',
-              tipo: tipoKey === 'INGRESO' ? 'Ingreso' : 'Egreso',
+              tipo: normalizeTipo(tipoKey),
               montoEstimado: 0,
               real: data.total,
               _soloReal: true,
@@ -303,7 +310,7 @@ export default function MesDetalle() {
 
       // 2) resolver YYYY-MM desde mesNombreUrl usando /totales
       const mesNumStr = mesANumero[(mesNombreUrl || '').toLowerCase().trim()];
-      if (!mesNumStr) throw new Error('Mes no vÃ¡lido');
+      if (!mesNumStr) throw new Error('Mes no válido');
 
       const resTot = await http.get(`${baseURL}/api/presupuestos/${p.id}/totales`);
       const totales = Array.isArray(resTot.data) ? resTot.data : [];
@@ -328,9 +335,14 @@ export default function MesDetalle() {
   }, [nombreUrl, mesNombreUrl, cargarLineasConReales]);
 
   // Sincronizo `edits` cuando cambian las lineas
+  const lineasCompleto = React.useMemo(
+    () => [...lineas, ...lineasSoloReal],
+    [lineas, lineasSoloReal]
+  );
+
   React.useEffect(() => {
     const nextEdits = {};
-    for (const l of lineas) {
+    for (const l of lineasCompleto) {
       nextEdits[l.id] = {
         categoria: l.categoria,
         tipo: l.tipo,
@@ -341,7 +353,7 @@ export default function MesDetalle() {
     setEdits(nextEdits);
     setManualGuards((prev) => {
       const nextGuards = {};
-      for (const l of lineas) {
+      for (const l of lineasCompleto) {
         nextGuards[l.id] = {
           categoria: prev[l.id]?.categoria || false,
           real: prev[l.id]?.real || false,
@@ -349,7 +361,7 @@ export default function MesDetalle() {
       }
       return nextGuards;
     });
-  }, [lineas]);
+  }, [lineasCompleto]);
 
   const requestManualUnlock = React.useCallback((id, field) => {
     const cfg = GUARD_MESSAGES[field] || {};
@@ -357,8 +369,8 @@ export default function MesDetalle() {
       open: true,
       id,
       field,
-      title: cfg.title || 'Confirmar edicion manual',
-      message: cfg.body || 'Esta accion habilita la edicion manual.',
+      title: cfg.title || 'Confirmar edición manual',
+      message: cfg.body || 'Esta acción habilita la edición manual.',
       confirmLabel: cfg.confirmLabel || 'Habilitar'
     });
   }, []);
@@ -374,7 +386,7 @@ export default function MesDetalle() {
       return next;
     });
     if (!enabled) {
-      const linea = lineas.find((l) => l.id === id);
+      const linea = lineasCompleto.find((l) => l.id === id);
       if (linea) {
         const restoredValue = field === 'real'
           ? (linea.real === null || typeof linea.real === 'undefined' ? '' : safeNumber(linea.real))
@@ -385,15 +397,15 @@ export default function MesDetalle() {
         }));
       }
       const label = GUARD_FIELD_LABELS[field] || field;
-      setSnack({ open: true, message: `Edicion manual desactivada para ${label}.`, severity: 'info' });
+      setSnack({ open: true, message: `Edición manual desactivada para ${label}.`, severity: 'info' });
     }
-  }, [lineas, setSnack]);
+  }, [lineasCompleto, setSnack]);
 
   const handleGuardConfirm = React.useCallback(() => {
     if (guardPrompt.open && guardPrompt.id != null && guardPrompt.field) {
       toggleManualGuard(guardPrompt.id, guardPrompt.field, true);
       const label = GUARD_FIELD_LABELS[guardPrompt.field] || guardPrompt.field;
-      setSnack({ open: true, message: `Edicion manual habilitada para ${label}.`, severity: 'warning' });
+      setSnack({ open: true, message: `Edición manual habilitada para ${label}.`, severity: 'warning' });
     }
     setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
   }, [guardPrompt, toggleManualGuard, setSnack]);
@@ -405,14 +417,13 @@ export default function MesDetalle() {
   }, [presupuestoId, ym, cargarLineasConReales]);
 
   // ===== Derivados =====
-  const lineasResumen = React.useMemo(() => [...lineas, ...lineasSoloReal], [lineas, lineasSoloReal]);
   const ingresos = React.useMemo(
-    () => lineasResumen.filter((c) => (c.tipo || '').toUpperCase() === 'INGRESO'),
-    [lineasResumen]
+    () => lineasCompleto.filter((c) => (c.tipo || '').toUpperCase() === 'INGRESO'),
+    [lineasCompleto]
   );
   const egresos = React.useMemo(
-    () => lineasResumen.filter((c) => (c.tipo || '').toUpperCase() === 'EGRESO'),
-    [lineasResumen]
+    () => lineasCompleto.filter((c) => (c.tipo || '').toUpperCase() === 'EGRESO'),
+    [lineasCompleto]
   );
 
   const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
@@ -420,7 +431,7 @@ export default function MesDetalle() {
   const totalEgresos = Number.isFinite(totalRealMes) ? totalRealMes : totalEgresosCalculado;
   const resultado = totalIngresos - totalEgresos;
 
-  const estimadoTotal = lineasResumen.reduce(
+  const estimadoTotal = lineasCompleto.reduce(
     (acc, c) => acc + safeNumber(c.montoEstimado) * (c.tipo === 'Ingreso' ? 1 : -1),
     0
   );
@@ -446,8 +457,8 @@ export default function MesDetalle() {
   // ===== Export =====
   const handleExportExcel = () => {
     const data = [
-      ['CategorÃ­a', 'Tipo', 'Monto Estimado', 'Monto Registrado', 'DesvÃ­o'],
-      ...lineasResumen.map((item) => [
+      ['Categoría', 'Tipo', 'Monto Estimado', 'Monto Registrado', 'Desvío'],
+      ...lineasCompleto.map((item) => [
         item.categoria,
         item.tipo,
         safeNumber(item.montoEstimado),
@@ -482,7 +493,7 @@ export default function MesDetalle() {
     });
   };
 
-  // ===== MenÃº por fila =====
+  // ===== Menú por fila =====
   const abrirMenuFila = (e, idx) => { setAnchorRowMenu(e.currentTarget); setRowMenuIdx(idx); };
   const cerrarMenuFila = () => { setAnchorRowMenu(null); setRowMenuIdx(null); };
 
@@ -526,7 +537,7 @@ export default function MesDetalle() {
             await tryPatchOrPut(method, url, payloads[0]);
             setManualGuards((prev) => {
               if (!prev || !prev[l.id]) return prev;
-              return { ...prev, [l.id]: { categoría: false, real: false } };
+              return { ...prev, [l.id]: { categoria: false, real: false } };
             });
             await reloadMes();
             setSnack({ open: true, message: 'Línea actualizada', severity: 'success' });
@@ -617,9 +628,28 @@ export default function MesDetalle() {
       setAgregando(false);
       await reloadMes();
       setSnack({ open: true, message: 'Línea agregada', severity: 'success' });
+  } catch (e) {
+    console.error(e);
+    setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
+  }
+};
+
+  const crearLineaDesdeReal = async (l) => {
+    try {
+      if (!presupuestoId || !ym) return;
+      const payload = {
+        categoria: l.categoria,
+        tipo: l.tipo,
+        montoEstimado: safeNumber(l.montoEstimado),
+        real: l.real === '' || l.real == null ? null : safeNumber(l.real),
+      };
+      await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
+      setSnack({ open: true, message: 'Línea agregada desde movimiento real.', severity: 'success' });
+      await reloadMes();
     } catch (e) {
       console.error(e);
-      setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
+      const msg = e?.response?.data?.message || 'Error al crear línea';
+      setSnack({ open: true, message: msg, severity: 'error' });
     }
   };
 
@@ -639,12 +669,12 @@ export default function MesDetalle() {
 
       const { accion, desde, hasta } = bulkCfg;
       if (!desde || !hasta) {
-        setSnack({ open: true, message: 'CompletÃ¡ rango de meses', severity: 'warning' });
+        setSnack({ open: true, message: 'Completá rango de meses', severity: 'warning' });
         return;
       }
       const meses = mesesEntre(desde, hasta);
       if (meses.length === 0) {
-        setSnack({ open: true, message: 'Rango invÃ¡lido', severity: 'warning' });
+        setSnack({ open: true, message: 'Rango inválido', severity: 'warning' });
         return;
       }
 
@@ -690,13 +720,13 @@ export default function MesDetalle() {
       await reloadMes();
     } catch (e) {
       console.error(e);
-      setSnack({ open: true, message: 'Error en operaciÃ³n por mÃºltiples meses', severity: 'error' });
+      setSnack({ open: true, message: 'Error en operación por múltiples meses', severity: 'error' });
     }
   };
   // ===== Render =====
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
-      <Typography variant="overline" color="text.secondary">Presupuestos →’ {presupuestoNombre}</Typography>
+      <Typography variant="overline" color="text.secondary">Presupuestos → {presupuestoNombre}</Typography>
       <Typography variant="h4" gutterBottom fontWeight="600">{nombreMes}</Typography>
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
@@ -719,7 +749,7 @@ export default function MesDetalle() {
         </Tabs>
       </Box>
 
-      {/* === PestaÃ±a 0 === */}
+      {/* === Pestaña 0 === */}
       {tab === 0 && (
         <>
           <Grid container spacing={3} mb={2}>
@@ -740,7 +770,7 @@ export default function MesDetalle() {
             <Grid item xs={12} sm={6} md={4}>
               <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? 'info.light' : 'warning.light', color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: resultado >= 0 ? 'info.main' : 'warning.main', mx: 'auto', mb: 1 }}>
-                  {resultado >= 0 ? 'âœ“' : 'âš '}
+                  {resultado >= 0 ? '✓' : '⚠'}
                 </Avatar>
                 <Typography variant="h6">Resultado</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(resultado)}</Typography>
@@ -751,7 +781,7 @@ export default function MesDetalle() {
           {/* GrÃ¡ficos */}
           {pieDataIngresos.length > 0 ? (
             <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">Distribución de Ingresos por Categorí­a</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">Distribución de Ingresos por Categoría</Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie data={pieDataIngresos} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
@@ -980,22 +1010,39 @@ export default function MesDetalle() {
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Tipo</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Estimado</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Real</th>
-                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Desví­o</th>
+                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Desvío</th>
                   <th style={{ padding: 12 }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {lineas.length > 0 ? (
-                  lineas.map((item, idx) => {
+                {lineasCompleto.length > 0 ? (
+                  lineasCompleto.map((item, idx) => {
                     const e = edits[item.id] || { categoria: '', tipo: 'Egreso', montoEstimado: 0, real: '' };
                     const estimadoN = safeNumber(e.montoEstimado);
                     const realN = e.real === '' ? 0 : safeNumber(e.real);
                     const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
-                    const allowCategoria = isFieldUnlocked(item.id, 'categoría');
+                    const allowCategoria = isFieldUnlocked(item.id, 'categoria');
                     const allowReal = isFieldUnlocked(item.id, 'real');
+                    const esSoloReal = Boolean(item._soloReal);
+                    const baseIdx = lineas.findIndex((l) => l.id === item.id);
 
                     const updateField = (field, value) =>
                       setEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], [field]: value } }));
+
+                    const handleGuardar = () => {
+                      const payload = {
+                        id: item.id,
+                        categoria: e.categoria,
+                        tipo: e.tipo,
+                        montoEstimado: safeNumber(e.montoEstimado),
+                        real: e.real === '' ? null : safeNumber(e.real),
+                      };
+                      if (esSoloReal) {
+                        crearLineaDesdeReal(payload);
+                      } else {
+                        patchLinea(payload);
+                      }
+                    };
 
                     return (
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
@@ -1007,18 +1054,18 @@ export default function MesDetalle() {
                               value={e.categoria}
                               InputProps={{ readOnly: !allowCategoria }}
                               onChange={(ev) => {
-                                if (allowCategoria) updateField('categoría', ev.target.value);
+                                if (allowCategoria) updateField('categoria', ev.target.value);
                               }}
                             />
                             {allowCategoria ? (
-                              <Tooltip title="Bloquear edicion manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoría', false)}>
+                              <Tooltip title="Bloquear edición manual">
+                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
                                   <LockOpenOutlinedIcon fontSize="small" color="warning" />
                                 </IconButton>
                               </Tooltip>
                             ) : (
-                              <Tooltip title="Habilitar edicion manual">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoría')}>
+                              <Tooltip title="Habilitar edición manual">
+                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
                                   <LockOutlinedIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -1057,7 +1104,7 @@ export default function MesDetalle() {
                               inputProps={{ inputMode: 'numeric' }}
                             />
                             {allowReal ? (
-                              <Tooltip title="Bloquear edicion manual">
+                              <Tooltip title="Bloquear edición manual">
                                 <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'real', false)}>
                                   <LockOpenOutlinedIcon fontSize="small" color="warning" />
                                 </IconButton>
@@ -1075,22 +1122,47 @@ export default function MesDetalle() {
                           {desvio >= 0 ? '+' : '-'}{formatCurrency(Math.abs(desvio))}
                         </td>
                         <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                          <Tooltip title="Guardar cambios">
-                            <IconButton size="small" onClick={() => patchLinea({ id: item.id, ...e })}>
-                              <SaveOutlinedIcon />
-                            </IconButton>
+                          <Tooltip title={esSoloReal ? 'Crear línea de presupuesto con este movimiento' : 'Guardar cambios'}>
+                            <span>
+                              <IconButton size="small" onClick={handleGuardar}>
+                                <SaveOutlinedIcon />
+                              </IconButton>
+                            </span>
                           </Tooltip>
-                          <Tooltip title="Eliminar esta lÃ­nea">
-                            <IconButton size="small" onClick={() => openDeletePrompt(item)}>
-                              <DeleteOutlineIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Aplicar esta lÃ­nea a varios meses">
-                            <IconButton size="small" onClick={() => { setRowMenuIdx(idx); abrirDlgVariosConFila(); }}>
-                              <ContentCopyIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <IconButton size="small" onClick={(ev) => abrirMenuFila(ev, idx)}><MoreVertIcon /></IconButton>
+                          {!esSoloReal && (
+                            <>
+                              <Tooltip title="Eliminar esta línea">
+                                <span>
+                                  <IconButton size="small" onClick={() => openDeletePrompt(item)}>
+                                    <DeleteOutlineIcon />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <Tooltip title="Aplicar esta línea a varios meses">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      if (baseIdx >= 0) {
+                                        setRowMenuIdx(baseIdx);
+                                        abrirDlgVariosConFila();
+                                      }
+                                    }}
+                                  >
+                                    <ContentCopyIcon />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <IconButton
+                                size="small"
+                                onClick={(ev) => {
+                                  if (baseIdx >= 0) abrirMenuFila(ev, baseIdx);
+                                }}
+                              >
+                                <MoreVertIcon />
+                              </IconButton>
+                            </>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1113,7 +1185,7 @@ export default function MesDetalle() {
         <Button variant="outlined" onClick={() => navigate(-1)}>Volver</Button>
       </Box>
 
-      {/* MenÃº fila */}
+      {/* Menú fila */}
       <Menu anchorEl={anchorRowMenu} open={Boolean(anchorRowMenu)} onClose={cerrarMenuFila}>
         <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Editar regla (visual).'); }}>
           <RuleOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Editar regla (este mes / rango)
@@ -1129,12 +1201,12 @@ export default function MesDetalle() {
         </MenuItem>
       </Menu>
 
-      {/* Confirmar edicion manual */}
+      {/* Confirmar edición manual */}
       <Dialog open={guardPrompt.open} onClose={handleGuardCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>{guardPrompt.title || 'Confirmar edicion manual'}</DialogTitle>
+        <DialogTitle>{guardPrompt.title || 'Confirmar edición manual'}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" color="text.secondary">
-            {guardPrompt.message || 'Esta accion habilita la edicion manual.'}
+            {guardPrompt.message || 'Esta acción habilita la edición manual.'}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1149,10 +1221,10 @@ export default function MesDetalle() {
         <DialogTitle>Eliminar movimiento</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" color="text.secondary">
-            Se eliminara la categoría <strong>{deletePrompt.categoria || 'sin nombre'}</strong> ({deletePrompt.tipo ? deletePrompt.tipo.toLowerCase() : 'movimiento'}) de este mes.
+            Se eliminará la categoría <strong>{deletePrompt.categoria || 'sin nombre'}</strong> ({deletePrompt.tipo ? deletePrompt.tipo.toLowerCase() : 'movimiento'}) de este mes.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Esta accion no se puede deshacer.
+            Esta acción no se puede deshacer.
           </Typography>
         </DialogContent>
         <DialogActions>
