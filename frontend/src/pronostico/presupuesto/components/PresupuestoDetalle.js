@@ -2,7 +2,7 @@ import * as React from 'react';
 import {
   Box, Typography, Paper, Grid, Button, Tabs, Tab, Avatar, Chip, Stack, Tooltip,
   IconButton, Divider, Drawer, List, ListItem, ListItemText, TextField, MenuItem, Switch,
-  FormControlLabel, Menu
+  FormControlLabel, Menu, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
@@ -32,6 +32,21 @@ const EGRESO_EST_COLOR = '#ef9a9a';
 const EGRESO_REAL_COLOR = '#f44336';
 const SUPERAVIT_COLOR = '#4caf50';
 const DEFICIT_COLOR = '#f44336';
+
+const datosBrutosTableSx = (theme) => ({
+  borderCollapse: 'collapse',
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
+});
+
+const datosBrutosCellSx = (theme) => ({
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
+  padding: '12px',
+});
+
+const datosBrutosHeaderCellSx = (theme) => ({
+  ...datosBrutosCellSx(theme),
+  fontWeight: 700,
+});
 
 // Mapeo de número de mes a nombre corto
 const mesCorto = (numStr) => {
@@ -730,19 +745,19 @@ export default function PresupuestoDetalle() {
       {/* === PESTAÑA 1: TABLA === */}
       {tab === 1 && (
         <Paper sx={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ fontWeight: 'bold', borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Mes</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Ingreso Est.</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Ingreso Real</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Egreso Est.</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Egreso Real</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Resultado</th>
-                <th style={{ padding: 12 }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table sx={datosBrutosTableSx}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={datosBrutosHeaderCellSx}>Mes</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Ingreso Est.</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Ingreso Real</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Egreso Est.</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Egreso Real</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Resultado</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {datosMensuales.length > 0 ? (
                 datosMensuales.map((fila, idx) => {
                   const ingresoEst = safeNumber(fila.ingresoEst);
@@ -755,35 +770,50 @@ export default function PresupuestoDetalle() {
                   const pct = Math.abs(totalEst) > 0 ? (diff / Math.abs(totalEst)) * 100 : 0;
 
                   return (
-                    <tr key={fila.mes || idx} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>
+                    <TableRow key={fila.mes || idx}>
+                      <TableCell sx={datosBrutosCellSx}>
                         {fila.mes}
                         {totalReal < 0 && <Chip size="small" sx={{ ml: 1 }} color="warning" label="⚠ déficit" />}
-                      </td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(ingresoEst)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(ingresoReal)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(egresoEst)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(egresoReal)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', fontWeight: 700, color: totalReal >= 0 ? '#29b6f6' : '#ffa726' }}>
-                        {formatCurrency(totalReal)} <span style={{ color: pct >= 0 ? '#66bb6a' : '#ef5350' }}>({pct.toFixed(0)}%)</span>
-                      </td>
-                      <td style={{ padding: 12 }}>
+                      </TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoEst)}</TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoReal)}</TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(egresoEst)}</TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(egresoReal)}</TableCell>
+                      <TableCell
+                        sx={(theme) => ({
+                          ...datosBrutosCellSx(theme),
+                          fontWeight: 700,
+                          color: totalReal >= 0 ? '#29b6f6' : '#ffa726',
+                        })}
+                      >
+                        {formatCurrency(totalReal)}{' '}
+                        <span style={{ color: pct >= 0 ? '#66bb6a' : '#ef5350' }}>({pct.toFixed(0)}%)</span>
+                      </TableCell>
+                      <TableCell sx={datosBrutosCellSx}>
                         <Stack direction="row" spacing={1}>
                           <Button size="small" variant="contained" onClick={() => goToMes(fila)}>Ver mes</Button>
                         </Stack>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               ) : (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: 20, color: 'var(--mui-palette-text-secondary)' }}>
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    sx={(theme) => ({
+                      ...datosBrutosCellSx(theme),
+                      textAlign: 'center',
+                      padding: '20px',
+                      color: (theme.vars || theme).palette.text.secondary,
+                    })}
+                  >
                     No hay datos mensuales con los filtros actuales.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </Paper>
       )}
 
