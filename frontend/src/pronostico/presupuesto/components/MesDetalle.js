@@ -774,10 +774,23 @@ export default function MesDetalle() {
               <Typography variant="h6" gutterBottom fontWeight="600">Ingresos: Estimado vs Real por Categoría</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataIngresos.map((item, index) => {
-                  const max = Math.max(item.estimado, item.real) * 1.2 || 1;
+                  const estimadoN = safeNumber(item.estimado);
+                  const realN = safeNumber(item.real);
+                  const max = Math.max(estimadoN, realN) * 1.2 || 1;
+                  const sinPronostico = estimadoN === 0 && realN > 0;
                   return (
                     <Box key={`${item.name}-${index}`} sx={{ mb: 3 }}>
-                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>{item.name}</Typography>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                        <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
+                        {sinPronostico && (
+                          <Tooltip
+                            title="Este movimiento no tiene un monto estimado."
+                            disableHoverListener={!sinPronostico}
+                          >
+                            <Chip size="small" color="warning" label="Movimiento sin pronosticar" />
+                          </Tooltip>
+                        )}
+                      </Stack>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Typography variant="body2" sx={{ minWidth: 80 }}>Estimado:</Typography>
@@ -840,10 +853,23 @@ export default function MesDetalle() {
               <Typography variant="h6" gutterBottom fontWeight="600">Egresos: Estimado vs Real por Categoría</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataEgresos.map((item, index) => {
-                  const max = Math.max(item.estimado, item.real) * 1.2 || 1;
+                  const estimadoN = safeNumber(item.estimado);
+                  const realN = safeNumber(item.real);
+                  const max = Math.max(estimadoN, realN) * 1.2 || 1;
+                  const sinPronostico = estimadoN === 0 && realN > 0;
                   return (
                     <Box key={`${item.name}-${index}`} sx={{ mb: 3 }}>
-                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>{item.name}</Typography>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                        <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
+                        {sinPronostico && (
+                          <Tooltip
+                            title="Este movimiento no tiene un monto estimado."
+                            disableHoverListener={!sinPronostico}
+                          >
+                            <Chip size="small" color="warning" label="Movimiento sin pronosticar" />
+                          </Tooltip>
+                        )}
+                      </Stack>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Typography variant="body2" sx={{ minWidth: 80 }}>Estimado:</Typography>
