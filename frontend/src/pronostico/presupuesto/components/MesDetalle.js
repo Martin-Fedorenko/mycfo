@@ -110,6 +110,7 @@ export default function MesDetalle() {
 
   // ===== State principal =====
   const [lineas, setLineas] = React.useState([]);
+  const [lineasSoloReal, setLineasSoloReal] = React.useState([]);
   const [edits, setEdits] = React.useState({}); // { [id]: {categoria, tipo, montoEstimado, real} }
   const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, real: bool } }
   const [guardPrompt, setGuardPrompt] = React.useState({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
@@ -174,6 +175,7 @@ export default function MesDetalle() {
     if (!referencia.isValid()) {
       const sinReales = lineasBase.map((linea) => ({ ...linea, real: 0 }));
       setLineas(sinReales);
+      setLineasSoloReal([]);
       setTotalRealMes(0);
       return sinReales;
     }
@@ -183,37 +185,87 @@ export default function MesDetalle() {
       const fechaDesde = format(startOfMonth(refDate), 'yyyy-MM-dd');
       const fechaHasta = format(endOfMonth(refDate), 'yyyy-MM-dd');
 
-      const resp = await getMovimientosPorRango({
-        fechaDesde,
-        fechaHasta,
-        tipos: 'Egreso',
-      });
-      const movimientos = Array.isArray(resp?.content) ? resp.content : (Array.isArray(resp) ? resp : []);
+      const [respEgreso, respIngreso] = await Promise.all([
+        getMovimientosPorRango({
+          fechaDesde,
+          fechaHasta,
+          tipos: 'Egreso',
+        }),
+        getMovimientosPorRango({
+          fechaDesde,
+          fechaHasta,
+          tipos: 'Ingreso',
+        }),
+      ]);
+      const movimientosEgreso = Array.isArray(respEgreso?.content) ? respEgreso.content : (Array.isArray(respEgreso) ? respEgreso : []);
+      const movimientosIngreso = Array.isArray(respIngreso?.content) ? respIngreso.content : (Array.isArray(respIngreso) ? respIngreso : []);
 
-      const realesPorCategoria = movimientos.reduce((acc, movimiento) => {
-        const key = normCat(
-          movimiento?.categoriaNombre || movimiento?.categoria || movimiento?.categoria_id_nombre
-        );
+      const agruparPorCategoria = (lista) => lista.reduce((acc, movimiento) => {
+        const nombreOriginal =
+          movimiento?.categoriaNombre || movimiento?.categoria || movimiento?.categoria_id_nombre || 'Sin categoría';
+        const key = normCat(nombreOriginal);
         if (!key) return acc;
-        const monto = Math.abs(Number(
-          movimiento?.monto ?? movimiento?.montoTotal ?? movimiento?.monto_total ?? 0
-        )) || 0;
+        const monto = Math.abs(
+          Number(movimiento?.monto ?? movimiento?.montoTotal ?? movimiento?.monto_total ?? 0)
+        ) || 0;
         if (!Number.isFinite(monto)) return acc;
-        acc[key] = (acc[key] || 0) + monto;
+        if (!acc[key]) {
+          acc[key] = { total: 0, label: nombreOriginal || 'Sin categoría' };
+        }
+        acc[key].total += monto;
         return acc;
       }, {});
 
-      const totalRealMesValue = Object.values(realesPorCategoria).reduce((acc, monto) => acc + monto, 0);
+      const realesPorCategoriaEgreso = agruparPorCategoria(movimientosEgreso);
+      const realesPorCategoriaIngreso = agruparPorCategoria(movimientosIngreso);
+      const totalRealEgreso = Object.values(realesPorCategoriaEgreso).reduce((acc, data) => acc + data.total, 0);
 
       const lineasConReales = lineasBase.map((linea) => {
         const key = normCat(linea.categoriaNombre || linea.categoria);
+        const tipoKey = (linea.tipo || '').toUpperCase();
+        let real = 0;
+        if (tipoKey === 'INGRESO') {
+          real = realesPorCategoriaIngreso[key]?.total || 0;
+        } else if (tipoKey === 'EGRESO') {
+          real = realesPorCategoriaEgreso[key]?.total || 0;
+        }
         return {
           ...linea,
-          real: realesPorCategoria[key] || 0,
+          real,
         };
       });
+
+      const categoriasPorTipo = lineasBase.reduce((acc, linea) => {
+        const tipoKey = (linea.tipo || '').toUpperCase();
+        const key = normCat(linea.categoriaNombre || linea.categoria);
+        if (!acc[tipoKey]) acc[tipoKey] = new Set();
+        acc[tipoKey].add(key);
+        return acc;
+      }, {});
+
+      const adicionales = [];
+      const registrarAdicionales = (tipoKey, mapa) => {
+        const set = categoriasPorTipo[tipoKey] || new Set();
+        Object.entries(mapa).forEach(([key, data]) => {
+          if (!set.has(key)) {
+            adicionales.push({
+              id: `real-only-${tipoKey}-${key}`,
+              categoria: data.label || 'Sin categoría',
+              tipo: tipoKey === 'INGRESO' ? 'Ingreso' : 'Egreso',
+              montoEstimado: 0,
+              real: data.total,
+              _soloReal: true,
+            });
+          }
+        });
+      };
+
+      registrarAdicionales('EGRESO', realesPorCategoriaEgreso);
+      registrarAdicionales('INGRESO', realesPorCategoriaIngreso);
+
       setLineas(lineasConReales);
-      setTotalRealMes(totalRealMesValue);
+      setLineasSoloReal(adicionales);
+      setTotalRealMes(totalRealEgreso);
       return lineasConReales;
     } catch (movErr) {
       console.error('Error al obtener datos reales del mes:', movErr);
@@ -222,6 +274,7 @@ export default function MesDetalle() {
         real: 0,
       }));
       setLineas(fallback);
+      setLineasSoloReal([]);
       setTotalRealMes(0);
       setSnack({ open: true, message: 'No se pudieron cargar los datos reales del mes.', severity: 'error' });
       return fallback;
@@ -352,13 +405,14 @@ export default function MesDetalle() {
   }, [presupuestoId, ym, cargarLineasConReales]);
 
   // ===== Derivados =====
+  const lineasResumen = React.useMemo(() => [...lineas, ...lineasSoloReal], [lineas, lineasSoloReal]);
   const ingresos = React.useMemo(
-    () => lineas.filter((c) => (c.tipo || '').toUpperCase() === 'INGRESO'),
-    [lineas]
+    () => lineasResumen.filter((c) => (c.tipo || '').toUpperCase() === 'INGRESO'),
+    [lineasResumen]
   );
   const egresos = React.useMemo(
-    () => lineas.filter((c) => (c.tipo || '').toUpperCase() === 'EGRESO'),
-    [lineas]
+    () => lineasResumen.filter((c) => (c.tipo || '').toUpperCase() === 'EGRESO'),
+    [lineasResumen]
   );
 
   const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
@@ -366,7 +420,7 @@ export default function MesDetalle() {
   const totalEgresos = Number.isFinite(totalRealMes) ? totalRealMes : totalEgresosCalculado;
   const resultado = totalIngresos - totalEgresos;
 
-  const estimadoTotal = lineas.reduce(
+  const estimadoTotal = lineasResumen.reduce(
     (acc, c) => acc + safeNumber(c.montoEstimado) * (c.tipo === 'Ingreso' ? 1 : -1),
     0
   );
@@ -377,15 +431,23 @@ export default function MesDetalle() {
   ).length;
 
   const pieDataIngresos = ingresos.map((i) => ({ name: i.categoria, value: safeNumber(i.real) }));
-  const barDataIngresos = ingresos.map((i) => ({ name: i.categoria, estimado: safeNumber(i.montoEstimado), real: safeNumber(i.real) }));
+  const barDataIngresos = ingresos.map((i) => ({
+    name: i.categoria,
+    estimado: safeNumber(i.montoEstimado),
+    real: safeNumber(i.real),
+  }));
   const pieDataEgresos = egresos.map((e) => ({ name: e.categoria, value: safeNumber(e.real) }));
-  const barDataEgresos = egresos.map((e) => ({ name: e.categoria, estimado: safeNumber(e.montoEstimado), real: safeNumber(e.real) }));
+  const barDataEgresos = egresos.map((e) => ({
+    name: e.categoria,
+    estimado: safeNumber(e.montoEstimado),
+    real: safeNumber(e.real),
+  }));
 
   // ===== Export =====
   const handleExportExcel = () => {
     const data = [
       ['CategorÃ­a', 'Tipo', 'Monto Estimado', 'Monto Registrado', 'DesvÃ­o'],
-      ...lineas.map((item) => [
+      ...lineasResumen.map((item) => [
         item.categoria,
         item.tipo,
         safeNumber(item.montoEstimado),
