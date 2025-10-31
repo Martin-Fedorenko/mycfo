@@ -9,7 +9,7 @@ import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
 import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
 import dayjs from 'dayjs';
-import { format as formatDate, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { getMovimientosPorRango } from '../../../reportes/reportes.service';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend
@@ -97,7 +97,12 @@ const normalizeLine = (x) => ({
   real: 0,
 });
 
-const normCat = (value) => (value || '').trim().toLowerCase();
+const normCat = (value) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
 
 export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
@@ -113,6 +118,7 @@ export default function MesDetalle() {
   const [presupuestoId, setPresupuestoId] = React.useState(null);
   const [ym, setYm] = React.useState(null); // YYYY-MM
   const [tab, setTab] = React.useState(0);
+  const [totalRealMes, setTotalRealMes] = React.useState(0);
 
   // UI
   const [simulacion, setSimulacion] = React.useState(false);
@@ -120,7 +126,7 @@ export default function MesDetalle() {
   const [rowMenuIdx, setRowMenuIdx] = React.useState(null);
   const [snack, setSnack] = React.useState({ open: false, message: '', severity: 'success' });
 
-  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'EGRESO', montoEstimado: '', real: '' });
+  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'Egreso', montoEstimado: '', real: '' });
   const [agregando, setAgregando] = React.useState(false);
 
   const [dlgReglas, setDlgReglas] = React.useState(false);
@@ -166,19 +172,21 @@ export default function MesDetalle() {
     const ymKey = typeof ymStr === 'string' ? ymStr.slice(0, 7) : '';
     const referencia = dayjs(`${ymKey}-01`);
     if (!referencia.isValid()) {
-      setLineas(lineasBase.map((linea) => ({ ...linea, real: 0 })));
-      return lineasBase.map((linea) => ({ ...linea, real: 0 }));
+      const sinReales = lineasBase.map((linea) => ({ ...linea, real: 0 }));
+      setLineas(sinReales);
+      setTotalRealMes(0);
+      return sinReales;
     }
 
     try {
       const refDate = referencia.toDate();
-      const fechaDesde = formatDate(startOfMonth(refDate), 'yyyy-MM-dd');
-      const fechaHasta = formatDate(endOfMonth(refDate), 'yyyy-MM-dd');
+      const fechaDesde = format(startOfMonth(refDate), 'yyyy-MM-dd');
+      const fechaHasta = format(endOfMonth(refDate), 'yyyy-MM-dd');
 
       const resp = await getMovimientosPorRango({
         fechaDesde,
         fechaHasta,
-        tipos: 'EGRESO',
+        tipos: 'Egreso',
       });
       const movimientos = Array.isArray(resp?.content) ? resp.content : (Array.isArray(resp) ? resp : []);
 
@@ -187,20 +195,25 @@ export default function MesDetalle() {
           movimiento?.categoriaNombre || movimiento?.categoria || movimiento?.categoria_id_nombre
         );
         if (!key) return acc;
-        const monto = Math.abs(Number(movimiento?.monto ?? movimiento?.montoTotal ?? 0));
+        const monto = Math.abs(Number(
+          movimiento?.monto ?? movimiento?.montoTotal ?? movimiento?.monto_total ?? 0
+        )) || 0;
         if (!Number.isFinite(monto)) return acc;
         acc[key] = (acc[key] || 0) + monto;
         return acc;
       }, {});
 
+      const totalRealMesValue = Object.values(realesPorCategoria).reduce((acc, monto) => acc + monto, 0);
+
       const lineasConReales = lineasBase.map((linea) => {
-        const key = normCat(linea.categoria);
+        const key = normCat(linea.categoriaNombre || linea.categoria);
         return {
           ...linea,
           real: realesPorCategoria[key] || 0,
         };
       });
       setLineas(lineasConReales);
+      setTotalRealMes(totalRealMesValue);
       return lineasConReales;
     } catch (movErr) {
       console.error('Error al obtener datos reales del mes:', movErr);
@@ -209,6 +222,7 @@ export default function MesDetalle() {
         real: 0,
       }));
       setLineas(fallback);
+      setTotalRealMes(0);
       setSnack({ open: true, message: 'No se pudieron cargar los datos reales del mes.', severity: 'error' });
       return fallback;
     }
@@ -338,15 +352,22 @@ export default function MesDetalle() {
   }, [presupuestoId, ym, cargarLineasConReales]);
 
   // ===== Derivados =====
-  const ingresos = React.useMemo(() => lineas.filter((c) => c.tipo === 'INGRESO'), [lineas]);
-  const egresos = React.useMemo(() => lineas.filter((c) => c.tipo === 'EGRESO'), [lineas]);
+  const ingresos = React.useMemo(
+    () => lineas.filter((c) => (c.tipo || '').toUpperCase() === 'INGRESO'),
+    [lineas]
+  );
+  const egresos = React.useMemo(
+    () => lineas.filter((c) => (c.tipo || '').toUpperCase() === 'EGRESO'),
+    [lineas]
+  );
 
   const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
-  const totalEgresos = egresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
+  const totalEgresosCalculado = egresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
+  const totalEgresos = Number.isFinite(totalRealMes) ? totalRealMes : totalEgresosCalculado;
   const resultado = totalIngresos - totalEgresos;
 
   const estimadoTotal = lineas.reduce(
-    (acc, c) => acc + safeNumber(c.montoEstimado) * (c.tipo === 'INGRESO' ? 1 : -1),
+    (acc, c) => acc + safeNumber(c.montoEstimado) * (c.tipo === 'Ingreso' ? 1 : -1),
     0
   );
   const cumplimiento = Math.abs(estimadoTotal) > 0 ? (resultado / Math.abs(estimadoTotal)) : 0;
@@ -369,7 +390,7 @@ export default function MesDetalle() {
         item.tipo,
         safeNumber(item.montoEstimado),
         safeNumber(item.real),
-        (item.tipo === 'EGRESO'
+        (item.tipo === 'Egreso'
             ? safeNumber(item.montoEstimado) - safeNumber(item.real)
             : safeNumber(item.real) - safeNumber(item.montoEstimado)),
       ]),
@@ -443,10 +464,10 @@ export default function MesDetalle() {
             await tryPatchOrPut(method, url, payloads[0]);
             setManualGuards((prev) => {
               if (!prev || !prev[l.id]) return prev;
-              return { ...prev, [l.id]: { categoria: false, real: false } };
+              return { ...prev, [l.id]: { categoría: false, real: false } };
             });
             await reloadMes();
-            setSnack({ open: true, message: 'LÃ­nea actualizada', severity: 'success' });
+            setSnack({ open: true, message: 'Línea actualizada', severity: 'success' });
             return;
           } catch (e1) {
             lastErr = e1;
@@ -460,7 +481,7 @@ export default function MesDetalle() {
                   return { ...prev, [l.id]: { categoria: false, real: false } };
                 });
                 await reloadMes();
-                setSnack({ open: true, message: 'LÃ­nea actualizada', severity: 'success' });
+                setSnack({ open: true, message: 'Línea actualizada', severity: 'success' });
                 return;
               } catch (e2) {
                 lastErr = e2;
@@ -500,7 +521,7 @@ export default function MesDetalle() {
       if (!presupuestoId || !ym || !lineaId) return;
       await http.delete(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas/${lineaId}`);
       await reloadMes();
-      setSnack({ open: true, message: 'LÃ­nea eliminada', severity: 'success' });
+      setSnack({ open: true, message: 'Línea eliminada', severity: 'success' });
     } catch (e) {
       console.error(e);
       setSnack({ open: true, message: 'Error al eliminar', severity: 'error' });
@@ -520,7 +541,7 @@ export default function MesDetalle() {
     try {
       if (!presupuestoId || !ym) return;
       if (!nueva.categoria || !nueva.tipo) {
-        setSnack({ open: true, message: 'CompletÃ¡ categorÃ­a y tipo', severity: 'warning' });
+        setSnack({ open: true, message: 'Completá Categoría y tipo', severity: 'warning' });
         return;
       }
       const payload = {
@@ -530,10 +551,10 @@ export default function MesDetalle() {
         real: nueva.real === '' || nueva.real == null ? null : Number(nueva.real),
       };
       await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
-      setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', real: '' });
+      setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '', real: '' });
       setAgregando(false);
       await reloadMes();
-      setSnack({ open: true, message: 'LÃ­nea agregada', severity: 'success' });
+      setSnack({ open: true, message: 'Línea agregada', severity: 'success' });
     } catch (e) {
       console.error(e);
       setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
@@ -613,7 +634,7 @@ export default function MesDetalle() {
   // ===== Render =====
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
-      <Typography variant="overline" color="text.secondary">Presupuestos â†’ {presupuestoNombre}</Typography>
+      <Typography variant="overline" color="text.secondary">Presupuestos →’ {presupuestoNombre}</Typography>
       <Typography variant="h4" gutterBottom fontWeight="600">{nombreMes}</Typography>
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
@@ -668,7 +689,7 @@ export default function MesDetalle() {
           {/* GrÃ¡ficos */}
           {pieDataIngresos.length > 0 ? (
             <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">DistribuciÃ³n de Ingresos por CategorÃ­a</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">Distribución de Ingresos por Categorí­a</Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie data={pieDataIngresos} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
@@ -688,7 +709,7 @@ export default function MesDetalle() {
 
           {barDataIngresos.length > 0 && (
             <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">Ingresos: Estimado vs Real por CategorÃ­a</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">Ingresos: Estimado vs Real por Categoría</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataIngresos.map((item, index) => {
                   const max = Math.max(item.estimado, item.real) * 1.2 || 1;
@@ -734,7 +755,7 @@ export default function MesDetalle() {
 
           {pieDataEgresos.length > 0 ? (
             <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">DistribuciÃ³n de Egresos por CategorÃ­a</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">Distribución de Egresos por Categoría</Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie data={pieDataEgresos} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
@@ -754,7 +775,7 @@ export default function MesDetalle() {
 
           {barDataEgresos.length > 0 && (
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom fontWeight="600">Egresos: Estimado vs Real por CategorÃ­a</Typography>
+              <Typography variant="h6" gutterBottom fontWeight="600">Egresos: Estimado vs Real por Categoría</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataEgresos.map((item, index) => {
                   const max = Math.max(item.estimado, item.real) * 1.2 || 1;
@@ -807,12 +828,12 @@ export default function MesDetalle() {
           <Box sx={{ mb: 2 }}>
             {!agregando ? (
               <Button startIcon={<AddCircleOutlineIcon />} variant="contained" onClick={() => setAgregando(true)}>
-                Agregar categorÃ­a
+                Agregar categoría
               </Button>
             ) : (
               <Grid container spacing={1} alignItems="center">
                 <Grid item xs={12} md={3}>
-                  <TextField label="CategorÃ­a" fullWidth value={nueva.categoria}
+                  <TextField label="Categoría" fullWidth value={nueva.categoria}
                     onChange={(e) => setNueva((s) => ({ ...s, categoria: e.target.value }))} />
                 </Grid>
                 <Grid item xs={12} md={2}>
@@ -820,8 +841,8 @@ export default function MesDetalle() {
                     <InputLabel>Tipo</InputLabel>
                     <Select label="Tipo" value={nueva.tipo}
                       onChange={(e) => setNueva((s) => ({ ...s, tipo: e.target.value }))}>
-                      <MenuItem value="INGRESO">INGRESO</MenuItem>
-                      <MenuItem value="EGRESO">EGRESO</MenuItem>
+                      <MenuItem value="Ingreso">INGRESO</MenuItem>
+                      <MenuItem value="Egreso">EGRESO</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -852,7 +873,7 @@ export default function MesDetalle() {
                   />
                 </Grid>
                 <Grid item xs={12} md={3} display="flex" gap={1} justifyContent="flex-end">
-                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', real: '' }); }}>
+                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '', real: '' }); }}>
                     Cancelar
                   </Button>
                   <Button variant="contained" onClick={addLinea}>Guardar</Button>
@@ -867,22 +888,22 @@ export default function MesDetalle() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ fontWeight: 'bold', borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>CategorÃ­a</th>
+                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Categoría</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Tipo</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Estimado</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Real</th>
-                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>DesvÃ­o</th>
+                  <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Desví­o</th>
                   <th style={{ padding: 12 }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {lineas.length > 0 ? (
                   lineas.map((item, idx) => {
-                    const e = edits[item.id] || { categoria: '', tipo: 'EGRESO', montoEstimado: 0, real: '' };
+                    const e = edits[item.id] || { categoria: '', tipo: 'Egreso', montoEstimado: 0, real: '' };
                     const estimadoN = safeNumber(e.montoEstimado);
                     const realN = e.real === '' ? 0 : safeNumber(e.real);
-                    const desvio = e.tipo === 'EGRESO' ? (estimadoN - realN) : (realN - estimadoN);
-                    const allowCategoria = isFieldUnlocked(item.id, 'categoria');
+                    const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
+                    const allowCategoria = isFieldUnlocked(item.id, 'categoría');
                     const allowReal = isFieldUnlocked(item.id, 'real');
 
                     const updateField = (field, value) =>
@@ -898,18 +919,18 @@ export default function MesDetalle() {
                               value={e.categoria}
                               InputProps={{ readOnly: !allowCategoria }}
                               onChange={(ev) => {
-                                if (allowCategoria) updateField('categoria', ev.target.value);
+                                if (allowCategoria) updateField('categoría', ev.target.value);
                               }}
                             />
                             {allowCategoria ? (
                               <Tooltip title="Bloquear edicion manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
+                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoría', false)}>
                                   <LockOpenOutlinedIcon fontSize="small" color="warning" />
                                 </IconButton>
                               </Tooltip>
                             ) : (
                               <Tooltip title="Habilitar edicion manual">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
+                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoría')}>
                                   <LockOutlinedIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -919,8 +940,8 @@ export default function MesDetalle() {
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 160 }}>
                           <FormControl size="small" fullWidth>
                             <Select value={e.tipo} onChange={(ev) => updateField('tipo', ev.target.value)}>
-                              <MenuItem value="INGRESO">INGRESO</MenuItem>
-                              <MenuItem value="EGRESO">EGRESO</MenuItem>
+                              <MenuItem value="Ingreso">INGRESO</MenuItem>
+                              <MenuItem value="Egreso">EGRESO</MenuItem>
                             </Select>
                           </FormControl>
                         </td>
@@ -1009,11 +1030,11 @@ export default function MesDetalle() {
         <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Editar regla (visual).'); }}>
           <RuleOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Editar regla (este mes / rango)
         </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Reasignar a otra categorÃ­a (visual).'); }}>
-          <SwapHorizOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Reasignar a otra categorÃ­a
+        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Reasignar a otra categoría (visual).'); }}>
+          <SwapHorizOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Reasignar a otra categoría
         </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Distribuir en subcategorÃ­as (visual).'); }}>
-          <PlaylistAddOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Distribuir en subcategorÃ­as
+        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Distribuir en subcategorías (visual).'); }}>
+          <PlaylistAddOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Distribuir en subcategorías
         </MenuItem>
         <MenuItem onClick={() => { cerrarMenuFila(); abrirDlgVariosConFila(); }}>
           <ContentCopyIcon fontSize="small" style={{ marginRight: 8 }} /> Aplicar a varios meses
@@ -1040,7 +1061,7 @@ export default function MesDetalle() {
         <DialogTitle>Eliminar movimiento</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" color="text.secondary">
-            Se eliminara la categoria <strong>{deletePrompt.categoria || 'sin nombre'}</strong> ({deletePrompt.tipo ? deletePrompt.tipo.toLowerCase() : 'movimiento'}) de este mes.
+            Se eliminara la categoría <strong>{deletePrompt.categoria || 'sin nombre'}</strong> ({deletePrompt.tipo ? deletePrompt.tipo.toLowerCase() : 'movimiento'}) de este mes.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Esta accion no se puede deshacer.
@@ -1090,8 +1111,8 @@ export default function MesDetalle() {
             />
             <TextField select label="Aplicar a" value={regla.solo} onChange={(e) => setRegla((r) => ({ ...r, solo: e.target.value }))}>
               <MenuItem value="todos">Ingresos y egresos</MenuItem>
-              <MenuItem value="ingresos">Solo ingresos</MenuItem>
-              <MenuItem value="egresos">Solo egresos</MenuItem>
+              <MenuItem value="Ingresos">Solo ingresos</MenuItem>
+              <MenuItem value="Egresos">Solo egresos</MenuItem>
             </TextField>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Typography variant="subtitle2" gutterBottom>Previsualización (conceptual)</Typography>

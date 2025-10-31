@@ -10,7 +10,6 @@ import http from '../../../api/http';
 import { formatCurrency } from '../../../utils/currency';
 import { eachMonthOfInterval, startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
 import { getMovimientosPorRango } from '../../../reportes/reportes.service';
-import { obtenerRangoPresupuesto } from '../../../shared-services/reportes.service';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend,
   LineChart, Line, Area, ReferenceLine
@@ -68,12 +67,7 @@ const toDateSafe = (value) => {
   return isValidDate(date) ? date : null;
 };
 
-async function getRealPorMes({ desdeDate, hastaDate }) {
-  if (!isValidDate(desdeDate) || !isValidDate(hastaDate)) return {};
-
-  const start = startOfMonth(desdeDate);
-  const end = endOfMonth(hastaDate);
-  const meses = eachMonthOfInterval({ start, end });
+async function getRealPorMes(meses, tipo) {
   const out = {};
 
   for (const d of meses) {
@@ -81,7 +75,7 @@ async function getRealPorMes({ desdeDate, hastaDate }) {
     const hasta = formatDate(endOfMonth(d), 'yyyy-MM-dd');
     const mesKey = formatDate(d, 'yyyy-MM');
     try {
-      const resp = await getMovimientosPorRango({ fechaDesde: desde, fechaHasta: hasta, tipos: 'EGRESO' });
+      const resp = await getMovimientosPorRango({ fechaDesde: desde, fechaHasta: hasta, tipos: tipo });
       const movimientos = Array.isArray(resp?.content) ? resp.content : (Array.isArray(resp) ? resp : []);
       const totalMes = movimientos.reduce((acc, movimiento) => {
         const monto = Math.abs(Number(movimiento?.monto ?? movimiento?.montoTotal ?? 0));
@@ -89,7 +83,7 @@ async function getRealPorMes({ desdeDate, hastaDate }) {
       }, 0);
       out[mesKey] = totalMes;
     } catch (error) {
-      console.error(`Error al obtener movimientos del mes ${mesKey}:`, error);
+      console.error(`Error al obtener movimientos del mes ${mesKey} (${tipo}):`, error);
       out[mesKey] = 0;
     }
   }
@@ -119,7 +113,7 @@ export default function PresupuestoDetalle() {
 
   // Panel lateral (KPIs clicables)
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [drawerTipo, setDrawerTipo] = React.useState('ingresos'); // 'ingresos' | 'egresos' | 'resultado'
+  const [drawerTipo, setDrawerTipo] = React.useState('Ingresos'); // 'ingresos' | 'egresos' | 'resultado'
 
   React.useEffect(() => {
     const cargar = async () => {
@@ -179,13 +173,30 @@ export default function PresupuestoDetalle() {
           };
         });
 
-        let realesPorMes = {};
+        let realesIngresoPorMes = {};
+        let realesEgresoPorMes = {};
         try {
-          const { desde, hasta } = obtenerRangoPresupuesto(detalleMensual);
-          const desdeDate = toDateSafe(desde);
-          const hastaDate = toDateSafe(hasta);
-          if (desdeDate && hastaDate) {
-            realesPorMes = await getRealPorMes({ desdeDate, hastaDate });
+          const fechasDisponibles = detalleMensual
+            .map((detalle) => {
+              const mesKey = (detalle?.mes || '').slice(0, 7);
+              if (!mesKey) return null;
+              return toDateSafe(`${mesKey}-01`);
+            })
+            .filter(Boolean);
+
+          if (fechasDisponibles.length > 0) {
+            const minTime = Math.min(...fechasDisponibles.map((d) => d.getTime()));
+            const maxTime = Math.max(...fechasDisponibles.map((d) => d.getTime()));
+            const rangoInicioDate = startOfMonth(new Date(minTime));
+            const rangoFinDate = endOfMonth(new Date(maxTime));
+            const meses = eachMonthOfInterval({ start: rangoInicioDate, end: rangoFinDate });
+
+            const [egresosPorMes, ingresosPorMes] = await Promise.all([
+              getRealPorMes(meses, 'Egreso'),
+              getRealPorMes(meses, 'Ingreso'),
+            ]);
+            realesEgresoPorMes = egresosPorMes;
+            realesIngresoPorMes = ingresosPorMes;
           }
         } catch (movError) {
           console.error('Error al obtener datos reales del presupuesto:', movError);
@@ -194,13 +205,14 @@ export default function PresupuestoDetalle() {
 
         const detalleMensualCompleto = detalleMensual.map((detalle) => {
           const mesKey = (detalle?.mes || '').slice(0, 7);
-          const egresoReal = safeNumber(realesPorMes[mesKey] || 0);
+          const egresoReal = safeNumber(realesEgresoPorMes[mesKey] || 0);
+          const ingresoReal = safeNumber(realesIngresoPorMes[mesKey] || 0);
 
           return {
             ...detalle,
-            ingresoReal: 0,
+            ingresoReal,
             egresoReal,
-            totalReal: 0 - egresoReal,
+            totalReal: ingresoReal - egresoReal,
           };
         });
 
@@ -452,7 +464,7 @@ export default function PresupuestoDetalle() {
                 <Tooltip title="Ver meses con mayor desvío en ingresos">
                   <IconButton
                     size="small"
-                    onClick={() => setDrawerOpen(true) || setDrawerTipo('ingresos')}
+                    onClick={() => setDrawerOpen(true) || setDrawerTipo('Ingresos')}
                     sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)' }}
                   >
                     <RuleOutlinedIcon fontSize="small" />
@@ -788,8 +800,8 @@ export default function PresupuestoDetalle() {
             <IconButton onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {drawerTipo === 'ingresos' && 'Ordenado por diferencia Ingreso Real vs Estimado.'}
-            {drawerTipo === 'egresos' && 'Ordenado por diferencia Egreso Real vs Estimado.'}
+            {drawerTipo === 'Ingresos' && 'Ordenado por diferencia Ingreso Real vs Estimado.'}
+            {drawerTipo === 'Egresos' && 'Ordenado por diferencia Egreso Real vs Estimado.'}
             {drawerTipo === 'resultado' && 'Ordenado por diferencia de Resultado Real vs Estimado.'}
           </Typography>
           <List dense>
@@ -800,7 +812,7 @@ export default function PresupuestoDetalle() {
               const resReal = safeNumber(fila.totalReal ?? (safeNumber(fila.ingresoReal) - safeNumber(fila.egresoReal)));
               const resDelta = resReal - resEst;
 
-              const valor = drawerTipo === 'ingresos' ? ingresoDelta : drawerTipo === 'egresos' ? egresoDelta : resDelta;
+              const valor = drawerTipo === 'Ingresos' ? ingresoDelta : drawerTipo === 'egresos' ? egresoDelta : resDelta;
 
               return (
                 <ListItem
