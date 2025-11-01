@@ -59,11 +59,13 @@ const INGRESO_EST_COLOR = '#a5d6a7';
 const EGRESO_EST_COLOR = '#ef9a9a';
 const SIN_PRONOSTICO_CHIP_SX = {
   fontWeight: 500,
-  bgcolor: '#FFDE70FF',
+  bgcolor: '#FFDE70',
+  backgroundColor: '#FFDE70',
   color: '#000',
   border: '1px solid #F5C16C',
   '& .MuiChip-label': { color: '#000' },
   '& .MuiChip-icon': { color: '#000' },
+  '&.MuiChip-filled': { backgroundColor: '#FFDE70' },
 };
 
 const mesANumero = {
