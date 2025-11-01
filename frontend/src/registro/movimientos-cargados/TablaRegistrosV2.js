@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Box, Typography, Chip, IconButton, Dialog, DialogTitle, DialogContent, 
-  DialogActions, Button, Grid, TextField, Alert, FormLabel, FormHelperText, OutlinedInput
+  DialogActions, Button, Grid, TextField, Alert, FormLabel, FormHelperText, OutlinedInput, Snackbar
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import EditIcon from "@mui/icons-material/Edit";
@@ -26,6 +26,7 @@ import VerIngreso from "./components/VerIngreso";
 import VerEgreso from "./components/VerEgreso";
 import VerDeuda from "./components/VerDeuda";
 import VerAcreencia from "./components/VerAcreencia";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 export default function TablaRegistrosV2() {
   const [movimientos, setMovimientos] = useState([]);
@@ -38,7 +39,48 @@ export default function TablaRegistrosV2() {
   const [errors, setErrors] = useState({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [movimientoToDelete, setMovimientoToDelete] = useState(null);
-  
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [pendingEditId, setPendingEditId] = useState(null);
+  const dialogContentRef = useRef(null);
+
+  const clearDeepLink = useCallback(() => {
+    const hasQuery = searchParams.has("editMovementId");
+    const state = location.state || {};
+    const { editMovementId: _omitId, editMovementMeta: _omitMeta, ...restState } = state;
+    const hasStateLink =
+      Object.prototype.hasOwnProperty.call(state, "editMovementId") ||
+      Object.prototype.hasOwnProperty.call(state, "editMovementMeta");
+
+    if (!hasQuery && !hasStateLink) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("editMovementId");
+    const nextSearch = nextParams.toString();
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : "",
+      },
+      {
+        replace: true,
+        state: hasStateLink ? (Object.keys(restState).length ? restState : undefined) : state,
+      }
+    );
+  }, [location.pathname, location.state, navigate, searchParams]);
+
+  useEffect(() => {
+    const fromQuery = searchParams.get("editMovementId");
+    const fromState = location.state?.editMovementId;
+    const candidate = fromQuery || fromState || null;
+    if (candidate) {
+      setPendingEditId((prev) => (prev === candidate ? prev : candidate));
+    }
+  }, [searchParams, location.state]);
+
   const API_BASE = API_CONFIG.REGISTRO;
 
   // Campos obligatorios por tipo de movimiento
@@ -133,6 +175,34 @@ export default function TablaRegistrosV2() {
     setDialogMode("edit");
     setDialogOpen(true);
   };
+
+  useEffect(() => {
+    if (!pendingEditId || loading) return;
+    const targetMovimiento = movimientos.find(
+      (movimiento) => String(movimiento.id) === String(pendingEditId)
+    );
+    if (targetMovimiento) {
+      handleEditarMovimiento(targetMovimiento);
+      setPendingEditId(null);
+      clearDeepLink();
+    } else {
+      setSnackbar({ open: true, message: "No se encontro el movimiento para editar.", severity: "error" });
+      setPendingEditId(null);
+      clearDeepLink();
+    }
+  }, [pendingEditId, movimientos, loading, clearDeepLink]);
+
+  useEffect(() => {
+    if (dialogOpen && dialogMode === "edit") {
+      const timer = setTimeout(() => {
+        const firstField = dialogContentRef.current?.querySelector("input, textarea, [tabindex='0']");
+        if (firstField && typeof firstField.focus === "function") {
+          firstField.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [dialogOpen, dialogMode]);
 
   // Función para validar campos obligatorios
   const validarCamposObligatorios = () => {
@@ -232,6 +302,11 @@ export default function TablaRegistrosV2() {
     setSelectedMovimiento(null);
     setFormData({});
     setErrors({}); // Limpiar errores al cerrar
+  };
+
+  const handleCloseSnackbar = (_event, reason) => {
+    if (reason === "clickaway") return;
+    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   // Función para renderizar el formulario correcto según el tipo de movimiento
@@ -648,7 +723,7 @@ export default function TablaRegistrosV2() {
         <DialogTitle sx={{ textAlign: "center", fontSize: "1.5rem", fontWeight: 600 }}>
           {dialogMode === "view" ? "👁️ Ver Movimiento" : "✏️ Editar Movimiento"}
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ p: 3 }} ref={dialogContentRef}>
           {selectedMovimiento && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
               {renderFormularioMovimiento()}
@@ -710,6 +785,16 @@ export default function TablaRegistrosV2() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

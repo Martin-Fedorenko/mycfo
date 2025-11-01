@@ -38,14 +38,14 @@ const baseURL = process.env.REACT_APP_URL_PRONOSTICO;
 
 const GUARD_MESSAGES = {
   categoria: {
-    title: 'Habilitar edición de categoría',
-    body: 'La categoría ayuda a ordenar tus análisis. Cambiarla manualmente puede afectar reportes y automatizaciones. ¿Querés habilitar la edición manual?',
-    confirmLabel: 'Habilitar edición'
+    title: 'Habilitar edicion de categoria',
+    body: 'La categoria ayuda a ordenar tus analisis. Cambiarla manualmente puede afectar reportes y automatizaciones. Queres habilitar la edicion manual?',
+    confirmLabel: 'Habilitar edicion'
   },
   real: {
     title: 'Editar monto real',
-    body: 'El monto real refleja los registros consolidados. Si lo modificas manualmente ya no coincidira con tus movimientos cargados. Queres continuar?',
-    confirmLabel: 'Habilitar edición'
+    body: 'El monto real refleja los registros consolidados. Para ajustarlo, edita los movimientos registrados del periodo. Te llevamos a Ver movimientos.',
+    confirmLabel: 'Habilitar edicion en movimientos'
   }
 };
 
@@ -99,13 +99,23 @@ const mesesEntre = (fromYM, toYM) => {
 };
 
 // Normaliza payload de distintas respuestas posibles
-const normalizeLine = (x) => ({
-  id: x.id,
-  categoria: x.categoria,
-  tipo: normalizeTipo(x.tipo),
-  montoEstimado: x.montoEstimado ?? x.monto_estimado ?? 0,
-  real: 0,
-});
+const normalizeLine = (x) => {
+  const rawMovementArray = x?.movimientoIds ?? x?.movimiento_ids ?? x?.movementIds;
+  const rawMovementSingle = x?.movimientoId ?? x?.movimiento_id ?? x?.movementId ?? null;
+  const movementIds = Array.isArray(rawMovementArray)
+    ? rawMovementArray.map((id) => String(id))
+    : rawMovementSingle != null
+      ? [String(rawMovementSingle)]
+      : [];
+  return {
+    id: x.id,
+    categoria: x.categoria,
+    tipo: normalizeTipo(x.tipo),
+    montoEstimado: x.montoEstimado ?? x.monto_estimado ?? 0,
+    real: 0,
+    movimientoIds: movementIds,
+  };
+};
 
 const normCat = (value) =>
   (value || '')
@@ -130,7 +140,7 @@ export default function MesDetalle() {
   const [lineasSoloReal, setLineasSoloReal] = React.useState([]);
   const [edits, setEdits] = React.useState({}); // { [id]: {categoria, tipo, montoEstimado, real} }
   const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, real: bool } }
-  const [guardPrompt, setGuardPrompt] = React.useState({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
+  const [guardPrompt, setGuardPrompt] = React.useState({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
   const [nombreMes, setNombreMes] = React.useState('Mes desconocido');
   const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
   const [presupuestoId, setPresupuestoId] = React.useState(null);
@@ -247,9 +257,20 @@ export default function MesDetalle() {
         ) || 0;
         if (!Number.isFinite(monto)) return acc;
         if (!acc[key]) {
-          acc[key] = { total: 0, label: nombreOriginal || 'Sin categoría' };
+          acc[key] = { total: 0, label: nombreOriginal || 'Sin categoría', movementIds: [] };
         }
         acc[key].total += monto;
+        const rawMovimientoId =
+          movimiento?.id ??
+          movimiento?.movimientoId ??
+          movimiento?.movimiento_id ??
+          movimiento?.movimientoID ??
+          movimiento?.idMovimiento ??
+          null;
+        const movimientoId = rawMovimientoId != null ? String(rawMovimientoId) : null;
+        if (movimientoId && !acc[key].movementIds.includes(movimientoId)) {
+          acc[key].movementIds.push(movimientoId);
+        }
         return acc;
       }, {});
 
@@ -260,15 +281,26 @@ export default function MesDetalle() {
       const lineasConReales = lineasBase.map((linea) => {
         const key = normCat(linea.categoriaNombre || linea.categoria);
         const tipoKey = (linea.tipo || '').toUpperCase();
+        const baseMovementIds = Array.isArray(linea.movimientoIds)
+          ? linea.movimientoIds.map((id) => String(id))
+          : [];
         let real = 0;
+        let movementIds = baseMovementIds;
         if (tipoKey === 'INGRESO') {
-          real = realesPorCategoriaIngreso[key]?.total || 0;
+          const info = realesPorCategoriaIngreso[key];
+          real = info?.total || 0;
+          const extraIds = Array.isArray(info?.movementIds) ? info.movementIds.map((id) => String(id)) : [];
+          movementIds = Array.from(new Set([...baseMovementIds, ...extraIds]));
         } else if (tipoKey === 'EGRESO') {
-          real = realesPorCategoriaEgreso[key]?.total || 0;
+          const info = realesPorCategoriaEgreso[key];
+          real = info?.total || 0;
+          const extraIds = Array.isArray(info?.movementIds) ? info.movementIds.map((id) => String(id)) : [];
+          movementIds = Array.from(new Set([...baseMovementIds, ...extraIds]));
         }
         return {
           ...linea,
           real,
+          movimientoIds: movementIds,
         };
       });
 
@@ -292,6 +324,7 @@ export default function MesDetalle() {
               montoEstimado: 0,
               real: data.total,
               _soloReal: true,
+              movimientoIds: Array.from(new Set((data.movementIds || []).map((id) => String(id)))),
             });
           }
         });
@@ -395,18 +428,39 @@ export default function MesDetalle() {
 
   const requestManualUnlock = React.useCallback((id, field) => {
     const cfg = GUARD_MESSAGES[field] || {};
+    if (field === 'real') {
+      const targetLine = lineasCompleto.find((l) => l.id === id);
+      const movementIds = Array.isArray(targetLine?.movimientoIds)
+        ? targetLine.movimientoIds.map((value) => String(value))
+        : [];
+      if (!movementIds.length) {
+        setSnack({ open: true, message: 'No se encontro el movimiento para editar.', severity: 'error' });
+        return;
+      }
+      setGuardPrompt({
+        open: true,
+        id,
+        field,
+        title: cfg.title || 'Editar monto real',
+        message: cfg.body || 'Esta accion habilita la edicion manual.',
+        confirmLabel: cfg.confirmLabel || 'Habilitar edicion en movimientos',
+        movementIds,
+      });
+      return;
+    }
     setGuardPrompt({
       open: true,
       id,
       field,
-      title: cfg.title || 'Confirmar edición manual',
-      message: cfg.body || 'Esta acción habilita la edición manual.',
-      confirmLabel: cfg.confirmLabel || 'Habilitar'
+      title: cfg.title || 'Confirmar edicion manual',
+      message: cfg.body || 'Esta accion habilita la edicion manual.',
+      confirmLabel: cfg.confirmLabel || 'Habilitar',
+      movementIds: [],
     });
-  }, []);
+  }, [lineasCompleto, setSnack]);
 
   const handleGuardCancel = React.useCallback(() => {
-    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
+    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
   }, []);
 
   const toggleManualGuard = React.useCallback((id, field, enabled) => {
@@ -432,15 +486,51 @@ export default function MesDetalle() {
   }, [lineasCompleto, setSnack]);
 
   const handleGuardConfirm = React.useCallback(() => {
-    if (guardPrompt.open && guardPrompt.id != null && guardPrompt.field) {
-      toggleManualGuard(guardPrompt.id, guardPrompt.field, true);
-      const label = GUARD_FIELD_LABELS[guardPrompt.field] || guardPrompt.field;
-      setSnack({ open: true, message: `Edición manual habilitada para ${label}.`, severity: 'warning' });
+    if (!(guardPrompt.open && guardPrompt.id != null && guardPrompt.field)) {
+      setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
+      return;
     }
-    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
-  }, [guardPrompt, toggleManualGuard, setSnack]);
 
-  const isFieldUnlocked = React.useCallback((id, field) => manualGuards[id]?.[field] === true, [manualGuards]);
+    if (guardPrompt.field === 'real') {
+      const targetLine = lineasCompleto.find((l) => l.id === guardPrompt.id);
+      const combinedIds = guardPrompt.movementIds && guardPrompt.movementIds.length
+        ? guardPrompt.movementIds
+        : Array.isArray(targetLine?.movimientoIds)
+          ? targetLine.movimientoIds.map((value) => String(value))
+          : [];
+      const movementId = combinedIds[0];
+      setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
+      if (!movementId) {
+        setSnack({ open: true, message: 'No se encontro el movimiento para editar.', severity: 'error' });
+        return;
+      }
+      const params = new URLSearchParams();
+      params.set('editMovementId', movementId);
+      navigate(`/ver-movimientos?${params.toString()}`, {
+        state: {
+          editMovementId: movementId,
+          editMovementMeta: {
+            from: 'presupuesto',
+            presupuestoId,
+            ym,
+            categoria: targetLine?.categoria || '',
+            movimientoIds: combinedIds,
+          },
+        },
+      });
+      return;
+    }
+
+    toggleManualGuard(guardPrompt.id, guardPrompt.field, true);
+    const label = GUARD_FIELD_LABELS[guardPrompt.field] || guardPrompt.field;
+    setSnack({ open: true, message: `Edicion manual habilitada para ${label}.`, severity: 'warning' });
+    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
+  }, [guardPrompt, lineasCompleto, navigate, toggleManualGuard, setSnack, presupuestoId, ym]);
+
+  const isFieldUnlocked = React.useCallback(
+    (id, field) => field !== 'real' && manualGuards[id]?.[field] === true,
+    [manualGuards]
+  );
 
   const reloadMes = React.useCallback(async () => {
     if (presupuestoId && ym) await cargarLineasConReales(presupuestoId, ym);
@@ -767,10 +857,11 @@ export default function MesDetalle() {
           <Stack direction="row" spacing={2} alignItems="center">
             <Chip label={`Cumplimiento: ${(cumplimiento * 100).toFixed(0)}%`} color={cumplimiento >= 0.95 ? 'success' : cumplimiento >= 0.8 ? 'warning' : 'error'} />
             <Chip
-              icon={<WarningAmberOutlinedIcon />}
+              icon={vencidosEstimados > 0 ? <WarningAmberOutlinedIcon /> : undefined}
               label={`${vencidosEstimados} movimientos estimados sin registrar`}
               variant="filled"
-              sx={SIN_PRONOSTICO_CHIP_SX}
+              color={vencidosEstimados === 0 ? 'success' : undefined}
+              sx={vencidosEstimados === 0 ? undefined : SIN_PRONOSTICO_CHIP_SX}
             />
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
@@ -854,7 +945,7 @@ export default function MesDetalle() {
                             title="Este movimiento no tiene un monto estimado."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
                           </Tooltip>
                         )}
                       </Stack>
@@ -933,7 +1024,7 @@ export default function MesDetalle() {
                             title="Este movimiento no tiene un monto estimado."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
                           </Tooltip>
                         )}
                       </Stack>
@@ -1060,7 +1151,7 @@ export default function MesDetalle() {
                     const sinPronostico = estimadoN === 0 && realN > 0;
                     const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
                     const allowCategoria = isFieldUnlocked(item.id, 'categoria');
-                    const allowReal = isFieldUnlocked(item.id, 'real');
+                    const realMovementIds = Array.isArray(item.movimientoIds) ? item.movimientoIds : [];
                     const esSoloReal = Boolean(item._soloReal);
                     const baseIdx = lineas.findIndex((l) => l.id === item.id);
 
@@ -1210,25 +1301,14 @@ export default function MesDetalle() {
                               type="text"
                               fullWidth
                               value={formatCurrencyInput(e.real)}
-                              InputProps={{ readOnly: !allowReal }}
-                              onChange={(ev) => {
-                                if (allowReal) updateField('real', parseCurrency(ev.target.value, { returnEmpty: true }));
-                              }}
+                              InputProps={{ readOnly: true }}
                               inputProps={{ inputMode: 'numeric' }}
                             />
-                            {allowReal ? (
-                              <Tooltip title="Bloquear edición manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'real', false)}>
-                                  <LockOpenOutlinedIcon fontSize="small" color="warning" />
-                                </IconButton>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip title="Editar monto real manualmente">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'real')}>
-                                  <LockOutlinedIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                            <Tooltip title={realMovementIds.length ? 'Editar monto real' : 'No hay movimientos para editar'}>
+                              <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'real')}>
+                                <LockOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           </Box>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', color: desvio >= 0 ? '#66bb6a' : '#ef5350' }}>
