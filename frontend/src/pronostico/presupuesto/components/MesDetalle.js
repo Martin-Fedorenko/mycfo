@@ -55,6 +55,14 @@ const INGRESO_COLOR = '#4caf50';
 const EGRESO_COLOR = '#f44336';
 const INGRESO_EST_COLOR = '#a5d6a7';
 const EGRESO_EST_COLOR = '#ef9a9a';
+const SIN_PRONOSTICO_CHIP_SX = {
+  fontWeight: 500,
+  bgcolor: '#FFDE70FF',
+  color: '#000',
+  border: '1px solid #F5C16C',
+  '& .MuiChip-label': { color: '#000' },
+  '& .MuiChip-icon': { color: '#000' },
+};
 
 const mesANumero = {
   enero: '01', febrero: '02', marzo: '03', abril: '04',
@@ -734,7 +742,12 @@ export default function MesDetalle() {
         <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
           <Stack direction="row" spacing={2} alignItems="center">
             <Chip label={`Cumplimiento: ${(cumplimiento * 100).toFixed(0)}%`} color={cumplimiento >= 0.95 ? 'success' : cumplimiento >= 0.8 ? 'warning' : 'error'} />
-            <Chip icon={<WarningAmberOutlinedIcon />} label={`${vencidosEstimados} movimientos estimados sin registrar`} color={vencidosEstimados > 0 ? 'warning' : 'default'} />
+            <Chip
+              icon={<WarningAmberOutlinedIcon />}
+              label={`${vencidosEstimados} movimientos estimados sin registrar`}
+              variant="filled"
+              sx={SIN_PRONOSTICO_CHIP_SX}
+            />
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             <ExportadorSimple onExportPdf={handleExportPdf} onExportExcel={handleExportExcel} />
@@ -817,7 +830,7 @@ export default function MesDetalle() {
                             title="Este movimiento no tiene un monto estimado."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip size="small" color="warning" label="Movimiento sin pronosticar" />
+                            <Chip size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
                           </Tooltip>
                         )}
                       </Stack>
@@ -896,7 +909,7 @@ export default function MesDetalle() {
                             title="Este movimiento no tiene un monto estimado."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip size="small" color="warning" label="Movimiento sin pronosticar" />
+                            <Chip size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
                           </Tooltip>
                         )}
                       </Stack>
@@ -1020,6 +1033,7 @@ export default function MesDetalle() {
                     const e = edits[item.id] || { categoria: '', tipo: 'Egreso', montoEstimado: 0, real: '' };
                     const estimadoN = safeNumber(e.montoEstimado);
                     const realN = e.real === '' ? 0 : safeNumber(e.real);
+                    const sinPronostico = estimadoN === 0 && realN > 0;
                     const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
                     const allowCategoria = isFieldUnlocked(item.id, 'categoria');
                     const allowReal = isFieldUnlocked(item.id, 'real');
@@ -1122,13 +1136,26 @@ export default function MesDetalle() {
                           {desvio >= 0 ? '+' : '-'}{formatCurrency(Math.abs(desvio))}
                         </td>
                         <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                          <Tooltip title={esSoloReal ? 'Crear línea de presupuesto con este movimiento' : 'Guardar cambios'}>
-                            <span>
-                              <IconButton size="small" onClick={handleGuardar}>
-                                <SaveOutlinedIcon />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
+                          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5 }}>
+                            <Tooltip title={esSoloReal ? 'Crear línea de presupuesto con este movimiento' : 'Guardar cambios'}>
+                              <span>
+                                <IconButton size="small" onClick={handleGuardar}>
+                                  <SaveOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            {sinPronostico && (
+                              <Tooltip title="Movimiento sin pronosticar: no tiene monto estimado.">
+                                <Chip
+                                  size="small"
+                                  icon={<WarningAmberOutlinedIcon fontSize="small" />}
+                                  label="Sin pronosticar"
+                                  variant="filled"
+                                  sx={SIN_PRONOSTICO_CHIP_SX}
+                                />
+                              </Tooltip>
+                            )}
+                          </Box>
                           {!esSoloReal && (
                             <>
                               <Tooltip title="Eliminar esta línea">
@@ -1328,13 +1355,3 @@ export default function MesDetalle() {
     </Box>
   );
 }
-
-
-
-
-
-
-
-
-
-
