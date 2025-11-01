@@ -3,6 +3,11 @@ import { Box, IconButton, Tooltip } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import GridOnIcon from '@mui/icons-material/GridOn'; // <-- Nuevo icono para Excel
 
+const EXPORT_PDF_BG = '#FDE4E3';
+const EXPORT_PDF_BG_HOVER = '#FACDCA';
+const EXPORT_EXCEL_BG = '#E5F4E5';
+const EXPORT_EXCEL_BG_HOVER = '#CAE7CB';
+
 export default function ExportadorSimple({
                                              onExportPdf,
                                              onExportExcel,
@@ -24,10 +29,22 @@ export default function ExportadorSimple({
                     color="error"
                     sx={{
                         border: '1px solid',
-                        borderColor: 'error.main',
-                        bgcolor: 'rgba(244, 67, 54, 0.1)',
+                        borderColor: '#d32f2f',
+                         // anillo sutil solo en dark para que siempre se vea el borde
+                        boxShadow: theme.palette.mode === 'dark'
+                            ? '0 0 0 1px rgba(255,255,255,0.18)'
+                            : 'none',
+                        bgcolor: `${EXPORT_PDF_BG} !important`,
+                        backgroundColor: `${EXPORT_PDF_BG} !important`,
+                        '& .MuiSvgIcon-root': {
+                            color: '#000 !important',
+                        },
                         '&:hover': {
-                            bgcolor: 'rgba(244, 67, 54, 0.2)',
+                            bgcolor: `${EXPORT_PDF_BG_HOVER} !important`,
+                            backgroundColor: `${EXPORT_PDF_BG_HOVER} !important`,
+                            '& .MuiSvgIcon-root': {
+                                color: '#000 !important',
+                            },
                         },
                         width: 36,
                         height: 36,
@@ -45,10 +62,18 @@ export default function ExportadorSimple({
                     color="success"
                     sx={{
                         border: '1px solid',
-                        borderColor: 'success.main',
-                        bgcolor: 'rgba(56, 142, 60, 0.1)',
+                        borderColor: '#2e7d32',
+                        bgcolor: `${EXPORT_EXCEL_BG} !important`,
+                        backgroundColor: `${EXPORT_EXCEL_BG} !important`,
+                        '& .MuiSvgIcon-root': {
+                            color: '#000 !important',
+                        },
                         '&:hover': {
-                            bgcolor: 'rgba(56, 142, 60, 0.2)',
+                            bgcolor: `${EXPORT_EXCEL_BG_HOVER} !important`,
+                            backgroundColor: `${EXPORT_EXCEL_BG_HOVER} !important`,
+                            '& .MuiSvgIcon-root': {
+                                color: '#000 !important',
+                            },
                         },
                         width: 36,
                         height: 36,
