@@ -135,6 +135,12 @@ export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }, []);
+
   // ===== State principal =====
   const [lineas, setLineas] = React.useState([]);
   const [lineasSoloReal, setLineasSoloReal] = React.useState([]);
