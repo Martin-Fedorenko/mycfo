@@ -2,7 +2,7 @@
 import {
   Box, Typography, Paper, Grid, Button, Tabs, Tab, Avatar, Chip, Stack, Tooltip,
   IconButton, Divider, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, FormControlLabel, Switch, Select, InputLabel, FormControl, Snackbar, Alert
+  TextField, Autocomplete, FormControlLabel, Switch, Select, InputLabel, FormControl, Snackbar, Alert
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
@@ -19,6 +19,7 @@ import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
 import PlaylistAddOutlinedIcon from '@mui/icons-material/PlaylistAddOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -27,6 +28,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
+import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
 
 // ===== Helpers =====
 const safeNumber = (v) =>
@@ -151,6 +153,26 @@ export default function MesDetalle() {
   const [dlgVarios, setDlgVarios] = React.useState(false);
   const [bulkCfg, setBulkCfg] = React.useState({ accion: 'replicar', desde: '', hasta: '' });
   const [deletePrompt, setDeletePrompt] = React.useState({ open: false, id: null, categoria: '', tipo: '' });
+  const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
+
+  React.useEffect(() => {
+    let activo = true;
+    const cargarCategorias = async () => {
+      try {
+        const response = await http.get(`${process.env.REACT_APP_URL_REGISTRO}/api/categorias`);
+        if (!activo) return;
+        if (Array.isArray(response?.data) && response.data.length > 0) {
+          setCategoriasOptions(response.data);
+        }
+      } catch (error) {
+        console.error('No se pudieron obtener las categorías, se usan las predefinidas', error);
+      }
+    };
+    cargarCategorias();
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   // ===== Carga de datos =====
   const fetchMes = React.useCallback(async (pid, ymStr, { skipStateUpdate = false } = {}) => {
@@ -1064,15 +1086,90 @@ export default function MesDetalle() {
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 240 }}>
                           <Box display="flex" alignItems="center" gap={1}>
-                            <TextField
-                              size="small"
-                              fullWidth
-                              value={e.categoria}
-                              InputProps={{ readOnly: !allowCategoria }}
-                              onChange={(ev) => {
-                                if (allowCategoria) updateField('categoria', ev.target.value);
-                              }}
-                            />
+                            {allowCategoria ? (
+                              (() => {
+                                // Oculta las categorías ya asignadas a otras líneas del mismo mes.
+                                const categoriaActual = e.categoria || '';
+                                const categoriaActualNorm = normCat(categoriaActual);
+                                const categoriasOcupadas = new Set(
+                                  lineasCompleto
+                                    .filter((otra) => otra.id !== item.id)
+                                    .map((otra) => (edits[otra.id]?.categoria ?? otra.categoria ?? ''))
+                                    .map((valor) => normCat(valor))
+                                    .filter(Boolean)
+                                );
+
+                                let opcionesDisponibles = categoriasOptions.filter((option) => {
+                                  if (typeof option !== 'string') return false;
+                                  const normalizada = normCat(option);
+                                  if (!normalizada) return false;
+                                  if (normalizada === categoriaActualNorm) return true;
+                                  return !categoriasOcupadas.has(normalizada);
+                                });
+
+                                if (categoriaActual && !opcionesDisponibles.some((opt) => normCat(opt) === categoriaActualNorm)) {
+                                  opcionesDisponibles = [categoriaActual, ...opcionesDisponibles];
+                                }
+
+                                return (
+                                  <Autocomplete
+                                    size="small"
+                                    fullWidth
+                                    value={e.categoria || null}
+                                    onChange={(_, newValue) => {
+                                      updateField('categoria', newValue || '');
+                                    }}
+                                    options={opcionesDisponibles}
+                                    freeSolo={false}
+                                    disableClearable
+                                    forcePopupIcon
+                                    popupIcon={<KeyboardArrowDownIcon />}
+                                    componentsProps={{
+                                      popupIndicator: {
+                                        disableRipple: true,
+                                        disableFocusRipple: true,
+                                        sx: {
+                                          p: 0,
+                                          m: 0,
+                                          bgcolor: 'transparent',
+                                          border: 'none',
+                                          boxShadow: 'none',
+                                          '&:hover': { bgcolor: 'transparent' },
+                                          '& .MuiTouchRipple-root': { display: 'none' },
+                                          '& .MuiSvgIcon-root': { fontSize: 24 },
+                                        },
+                                      },
+                                      clearIndicator: { sx: { display: 'none' } },
+                                    }}
+                                    sx={{
+                                      '& .MuiAutocomplete-endAdornment': {
+                                        right: 0,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                      },
+                                      '& .MuiAutocomplete-popupIndicator': { p: 0 },
+                                      '& .MuiAutocomplete-popupIndicatorOpen .MuiSvgIcon-root': {
+                                        transform: 'none',
+                                      },
+                                    }}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        size="small"
+                                        fullWidth
+                                      />
+                                    )}
+                                  />
+                                );
+                              })()
+                            ) : (
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={e.categoria}
+                                InputProps={{ readOnly: true }}
+                              />
+                            )}
                             {allowCategoria ? (
                               <Tooltip title="Bloquear edición manual">
                                 <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
