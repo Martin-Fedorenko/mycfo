@@ -503,7 +503,7 @@ export default function MesDetalle() {
 
   // ===== Menú por fila =====
   const abrirMenuFila = (e, idx) => { setAnchorRowMenu(e.currentTarget); setRowMenuIdx(idx); };
-  const cerrarMenuFila = () => { setAnchorRowMenu(null); setRowMenuIdx(null); };
+  const cerrarMenuFila = () => { setAnchorRowMenu(null); };
 
   // ===== CRUD =====
   const toCamelPayload = (l) => ({
@@ -662,8 +662,10 @@ export default function MesDetalle() {
   };
 
   // ===== Bulk en varios meses =====
-  const abrirDlgVariosConFila = () => {
-    if (rowMenuIdx == null) return;
+  const abrirDlgVariosConFila = (idx) => {
+    const idxEfectivo = (typeof idx === 'number') ? idx : rowMenuIdx;
+    if (idxEfectivo == null) return;
+    setRowMenuIdx(idxEfectivo); // asegura que quede seteado
     setBulkCfg((c) => ({ ...c, accion: 'replicar', desde: ym || '', hasta: ym || '' }));
     setDlgVarios(true);
     cerrarMenuFila();
@@ -1170,10 +1172,7 @@ export default function MesDetalle() {
                                   <IconButton
                                     size="small"
                                     onClick={() => {
-                                      if (baseIdx >= 0) {
-                                        setRowMenuIdx(baseIdx);
-                                        abrirDlgVariosConFila();
-                                      }
+                                      if (baseIdx >= 0) abrirDlgVariosConFila(baseIdx);
                                     }}
                                   >
                                     <ContentCopyIcon />
@@ -1223,7 +1222,7 @@ export default function MesDetalle() {
         <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Distribuir en subcategorías (visual).'); }}>
           <PlaylistAddOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Distribuir en subcategorías
         </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); abrirDlgVariosConFila(); }}>
+        <MenuItem onClick={() => { cerrarMenuFila(); abrirDlgVariosConFila(rowMenuIdx); }}>
           <ContentCopyIcon fontSize="small" style={{ marginRight: 8 }} /> Aplicar a varios meses
         </MenuItem>
       </Menu>
