@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
+import { buildTipoSelectSx } from '../../../shared-components/tipoSelectStyles';
 import http from '../../../api/http';
 import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
 import dayjs from 'dayjs';
@@ -1091,10 +1092,14 @@ export default function MesDetalle() {
                     onChange={(e) => setNueva((s) => ({ ...s, categoria: e.target.value }))} />
                 </Grid>
                 <Grid item xs={12} md={2}>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth size="small" sx={buildTipoSelectSx(nueva.tipo)}>
                     <InputLabel>Tipo</InputLabel>
-                    <Select label="Tipo" value={nueva.tipo}
-                      onChange={(e) => setNueva((s) => ({ ...s, tipo: e.target.value }))}>
+                    <Select
+                      label="Tipo"
+                      value={nueva.tipo}
+                      onChange={(e) => setNueva((s) => ({ ...s, tipo: e.target.value }))}
+                      size="small"
+                    >
                       <MenuItem value="Ingreso">INGRESO</MenuItem>
                       <MenuItem value="Egreso">EGRESO</MenuItem>
                     </Select>
@@ -1285,8 +1290,12 @@ export default function MesDetalle() {
                           </Box>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 160 }}>
-                          <FormControl size="small" fullWidth>
-                            <Select value={e.tipo} onChange={(ev) => updateField('tipo', ev.target.value)}>
+                          <FormControl size="small" fullWidth sx={buildTipoSelectSx(e.tipo)}>
+                            <Select
+                              value={e.tipo}
+                              onChange={(ev) => updateField('tipo', ev.target.value)}
+                              size="small"
+                            >
                               <MenuItem value="Ingreso">INGRESO</MenuItem>
                               <MenuItem value="Egreso">EGRESO</MenuItem>
                             </Select>

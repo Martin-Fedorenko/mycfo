@@ -27,10 +27,10 @@ export default function ExportadorSimple({
                     onClick={onExportPdf}
                     size="small"
                     color="error"
-                    sx={{
+                    sx={(theme) => ({
                         border: '1px solid',
                         borderColor: '#d32f2f',
-                         // anillo sutil solo en dark para que siempre se vea el borde
+                        // anillo sutil solo en dark para que siempre se vea el borde
                         boxShadow: theme.palette.mode === 'dark'
                             ? '0 0 0 1px rgba(255,255,255,0.18)'
                             : 'none',
@@ -48,7 +48,7 @@ export default function ExportadorSimple({
                         },
                         width: 36,
                         height: 36,
-                    }}
+                    })}
                     aria-label="Exportar PDF"
                 >
                     <PictureAsPdfIcon fontSize="small" />

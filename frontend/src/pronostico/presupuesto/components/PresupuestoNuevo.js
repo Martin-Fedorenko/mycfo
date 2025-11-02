@@ -5,6 +5,7 @@ import {
   Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress, Autocomplete
 } from '@mui/material';
 import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
+import { buildTipoSelectSx } from '../../../shared-components/tipoSelectStyles';
 import MonthRangeSelect from './MonthRangeSelect';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -718,12 +719,18 @@ export default function PresupuestoNuevo() {
                       </TableCell>
                       <TableCell sx={tableCellStyle}>
                         <TextField
-                          select value={cat.tipo}
-                          onChange={e => handleCambioCategoriaCampo(idx, 'tipo', e.target.value)}
-                          variant="standard" size="small" sx={{ minWidth: 100 }}
+                          select
+                          value={cat.tipo}
+                          onChange={(e) => handleCambioCategoriaCampo(idx, 'tipo', e.target.value)}
+                          variant="outlined"
+                          size="small"
+                          sx={[
+                            { minWidth: 100 },
+                            buildTipoSelectSx(cat.tipo),
+                          ]}
                         >
-                          <MenuItem value="Ingreso">Ingreso</MenuItem>
-                          <MenuItem value="Egreso">Egreso</MenuItem>
+                          <MenuItem value="Ingreso">INGRESO</MenuItem>
+                          <MenuItem value="Egreso">EGRESO</MenuItem>
                         </TextField>
                       </TableCell>
                       <TableCell sx={tableCellStyle}>
