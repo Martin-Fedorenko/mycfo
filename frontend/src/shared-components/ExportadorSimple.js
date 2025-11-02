@@ -27,28 +27,32 @@ export default function ExportadorSimple({
                     onClick={onExportPdf}
                     size="small"
                     color="error"
-                    sx={(theme) => ({
-                        border: '1px solid',
-                        borderColor: '#d32f2f',
-                        // anillo sutil solo en dark para que siempre se vea el borde
-                        boxShadow: theme.palette.mode === 'dark'
-                            ? '0 0 0 1px rgba(255,255,255,0.18)'
-                            : 'none',
-                        bgcolor: `${EXPORT_PDF_BG} !important`,
-                        backgroundColor: `${EXPORT_PDF_BG} !important`,
-                        '& .MuiSvgIcon-root': {
-                            color: '#000 !important',
-                        },
-                        '&:hover': {
+                    sx={(theme) => {
+                        const hoverStyles = {
                             bgcolor: `${EXPORT_PDF_BG_HOVER} !important`,
                             backgroundColor: `${EXPORT_PDF_BG_HOVER} !important`,
+                            borderColor: '#d32f2f',
                             '& .MuiSvgIcon-root': {
                                 color: '#000 !important',
                             },
-                        },
-                        width: 36,
-                        height: 36,
-                    })}
+                        };
+                        return {
+                            border: '1px solid',
+                            borderColor: '#d32f2f',
+                            bgcolor: `${EXPORT_PDF_BG} !important`,
+                            backgroundColor: `${EXPORT_PDF_BG} !important`,
+                            '& .MuiSvgIcon-root': {
+                                color: '#000 !important',
+                            },
+                            '&:hover': hoverStyles,
+                            width: 36,
+                            height: 36,
+                            ...theme.applyStyles('dark', {
+                                borderColor: '#d32f2f',
+                                '&:hover': hoverStyles,
+                            }),
+                        };
+                    }}
                     aria-label="Exportar PDF"
                 >
                     <PictureAsPdfIcon fontSize="small" />
@@ -60,23 +64,31 @@ export default function ExportadorSimple({
                     onClick={onExportExcel}
                     size="small"
                     color="success"
-                    sx={{
-                        border: '1px solid',
-                        borderColor: '#2e7d32',
-                        bgcolor: `${EXPORT_EXCEL_BG} !important`,
-                        backgroundColor: `${EXPORT_EXCEL_BG} !important`,
-                        '& .MuiSvgIcon-root': {
-                            color: '#000 !important',
-                        },
-                        '&:hover': {
+                    sx={(theme) => {
+                        const hoverStyles = {
                             bgcolor: `${EXPORT_EXCEL_BG_HOVER} !important`,
                             backgroundColor: `${EXPORT_EXCEL_BG_HOVER} !important`,
+                            borderColor: '#2e7d32',
                             '& .MuiSvgIcon-root': {
                                 color: '#000 !important',
                             },
-                        },
-                        width: 36,
-                        height: 36,
+                        };
+                        return {
+                            border: '1px solid',
+                            borderColor: '#2e7d32',
+                            bgcolor: `${EXPORT_EXCEL_BG} !important`,
+                            backgroundColor: `${EXPORT_EXCEL_BG} !important`,
+                            '& .MuiSvgIcon-root': {
+                                color: '#000 !important',
+                            },
+                            '&:hover': hoverStyles,
+                            width: 36,
+                            height: 36,
+                            ...theme.applyStyles('dark', {
+                                borderColor: '#2e7d32',
+                                '&:hover': hoverStyles,
+                            }),
+                        };
                     }}
                     aria-label="Exportar Excel"
                 >
