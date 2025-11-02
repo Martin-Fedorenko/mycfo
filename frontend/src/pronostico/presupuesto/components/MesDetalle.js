@@ -182,6 +182,34 @@ export default function MesDetalle() {
   const [deletePrompt, setDeletePrompt] = React.useState({ open: false, id: null, categoria: '', tipo: '' });
   const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
 
+  const categoriasPronosticadas = React.useMemo(() => {
+    const ocupadas = new Set();
+    for (const linea of lineas) {
+      const normalizada = normCat(linea?.categoria);
+      if (normalizada) ocupadas.add(normalizada);
+    }
+    return ocupadas;
+  }, [lineas]);
+
+  const opcionesNuevaLinea = React.useMemo(() => {
+    let disponibles = categoriasOptions.filter((option) => {
+      if (typeof option !== 'string') return false;
+      const normalizada = normCat(option);
+      if (!normalizada) return false;
+      return !categoriasPronosticadas.has(normalizada);
+    });
+
+    if (nueva.categoria) {
+      const categoriaActualNorm = normCat(nueva.categoria);
+      const yaIncluida = disponibles.some((opt) => normCat(opt) === categoriaActualNorm);
+      if (!yaIncluida) {
+        disponibles = [nueva.categoria, ...disponibles];
+      }
+    }
+
+    return disponibles;
+  }, [categoriasOptions, categoriasPronosticadas, nueva.categoria]);
+
   React.useEffect(() => {
     let activo = true;
     const cargarCategorias = async () => {
@@ -1094,14 +1122,57 @@ export default function MesDetalle() {
               </Button>
             ) : (
               <Grid container spacing={1} alignItems="center">
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    label="Categoría"
-                    fullWidth
+                <Grid item xs={12} md={4} sx={{ minWidth: 240 }}>
+                  <Autocomplete
                     size="small"
-                    value={nueva.categoria}
-                    InputLabelProps={{ sx: CENTERED_INPUT_LABEL_SX }}
-                    onChange={(e) => setNueva((s) => ({ ...s, categoria: e.target.value }))} />
+                    fullWidth
+                    value={nueva.categoria || null}
+                    onChange={(_, newValue) => {
+                      setNueva((s) => ({ ...s, categoria: newValue || '' }));
+                    }}
+                    options={opcionesNuevaLinea}
+                    freeSolo={false}
+                    disableClearable
+                    forcePopupIcon
+                    popupIcon={<KeyboardArrowDownIcon />}
+                    componentsProps={{
+                      popupIndicator: {
+                        disableRipple: true,
+                        disableFocusRipple: true,
+                        sx: {
+                          p: 0,
+                          m: 0,
+                          bgcolor: 'transparent',
+                          border: 'none',
+                          boxShadow: 'none',
+                          '&:hover': { bgcolor: 'transparent' },
+                          '& .MuiTouchRipple-root': { display: 'none' },
+                          '& .MuiSvgIcon-root': { fontSize: 24 },
+                        },
+                      },
+                      clearIndicator: { sx: { display: 'none' } },
+                    }}
+                    sx={{
+                      '& .MuiAutocomplete-endAdornment': {
+                        right: 0,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                      },
+                      '& .MuiAutocomplete-popupIndicator': { p: 0 },
+                      '& .MuiAutocomplete-popupIndicatorOpen .MuiSvgIcon-root': {
+                        transform: 'none',
+                      },
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Categoría"
+                        size="small"
+                        fullWidth
+                        InputLabelProps={params.InputLabelProps}
+                      />
+                    )}
+                  />
                 </Grid>
                 <Grid item xs={12} md={2}>
                   <FormControl fullWidth size="small" sx={buildTipoSelectSx(nueva.tipo)}>
@@ -1117,7 +1188,7 @@ export default function MesDetalle() {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={2}>
+                <Grid item xs={12} md={3}>
                   <TextField
                     label="Estimado"
                     type="text"
@@ -1132,7 +1203,7 @@ export default function MesDetalle() {
                     inputProps={{ inputMode: 'numeric' }}
                   />
                 </Grid>
-                <Grid item xs={12} md={5} display="flex" gap={1} justifyContent="flex-end">
+                <Grid item xs={12} md={3} display="flex" gap={1} justifyContent="flex-end">
                   <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '' }); }}>
                     Cancelar
                   </Button>
