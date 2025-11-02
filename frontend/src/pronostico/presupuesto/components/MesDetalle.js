@@ -69,6 +69,14 @@ const SIN_PRONOSTICO_CHIP_SX = {
   '&.MuiChip-filled': { backgroundColor: '#FFDE70' },
 };
 
+const CENTERED_INPUT_LABEL_SX = {
+  top: '50%',
+  transform: 'translate(14px, -50%) scale(1)',
+  '&.MuiInputLabel-shrink': {
+    top: 0,
+    transform: 'translate(14px, -9px) scale(0.75)',
+  },
+};
 const mesANumero = {
   enero: '01', febrero: '02', marzo: '03', abril: '04',
   mayo: '05', junio: '06', julio: '07', agosto: '08',
@@ -163,7 +171,7 @@ export default function MesDetalle() {
   const [rowMenuIdx, setRowMenuIdx] = React.useState(null);
   const [snack, setSnack] = React.useState({ open: false, message: '', severity: 'success' });
 
-  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'Egreso', montoEstimado: '', real: '' });
+  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'Egreso', montoEstimado: '' });
   const [agregando, setAgregando] = React.useState(false);
 
   const [dlgReglas, setDlgReglas] = React.useState(false);
@@ -750,10 +758,9 @@ export default function MesDetalle() {
         categoria: nueva.categoria,
         tipo: nueva.tipo,
         montoEstimado: Number(nueva.montoEstimado || 0),
-        real: nueva.real === '' || nueva.real == null ? null : Number(nueva.real),
       };
       await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
-      setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '', real: '' });
+      setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '' });
       setAgregando(false);
       await reloadMes();
       setSnack({ open: true, message: 'Línea agregada', severity: 'success' });
@@ -1088,7 +1095,12 @@ export default function MesDetalle() {
             ) : (
               <Grid container spacing={1} alignItems="center">
                 <Grid item xs={12} md={3}>
-                  <TextField label="Categoría" fullWidth value={nueva.categoria}
+                  <TextField
+                    label="Categoría"
+                    fullWidth
+                    size="small"
+                    value={nueva.categoria}
+                    InputLabelProps={{ sx: CENTERED_INPUT_LABEL_SX }}
                     onChange={(e) => setNueva((s) => ({ ...s, categoria: e.target.value }))} />
                 </Grid>
                 <Grid item xs={12} md={2}>
@@ -1110,6 +1122,8 @@ export default function MesDetalle() {
                     label="Estimado"
                     type="text"
                     fullWidth
+                    size="small"
+                    InputLabelProps={{ sx: CENTERED_INPUT_LABEL_SX }}
                     value={formatCurrencyInput(nueva.montoEstimado)}
                     onChange={(e) => {
                       const parsed = parseCurrency(e.target.value, { returnEmpty: true });
@@ -1118,21 +1132,8 @@ export default function MesDetalle() {
                     inputProps={{ inputMode: 'numeric' }}
                   />
                 </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Real (opcional)"
-                    type="text"
-                    fullWidth
-                    value={formatCurrencyInput(nueva.real)}
-                    onChange={(e) => {
-                      const parsed = parseCurrency(e.target.value, { returnEmpty: true });
-                      setNueva((s) => ({ ...s, real: parsed === '' ? '' : parsed }));
-                    }}
-                    inputProps={{ inputMode: 'numeric' }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3} display="flex" gap={1} justifyContent="flex-end">
-                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '', real: '' }); }}>
+                <Grid item xs={12} md={5} display="flex" gap={1} justifyContent="flex-end">
+                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '' }); }}>
                     Cancelar
                   </Button>
                   <Button variant="contained" onClick={addLinea}>Guardar</Button>
