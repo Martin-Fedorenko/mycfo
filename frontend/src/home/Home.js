@@ -15,7 +15,6 @@ import Header from './components/Header';
 
 export default function Home(props) {
   const location = useLocation();
-  const isDashboard = location.pathname === '/dashboard';
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -35,11 +34,10 @@ export default function Home(props) {
       <CssBaseline enableColorScheme />
       <Box sx={{ display: 'flex' }}>
         <SideMenu
-          variant={isDashboard ? 'temporary' : 'permanent'}
-          open={isDashboard ? sidebarOpen : undefined}
+          variant="temporary"
+          open={sidebarOpen}
           onClose={handleCloseSidebar}
           onNavigate={handleCloseSidebar}
-          isDashboard={isDashboard}
         />
         <AppNavbar />
         {/* Main content */}
@@ -62,10 +60,7 @@ export default function Home(props) {
             mt: { xs: 8, md: 0 },
           }}
         >
-          <Header
-            isDashboard={isDashboard}
-            onToggleSidebar={isDashboard ? handleToggleSidebar : undefined}
-          />
+          <Header onToggleSidebar={handleToggleSidebar} />
           <Outlet />
           </Stack>
         </Box>

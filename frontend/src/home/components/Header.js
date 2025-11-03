@@ -6,7 +6,7 @@ import ColorModeIconDropdown from "../../shared-theme/ColorModeIconDropdown";
 import NotificationButton from "../../notificaciones/notification-button/NotificationButton";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 
-export default function Header({ isDashboard = false, onToggleSidebar }) {
+export default function Header({ onToggleSidebar = () => {} }) {
   return (
     <Stack
       direction="row"
@@ -21,16 +21,14 @@ export default function Header({ isDashboard = false, onToggleSidebar }) {
       spacing={2}
     >
       <Stack direction="row" spacing={1} alignItems="center">
-        {isDashboard ? (
-          <IconButton
-            aria-label="Abrir menú de navegación"
-            onClick={onToggleSidebar}
-            size="large"
-            edge="start"
-          >
-            <MenuRoundedIcon />
-          </IconButton>
-        ) : null}
+        <IconButton
+          aria-label="Abrir menu de navegacion"
+          onClick={onToggleSidebar}
+          size="large"
+          edge="start"
+        >
+          <MenuRoundedIcon />
+        </IconButton>
         <NavbarBreadcrumbs />
       </Stack>
       <Stack direction="row" sx={{ gap: 1 }}>
