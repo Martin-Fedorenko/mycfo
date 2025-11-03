@@ -26,6 +26,8 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import EditOffOutlinedIcon from '@mui/icons-material/EditOffOutlined';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
 
 // ===== Helpers =====
@@ -161,6 +163,7 @@ export default function MesDetalle() {
   const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
   const [presupuestoId, setPresupuestoId] = React.useState(null);
   const [ym, setYm] = React.useState(null); // YYYY-MM
+  const [mesesDisponibles, setMesesDisponibles] = React.useState([]);
   const [tab, setTab] = React.useState(0);
   const [totalRealMes, setTotalRealMes] = React.useState(0);
 
@@ -207,6 +210,20 @@ export default function MesDetalle() {
 
     return disponibles;
   }, [categoriasOptions, categoriasPronosticadas, nueva.categoria]);
+
+  const { prevYm, nextYm } = React.useMemo(() => {
+    if (!ym || !mesesDisponibles.length) {
+      return { prevYm: null, nextYm: null };
+    }
+    const idx = mesesDisponibles.findIndex((value) => value === ym);
+    if (idx === -1) {
+      return { prevYm: null, nextYm: null };
+    }
+    return {
+      prevYm: idx > 0 ? mesesDisponibles[idx - 1] : null,
+      nextYm: idx < mesesDisponibles.length - 1 ? mesesDisponibles[idx + 1] : null,
+    };
+  }, [ym, mesesDisponibles]);
 
   React.useEffect(() => {
     let activo = true;
@@ -420,6 +437,14 @@ export default function MesDetalle() {
 
       const resTot = await http.get(`${baseURL}/api/presupuestos/${p.id}/totales`);
       const totales = Array.isArray(resTot.data) ? resTot.data : [];
+      const mesesLista = Array.from(
+        new Set(
+          totales
+            .map((t) => (t?.mes ? String(t.mes) : ''))
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b));
+      setMesesDisponibles(mesesLista);
       const item = totales.find(t => String(t?.mes || '').endsWith(`-${mesNumStr}`));
       if (!item?.mes) throw new Error('Mes no encontrado en totales');
 
@@ -432,6 +457,8 @@ export default function MesDetalle() {
       } catch (err) {
         console.error(err);
         setLineas([]);
+        setMesesDisponibles([]);
+        setYm(null);
         setNombreMes('Mes desconocido');
         setSnack({ open: true, message: err?.message || 'Error cargando mes', severity: 'error' });
       }
@@ -439,6 +466,18 @@ export default function MesDetalle() {
 
     if (nombreUrl && mesNombreUrl) cargar();
   }, [nombreUrl, mesNombreUrl, cargarLineasConReales]);
+
+  const handleCambiarMes = React.useCallback(async (targetYm) => {
+    if (!targetYm || !presupuestoId) return;
+    try {
+      await cargarLineasConReales(presupuestoId, targetYm);
+      setYm(targetYm);
+      setNombreMes(formatearMes(targetYm));
+    } catch (err) {
+      console.error('Error cambiando de mes', err);
+      setSnack({ open: true, message: 'No se pudieron cargar los datos del mes seleccionado.', severity: 'error' });
+    }
+  }, [presupuestoId, cargarLineasConReales, setSnack]);
 
   // Sincronizo `edits` cuando cambian las lineas
   const lineasCompleto = React.useMemo(
@@ -901,7 +940,29 @@ export default function MesDetalle() {
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
       <Typography variant="overline" color="text.secondary">Presupuestos → {presupuestoNombre}</Typography>
-      <Typography variant="h4" gutterBottom fontWeight="600">{nombreMes}</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        {prevYm && (
+          <IconButton
+            size="small"
+            onClick={() => handleCambiarMes(prevYm)}
+            aria-label="Mes anterior"
+          >
+            <ChevronLeftIcon fontSize="small" />
+          </IconButton>
+        )}
+        <Typography variant="h4" fontWeight="600">
+          {nombreMes}
+        </Typography>
+        {nextYm && (
+          <IconButton
+            size="small"
+            onClick={() => handleCambiarMes(nextYm)}
+            aria-label="Mes siguiente"
+          >
+            <ChevronRightIcon fontSize="small" />
+          </IconButton>
+        )}
+      </Box>
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
