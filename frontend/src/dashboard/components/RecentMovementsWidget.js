@@ -15,7 +15,56 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
-import { formatCurrencyAR } from "../../utils/formatters";
+
+const typeStyles = {
+  ingreso: { color: "#1b5e20", backgroundColor: "rgba(46, 125, 50, 0.12)" },
+  egreso: { color: "#b71c1c", backgroundColor: "rgba(198, 40, 40, 0.12)" },
+  deuda: { color: "#37474f", backgroundColor: "rgba(55, 71, 79, 0.12)" },
+  acreencia: { color: "#01579b", backgroundColor: "rgba(1, 87, 155, 0.12)" },
+  transferencia: { color: "#4a148c", backgroundColor: "rgba(74, 20, 140, 0.12)" },
+};
+
+const getTypeStyle = (tipo) => {
+  if (!tipo) {
+    return { color: "#424242", backgroundColor: "rgba(66, 66, 66, 0.1)" };
+  }
+  const key = String(tipo).toLowerCase();
+  return typeStyles[key] ?? { color: "#424242", backgroundColor: "rgba(66, 66, 66, 0.1)" };
+};
+
+const formatAmount = (value, currency = "ARS") => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "-";
+  }
+  try {
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency: currency || "ARS",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numeric);
+  } catch (error) {
+    return `${numeric.toLocaleString("es-AR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} ${currency || ""}`.trim();
+  }
+};
+
+const formatDate = (value) => {
+  if (!value) {
+    return "-";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return date.toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "short",
+  });
+};
 
 const RecentMovementsWidget = ({
   data,
@@ -23,7 +72,6 @@ const RecentMovementsWidget = ({
   error = null,
   onRetry,
   onNavigate,
-  onCategorize,
 }) => {
   if (loading) {
     return (
@@ -52,19 +100,16 @@ const RecentMovementsWidget = ({
     );
   }
 
-  const movements = data ?? [];
+  const movements = Array.isArray(data) ? data : [];
 
   return (
     <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <CardHeader
-        title="Movimientos"
-        subheader="Últimos egresos e ingresos pendientes de clasificación"
-      />
+      <CardHeader title="Movimientos" subheader="Ultimos movimientos registrados" />
       <CardContent sx={{ flexGrow: 1 }}>
         {movements.length === 0 ? (
           <Stack spacing={2} alignItems="flex-start">
             <Typography variant="body2" color="text.secondary">
-              Aún no cargaste movimientos. Importá un Excel o registrá un ingreso para comenzar.
+              Todavia no hay movimientos para mostrar. Registra un ingreso o egreso para verlos aqui.
             </Typography>
             {onRetry ? (
               <Button variant="outlined" onClick={onRetry}>
@@ -77,41 +122,47 @@ const RecentMovementsWidget = ({
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Fecha</TableCell>
-                  <TableCell>Descripción</TableCell>
+                  <TableCell>Tipo</TableCell>
                   <TableCell align="right">Monto</TableCell>
-                  <TableCell>Estado</TableCell>
+                  <TableCell>Fecha</TableCell>
+                  <TableCell>Categoria</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {movements.slice(0, 6).map((movement) => (
-                  <TableRow key={movement.id} hover>
-                    <TableCell>
-                      {new Date(movement.date).toLocaleDateString("es-AR", {
-                        day: "2-digit",
-                        month: "short",
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={500}>
-                        {movement.description}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {movement.category || "Sin categoría"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ color: movement.amount < 0 ? "error.main" : "success.main" }}>
-                      {formatCurrencyAR(movement.amount)}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        color={movement.pendingCategory ? "warning" : "success"}
-                        label={movement.pendingCategory ? "Por categorizar" : "Listo"}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {movements.map((movement, index) => {
+                  const key = movement.id ?? `movement-${index}`;
+                  const tipo = movement.tipo ?? "Movimiento";
+                  const categoria = movement.categoria || "Sin categoria";
+                  const amountColor = (movement.montoTotal ?? 0) < 0 ? "error.main" : "success.main";
+                  const typeStyle = getTypeStyle(tipo);
+                  return (
+                    <TableRow key={key} hover>
+                      <TableCell>
+                        <Chip
+                          label={tipo}
+                          size="small"
+                          sx={{
+                            fontWeight: 600,
+                            color: typeStyle.color,
+                            backgroundColor: typeStyle.backgroundColor,
+                            border: `1px solid ${typeStyle.color}`,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="right" sx={{ color: amountColor, fontWeight: 600 }}>
+                        {formatAmount(movement.montoTotal, movement.moneda)}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{formatDate(movement.fechaEmision)}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {categoria}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -119,7 +170,7 @@ const RecentMovementsWidget = ({
       </CardContent>
       <CardActions sx={{ px: 3, pb: 2, gap: 1 }}>
         <Button variant="outlined" onClick={onNavigate} disabled={!onNavigate}>
-          Ver más
+          Ver mas
         </Button>
       </CardActions>
     </Card>

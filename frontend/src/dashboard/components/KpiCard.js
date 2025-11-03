@@ -2,12 +2,10 @@ import * as React from "react";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
-import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
 
 const defaultFormatter = (value) => value;
 
@@ -69,52 +67,28 @@ const KpiCard = ({
   }
 
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-      }}
-    >
-      <CardContent>
-        <Typography variant="subtitle2" color="text.secondary">
+    <Card variant="outlined" sx={{ height: "100%" }}>
+      <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, px: 2.5, py: 2 }}>
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+        >
           {title}
         </Typography>
-        <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="flex-end"
-          justifyContent="space-between"
-          sx={{ mt: 1.5 }}
-        >
-          <Box>
-            <Typography variant="h5" fontWeight={600}>
-              {formatter(value)}
+        <Box sx={{ textAlign: "right", flexGrow: 1 }}>
+          <Typography variant="h5" fontWeight={600}>
+            {formatter(value)}
+          </Typography>
+          {secondaryLabel ? (
+            <Typography variant="body2" color="text.secondary">
+              {secondaryLabel}:{" "}
+              <Box component="span" fontWeight={500}>
+                {secondaryFormatter(secondaryValue)}
+              </Box>
             </Typography>
-            {secondaryLabel ? (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {secondaryLabel}:{" "}
-                <Box component="span" fontWeight={500}>
-                  {secondaryFormatter(secondaryValue)}
-                </Box>
-              </Typography>
-            ) : null}
-          </Box>
-          {trend.length > 1 ? (
-            <Box sx={{ minWidth: 90, height: 48 }}>
-              <SparkLineChart
-                data={trend}
-                height={48}
-                showHighlight={false}
-                showTooltip={false}
-                curve="natural"
-                colors={[trendColor]}
-              />
-            </Box>
           ) : null}
-        </Stack>
+        </Box>
       </CardContent>
     </Card>
   );
