@@ -28,7 +28,8 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import EditOffOutlinedIcon from '@mui/icons-material/EditOffOutlined';
 import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
 
 // ===== Helpers =====
@@ -39,8 +40,8 @@ const baseURL = process.env.REACT_APP_URL_PRONOSTICO;
 
 const GUARD_MESSAGES = {
   categoria: {
-    title: 'Habilitar edicion de categoria',
-    body: 'La categoria ayuda a ordenar tus analisis. Cambiarla manualmente puede afectar reportes y automatizaciones. Queres habilitar la edicion manual?',
+    title: 'Habilitar edicion manual',
+    body: 'La categoria, tipo y monto estimado ayudan a ordenar tus analisis. Cambiarlos manualmente puede afectar reportes y automatizaciones. Queres habilitar la edicion manual?',
     confirmLabel: 'Habilitar edicion'
   },
   real: {
@@ -51,7 +52,9 @@ const GUARD_MESSAGES = {
 };
 
 const GUARD_FIELD_LABELS = {
-  categoria: 'la categoría',
+  categoria: 'la categoria, tipo y estimado',
+  tipo: 'el tipo',
+  montoEstimado: 'el estimado',
   real: 'el monto real'
 };
 const INGRESO_COLOR = '#4caf50';
@@ -156,7 +159,7 @@ export default function MesDetalle() {
   const [lineas, setLineas] = React.useState([]);
   const [lineasSoloReal, setLineasSoloReal] = React.useState([]);
   const [edits, setEdits] = React.useState({}); // { [id]: {categoria, tipo, montoEstimado, real} }
-  const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, real: bool } }
+  const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, tipo: bool, montoEstimado: bool, real: bool } }
   const [guardPrompt, setGuardPrompt] = React.useState({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
   const [nombreMes, setNombreMes] = React.useState('Mes desconocido');
   const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
@@ -464,6 +467,8 @@ export default function MesDetalle() {
       for (const l of lineasCompleto) {
         nextGuards[l.id] = {
           categoria: prev[l.id]?.categoria || false,
+          tipo: prev[l.id]?.tipo || false,
+          montoEstimado: prev[l.id]?.montoEstimado || false,
           real: prev[l.id]?.real || false,
         };
       }
@@ -509,21 +514,34 @@ export default function MesDetalle() {
   }, []);
 
   const toggleManualGuard = React.useCallback((id, field, enabled) => {
+    const fieldsToToggle = field === 'categoria' ? ['categoria', 'tipo', 'montoEstimado'] : [field];
     setManualGuards((prev) => {
       const next = { ...prev };
-      next[id] = { ...(next[id] || {}), [field]: enabled };
+      const current = { ...(next[id] || {}) };
+      fieldsToToggle.forEach((key) => {
+        current[key] = enabled;
+      });
+      next[id] = current;
       return next;
     });
     if (!enabled) {
       const linea = lineasCompleto.find((l) => l.id === id);
       if (linea) {
-        const restoredValue = field === 'real'
-          ? (linea.real === null || typeof linea.real === 'undefined' ? '' : safeNumber(linea.real))
-          : linea.categoria;
-        setEdits((prev) => ({
-          ...prev,
-          [id]: { ...(prev[id] || {}), [field]: restoredValue },
-        }));
+        setEdits((prev) => {
+          const updated = { ...(prev[id] || {}) };
+          fieldsToToggle.forEach((key) => {
+            if (key === 'real') {
+              updated[key] = linea.real === null || typeof linea.real === 'undefined' ? '' : safeNumber(linea.real);
+            } else if (key === 'tipo') {
+              updated[key] = linea.tipo;
+            } else if (key === 'montoEstimado') {
+              updated[key] = safeNumber(linea.montoEstimado);
+            } else if (key === 'categoria') {
+              updated[key] = linea.categoria;
+            }
+          });
+          return { ...prev, [id]: updated };
+        });
       }
       const label = GUARD_FIELD_LABELS[field] || field;
       setSnack({ open: true, message: `Edición manual desactivada para ${label}.`, severity: 'info' });
@@ -573,7 +591,7 @@ export default function MesDetalle() {
   }, [guardPrompt, lineasCompleto, navigate, toggleManualGuard, setSnack, presupuestoId, ym]);
 
   const isFieldUnlocked = React.useCallback(
-    (id, field) => field !== 'real' && manualGuards[id]?.[field] === true,
+    (id, field) => manualGuards[id]?.[field] === true,
     [manualGuards]
   );
 
@@ -1235,7 +1253,7 @@ export default function MesDetalle() {
                     const realN = e.real === '' ? 0 : safeNumber(e.real);
                     const sinPronostico = estimadoN === 0 && realN > 0;
                     const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
-                    const allowCategoria = isFieldUnlocked(item.id, 'categoria');
+                    const manualEnabled = isFieldUnlocked(item.id, 'categoria');
                     const realMovementIds = Array.isArray(item.movimientoIds) ? item.movimientoIds : [];
                     const esSoloReal = Boolean(item._soloReal);
                     const baseIdx = lineas.findIndex((l) => l.id === item.id);
@@ -1262,7 +1280,7 @@ export default function MesDetalle() {
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 240 }}>
                           <Box display="flex" alignItems="center" gap={1}>
-                            {allowCategoria ? (
+                            {manualEnabled ? (
                               (() => {
                                 // Oculta las categorías ya asignadas a otras líneas del mismo mes.
                                 const categoriaActual = e.categoria || '';
@@ -1346,27 +1364,18 @@ export default function MesDetalle() {
                                 InputProps={{ readOnly: true }}
                               />
                             )}
-                            {allowCategoria ? (
-                              <Tooltip title="Bloquear edición manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
-                                  <LockOpenOutlinedIcon fontSize="small" color="warning" />
-                                </IconButton>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip title="Habilitar edición manual">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
-                                  <LockOutlinedIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
                           </Box>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 160 }}>
-                          <FormControl size="small" fullWidth sx={buildTipoSelectSx(e.tipo)}>
+                          <FormControl size="small" fullWidth disabled={!manualEnabled} sx={buildTipoSelectSx(e.tipo)}>
                             <Select
                               value={e.tipo}
-                              onChange={(ev) => updateField('tipo', ev.target.value)}
+                              onChange={(ev) => {
+                                if (!manualEnabled) return;
+                                updateField('tipo', ev.target.value);
+                              }}
                               size="small"
+                              disabled={!manualEnabled}
                             >
                               <MenuItem value="Ingreso">INGRESO</MenuItem>
                               <MenuItem value="Egreso">EGRESO</MenuItem>
@@ -1374,14 +1383,33 @@ export default function MesDetalle() {
                           </FormControl>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
-                          <TextField
-                            size="small"
-                            type="text"
-                            fullWidth
-                            value={formatCurrencyInput(e.montoEstimado)}
-                            onChange={(ev) => updateField('montoEstimado', parseCurrency(ev.target.value))}
-                            inputProps={{ inputMode: 'numeric' }}
-                          />
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <TextField
+                              size="small"
+                              type="text"
+                              fullWidth
+                              value={formatCurrencyInput(e.montoEstimado)}
+                              onChange={(ev) => {
+                                if (!manualEnabled) return;
+                                updateField('montoEstimado', parseCurrency(ev.target.value));
+                              }}
+                              InputProps={{ readOnly: !manualEnabled }}
+                              inputProps={{ inputMode: 'numeric' }}
+                            />
+                            {manualEnabled ? (
+                              <Tooltip title="Deshabilitar edición manual">
+                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
+                                  <EditOffOutlinedIcon fontSize="small" color="warning" />
+                                </IconButton>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip title="Editar (categoría, tipo y estimado)">
+                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
+                                  <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
                           <Box display="flex" alignItems="center" gap={1}>
