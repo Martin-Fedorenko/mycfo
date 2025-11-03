@@ -1281,7 +1281,7 @@ export default function MesDetalle() {
 
                     return (
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 240 }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 215 }}>
                           <Box display="flex" alignItems="center" gap={1}>
                             {manualEnabled ? (
                               (() => {
@@ -1369,7 +1369,7 @@ export default function MesDetalle() {
                             )}
                           </Box>
                         </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 160 }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 100 }}>
                           <FormControl size="small" fullWidth disabled={!manualEnabled} sx={buildTipoSelectSx(e.tipo)}>
                             <Select
                               value={e.tipo}
@@ -1385,7 +1385,7 @@ export default function MesDetalle() {
                             </Select>
                           </FormControl>
                         </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 180 }}>
                           <Box display="flex" alignItems="center" gap={1}>
                             <TextField
                               size="small"
@@ -1414,7 +1414,7 @@ export default function MesDetalle() {
                             )}
                           </Box>
                         </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 180 }}>
                           <Box display="flex" alignItems="center" gap={1}>
                             <TextField
                               size="small"
