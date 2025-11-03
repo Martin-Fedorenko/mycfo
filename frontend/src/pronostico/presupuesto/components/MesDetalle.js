@@ -1249,13 +1249,16 @@ export default function MesDetalle() {
                 {lineasCompleto.length > 0 ? (
                   lineasCompleto.map((item, idx) => {
                     const e = edits[item.id] || { categoria: '', tipo: 'Egreso', montoEstimado: 0, real: '' };
-                    const estimadoN = safeNumber(e.montoEstimado);
+                    const estimadoOriginal = safeNumber(item.montoEstimado);
+                    const estimadoRaw = e.montoEstimado;
+                    const estimadoN = estimadoRaw === '' ? 0 : safeNumber(estimadoRaw);
                     const realN = e.real === '' ? 0 : safeNumber(e.real);
-                    const sinPronostico = estimadoN === 0 && realN > 0;
-                    const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
                     const manualEnabled = isFieldUnlocked(item.id, 'categoria');
-                    const realMovementIds = Array.isArray(item.movimientoIds) ? item.movimientoIds : [];
                     const esSoloReal = Boolean(item._soloReal);
+                    const cambioPendienteEstimado = manualEnabled && (estimadoRaw === '' || estimadoN !== estimadoOriginal);
+                    const sinPronostico = esSoloReal && realN > 0 && !cambioPendienteEstimado;
+                    const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
+                    const realMovementIds = Array.isArray(item.movimientoIds) ? item.movimientoIds : [];
                     const baseIdx = lineas.findIndex((l) => l.id === item.id);
 
                     const updateField = (field, value) =>
