@@ -1,7 +1,7 @@
 ﻿import * as React from 'react';
 import {
   Box, Typography, Paper, Grid, Button, Tabs, Tab, Avatar, Chip, Stack, Tooltip,
-  IconButton, Divider, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
+  IconButton, Divider, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Autocomplete, FormControlLabel, Switch, Select, InputLabel, FormControl, Snackbar, Alert
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -15,14 +15,10 @@ import { getMovimientosPorRango } from '../../../reportes/reportes.service';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend
 } from 'recharts';
-import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
-import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
-import PlaylistAddOutlinedIcon from '@mui/icons-material/PlaylistAddOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -170,7 +166,6 @@ export default function MesDetalle() {
 
   // UI
   const [simulacion, setSimulacion] = React.useState(false);
-  const [anchorRowMenu, setAnchorRowMenu] = React.useState(null);
   const [rowMenuIdx, setRowMenuIdx] = React.useState(null);
   const [snack, setSnack] = React.useState({ open: false, message: '', severity: 'success' });
 
@@ -676,10 +671,6 @@ export default function MesDetalle() {
     });
   };
 
-  // ===== Menú por fila =====
-  const abrirMenuFila = (e, idx) => { setAnchorRowMenu(e.currentTarget); setRowMenuIdx(idx); };
-  const cerrarMenuFila = () => { setAnchorRowMenu(null); };
-
   // ===== CRUD =====
   const toCamelPayload = (l) => ({
     categoria: l.categoria,
@@ -842,7 +833,6 @@ export default function MesDetalle() {
     setRowMenuIdx(idxEfectivo); // asegura que quede seteado
     setBulkCfg((c) => ({ ...c, accion: 'replicar', desde: ym || '', hasta: ym || '' }));
     setDlgVarios(true);
-    cerrarMenuFila();
   };
 
   const ejecutarBulk = async () => {
@@ -1431,12 +1421,12 @@ export default function MesDetalle() {
                             </Tooltip>
                           </Box>
                         </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', color: desvio >= 0 ? '#66bb6a' : '#ef5350' }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', color: desvio >= 0 ? '#66bb6a' : '#ef5350' , minWidth: 100 }}>
                           {desvio >= 0 ? '+' : '-'}{formatCurrency(Math.abs(desvio))}
                         </td>
-                        <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5 }}>
-                            <Tooltip title={esSoloReal ? 'Crear línea de presupuesto con este movimiento' : 'Guardar cambios'}>
+                        <td style={{ padding: 12, whiteSpace: 'nowrap', textAlign: 'center' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
+                            <Tooltip title={esSoloReal ? 'Crear linea de presupuesto con este movimiento' : 'Guardar cambios'}>
                               <span>
                                 <IconButton size="small" onClick={handleGuardar}>
                                   <SaveOutlinedIcon />
@@ -1454,38 +1444,30 @@ export default function MesDetalle() {
                                 />
                               </Tooltip>
                             )}
+                            {!esSoloReal && (
+                              <>
+                                <Tooltip title="Eliminar esta linea">
+                                  <span>
+                                    <IconButton size="small" onClick={() => openDeletePrompt(item)}>
+                                      <DeleteOutlineIcon />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                                <Tooltip title="Aplicar esta linea a varios meses">
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => {
+                                        if (baseIdx >= 0) abrirDlgVariosConFila(baseIdx);
+                                      }}
+                                    >
+                                      <ContentCopyIcon />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              </>
+                            )}
                           </Box>
-                          {!esSoloReal && (
-                            <>
-                              <Tooltip title="Eliminar esta línea">
-                                <span>
-                                  <IconButton size="small" onClick={() => openDeletePrompt(item)}>
-                                    <DeleteOutlineIcon />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                              <Tooltip title="Aplicar esta línea a varios meses">
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                      if (baseIdx >= 0) abrirDlgVariosConFila(baseIdx);
-                                    }}
-                                  >
-                                    <ContentCopyIcon />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                              <IconButton
-                                size="small"
-                                onClick={(ev) => {
-                                  if (baseIdx >= 0) abrirMenuFila(ev, baseIdx);
-                                }}
-                              >
-                                <MoreVertIcon />
-                              </IconButton>
-                            </>
-                          )}
                         </td>
                       </tr>
                     );
@@ -1507,22 +1489,6 @@ export default function MesDetalle() {
       <Box mt={4} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Button variant="outlined" onClick={() => navigate(-1)}>Volver</Button>
       </Box>
-
-      {/* Menú fila */}
-      <Menu anchorEl={anchorRowMenu} open={Boolean(anchorRowMenu)} onClose={cerrarMenuFila}>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Editar regla (visual).'); }}>
-          <RuleOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Editar regla (este mes / rango)
-        </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Reasignar a otra categoría (visual).'); }}>
-          <SwapHorizOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Reasignar a otra categoría
-        </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Distribuir en subcategorías (visual).'); }}>
-          <PlaylistAddOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Distribuir en subcategorías
-        </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); abrirDlgVariosConFila(rowMenuIdx); }}>
-          <ContentCopyIcon fontSize="small" style={{ marginRight: 8 }} /> Aplicar a varios meses
-        </MenuItem>
-      </Menu>
 
       {/* Confirmar edición manual */}
       <Dialog open={guardPrompt.open} onClose={handleGuardCancel} maxWidth="sm" fullWidth>
