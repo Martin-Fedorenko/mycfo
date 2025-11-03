@@ -19,6 +19,7 @@ const PresupuestoDetalle = React.lazy(() => import("../pronostico/presupuesto/co
 const MesDetalle = React.lazy(() => import("../pronostico/presupuesto/components/MesDetalle"));
 const CashFlowForecast = React.lazy(() => import("../pronostico/rolling-forecast/RollingForecast"));
 const RollingForecast = React.lazy(() => import("../pronostico/cash-flow-forecast/CashFlowForecast"));
+const PronosticoContinuo = React.lazy(() => import("../pronostico/pronostico-continuo/PronosticoContinuo"));
 const HistorialCambios = React.lazy(() => import("../administracion/historial-cambios/HistorialCambios"));
 const Roles = React.lazy(() => import("../administracion/roles/Roles"));
 const Invitaciones = React.lazy(() => import("../administracion/invitaciones/Invitaciones"));
@@ -146,6 +147,12 @@ const routeConfig = [
         path: "/rolling-forecast",
         icon: <DescriptionIcon />,
         element: <RollingForecast />,
+      },
+      {
+        label: "Pronóstico Continuo",
+        path: "/pronostico-continuo",
+        icon: <DescriptionIcon />,
+        element: <PronosticoContinuo />,
       },
     ],
   },

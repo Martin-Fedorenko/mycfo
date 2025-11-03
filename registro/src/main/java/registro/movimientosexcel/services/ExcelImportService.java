@@ -74,6 +74,9 @@ public class ExcelImportService {
                     movimiento.setFechaCreacion(LocalDate.now());
                     movimiento.setFechaActualizacion(LocalDate.now());
                     
+                    // Normalizar monto según tipo
+                    normalizarMontoMovimiento(movimiento);
+                    
                     movimientoRepo.save(movimiento);
                     totalGuardados++;
                     notifications.publishMovement(movimiento, 1L);
@@ -155,6 +158,9 @@ public class ExcelImportService {
                     reg.setOrigenNombre("MYCFO");
                     reg.setFechaCreacion(LocalDate.now());
                     reg.setFechaActualizacion(LocalDate.now());
+                    
+                    // Normalizar monto según tipo
+                    normalizarMontoMovimiento(reg);
 
                     movimientoRepo.save(reg);
                     correctos++;
@@ -233,6 +239,9 @@ public class ExcelImportService {
                     mov.setOrigenNombre("MERCADO_PAGO");
                     mov.setFechaCreacion(LocalDate.now());
                     mov.setFechaActualizacion(LocalDate.now());
+                    
+                    // Normalizar monto según tipo
+                    normalizarMontoMovimiento(mov);
 
                     movimientoRepo.save(mov);
                     correctos++;
@@ -483,5 +492,30 @@ public class ExcelImportService {
     private TipoMovimiento determinarTipoMovimiento(Double monto) {
         if (monto == null) return TipoMovimiento.Ingreso;
         return monto >= 0 ? TipoMovimiento.Ingreso : TipoMovimiento.Egreso;
+    }
+    
+    /**
+     * Normaliza el monto de un movimiento según su tipo:
+     * - Egresos siempre negativos
+     * - Ingresos siempre positivos
+     */
+    private void normalizarMontoMovimiento(Movimiento movimiento) {
+        if (movimiento.getMontoTotal() == null || movimiento.getTipo() == null) {
+            return;
+        }
+        
+        double monto = movimiento.getMontoTotal();
+        
+        if (movimiento.getTipo() == TipoMovimiento.Egreso) {
+            // Egreso siempre negativo
+            if (monto > 0) {
+                movimiento.setMontoTotal(-monto);
+            }
+        } else if (movimiento.getTipo() == TipoMovimiento.Ingreso) {
+            // Ingreso siempre positivo
+            if (monto < 0) {
+                movimiento.setMontoTotal(-monto);
+            }
+        }
     }
 }

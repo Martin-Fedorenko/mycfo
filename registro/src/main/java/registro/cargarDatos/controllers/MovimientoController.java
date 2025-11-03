@@ -16,6 +16,7 @@ import registro.services.AdministracionService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/movimientos")
@@ -171,6 +172,109 @@ public class MovimientoController {
             
         } catch (RuntimeException e) {
             log.error("Error al obtener movimientos: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
+     * Obtener todos los movimientos sin paginación
+     */
+    @GetMapping("/todos")
+    public ResponseEntity<List<Movimiento>> obtenerTodosLosMovimientos(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
+            @RequestParam(required = false) List<TipoMovimiento> tipos,
+            @RequestParam(required = false) Boolean conciliado,
+            @RequestParam(required = false) String nombreRelacionado) {
+        
+        try {
+            // Obtener empresa del usuario
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            
+            log.debug("Obteniendo todos los movimientos para empresa: {}", empresaId);
+            
+            List<Movimiento> movimientos = movimientoService.obtenerTodosLosMovimientos(
+                    empresaId,
+                    null, // usuarioId - null para traer todos de la empresa
+                    fechaDesde,
+                    fechaHasta,
+                    tipos,
+                    conciliado,
+                    nombreRelacionado
+            );
+            
+            return ResponseEntity.ok(movimientos);
+            
+        } catch (RuntimeException e) {
+            log.error("Error al obtener todos los movimientos: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
+     * Obtener movimientos agrupados por mes y tipo
+     */
+    @GetMapping("/mensuales")
+    public ResponseEntity<Map<String, Map<TipoMovimiento, List<Movimiento>>>> obtenerMovimientosMensuales(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
+            @RequestParam(required = false) List<TipoMovimiento> tipos,
+            @RequestParam(required = false) Boolean conciliado,
+            @RequestParam(required = false) String nombreRelacionado) {
+        
+        try {
+            // Obtener empresa del usuario
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            
+            log.debug("Obteniendo movimientos mensuales para empresa: {}", empresaId);
+            
+            Map<String, Map<TipoMovimiento, List<Movimiento>>> movimientosMensuales = 
+                    movimientoService.obtenerMovimientosPorMes(
+                            empresaId,
+                            null, // usuarioId - null para traer todos de la empresa
+                            fechaDesde,
+                            fechaHasta,
+                            tipos,
+                            conciliado,
+                            nombreRelacionado
+                    );
+            
+            return ResponseEntity.ok(movimientosMensuales);
+            
+        } catch (RuntimeException e) {
+            log.error("Error al obtener movimientos mensuales: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Endpoint interno para comunicación entre microservicios
+     * Obtiene movimientos mensuales por organizacionId directamente
+     */
+    @GetMapping("/empresa/{organizacionId}/mensuales")
+    public ResponseEntity<Map<String, Map<TipoMovimiento, List<Movimiento>>>> obtenerMovimientosMensualesPorEmpresa(
+            @PathVariable Long organizacionId) {
+        
+        try {
+            log.debug("Obteniendo movimientos mensuales para empresa: {} (endpoint interno)", organizacionId);
+            
+            Map<String, Map<TipoMovimiento, List<Movimiento>>> movimientosMensuales = 
+                    movimientoService.obtenerMovimientosPorMes(
+                            organizacionId,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    );
+            
+            return ResponseEntity.ok(movimientosMensuales);
+            
+        } catch (RuntimeException e) {
+            log.error("Error al obtener movimientos mensuales: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

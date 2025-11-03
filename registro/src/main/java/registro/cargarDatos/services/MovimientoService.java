@@ -12,7 +12,9 @@ import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.repositories.MovimientoRepository;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,6 +30,9 @@ public class MovimientoService {
     public Movimiento guardarMovimiento(Movimiento movimiento) {
         movimiento.setFechaCreacion(LocalDate.now());
         
+        // Normalizar monto según el tipo de movimiento
+        normalizarMonto(movimiento);
+        
         // Cargar datos de la empresa automáticamente si hay usuarioId
         if (movimiento.getUsuarioId() != null && !movimiento.getUsuarioId().isEmpty()) {
             empresaDataService.cargarDatosEmpresaEnMovimiento(movimiento, movimiento.getUsuarioId());
@@ -39,6 +44,31 @@ public class MovimientoService {
         }
         
         return movimientoRepository.save(movimiento);
+    }
+    
+    /**
+     * Normaliza el monto según el tipo de movimiento:
+     * - Egreso siempre debe ser negativo
+     * - Ingreso siempre debe ser positivo
+     */
+    private void normalizarMonto(Movimiento movimiento) {
+        if (movimiento.getMontoTotal() == null || movimiento.getTipo() == null) {
+            return;
+        }
+        
+        double monto = movimiento.getMontoTotal();
+        
+        if (movimiento.getTipo() == TipoMovimiento.Egreso) {
+            // Asegurar que el egreso sea negativo
+            if (monto > 0) {
+                movimiento.setMontoTotal(-monto);
+            }
+        } else if (movimiento.getTipo() == TipoMovimiento.Ingreso) {
+            // Asegurar que el ingreso sea positivo
+            if (monto < 0) {
+                movimiento.setMontoTotal(-monto);
+            }
+        }
     }
 
     /**
@@ -137,6 +167,9 @@ public class MovimientoService {
         movimiento.setMontoCuota(datosActualizados.getMontoCuota());
         movimiento.setPeriodicidad(datosActualizados.getPeriodicidad());
 
+        // Normalizar monto según el tipo de movimiento
+        normalizarMonto(movimiento);
+
         movimiento.setFechaActualizacion(LocalDate.now());
 
         return movimientoRepository.save(movimiento);
@@ -232,6 +265,63 @@ public class MovimientoService {
         if (r.getDescripcion() != null && r.getDescripcion().toLowerCase().contains(nombreLower)) return true;
 
         return false;
+    }
+    
+    /**
+     * Obtiene todos los movimientos sin paginación
+     */
+    public List<Movimiento> obtenerTodosLosMovimientos(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            List<TipoMovimiento> tipos,
+            Boolean conciliado,
+            String nombreRelacionado
+    ) {
+        // Obtener todos los movimientos
+        List<Movimiento> todos = movimientoRepository.findAll();
+
+        // Aplicar filtros
+        return todos.stream()
+                .filter(r -> filtrarPorOrganizacion(r, organizacionId))
+                .filter(r -> filtrarPorUsuario(r, usuarioId))
+                .filter(r -> filtrarPorFecha(r, fechaDesde, fechaHasta))
+                .filter(r -> filtrarPorTipo(r, tipos))
+                .filter(r -> filtrarPorConciliacion(r, conciliado))
+                .filter(r -> filtrarPorNombreRelacionado(r, nombreRelacionado))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Obtiene movimientos agrupados por mes y tipo
+     */
+    public Map<String, Map<TipoMovimiento, List<Movimiento>>> obtenerMovimientosPorMes(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            List<TipoMovimiento> tipos,
+            Boolean conciliado,
+            String nombreRelacionado
+    ) {
+        // Obtener todos los movimientos filtrados
+        List<Movimiento> movimientos = obtenerTodosLosMovimientos(
+                organizacionId,
+                usuarioId,
+                fechaDesde,
+                fechaHasta,
+                tipos,
+                conciliado,
+                nombreRelacionado
+        );
+        
+        // Agrupar por mes y tipo
+        return movimientos.stream()
+                .collect(Collectors.groupingBy(
+                        mov -> YearMonth.from(mov.getFechaEmision()).toString(),
+                        Collectors.groupingBy(Movimiento::getTipo)
+                ));
     }
 }
 
