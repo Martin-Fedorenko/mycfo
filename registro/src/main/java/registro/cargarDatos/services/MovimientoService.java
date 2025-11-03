@@ -21,11 +21,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import registro.cargarDatos.dtos.ConciliacionResumenResponse;
+import registro.cargarDatos.dtos.ConciliacionTipoResumen;
+import registro.cargarDatos.dtos.MontoPorCategoria;
 import registro.cargarDatos.dtos.MontosMensualesResponse;
+import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
 import registro.cargarDatos.dtos.PuntoMontoMensual;
 import registro.cargarDatos.dtos.ResumenMensualResponse;
-import registro.cargarDatos.dtos.MontoPorCategoria;
-import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -404,6 +406,93 @@ public class MovimientoService {
                 .usuarioId(usuarioId)
                 .periodo(String.valueOf(targetYear))
                 .categorias(categorias)
+                .build();
+    }
+
+    public ConciliacionResumenResponse obtenerResumenConciliacion(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia
+    ) {
+        if (organizacionId == null && (usuarioId == null || usuarioId.isBlank())) {
+            throw new IllegalArgumentException("Organizacion o usuario son requeridos para el resumen de conciliacion");
+        }
+
+        LocalDate fechaBase = fechaReferencia != null ? fechaReferencia : LocalDate.now();
+        YearMonth periodo = YearMonth.from(fechaBase);
+        LocalDate inicio = periodo.atDay(1);
+        LocalDate fin = periodo.atEndOfMonth();
+
+        long total = movimientoRepository.countByOrganizacionOrUsuarioAndFechaEmisionBetween(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        long conciliados = movimientoRepository.countConciliadosByOrganizacionOrUsuarioAndFechaEmisionBetween(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        long pendientes = movimientoRepository.countPendientesByOrganizacionOrUsuarioAndFechaEmisionBetween(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        double porcentaje = total > 0 ? (conciliados * 100d) / total : 0d;
+
+        LocalDate ultimaConciliacion = movimientoRepository.findUltimaConciliacion(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        LocalDate ultimoPendiente = movimientoRepository.findUltimoMovimientoPendiente(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        List<Object[]> porTipoRaw = movimientoRepository.obtenerResumenConciliacionPorTipo(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        List<ConciliacionTipoResumen> porTipo = porTipoRaw.stream()
+                .map(item -> {
+                    TipoMovimiento tipo = (TipoMovimiento) item[0];
+                    long totalTipo = item[1] != null ? ((Number) item[1]).longValue() : 0L;
+                    long conciliadosTipo = item[2] != null ? ((Number) item[2]).longValue() : 0L;
+                    long pendientesTipo = Math.max(totalTipo - conciliadosTipo, 0L);
+                    return ConciliacionTipoResumen.builder()
+                            .tipo(tipo != null ? tipo.name() : "SIN_TIPO")
+                            .total(totalTipo)
+                            .conciliados(conciliadosTipo)
+                            .pendientes(pendientesTipo)
+                            .build();
+                })
+                .toList();
+
+        return ConciliacionResumenResponse.builder()
+                .organizacionId(organizacionId)
+                .usuarioId(usuarioId)
+                .periodo(periodo.toString())
+                .totalMovimientos(total)
+                .conciliados(conciliados)
+                .pendientes(pendientes)
+                .porcentajeConciliados(porcentaje)
+                .ultimaConciliacion(ultimaConciliacion)
+                .ultimoPendiente(ultimoPendiente)
+                .porTipo(porTipo)
                 .build();
     }
 

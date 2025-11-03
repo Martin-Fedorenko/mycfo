@@ -9,9 +9,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import registro.cargarDatos.dtos.ConciliacionResumenResponse;
 import registro.cargarDatos.dtos.MontosMensualesResponse;
-import registro.cargarDatos.dtos.ResumenMensualResponse;
 import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
+import registro.cargarDatos.dtos.ResumenMensualResponse;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.services.MovimientoService;
@@ -269,6 +270,25 @@ public class MovimientoController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error al obtener egresos por categoria: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/conciliacion")
+    public ResponseEntity<ConciliacionResumenResponse> obtenerResumenConciliacion(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            ConciliacionResumenResponse response = movimientoService.obtenerResumenConciliacion(
+                    empresaId,
+                    usuarioSub,
+                    fecha
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener resumen de conciliacion: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

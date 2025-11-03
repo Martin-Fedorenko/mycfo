@@ -25,6 +25,7 @@ import KpiCard from "./components/KpiCard";
 import BudgetWidget from "./components/BudgetWidget";
 import CashflowWidget from "./components/CashflowWidget";
 import RecentMovementsWidget from "./components/RecentMovementsWidget";
+import ReconciliationWidget from "./components/ReconciliationWidget";
 import SalesTrendWidget from "./components/SalesTrendWidget";
 import SalesByCategoryWidget from "./components/SalesByCategoryWidget";
 // import BillingWidget from "./components/BillingWidget";
@@ -35,6 +36,7 @@ import {
   fetchMonthlyExpenses,
   fetchIncomeByCategory,
   fetchExpensesByCategory,
+  fetchReconciliationSummary,
 } from "./services/analyticsService";
 import { formatCurrencyAR } from "../utils/formatters";
 
@@ -225,11 +227,21 @@ const mockMovements = [
   },
 ];
 
-const mockReconciliation = [
-  { account: "Banco Nación ARS", percent: 92, pendingCount: 4 },
-  { account: "Mercado Pago", percent: 78, pendingCount: 9 },
-  { account: "Santander Río USD", percent: 63, pendingCount: 7 },
-];
+const mockReconciliation = {
+  periodo: "2025-10",
+  periodLabel: "octubre 2025",
+  totalMovimientos: 124,
+  conciliados: 96,
+  pendientes: 28,
+  porcentajeConciliados: 77.4,
+  ultimaConciliacion: "2025-10-28",
+  ultimoPendiente: "2025-10-30",
+  porTipo: [
+    { tipo: "Ingreso", total: 68, conciliados: 55, pendientes: 13, porcentaje: 80.9 },
+    { tipo: "Egreso", total: 56, conciliados: 41, pendientes: 15, porcentaje: 73.2 },
+  ],
+};
+
 
 const mockBilling = {
   invoices: [
@@ -383,6 +395,7 @@ const Dashboard = () => {
       salesByCategory: salesByCategoryState,
       expensesTrend: expensesTrendState,
       expensesByCategory: expensesByCategoryState,
+      reconciliation: reconciliationState,
     }) => {
       if (activeRequestRef.current !== requestId) {
         return;
@@ -403,6 +416,9 @@ const Dashboard = () => {
       }
       if (expensesByCategoryState) {
         mockState.expensesByCategory = expensesByCategoryState;
+      }
+      if (reconciliationState) {
+        mockState.reconciliation = reconciliationState;
       }
       setState(mockState);
     };
@@ -493,6 +509,78 @@ const Dashboard = () => {
       }));
     };
 
+    const mapConciliationResponse = (response) => {
+      if (!response) {
+        return null;
+      }
+
+      const total = Number(response.totalMovimientos ?? 0);
+      const conciliados = Number(response.conciliados ?? 0);
+      const pendientes =
+        response.pendientes !== undefined
+          ? Number(response.pendientes ?? 0)
+          : Math.max(total - conciliados, 0);
+      const porcentaje =
+        response.porcentajeConciliados !== undefined && response.porcentajeConciliados !== null
+          ? Number(response.porcentajeConciliados)
+          : total > 0
+          ? (conciliados * 100) / total
+          : 0;
+
+      const periodo = String(response.periodo ?? "");
+      let periodLabel = periodo || "Periodo actual";
+      const [yearStr, monthStr] = periodo.split("-");
+      const monthIndex = Number(monthStr) - 1;
+      const yearNum = Number(yearStr);
+      const monthNames = [
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
+      ];
+      if (monthIndex >= 0 && monthIndex < monthNames.length && Number.isFinite(yearNum)) {
+        periodLabel = `${monthNames[monthIndex]} ${yearNum}`;
+      }
+
+      const porTipoRaw = Array.isArray(response.porTipo) ? response.porTipo : [];
+      const porTipo = porTipoRaw.map((item) => {
+        const totalTipo = Number(item?.total ?? 0);
+        const conciliadosTipo = Number(item?.conciliados ?? 0);
+        const pendientesTipo =
+          item?.pendientes !== undefined
+            ? Number(item.pendientes ?? 0)
+            : Math.max(totalTipo - conciliadosTipo, 0);
+        const porcentajeTipo = totalTipo > 0 ? (conciliadosTipo * 100) / totalTipo : 0;
+        return {
+          tipo: item?.tipo ?? "Sin tipo",
+          total: totalTipo,
+          conciliados: conciliadosTipo,
+          pendientes: pendientesTipo,
+          porcentaje: porcentajeTipo,
+        };
+      });
+
+      return {
+        periodo,
+        periodLabel,
+        totalMovimientos: total,
+        conciliados,
+        pendientes,
+        porcentajeConciliados: porcentaje,
+        ultimaConciliacion: response.ultimaConciliacion ?? null,
+        ultimoPendiente: response.ultimoPendiente ?? null,
+        porTipo,
+      };
+    };
+
     (async () => {
       const [
         movementsResult,
@@ -501,6 +589,7 @@ const Dashboard = () => {
         incomesCategoryResult,
         expensesTrendResult,
         expensesCategoryResult,
+        reconciliationResult,
       ] = await Promise.allSettled([
         fetchRecentMovements({ limit: 6 }),
         fetchMonthlySummary({ period }),
@@ -508,6 +597,7 @@ const Dashboard = () => {
         fetchIncomeByCategory({ period }),
         fetchMonthlyExpenses({ period, months: 12 }),
         fetchExpensesByCategory({ period }),
+        fetchReconciliationSummary({ period }),
       ]);
 
       const movementsState =
@@ -610,6 +700,22 @@ const Dashboard = () => {
               data: null,
             };
 
+      const reconciliationState =
+        reconciliationResult.status === "fulfilled"
+          ? {
+              loading: false,
+              error: null,
+              data: mapConciliationResponse(reconciliationResult.value),
+            }
+          : {
+              loading: false,
+              error: resolveErrorMessage(
+                reconciliationResult.reason,
+                "No pudimos obtener el resumen de conciliacion."
+              ),
+              data: null,
+            };
+
       applyResult({
         movements: movementsState,
         kpis: kpisState,
@@ -617,6 +723,7 @@ const Dashboard = () => {
         salesByCategory: salesByCategoryState,
         expensesTrend: expensesTrendState,
         expensesByCategory: expensesByCategoryState,
+        reconciliation: reconciliationState,
       });
     })();
   }, [buildMockState, useMocks, period]);
@@ -988,16 +1095,19 @@ const Dashboard = () => {
           </Grid>
         </Grid>
 
-        {/* <Grid container spacing={2}>
+        <Grid container spacing={2}>
           <Grid item xs={12} md={6} xl={4}>
             <ReconciliationWidget
               data={state.reconciliation.data}
               loading={state.reconciliation.loading && !state.reconciliation.data}
               error={state.reconciliation.error}
               onRetry={loadDashboardData}
-              onNavigate={(account) => handleNavigate("/conciliacion", account ? { cuenta: account } : undefined)}
+              onNavigate={(account) =>
+                handleNavigate("/conciliacion", account ? { cuenta: account } : undefined)
+              }
             />
           </Grid>
+          {/*
           <Grid item xs={12} md={6} xl={4}>
             <BillingWidget
               data={state.billing.data}
@@ -1007,7 +1117,8 @@ const Dashboard = () => {
               onNavigate={() => handleNavigate("/carga", { tipo: "factura" })}
             />
           </Grid>
-        </Grid> */}
+          */}
+        </Grid>
 
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <Button variant="text" size="small" onClick={loadDashboardData}>
@@ -1041,6 +1152,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
 
 

@@ -110,6 +110,44 @@ const fetchMontosPorCategoria = async ({ period } = {}, endpoint) => {
   return payload ?? {};
 };
 
+const fetchConciliacionResumen = async ({ period } = {}) => {
+  const usuarioSub = getSessionUserSub();
+  if (!usuarioSub) {
+    throw new Error("No encontramos el usuario en la sesion.");
+  }
+
+  const params = new URLSearchParams();
+  const fecha = ensurePeriodDate(period);
+  if (fecha) {
+    params.set("fecha", fecha);
+  }
+
+  const response = await fetch(
+    `${API_CONFIG.REGISTRO}/movimientos/resumen/conciliacion${
+      params.toString() ? `?${params.toString()}` : ""
+    }`,
+    {
+      headers: {
+        "X-Usuario-Sub": usuarioSub,
+      },
+      credentials: "include",
+    }
+  );
+
+  const payload = await parseJsonSafe(response);
+
+  if (!response.ok) {
+    const message =
+      (payload && (payload.mensaje || payload.error || payload.message)) ||
+      `No pudimos obtener el resumen de conciliacion (codigo ${response.status}).`;
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+
+  return payload ?? {};
+};
+
 export const fetchMonthlyIncomes = (options = {}) =>
   fetchMontosMensuales(options, "ingresos-mensuales");
 
@@ -121,6 +159,9 @@ export const fetchIncomeByCategory = (options = {}) =>
 
 export const fetchExpensesByCategory = (options = {}) =>
   fetchMontosPorCategoria(options, "egresos-categorias");
+
+export const fetchReconciliationSummary = (options = {}) =>
+  fetchConciliacionResumen(options);
 
 
 

@@ -63,4 +63,65 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
             @Param("inicio") LocalDate inicio,
             @Param("fin") LocalDate fin
     );
+
+    @Query("SELECT COUNT(m) FROM Movimiento m " +
+            "WHERE (:organizacionId IS NULL OR m.organizacionId = :organizacionId) " +
+            "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
+            "AND m.fechaEmision BETWEEN :inicio AND :fin " +
+            "AND m.documentoComercial IS NOT NULL")
+    long countConciliadosByOrganizacionOrUsuarioAndFechaEmisionBetween(
+            @Param("organizacionId") Long organizacionId,
+            @Param("usuarioId") String usuarioId,
+            @Param("inicio") LocalDate inicio,
+            @Param("fin") LocalDate fin
+    );
+
+    @Query("SELECT COUNT(m) FROM Movimiento m " +
+            "WHERE (:organizacionId IS NULL OR m.organizacionId = :organizacionId) " +
+            "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
+            "AND m.fechaEmision BETWEEN :inicio AND :fin " +
+            "AND m.documentoComercial IS NULL")
+    long countPendientesByOrganizacionOrUsuarioAndFechaEmisionBetween(
+            @Param("organizacionId") Long organizacionId,
+            @Param("usuarioId") String usuarioId,
+            @Param("inicio") LocalDate inicio,
+            @Param("fin") LocalDate fin
+    );
+
+    @Query("SELECT MAX(COALESCE(m.fechaActualizacion, m.fechaEmision)) FROM Movimiento m " +
+            "WHERE (:organizacionId IS NULL OR m.organizacionId = :organizacionId) " +
+            "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
+            "AND m.fechaEmision BETWEEN :inicio AND :fin " +
+            "AND m.documentoComercial IS NOT NULL")
+    LocalDate findUltimaConciliacion(
+            @Param("organizacionId") Long organizacionId,
+            @Param("usuarioId") String usuarioId,
+            @Param("inicio") LocalDate inicio,
+            @Param("fin") LocalDate fin
+    );
+
+    @Query("SELECT MAX(m.fechaEmision) FROM Movimiento m " +
+            "WHERE (:organizacionId IS NULL OR m.organizacionId = :organizacionId) " +
+            "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
+            "AND m.fechaEmision BETWEEN :inicio AND :fin " +
+            "AND m.documentoComercial IS NULL")
+    LocalDate findUltimoMovimientoPendiente(
+            @Param("organizacionId") Long organizacionId,
+            @Param("usuarioId") String usuarioId,
+            @Param("inicio") LocalDate inicio,
+            @Param("fin") LocalDate fin
+    );
+
+    @Query("SELECT m.tipo, COUNT(m), SUM(CASE WHEN m.documentoComercial IS NOT NULL THEN 1 ELSE 0 END) " +
+            "FROM Movimiento m " +
+            "WHERE (:organizacionId IS NULL OR m.organizacionId = :organizacionId) " +
+            "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
+            "AND m.fechaEmision BETWEEN :inicio AND :fin " +
+            "GROUP BY m.tipo")
+    List<Object[]> obtenerResumenConciliacionPorTipo(
+            @Param("organizacionId") Long organizacionId,
+            @Param("usuarioId") String usuarioId,
+            @Param("inicio") LocalDate inicio,
+            @Param("fin") LocalDate fin
+    );
 }
