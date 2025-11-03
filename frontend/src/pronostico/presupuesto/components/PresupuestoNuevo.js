@@ -2,14 +2,17 @@ import * as React from 'react';
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableRow,
   TableCell, TableBody, Grid, TextField, MenuItem, IconButton,
-  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress
+  Stepper, Step, StepLabel, Alert, AlertTitle, Divider, Tooltip, Chip, Stack, FormControlLabel, Switch, CircularProgress, Autocomplete
 } from '@mui/material';
+import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
+import { buildTipoSelectSx } from '../../../shared-components/tipoSelectStyles';
 import MonthRangeSelect from './MonthRangeSelect';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import http from '../../../api/http';
 import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
 
@@ -125,10 +128,26 @@ export default function PresupuestoNuevo() {
 
   // Paso 2: categorías + reglas
   const [categorias, setCategorias] = React.useState([
-    { categoria: 'Alquiler', tipo: 'Egreso', regla: { modo: 'FIJO', importe: 0 } },
-    { categoria: 'Sueldos', tipo: 'Egreso', regla: { modo: 'AJUSTE', importe: 0, porcentaje: 0 } },
-    { categoria: 'Ventas esperadas', tipo: 'Ingreso', regla: { modo: 'FIJO', importe: 0 } },
+    { categoria: '', tipo: '', regla: { modo: 'FIJO', importe: 0 } },
+    { categoria: '', tipo: '', regla: { modo: 'AJUSTE', importe: 0, porcentaje: 0 } },
+    { categoria: '', tipo: '', regla: { modo: 'FIJO', importe: 0 } },
   ]);
+  const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
+
+  React.useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const response = await http.get(`${process.env.REACT_APP_URL_REGISTRO}/api/categorias`);
+        if (response.data && response.data.length > 0) {
+          setCategoriasOptions(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories, using fallback", error);
+      }
+    };
+
+    fetchCategorias();
+  }, []);
 
   // Paso 3: tabla generada + editable
   const [presupuestoDataMes, setPresupuestoDataMes] = React.useState({});
@@ -152,6 +171,7 @@ export default function PresupuestoNuevo() {
       meses.forEach(mes => {
         if (!newData[mes]) newData[mes] = {};
         categorias.forEach(cat => {
+          if (!cat.categoria?.trim()) return;
           if (!newData[mes][cat.categoria]) {
             newData[mes][cat.categoria] = { sugerido: 0, tipo: cat.tipo };
           } else {
@@ -183,6 +203,62 @@ export default function PresupuestoNuevo() {
   const validarPaso2 = () => {
     if (categorias.length === 0) return 'Agregá al menos una categoría.';
     if (categorias.some(c => !c.categoria?.trim())) return 'Todas las categorías deben tener nombre.';
+    if (categorias.some(c => !c.tipo?.trim())) return 'Todas las categorías deben tener tipo.';
+    
+    // Helper numérico
+    const isBlankNum = (v) => v === '' || v == null || Number.isNaN(Number(v));
+    const isPositiveInt = (v) => Number.isInteger(Number(v)) && Number(v) >= 1;
+
+    // Validación de parámetros por modo
+    for (let i = 0; i < categorias.length; i++) {
+      const c = categorias[i];
+      // si el nombre está vacío, ya lo validamos arriba
+      if (!c.categoria?.trim()) continue;
+      const nombre = c.categoria.trim() || `Categoría #${i + 1}`;
+      const regla = c.regla || {};
+      const modo = (regla.modo || 'FIJO').toUpperCase();
+
+      if (modo === 'FIJO') {
+        if (isBlankNum(regla.importe)) {
+          return `Completá el importe en "${nombre}" (Regla: Fijo mensual).`;
+        }
+      }
+
+      if (modo === 'AJUSTE') {
+        if (isBlankNum(regla.importe)) {
+          return `Completá el importe inicial en "${nombre}" (Regla: Ajuste % mensual).`;
+        }
+        if (isBlankNum(regla.porcentaje)) {
+          return `Completá el porcentaje mensual en "${nombre}" (Regla: Ajuste % mensual).`;
+        }
+      }
+
+      if (modo === 'UNICO') {
+        if (!regla.mesUnico) {
+          return `Elegí el mes en "${nombre}" (Regla: Único).`;
+        }
+        if (isBlankNum(regla.importe)) {
+          return `Completá el importe en "${nombre}" (Regla: Único).`;
+        }
+      }
+
+      if (modo === 'CUOTAS') {
+        if (isBlankNum(regla.montoTotal)) {
+          return `Completá el monto total en "${nombre}" (Regla: En cuotas).`;
+        }
+        if (!isPositiveInt(regla.cuotas)) {
+          return `Indicá la cantidad de cuotas (>= 1) en "${nombre}" (Regla: En cuotas).`;
+        }
+        // interés puede ser 0; sólo marcamos error si no es número
+        if (regla.interesMensual !== '' && regla.interesMensual != null && Number.isNaN(Number(regla.interesMensual))) {
+          return `El interés mensual debe ser numérico en "${nombre}" (Regla: En cuotas).`;
+        }
+        if (!regla.comienza) {
+          return `Elegí el mes de inicio en "${nombre}" (Regla: En cuotas).`;
+        }
+      }
+    }
+
     return null;
   };
 
@@ -285,6 +361,7 @@ export default function PresupuestoNuevo() {
     setPresupuestoDataMes(old => {
       const nuevo = { ...old };
       categorias.forEach(cat => {
+        if (!cat.categoria?.trim()) return;
         const { tipo, categoria, regla } = cat;
         const modo = (regla?.modo || 'FIJO').toUpperCase();
 
@@ -595,21 +672,65 @@ export default function PresupuestoNuevo() {
                   return (
                     <TableRow key={idx} sx={tableRowStyle}>
                       <TableCell sx={tableCellStyle}>
-                        <TextField
-                          value={cat.categoria}
-                          onChange={e => handleCambioCategoriaCampo(idx, 'categoria', e.target.value)}
-                          variant="standard" size="small" placeholder="Nombre"
-                          sx={{ minWidth: 140, maxWidth: 220 }}
+                        <Autocomplete
+                          value={cat.categoria || null}
+                          onChange={(e, newValue) =>
+                            handleCambioCategoriaCampo(idx, 'categoria', newValue || '')
+                          }
+                          options={categoriasOptions}
+                          freeSolo={false}
+                          disableClearable
+                          forcePopupIcon
+                          popupIcon={<KeyboardArrowDownIcon />}            // mismo ícono que Select
+                          componentsProps={{
+                            popupIndicator: {
+                              disableRipple: true,
+                              disableFocusRipple: true,
+                              sx: {
+                                p: 0,
+                                m: 0,
+                                bgcolor: 'transparent',                    // sin fondo
+                                border: 'none',
+                                boxShadow: 'none',
+                                '&:hover': { bgcolor: 'transparent' },
+                                '& .MuiTouchRipple-root': { display: 'none' },
+                                '& .MuiSvgIcon-root': { fontSize: 24 },    // igual que Select
+                              },
+                            },
+                            clearIndicator: { sx: { display: 'none' } },
+                          }}
+                          sx={{
+                            // misma posición del ícono que el Select estándar
+                            '& .MuiAutocomplete-endAdornment': { right: 0, top: '50%', transform: 'translateY(-50%)' },
+                            '& .MuiAutocomplete-popupIndicator': { p: 0 }, // sin padding extra
+                            // no gires la flecha al abrir
+                            '& .MuiAutocomplete-popupIndicatorOpen .MuiSvgIcon-root': { transform: 'none' },
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              variant="standard"
+                              size="small"
+                              placeholder="Categoría"
+                              sx={{ minWidth: 140, maxWidth: 220 }}
+                            />
+                          )}
                         />
                       </TableCell>
                       <TableCell sx={tableCellStyle}>
                         <TextField
-                          select value={cat.tipo}
-                          onChange={e => handleCambioCategoriaCampo(idx, 'tipo', e.target.value)}
-                          variant="standard" size="small" sx={{ minWidth: 100 }}
+                          select
+                          value={cat.tipo}
+                          onChange={(e) => handleCambioCategoriaCampo(idx, 'tipo', e.target.value)}
+                          variant="outlined"
+                          size="small"
+                          sx={[
+                            { minWidth: 100 },
+                            buildTipoSelectSx(cat.tipo),
+                          ]}
                         >
-                          <MenuItem value="Ingreso">Ingreso</MenuItem>
-                          <MenuItem value="Egreso">Egreso</MenuItem>
+                          <MenuItem value="Ingreso">INGRESO</MenuItem>
+                          <MenuItem value="Egreso">EGRESO</MenuItem>
                         </TextField>
                       </TableCell>
                       <TableCell sx={tableCellStyle}>
@@ -1032,4 +1153,3 @@ export default function PresupuestoNuevo() {
     </Box>
   );
 }
-

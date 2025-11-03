@@ -1,4 +1,4 @@
-﻿package pronostico.controllers;
+package pronostico.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pronostico.dtos.CrearPresupuestoRequest;
 import pronostico.models.PresupuestoLinea;
 import pronostico.repositories.PresupuestoLineaRepository;
+import pronostico.services.AdministracionService;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -23,6 +25,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -42,6 +45,9 @@ class PresupuestoControllerIntegrationTest {
 
     @Autowired
     private PresupuestoLineaRepository presupuestoLineaRepository;
+
+    @MockBean
+    private AdministracionService administracionService;
 
     private static CrearPresupuestoRequest buildRequest() {
         CrearPresupuestoRequest.PlantillaLinea sueldos = CrearPresupuestoRequest.PlantillaLinea.builder()
@@ -138,9 +144,11 @@ class PresupuestoControllerIntegrationTest {
     @DisplayName("POST /api/presupuestos debe persistir los montos mensuales enviados")
     void shouldPersistMonthlyValuesThroughController() throws Exception {
         CrearPresupuestoRequest request = buildRequest();
+        when(administracionService.obtenerEmpresaIdPorUsuarioSub("user-test")).thenReturn(1L);
 
         mockMvc.perform(post("/api/presupuestos")
                 .with(jwt().jwt(jwt -> jwt.subject("user-test")))
+                .header("X-Usuario-Sub", "user-test")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk());
@@ -166,8 +174,11 @@ class PresupuestoControllerIntegrationTest {
     void shouldPersistAndRetrieveCompoundValuesThroughEndpoints() throws Exception {
         CrearPresupuestoRequest request = buildCompoundRequest();
 
+        when(administracionService.obtenerEmpresaIdPorUsuarioSub("user-integration")).thenReturn(2L);
+
         String creationResponse = mockMvc.perform(post("/api/presupuestos")
                 .with(jwt().jwt(jwt -> jwt.subject("user-integration")))
+                .header("X-Usuario-Sub", "user-integration")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -196,7 +207,8 @@ class PresupuestoControllerIntegrationTest {
 
         for (String ym : esperadoSueldos.keySet()) {
             String body = mockMvc.perform(get("/api/presupuestos/{id}/mes/{ym}", presupuestoId, ym)
-                    .with(jwt().jwt(jwt -> jwt.subject("user-integration"))))
+                    .with(jwt().jwt(jwt -> jwt.subject("user-integration")))
+                    .header("X-Usuario-Sub", "user-integration"))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
