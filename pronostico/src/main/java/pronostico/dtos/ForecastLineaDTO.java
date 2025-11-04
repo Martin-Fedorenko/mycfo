@@ -16,6 +16,8 @@ public class ForecastLineaDTO {
     
     private Integer mes;
     
+    private String tipo; // "real" o "estimado"
+    
     private BigDecimal ingresosEsperados;
     
     private BigDecimal egresosEsperados;

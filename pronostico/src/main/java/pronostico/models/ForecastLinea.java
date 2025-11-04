@@ -26,6 +26,10 @@ public class ForecastLinea {
     @Column(name = "mes", nullable = false)
     private Integer mes;
 
+    @Column(name = "tipo", nullable = false, length = 20)
+    @Builder.Default
+    private String tipo = "estimado"; // "real" o "estimado"
+
     @Column(name = "ingresos_esperados", nullable = false, precision = 19, scale = 2)
     private BigDecimal ingresosEsperados;
 

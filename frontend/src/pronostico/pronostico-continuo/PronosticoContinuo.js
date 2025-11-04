@@ -28,15 +28,22 @@ import LoadingSpinner from '../../shared-components/LoadingSpinner';
 import API_CONFIG from '../../config/api-config';
 import http from '../../api/http';
 
+// Opciones de horizonte (en años)
+const HORIZONTES = [
+  { label: '1 año', value: 12 },
+  { label: '2 años', value: 24 },
+  { label: '3 años', value: 36 },
+  { label: '4 años', value: 48 },
+  { label: '5 años', value: 60 }
+];
+
 export default function PronosticoContinuo() {
-  const [horizonteMeses, setHorizonteMeses] = React.useState(6);
+  const [horizonteMeses, setHorizonteMeses] = React.useState(12);
   const [loading, setLoading] = React.useState(false);
   const [forecastData, setForecastData] = React.useState(null);
   const [error, setError] = React.useState(null);
   const [viewMode, setViewMode] = React.useState('todos'); // 'todos', 'ingresos', 'egresos', 'balance'
   const [hasGenerated, setHasGenerated] = React.useState(false);
-
-  const mesesOptions = Array.from({ length: 24 }, (_, i) => i + 1);
 
   const handleGenerarForecast = async () => {
     setLoading(true);
@@ -191,16 +198,16 @@ export default function PronosticoContinuo() {
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Horizonte (meses)</InputLabel>
+            <InputLabel>Horizonte</InputLabel>
             <Select
               value={horizonteMeses}
               onChange={(e) => setHorizonteMeses(e.target.value)}
-              label="Horizonte (meses)"
+              label="Horizonte"
               size="medium"
             >
-              {mesesOptions.map((mes) => (
-                <MenuItem key={mes} value={mes}>
-                  {mes} {mes === 1 ? 'mes' : 'meses'}
+              {HORIZONTES.map((hor) => (
+                <MenuItem key={hor.value} value={hor.value}>
+                  {hor.label}
                 </MenuItem>
               ))}
             </Select>

@@ -65,8 +65,8 @@ public class ForecastService {
         // 3. Llamar al servicio de forecast
         Map<String, Object> responseForecast = llamarServicioForecast(dataHistorica, config.getHorizonteMeses());
         
-        // 4. Guardar el forecast en la base de datos
-        return guardarForecast(config, responseForecast, creadoPor, dataHistorica.size());
+        // 4. Guardar el forecast en la base de datos (incluyendo datos históricos y pronósticos)
+        return guardarForecast(config, responseForecast, creadoPor, dataHistorica.size(), dataHistorica);
     }
 
     /**
@@ -260,14 +260,15 @@ public class ForecastService {
     }
 
     /**
-     * Guarda el forecast en la base de datos
+     * Guarda el forecast en la base de datos (incluyendo datos históricos como "real" y pronósticos como "estimado")
      */
     @Transactional
     private ForecastDTO guardarForecast(
             pronostico.models.ForecastConfig config,
             Map<String, Object> responseForecast,
             String creadoPor,
-            Integer periodosAnalizados) {
+            Integer periodosAnalizados,
+            List<Map<String, Object>> dataHistorica) {
         
         YearMonth ahora = YearMonth.now();
         YearMonth inicio = ahora.plusMonths(1); // El siguiente mes
@@ -289,7 +290,28 @@ public class ForecastService {
         
         forecast = forecastRepository.save(forecast);
         
-        // Guardar líneas del forecast
+        // Guardar datos históricos como "real"
+        for (Map<String, Object> registroHistorico : dataHistorica) {
+            Integer año = (Integer) registroHistorico.get("año");
+            Integer mes = (Integer) registroHistorico.get("mes");
+            Number ingresos = (Number) registroHistorico.get("ingresos");
+            Number egresos = (Number) registroHistorico.get("egresos");
+            BigDecimal balance = BigDecimal.valueOf(ingresos.doubleValue() + egresos.doubleValue());
+            
+            ForecastLinea linea = ForecastLinea.builder()
+                    .forecast(forecast)
+                    .año(año)
+                    .mes(mes)
+                    .tipo("real")
+                    .ingresosEsperados(new BigDecimal(ingresos.toString()))
+                    .egresosEsperados(new BigDecimal(egresos.toString()))
+                    .balanceNetoEsperado(balance)
+                    .build();
+            
+            forecastLineaRepository.save(linea);
+        }
+        
+        // Guardar líneas del forecast como "estimado"
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> forecastMensual = (List<Map<String, Object>>) responseForecast.get("forecast_mensual");
         
@@ -299,6 +321,7 @@ public class ForecastService {
                         .forecast(forecast)
                         .año(((Number) lineaData.get("Año")).intValue())
                         .mes(((Number) lineaData.get("Mes")).intValue())
+                        .tipo("estimado")
                         .ingresosEsperados(new BigDecimal(lineaData.get("Ingresos_Esperados").toString()))
                         .egresosEsperados(new BigDecimal(lineaData.get("Egresos_Esperados").toString()))
                         .balanceNetoEsperado(new BigDecimal(lineaData.get("Balance_Neto_Esperado").toString()))
@@ -308,7 +331,10 @@ public class ForecastService {
             }
         }
         
-        log.info("Forecast guardado: ID={}, Organización={}", forecast.getId(), forecast.getOrganizacionId());
+        log.info("Forecast guardado: ID={}, Organización={}, {} líneas reales, {} líneas estimadas", 
+                forecast.getId(), forecast.getOrganizacionId(), 
+                dataHistorica.size(), 
+                forecastMensual != null ? forecastMensual.size() : 0);
         return toDto(forecast);
     }
 
@@ -404,6 +430,7 @@ public class ForecastService {
                 .id(linea.getId())
                 .año(linea.getAño())
                 .mes(linea.getMes())
+                .tipo(linea.getTipo())
                 .ingresosEsperados(linea.getIngresosEsperados())
                 .egresosEsperados(linea.getEgresosEsperados())
                 .balanceNetoEsperado(linea.getBalanceNetoEsperado())

@@ -17,9 +17,10 @@ const Presupuesto = React.lazy(() => import("../pronostico/presupuesto/Presupues
 const PresupuestoNuevo = React.lazy(() => import("../pronostico/presupuesto/components/PresupuestoNuevo"));
 const PresupuestoDetalle = React.lazy(() => import("../pronostico/presupuesto/components/PresupuestoDetalle"));
 const MesDetalle = React.lazy(() => import("../pronostico/presupuesto/components/MesDetalle"));
-const CashFlowForecast = React.lazy(() => import("../pronostico/rolling-forecast/RollingForecast"));
-const RollingForecast = React.lazy(() => import("../pronostico/cash-flow-forecast/CashFlowForecast"));
 const PronosticoContinuo = React.lazy(() => import("../pronostico/pronostico-continuo/PronosticoContinuo"));
+const PronosticoFijo = React.lazy(() => import("../pronostico/pronostico-fijo/PronosticoFijo"));
+const CrearForecastConfig = React.lazy(() => import("../pronostico/pronostico-fijo/CrearForecastConfig"));
+const PronosticoFijoDetalle = React.lazy(() => import("../pronostico/pronostico-fijo/PronosticoFijoDetalle"));
 const HistorialCambios = React.lazy(() => import("../administracion/historial-cambios/HistorialCambios"));
 const Roles = React.lazy(() => import("../administracion/roles/Roles"));
 const Invitaciones = React.lazy(() => import("../administracion/invitaciones/Invitaciones"));
@@ -137,22 +138,36 @@ const routeConfig = [
         ],
       },
       {
-        label: "Cash Flow Forecast",
-        path: "/cash-flow-forecast",
-        icon: <DescriptionIcon />,
-        element: <CashFlowForecast />,
-      },
-      {
-        label: "Rolling Forecast",
-        path: "/rolling-forecast",
-        icon: <DescriptionIcon />,
-        element: <RollingForecast />,
-      },
-      {
         label: "Pronóstico Continuo",
         path: "/pronostico-continuo",
         icon: <DescriptionIcon />,
         element: <PronosticoContinuo />,
+      },
+      {
+        label: "Pronóstico Fijo",
+        path: "/pronostico-fijo",
+        icon: <DescriptionIcon />,
+        element: <PronosticoFijo />,
+        children: [
+          {
+            label: "Nueva Configuración",
+            path: "/pronostico-fijo/configuracion/nueva",
+            element: <CrearForecastConfig />,
+            hidden: true,
+          },
+          {
+            label: "Editar Configuración",
+            path: "/pronostico-fijo/configuracion/:id",
+            element: <CrearForecastConfig />,
+            hidden: true,
+          },
+          {
+            label: "Detalle Pronóstico",
+            path: "/pronostico-fijo/:id",
+            element: <PronosticoFijoDetalle />,
+            hidden: true,
+          },
+        ],
       },
     ],
   },
