@@ -9,7 +9,33 @@ import Skeleton from "@mui/material/Skeleton";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
+import Box from "@mui/material/Box";
+
+const numberFormatter = new Intl.NumberFormat("es-AR", {
+  maximumFractionDigits: 0,
+});
+
+const percentFormatter = new Intl.NumberFormat("es-AR", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
+
+const clampPercent = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return Math.min(Math.max(numeric, 0), 100);
+};
+
+const formatPercent = (value) => `${percentFormatter.format(clampPercent(value))}%`;
+
+const formatDate = (value) => {
+  if (!value) {
+    return "--";
+  }
+  return String(value);
+};
 
 const ReconciliationWidget = ({
   data,
@@ -21,7 +47,7 @@ const ReconciliationWidget = ({
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Conciliación bancaria" subheader="Sincronizando movimientos..." />
+        <CardHeader title="Conciliacion bancaria" subheader="Sincronizando movimientos..." />
         <CardContent>
           {Array.from({ length: 3 }).map((_, index) => (
             <Skeleton key={index} variant="rectangular" height={48} sx={{ mb: 1.5 }} />
@@ -33,9 +59,9 @@ const ReconciliationWidget = ({
 
   if (error) {
     return (
-      <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Conciliación bancaria" />
-        <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <CardHeader title="Conciliacion bancaria" />
+        <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error">{error}</Alert>
           {onRetry ? (
             <Button variant="outlined" onClick={onRetry}>
@@ -47,20 +73,171 @@ const ReconciliationWidget = ({
     );
   }
 
-  const accounts = data ?? [];
+  const summary = data ?? null;
+  const progress = clampPercent(summary?.porcentajeConciliados);
+  const porTipo = Array.isArray(summary?.porTipo) ? [...summary.porTipo] : [];
+  porTipo.sort((a, b) => (Number(b?.total ?? 0) || 0) - (Number(a?.total ?? 0) || 0));
+
+  const conciliadosPercent =
+    summary && summary.totalMovimientos
+      ? (summary.conciliados * 100) / (summary.totalMovimientos || 1)
+      : 0;
+  const pendientesPercent =
+    summary && summary.totalMovimientos
+      ? (summary.pendientes * 100) / (summary.totalMovimientos || 1)
+      : 0;
+
+  const renderMetric = (label, value, helper) => (
+    <Stack
+      key={label}
+      spacing={0.5}
+      sx={{
+        p: 1.25,
+        borderRadius: 1.5,
+        border: "1px solid",
+        borderColor: "divider",
+        minWidth: 0,
+        flex: 1,
+      }}
+    >
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="subtitle1" fontWeight={600}>
+        {value}
+      </Typography>
+      {helper ? (
+        <Typography variant="caption" color="text.secondary">
+          {helper}
+        </Typography>
+      ) : null}
+    </Stack>
+  );
 
   return (
     <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <CardHeader
-        title="Conciliación bancaria"
-        subheader="Estado por cuenta con pendientes y atajos rápidos"
+        title="Conciliacion bancaria"
+        subheader={
+          summary?.periodLabel ? `Periodo ${summary.periodLabel}` : "Resumen del ultimo periodo"
+        }
       />
-      <CardContent sx={{ flexGrow: 1 }}>
-        {accounts.length === 0 ? (
+      <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+        {summary ? (
+          <>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              sx={{ alignItems: { xs: "stretch", sm: "flex-start" } }}
+            >
+              {renderMetric(
+                "Movimientos",
+                numberFormatter.format(summary.totalMovimientos ?? 0),
+                "Total del periodo"
+              )}
+              {renderMetric(
+              "Conciliados",
+              numberFormatter.format(summary.conciliados ?? 0),
+              formatPercent(conciliadosPercent)
+            )}
+            {renderMetric(
+              "Pendientes",
+              numberFormatter.format(summary.pendientes ?? 0),
+              formatPercent(pendientesPercent)
+            )}
+            </Stack>
+
+            <Box>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mb: 0.75 }}
+              >
+                <Typography variant="subtitle2">Avance general</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {formatPercent(progress)}
+                </Typography>
+              </Stack>
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{
+                  height: 10,
+                  borderRadius: 999,
+                  backgroundColor: "action.hover",
+                  [`& .MuiLinearProgress-bar`]: {
+                    borderRadius: 999,
+                  },
+                }}
+              />
+            </Box>
+
+            <Stack spacing={0.5}>
+              <Typography variant="subtitle2">Ultimas referencias</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Ultima conciliacion: {formatDate(summary.ultimaConciliacion)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Ultimo movimiento pendiente: {formatDate(summary.ultimoPendiente)}
+              </Typography>
+            </Stack>
+
+            <Stack spacing={1}>
+              <Typography variant="subtitle2">Detalle por tipo</Typography>
+              {porTipo.length > 0 ? (
+                porTipo.map((item) => {
+                  const itemProgress = clampPercent(item?.porcentaje ?? 0);
+                  return (
+                    <Stack
+                      key={item?.tipo ?? "tipo-desconocido"}
+                      spacing={0.5}
+                      sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1.5,
+                        p: 1.25,
+                      }}
+                    >
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" fontWeight={600}>
+                          {item?.tipo ?? "Sin tipo"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatPercent(itemProgress)}
+                        </Typography>
+                      </Stack>
+                      <LinearProgress
+                        variant="determinate"
+                        value={itemProgress}
+                        sx={{
+                          height: 8,
+                          borderRadius: 999,
+                          backgroundColor: "action.hover",
+                          [`& .MuiLinearProgress-bar`]: {
+                            borderRadius: 999,
+                          },
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {numberFormatter.format(item?.conciliados ?? 0)} /{" "}
+                        {numberFormatter.format(item?.total ?? 0)} conciliados
+                      </Typography>
+                    </Stack>
+                  );
+                })
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  No hay movimientos clasificados por tipo en este periodo.
+                </Typography>
+              )}
+            </Stack>
+          </>
+        ) : (
           <Stack spacing={2} alignItems="flex-start">
             <Typography variant="body2" color="text.secondary">
-              Aún no conectaste cuentas bancarias. Sincronizá una cuenta o importá un extracto
-              para comenzar a conciliar.
+              Todavia no hay movimientos que analizar en este periodo. Carga o importa operaciones
+              para comenzar a conciliarlas.
             </Typography>
             {onRetry ? (
               <Button variant="outlined" onClick={onRetry}>
@@ -68,69 +245,11 @@ const ReconciliationWidget = ({
               </Button>
             ) : null}
           </Stack>
-        ) : (
-          <Stack spacing={2}>
-            {accounts.map((account) => {
-              const percent = Math.min(Math.max(account.percent || 0, 0), 100);
-              return (
-                <Stack
-                  key={account.account}
-                  spacing={1}
-                  sx={{
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 2,
-                    p: 1.5,
-                  }}
-                >
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle2">{account.account}</Typography>
-                    <Chip
-                      size="small"
-                      color={percent >= 95 ? "success" : percent >= 70 ? "warning" : "default"}
-                      label={`${percent}% conciliado`}
-                    />
-                  </Stack>
-                  <LinearProgress
-                    variant="determinate"
-                    value={percent}
-                    sx={{
-                      height: 8,
-                      borderRadius: 999,
-                      backgroundColor: "action.hover",
-                      [`& .MuiLinearProgress-bar`]: {
-                        borderRadius: 999,
-                      },
-                    }}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    {account.pendingCount} movimientos pendientes
-                  </Typography>
-                  <Stack direction="row" spacing={1}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => onNavigate?.(account.account)}
-                    >
-                      Conciliar
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={() => onNavigate?.(account.account)}
-                    >
-                      Ver pendientes
-                    </Button>
-                  </Stack>
-                </Stack>
-              );
-            })}
-          </Stack>
         )}
       </CardContent>
       <CardActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" onClick={() => onNavigate?.()} disabled={!onNavigate}>
-          Ir a conciliación
+          Ir a conciliacion
         </Button>
       </CardActions>
     </Card>
