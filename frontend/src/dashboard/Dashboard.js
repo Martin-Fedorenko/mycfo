@@ -24,31 +24,106 @@ import QuickActions from "./components/QuickActions";
 import KpiCard from "./components/KpiCard";
 import BudgetWidget from "./components/BudgetWidget";
 import CashflowWidget from "./components/CashflowWidget";
-import DueDatesWidget from "./components/DueDatesWidget";
-import TasksWidget from "./components/TasksWidget";
 import RecentMovementsWidget from "./components/RecentMovementsWidget";
 import ReconciliationWidget from "./components/ReconciliationWidget";
-import BillingWidget from "./components/BillingWidget";
-import { formatCurrencyAR, formatPercentage } from "../utils/formatters";
+import SalesTrendWidget from "./components/SalesTrendWidget";
+import SalesByCategoryWidget from "./components/SalesByCategoryWidget";
+// import BillingWidget from "./components/BillingWidget";
+import { fetchRecentMovements } from "./services/movementsService";
+import { fetchMonthlySummary } from "./services/kpisService";
+import {
+  fetchMonthlyIncomes,
+  fetchMonthlyExpenses,
+  fetchIncomeByCategory,
+  fetchExpensesByCategory,
+  fetchReconciliationSummary,
+} from "./services/analyticsService";
+import { formatCurrencyAR } from "../utils/formatters";
 
 const mockKpis = {
-  cashPosition: 1250000,
-  monthIncomes: 820000,
-  monthExpenses: 540000,
-  monthResult: 280000,
-  budgetCompliancePct: 87,
-  toPay14d: 210000,
-  toCollect14d: 420000,
+  totalIncomes: 820000,
+  totalExpenses: 540000,
+  netResult: 280000,
+  cashBalance: 1250000,
+  cashRunwayDays: 46,
+  pendingReceivables: 420000,
+  receivablesDueSoon: 160000,
+  pendingPayables: 210000,
+  payablesOverdue: 65000,
 };
 
 const mockKpiTrends = {
-  cashPosition: [980000, 1020000, 1130000, 1250000],
-  monthIncomes: [650000, 720000, 780000, 820000],
-  monthExpenses: [480000, 510000, 530000, 540000],
-  monthResult: [170000, 210000, 245000, 280000],
-  budgetCompliancePct: [82, 84, 85, 87],
-  payBalance: [140000, 160000, 180000, 210000],
+  totalIncomes: [620000, 680000, 750000, 820000],
+  totalExpenses: [430000, 480000, 510000, 540000],
+  netResult: [190000, 205000, 240000, 280000],
+  cashBalance: [980000, 1080000, 1190000, 1250000],
+  pendingReceivables: [360000, 395000, 410000, 420000],
+  pendingPayables: [260000, 235000, 215000, 210000],
 };
+
+const mockSalesTrend = {
+  title: "Ingresos durante el periodo",
+  average: 185000,
+  max: { value: 215000, label: "abr 2025" },
+  min: { value: 142000, label: "ene 2025" },
+  points: [
+    { month: "ene", value: 142000 },
+    { month: "feb", value: 168000 },
+    { month: "mar", value: 178500 },
+    { month: "abr", value: 215000 },
+    { month: "may", value: 204000 },
+    { month: "jun", value: 198000 },
+    { month: "jul", value: 191000 },
+    { month: "ago", value: 199500 },
+    { month: "sep", value: 188000 },
+    { month: "oct", value: 194500 },
+    { month: "nov", value: 187000 },
+    { month: "dic", value: 181500 },
+  ],
+};
+
+const mockExpensesTrend = {
+  title: "Egresos durante el periodo",
+  average: 142000,
+  max: { value: 168000, label: "mar 2025" },
+  min: { value: 118000, label: "ene 2025" },
+  points: [
+    { month: "ene", value: 125000 },
+    { month: "feb", value: 132000 },
+    { month: "mar", value: 168000 },
+    { month: "abr", value: 154000 },
+    { month: "may", value: 149000 },
+    { month: "jun", value: 138000 },
+    { month: "jul", value: 146000 },
+    { month: "ago", value: 152000 },
+    { month: "sep", value: 139000 },
+    { month: "oct", value: 145000 },
+    { month: "nov", value: 141000 },
+    { month: "dic", value: 134000 },
+  ],
+};
+
+const mockExpensesByCategory = [
+  { category: "Servicios B?sicos", value: 54000 },
+  { category: "Vivienda", value: 76000 },
+  { category: "Transporte", value: 42000 },
+  { category: "Servicios Financieros", value: 35500 },
+  { category: "Impuestos y Tasas", value: 68000 },
+  { category: "Alimentos y Bebidas", value: 38500 },
+  { category: "Educaci?n", value: 29500 },
+  { category: "Salud", value: 31800 },
+];
+
+const mockCategoryPerformance = [
+  { category: "Ventas", value: 385188 },
+  { category: "Servicios", value: 353625 },
+  { category: "Produccion", value: 272799 },
+  { category: "Logistica", value: 199511 },
+  { category: "Marketing", value: 194480 },
+  { category: "Tecnologia", value: 193511 },
+  { category: "RRHH", value: 91909 },
+  { category: "Administracion", value: 77346 },
+];
 
 const mockBudget = {
   name: "Presupuesto anual 2025",
@@ -73,7 +148,13 @@ const mockCashflow = {
 };
 
 const mockDueDates = [
-  { id: "afip-01", date: new Date().toISOString(), type: "AFIP", name: "IVA mensual", amount: 155000 },
+  {
+    id: "afip-01",
+    date: new Date().toISOString(),
+    type: "AFIP",
+    name: "IVA mensual",
+    amount: 155000,
+  },
   {
     id: "prov-02",
     date: new Date(Date.now() + 3 * 86400000).toISOString(),
@@ -105,8 +186,8 @@ const mockTasks = [
   },
   {
     id: "task-3",
-    title: "Categorizar movimientos",
-    description: "3 ingresos sin categoría asignada.",
+    title: "categoriar movimientos",
+    description: "3 ingresos sin categoria asignada.",
     severity: "low",
   },
 ];
@@ -114,41 +195,53 @@ const mockTasks = [
 const mockMovements = [
   {
     id: "mov-1",
-    date: new Date().toISOString(),
-    description: "Pago proveedor logística",
-    amount: -125000,
-    pendingCategory: false,
-    category: "Logística",
+    tipo: "Egreso",
+    montoTotal: -125000,
+    moneda: "ARS",
+    fechaEmision: new Date().toISOString(),
+    categoria: "Logistica",
   },
   {
     id: "mov-2",
-    date: new Date(Date.now() - 86400000).toISOString(),
-    description: "Cobro Mercado Pago - Tienda online",
-    amount: 185000,
-    pendingCategory: false,
-    category: "Ventas",
+    tipo: "Ingreso",
+    montoTotal: 185000,
+    moneda: "ARS",
+    fechaEmision: new Date(Date.now() - 86400000).toISOString(),
+    categoria: "Ventas",
   },
   {
     id: "mov-3",
-    date: new Date(Date.now() - 2 * 86400000).toISOString(),
-    description: "Gasto publicidad Meta",
-    amount: -78000,
-    pendingCategory: true,
+    tipo: "Egreso",
+    montoTotal: -78000,
+    moneda: "ARS",
+    fechaEmision: new Date(Date.now() - 2 * 86400000).toISOString(),
+    categoria: "Marketing",
   },
   {
     id: "mov-4",
-    date: new Date(Date.now() - 3 * 86400000).toISOString(),
-    description: "Transferencia a caja chica",
-    amount: -45000,
-    pendingCategory: true,
+    tipo: "Transferencia",
+    montoTotal: -45000,
+    moneda: "ARS",
+    fechaEmision: new Date(Date.now() - 3 * 86400000).toISOString(),
+    categoria: null,
   },
 ];
 
-const mockReconciliation = [
-  { account: "Banco Nación ARS", percent: 92, pendingCount: 4 },
-  { account: "Mercado Pago", percent: 78, pendingCount: 9 },
-  { account: "Santander Río USD", percent: 63, pendingCount: 7 },
-];
+const mockReconciliation = {
+  periodo: "2025-10",
+  periodLabel: "octubre 2025",
+  totalMovimientos: 124,
+  conciliados: 96,
+  pendientes: 28,
+  porcentajeConciliados: 77.4,
+  ultimaConciliacion: "2025-10-28",
+  ultimoPendiente: "2025-10-30",
+  porTipo: [
+    { tipo: "Ingreso", total: 68, conciliados: 55, pendientes: 13, porcentaje: 80.9 },
+    { tipo: "Egreso", total: 56, conciliados: 41, pendientes: 15, porcentaje: 73.2 },
+  ],
+};
+
 
 const mockBilling = {
   invoices: [
@@ -176,6 +269,18 @@ const mockBilling = {
   ],
 };
 
+const normalizeMovementsError = (error) => {
+  if (!error) {
+    return "No pudimos cargar los movimientos.";
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error?.message) {
+    return error.message;
+  }
+  return "No pudimos cargar los movimientos.";
+};
 
 const initialDashboardState = {
   kpis: { loading: true, error: null, data: null },
@@ -186,6 +291,10 @@ const initialDashboardState = {
   movements: { loading: true, error: null, data: null },
   reconciliation: { loading: true, error: null, data: null },
   billing: { loading: true, error: null, data: null },
+  salesTrend: { loading: true, error: null, data: null },
+  salesByCategory: { loading: true, error: null, data: null },
+  expensesTrend: { loading: true, error: null, data: null },
+  expensesByCategory: { loading: true, error: null, data: null },
 };
 
 const companiesMock = ["MyCFO Demo", "Acme Corp", "Globex Latam"];
@@ -198,7 +307,10 @@ const getRecentPeriods = (count = 6) =>
       month: "long",
       year: "numeric",
     }).format(date);
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
     return { label, value };
   });
 
@@ -208,14 +320,50 @@ const Dashboard = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [state, setState] = React.useState(initialDashboardState);
   const fetchTimeoutRef = React.useRef();
+  const activeRequestRef = React.useRef(0);
+  const useMocks = React.useRef(
+    process.env.REACT_APP_USE_MOCKS === "true"
+  ).current;
+  const buildMockState = React.useCallback(
+    () => ({
+      kpis: { loading: false, error: null, data: mockKpis },
+      budget: { loading: false, error: null, data: mockBudget },
+      cashflow: { loading: false, error: null, data: mockCashflow },
+      dueDates: { loading: false, error: null, data: mockDueDates },
+      tasks: { loading: false, error: null, data: mockTasks },
+      movements: { loading: false, error: null, data: mockMovements },
+      reconciliation: { loading: false, error: null, data: mockReconciliation },
+      billing: { loading: false, error: null, data: mockBilling },
+      salesTrend: { loading: false, error: null, data: mockSalesTrend },
+      salesByCategory: { loading: false, error: null, data: mockCategoryPerformance },
+      expensesTrend: { loading: false, error: null, data: mockExpensesTrend },
+      expensesByCategory: { loading: false, error: null, data: mockExpensesByCategory },
+    }),
+    []
+  );
   const [snackbar, setSnackbar] = React.useState(null);
   const [company, setCompany] = React.useState(companiesMock[0]);
   const periodOptions = React.useMemo(() => getRecentPeriods(6), []);
   const [period, setPeriod] = React.useState(periodOptions[0]?.value ?? "");
 
-  const userDisplayName =
-    (typeof window !== "undefined" && (sessionStorage.getItem("name") || sessionStorage.getItem("email"))) ||
-    "Usuario";
+  const userDisplayName = React.useMemo(() => {
+    if (typeof window === "undefined") {
+      return "Usuario";
+    }
+    try {
+      const storedName = sessionStorage.getItem("name");
+      if (storedName && storedName.trim()) {
+        return storedName.trim();
+      }
+      const storedEmail = sessionStorage.getItem("email");
+      if (storedEmail && storedEmail.includes("@")) {
+        return storedEmail.split("@")[0];
+      }
+    } catch (error) {
+      // Ignoramos errores de acceso al storage
+    }
+    return "Usuario";
+  }, []);
 
   const loadDashboardData = React.useCallback(() => {
     setState((prev) => {
@@ -227,23 +375,365 @@ const Dashboard = () => {
     });
 
     clearTimeout(fetchTimeoutRef.current);
-    fetchTimeoutRef.current = setTimeout(() => {
-      setState({
-        kpis: { loading: false, error: null, data: mockKpis },
-        budget: { loading: false, error: null, data: mockBudget },
-        cashflow: { loading: false, error: null, data: mockCashflow },
-        dueDates: { loading: false, error: null, data: mockDueDates },
-        tasks: { loading: false, error: null, data: mockTasks },
-        movements: { loading: false, error: null, data: mockMovements },
-        reconciliation: { loading: false, error: null, data: mockReconciliation },
-        billing: { loading: false, error: null, data: mockBilling },
+
+    if (useMocks) {
+      fetchTimeoutRef.current = setTimeout(() => {
+        setState(buildMockState());
+      }, 700);
+      return;
+    }
+
+    fetchTimeoutRef.current = undefined;
+
+    const requestId = activeRequestRef.current + 1;
+    activeRequestRef.current = requestId;
+
+    const applyResult = ({
+      movements: movementsState,
+      kpis: kpisState,
+      salesTrend: salesTrendState,
+      salesByCategory: salesByCategoryState,
+      expensesTrend: expensesTrendState,
+      expensesByCategory: expensesByCategoryState,
+      reconciliation: reconciliationState,
+    }) => {
+      if (activeRequestRef.current !== requestId) {
+        return;
+      }
+      const mockState = buildMockState();
+      mockState.movements = movementsState ?? mockState.movements;
+      if (kpisState) {
+        mockState.kpis = kpisState;
+      }
+      if (salesTrendState) {
+        mockState.salesTrend = salesTrendState;
+      }
+      if (salesByCategoryState) {
+        mockState.salesByCategory = salesByCategoryState;
+      }
+      if (expensesTrendState) {
+        mockState.expensesTrend = expensesTrendState;
+      }
+      if (expensesByCategoryState) {
+        mockState.expensesByCategory = expensesByCategoryState;
+      }
+      if (reconciliationState) {
+        mockState.reconciliation = reconciliationState;
+      }
+      setState(mockState);
+    };
+
+    const resolveErrorMessage = (reason, fallback) => {
+      if (!reason) return fallback;
+      if (typeof reason === "string") return reason;
+      if (reason.message) return reason.message;
+      if (reason.mensaje) return reason.mensaje;
+      return fallback;
+    };
+
+    const mapTrendResponse = (response, { title, emptyMessage, subheader }) => {
+      const datos = Array.isArray(response?.datos) ? response.datos : [];
+      const monthShort = new Intl.DateTimeFormat("es-AR", { month: "short" });
+      const monthLong = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" });
+
+      const periodoBase = String(response?.periodoBase ?? response?.periodo ?? "");
+      const [baseYearStr] = periodoBase.split("-");
+      const targetYear = Number(baseYearStr) || new Date().getFullYear();
+
+      const totalsByPeriod = new Map();
+      datos.forEach((item) => {
+        const periodo = String(item?.periodo ?? "");
+        const [yearStr, monthStr] = periodo.split("-");
+        const yearNum = Number(yearStr);
+        const monthNum = Number(monthStr);
+        if (Number.isFinite(yearNum) && Number.isFinite(monthNum)) {
+          const key = `${yearNum}-${String(monthNum).padStart(2, "0")}`;
+          totalsByPeriod.set(key, Number(item?.total ?? 0));
+        }
       });
-    }, 700);
-  }, []);
+
+      const fallbackByMonth = datos.reduce((acc, item) => {
+        const periodo = String(item?.periodo ?? "");
+        const [, monthStr] = periodo.split("-");
+        const monthNum = Number(monthStr);
+        if (Number.isFinite(monthNum) && !acc.has(monthNum)) {
+          acc.set(monthNum, Number(item?.total ?? 0));
+        }
+        return acc;
+      }, new Map());
+
+      const pointsDetailed = Array.from({ length: 12 }, (_, index) => {
+        const date = new Date(targetYear, index, 1);
+        const key = `${date.getFullYear()}-${String(index + 1).padStart(2, "0")}`;
+        let value = totalsByPeriod.get(key);
+        if (typeof value === "undefined") {
+          value = fallbackByMonth.get(index + 1) ?? 0;
+        }
+        return {
+          month: monthShort.format(date),
+          fullLabel: monthLong.format(date),
+          value,
+        };
+      });
+
+      const values = pointsDetailed.map((point) => point.value);
+      const average =
+        values.length > 0 ? values.reduce((acc, val) => acc + val, 0) / values.length : 0;
+      const maxValue = values.length > 0 ? Math.max(...values) : 0;
+      const minValue = values.length > 0 ? Math.min(...values) : 0;
+      const maxPoint = pointsDetailed.find((point) => point.value === maxValue);
+      const minPoint = pointsDetailed.find((point) => point.value === minValue);
+
+      return {
+        title,
+        emptyMessage,
+        subheader,
+        points: pointsDetailed.map(({ month, value }) => ({ month, value })),
+        average,
+        max: {
+          value: maxValue,
+          label: maxPoint ? maxPoint.fullLabel : "--",
+        },
+        min: {
+          value: minValue,
+          label: minPoint ? minPoint.fullLabel : "--",
+        },
+      };
+    };
+
+    const mapCategoryResponse = (response) => {
+      const categorias = Array.isArray(response?.categorias) ? response.categorias : [];
+      return categorias.map((item) => ({
+        category: item?.categoria ?? "Sin categoria",
+        value: Number(item?.total ?? 0),
+      }));
+    };
+
+    const mapConciliationResponse = (response) => {
+      if (!response) {
+        return null;
+      }
+
+      const total = Number(response.totalMovimientos ?? 0);
+      const conciliados = Number(response.conciliados ?? 0);
+      const pendientes =
+        response.pendientes !== undefined
+          ? Number(response.pendientes ?? 0)
+          : Math.max(total - conciliados, 0);
+      const porcentaje =
+        response.porcentajeConciliados !== undefined && response.porcentajeConciliados !== null
+          ? Number(response.porcentajeConciliados)
+          : total > 0
+          ? (conciliados * 100) / total
+          : 0;
+
+      const periodo = String(response.periodo ?? "");
+      let periodLabel = periodo || "Periodo actual";
+      const [yearStr, monthStr] = periodo.split("-");
+      const monthIndex = Number(monthStr) - 1;
+      const yearNum = Number(yearStr);
+      const monthNames = [
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
+      ];
+      if (monthIndex >= 0 && monthIndex < monthNames.length && Number.isFinite(yearNum)) {
+        periodLabel = `${monthNames[monthIndex]} ${yearNum}`;
+      }
+
+      const porTipoRaw = Array.isArray(response.porTipo) ? response.porTipo : [];
+      const porTipo = porTipoRaw.map((item) => {
+        const totalTipo = Number(item?.total ?? 0);
+        const conciliadosTipo = Number(item?.conciliados ?? 0);
+        const pendientesTipo =
+          item?.pendientes !== undefined
+            ? Number(item.pendientes ?? 0)
+            : Math.max(totalTipo - conciliadosTipo, 0);
+        const porcentajeTipo = totalTipo > 0 ? (conciliadosTipo * 100) / totalTipo : 0;
+        return {
+          tipo: item?.tipo ?? "Sin tipo",
+          total: totalTipo,
+          conciliados: conciliadosTipo,
+          pendientes: pendientesTipo,
+          porcentaje: porcentajeTipo,
+        };
+      });
+
+      return {
+        periodo,
+        periodLabel,
+        totalMovimientos: total,
+        conciliados,
+        pendientes,
+        porcentajeConciliados: porcentaje,
+        ultimaConciliacion: response.ultimaConciliacion ?? null,
+        ultimoPendiente: response.ultimoPendiente ?? null,
+        porTipo,
+      };
+    };
+
+    (async () => {
+      const [
+        movementsResult,
+        summaryResult,
+        incomesTrendResult,
+        incomesCategoryResult,
+        expensesTrendResult,
+        expensesCategoryResult,
+        reconciliationResult,
+      ] = await Promise.allSettled([
+        fetchRecentMovements({ limit: 6 }),
+        fetchMonthlySummary({ period }),
+        fetchMonthlyIncomes({ period, months: 12 }),
+        fetchIncomeByCategory({ period }),
+        fetchMonthlyExpenses({ period, months: 12 }),
+        fetchExpensesByCategory({ period }),
+        fetchReconciliationSummary({ period }),
+      ]);
+
+      const movementsState =
+        movementsResult.status === "fulfilled"
+          ? { loading: false, error: null, data: movementsResult.value }
+          : {
+              loading: false,
+              error: normalizeMovementsError(movementsResult.reason),
+              data: null,
+            };
+
+      let kpisState = null;
+      if (summaryResult.status === "fulfilled") {
+        const summary = summaryResult.value;
+        kpisState = {
+          loading: false,
+          error: null,
+          data: {
+            totalIncomes: summary.totalIncomes,
+            totalExpenses: summary.totalExpenses,
+            netResult: summary.netResult,
+            period: summary.period,
+            periodLabel: summary.periodLabel,
+            movementsCount: summary.movementsCount,
+          },
+        };
+      } else {
+        const reason = summaryResult.reason;
+        const message =
+          (reason && (reason.message || reason.mensaje)) ||
+          "No pudimos obtener el resumen mensual.";
+        kpisState = {
+          loading: false,
+          error: message,
+          data: null,
+        };
+      }
+
+      const salesTrendState =
+        incomesTrendResult.status === "fulfilled"
+          ? {
+              loading: false,
+              error: null,
+              data: mapTrendResponse(incomesTrendResult.value, { title: "Ingresos durante el periodo", emptyMessage: "No hay ingresos registrados en este periodo.", subheader: "Serie mensual de ingresos registrados en los ultimos 12 meses." }),
+            }
+          : {
+              loading: false,
+              error: resolveErrorMessage(
+                incomesTrendResult.reason,
+                "No pudimos obtener la serie de ingresos."
+              ),
+              data: null,
+            };
+
+      const salesByCategoryState =
+        incomesCategoryResult.status === "fulfilled"
+          ? {
+              loading: false,
+              error: null,
+              data: mapCategoryResponse(incomesCategoryResult.value),
+            }
+          : {
+              loading: false,
+              error: resolveErrorMessage(
+                incomesCategoryResult.reason,
+                "No pudimos obtener las ventas por categoria."
+              ),
+              data: null,
+            };
+
+      const expensesTrendState =
+        expensesTrendResult.status === "fulfilled"
+          ? {
+              loading: false,
+              error: null,
+              data: mapTrendResponse(expensesTrendResult.value, { title: "Egresos durante el periodo", emptyMessage: "No hay egresos registrados en este periodo.", subheader: "Serie mensual de egresos registrados en los ultimos 12 meses." }),
+            }
+          : {
+              loading: false,
+              error: resolveErrorMessage(
+                expensesTrendResult.reason,
+                "No pudimos obtener la serie de egresos."
+              ),
+              data: null,
+            };
+
+      const expensesByCategoryState =
+        expensesCategoryResult.status === "fulfilled"
+          ? {
+              loading: false,
+              error: null,
+              data: mapCategoryResponse(expensesCategoryResult.value),
+            }
+          : {
+              loading: false,
+              error: resolveErrorMessage(
+                expensesCategoryResult.reason,
+                "No pudimos obtener los egresos por categoria."
+              ),
+              data: null,
+            };
+
+      const reconciliationState =
+        reconciliationResult.status === "fulfilled"
+          ? {
+              loading: false,
+              error: null,
+              data: mapConciliationResponse(reconciliationResult.value),
+            }
+          : {
+              loading: false,
+              error: resolveErrorMessage(
+                reconciliationResult.reason,
+                "No pudimos obtener el resumen de conciliacion."
+              ),
+              data: null,
+            };
+
+      applyResult({
+        movements: movementsState,
+        kpis: kpisState,
+        salesTrend: salesTrendState,
+        salesByCategory: salesByCategoryState,
+        expensesTrend: expensesTrendState,
+        expensesByCategory: expensesByCategoryState,
+        reconciliation: reconciliationState,
+      });
+    })();
+  }, [buildMockState, useMocks, period]);
 
   React.useEffect(() => {
     loadDashboardData();
-    return () => clearTimeout(fetchTimeoutRef.current);
+    return () => {
+      clearTimeout(fetchTimeoutRef.current);
+      activeRequestRef.current += 1;
+    };
   }, [loadDashboardData]);
 
   const handleNavigate = React.useCallback(
@@ -320,7 +810,10 @@ const Dashboard = () => {
     if (action?.action) {
       action.action();
     } else {
-      setSnackbar({ severity: "info", message: `${action?.label ?? "Acción"} en desarrollo.` });
+      setSnackbar({
+        severity: "info",
+        message: `${action?.label ?? "Acción"} en desarrollo.`,
+      });
     }
   };
 
@@ -329,67 +822,70 @@ const Dashboard = () => {
     setSnackbar(null);
   };
 
-  const showMessage = React.useCallback((message, severity = "success") => {
-    setSnackbar({ message, severity });
-  }, []);
+  // const showMessage = React.useCallback((message, severity = "success") => {
+  //   setSnackbar({ message, severity });
+  // }, []);
 
   const kpiCards = React.useMemo(() => {
     const data = state.kpis.data;
-    if (!data) return [];
+
     return [
       {
-        id: "cashPosition",
-        title: "Posición de caja",
-        value: data.cashPosition,
+        id: "totalIncomes",
+        title: "Ingresos Totales Mensuales",
+        value: data?.totalIncomes ?? null,
         formatter: formatCurrencyAR,
-        trend: mockKpiTrends.cashPosition,
-        trendColor: theme.palette.success.main,
+        trend: [],
       },
       {
-        id: "incomes",
-        title: "Ingresos (mes)",
-        value: data.monthIncomes,
+        id: "totalExpenses",
+        title: "Egresos Totales Mensuales",
+        value: data?.totalExpenses ?? null,
         formatter: formatCurrencyAR,
-        trend: mockKpiTrends.monthIncomes,
-        trendColor: theme.palette.success.dark,
+        trend: [],
       },
       {
-        id: "expenses",
-        title: "Egresos (mes)",
-        value: data.monthExpenses,
+        id: "netResult",
+        title: "Resultado Neto Mensuales",
+        value: data?.netResult ?? null,
         formatter: formatCurrencyAR,
-        trend: mockKpiTrends.monthExpenses,
-        trendColor: theme.palette.error.main,
+        trend: [],
       },
-      {
-        id: "result",
-        title: "Resultado (mes)",
-        value: data.monthResult,
-        formatter: formatCurrencyAR,
-        trend: mockKpiTrends.monthResult,
-        trendColor: theme.palette.info.main,
-      },
-      {
-        id: "budgetCompliance",
-        title: "% Cumplimiento Presupuesto",
-        value: data.budgetCompliancePct,
-        formatter: (value) => formatPercentage(value, { fractionDigits: 0 }),
-        trend: mockKpiTrends.budgetCompliancePct,
-        trendColor: theme.palette.warning.main,
-      },
-      {
-        id: "payCollect",
-        title: "A pagar / A cobrar (14 días)",
-        value: data.toPay14d,
-        formatter: formatCurrencyAR,
-        trend: mockKpiTrends.payBalance,
-        trendColor: theme.palette.primary.main,
-        secondaryLabel: "A cobrar",
-        secondaryValue: data.toCollect14d,
-        secondaryFormatter: formatCurrencyAR,
-      },
+      // {
+      //   id: "cashBalance",
+      //   title: "Saldo de caja",
+      //    value: data.cashBalance,
+      //    formatter: formatCurrencyAR,
+      //    trend: mockKpiTrends.cashBalance,
+      //    trendColor: theme.palette.info.main,
+      //    secondaryLabel: "Dias de cobertura",
+      //    secondaryValue: data.cashRunwayDays,
+      //    secondaryFormatter: formatDays,
+      // },
+      // {
+      //   id: "pendingReceivables",
+      //   title: "Cobros pendientes (30 dias)",
+      //   value: data.pendingReceivables,
+      //   formatter: formatCurrencyAR,
+      //   trend: mockKpiTrends.pendingReceivables,
+      //   trendColor: theme.palette.primary.main,
+      //   secondaryLabel: "Por vencer 7d",
+      //   secondaryValue: data.receivablesDueSoon,
+      //   secondaryFormatter: formatCurrencyAR,
+      // },
+      // {
+      //   id: "pendingPayables",
+      //   title: "Pagos pendientes (30 dias)",
+      //   value: data.pendingPayables,
+      //   formatter: formatCurrencyAR,
+      //   trend: mockKpiTrends.pendingPayables,
+      //   trendColor: theme.palette.warning.main,
+      //   secondaryLabel: "Vencidos",
+      //   secondaryValue: data.payablesOverdue,
+      //   secondaryFormatter: formatCurrencyAR,
+      // },
     ];
-  }, [state.kpis.data, theme.palette.error.main, theme.palette.info.main, theme.palette.primary.main, theme.palette.success.dark, theme.palette.success.main, theme.palette.warning.main]);
+  }, [state.kpis.data]);
 
   const quickActionsLoading = state.kpis.loading && !state.kpis.data;
 
@@ -398,12 +894,22 @@ const Dashboard = () => {
       position: { xs: "relative", md: "sticky" },
       top: { md: theme.spacing(1) },
       zIndex: theme.zIndex.appBar - 1,
+      display: "flex",
+      justifyContent: "center",
     }),
     [theme]
   );
 
   return (
-    <Box sx={{ width: "100%", maxWidth: 1650, pb: 6 }}>
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: 1650,
+        mx: "auto",
+        px: { xs: 2, sm: 3, md: 4, lg: 6 },
+        pb: 6,
+      }}
+    >
       <Stack spacing={3} sx={{ width: "100%" }}>
         <Stack
           direction={{ xs: "column", md: "row" }}
@@ -417,10 +923,11 @@ const Dashboard = () => {
               Hola, {userDisplayName}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Este es el resumen financiero de tu empresa. Revisá KPIs, vencimientos y tareas clave.
+              Este es el resumen financiero de tu empresa. Revisá KPIs,
+              vencimientos y tareas clave.
             </Typography>
           </Box>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ width: { xs: "100%", sm: "auto" } }}>
+          {/* <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ width: { xs: "100%", sm: "auto" } }}>
             <TextField
               select
               label="Empresa"
@@ -449,16 +956,25 @@ const Dashboard = () => {
                 </MenuItem>
               ))}
             </TextField>
-          </Stack>
+          </Stack> */}
         </Stack>
 
         <Box sx={quickActionsSx}>
-          <QuickActions actions={quickActions} loading={quickActionsLoading} onAction={handleQuickAction} />
+          <QuickActions
+            actions={quickActions}
+            loading={quickActionsLoading}
+            onAction={handleQuickAction}
+          />
         </Box>
 
-        <Grid container spacing={2}>
+        <Grid
+          container
+          spacing={2}
+          justifyContent="center"
+          sx={{ maxWidth: { xs: "100%", md: 1600 }, mx: "auto" }}
+        >
           {kpiCards.map((card) => (
-            <Grid item xs={12} sm={6} lg={4} key={card.id}>
+            <Grid item xs={12} sm={4} key={card.id}>
               <KpiCard
                 title={card.title}
                 value={card.value}
@@ -476,8 +992,80 @@ const Dashboard = () => {
           ))}
         </Grid>
 
+        <Grid
+          container
+          spacing={3}
+          justifyContent="center"
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
+        >
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
+              <SalesTrendWidget
+                data={
+                  state.salesTrend.data ?? {
+                    title: "Ingresos durante el periodo",
+                    points: [],
+                    average: 0,
+                    max: { value: 0, label: "--" },
+                    min: { value: 0, label: "--" },
+                  }
+                }
+                loading={state.salesTrend.loading && !state.salesTrend.data}
+                error={state.salesTrend.error}
+                onNavigate={() => handleNavigate("/reportes/ventas")}
+              />
+            </Box>
+          </Grid>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
+              <SalesByCategoryWidget
+                data={state.salesByCategory.data ?? []}
+                loading={state.salesByCategory.loading && !state.salesByCategory.data}
+                error={state.salesByCategory.error}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+
+        <Grid
+          container
+          spacing={3}
+          justifyContent="center"
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
+        >
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
+              <SalesTrendWidget
+                data={
+                  state.expensesTrend.data ?? {
+                    title: "Egresos durante el periodo",
+                    points: [],
+                    average: 0,
+                    max: { value: 0, label: "--" },
+                    min: { value: 0, label: "--" },
+                  }
+                }
+                loading={state.expensesTrend.loading && !state.expensesTrend.data}
+                error={state.expensesTrend.error}
+                emptyMessage="No hay egresos registrados en este periodo."
+              />
+            </Box>
+          </Grid>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
+              <SalesByCategoryWidget
+                data={state.expensesByCategory.data ?? []}
+                loading={state.expensesByCategory.loading && !state.expensesByCategory.data}
+                error={state.expensesByCategory.error}
+                emptyMessage="No hay egresos por categoria en este periodo."
+                title="Egresos por categorias"
+                subtitle="Distribucion anual por segmento"
+              />
+            </Box>
+          </Grid>
+        </Grid>
         <Grid container spacing={2}>
-          <Grid item xs={12} xl={6}>
+          <Grid item xs={12} lg={4}>
             <BudgetWidget
               companyId={company}
               period={period}
@@ -487,7 +1075,7 @@ const Dashboard = () => {
               onRetry={loadDashboardData}
             />
           </Grid>
-          <Grid item xs={12} xl={6}>
+          <Grid item xs={12} lg={4}>
             <CashflowWidget
               data={state.cashflow.data}
               loading={state.cashflow.loading && !state.cashflow.data}
@@ -496,31 +1084,7 @@ const Dashboard = () => {
               onNavigate={() => handleNavigate("/cash-flow")}
             />
           </Grid>
-        </Grid>
-
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6} xl={4}>
-            <DueDatesWidget
-              data={state.dueDates.data}
-              loading={state.dueDates.loading && !state.dueDates.data}
-              error={state.dueDates.error}
-              onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/listado-notificaciones")}
-              onMarkPaid={(item) => showMessage(`Vencimiento "${item.name}" marcado como pagado.`)}
-              onSendReminder={(item) => showMessage(`Recordatorio enviado a ${item.name}.`, "info")}
-            />
-          </Grid>
-          <Grid item xs={12} md={6} xl={4}>
-            <TasksWidget
-              data={state.tasks.data}
-              loading={state.tasks.loading && !state.tasks.data}
-              error={state.tasks.error}
-              onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/recordatorios")}
-              onResolve={(task) => showMessage(`Actualizaste "${task.title}".`, "success")}
-            />
-          </Grid>
-          <Grid item xs={12} xl={4}>
+          <Grid item xs={12} lg={4}>
             <RecentMovementsWidget
               data={state.movements.data}
               loading={state.movements.loading && !state.movements.data}
@@ -538,9 +1102,12 @@ const Dashboard = () => {
               loading={state.reconciliation.loading && !state.reconciliation.data}
               error={state.reconciliation.error}
               onRetry={loadDashboardData}
-              onNavigate={(account) => handleNavigate("/conciliacion", account ? { cuenta: account } : undefined)}
+              onNavigate={(account) =>
+                handleNavigate("/conciliacion", account ? { cuenta: account } : undefined)
+              }
             />
           </Grid>
+          {/*
           <Grid item xs={12} md={6} xl={4}>
             <BillingWidget
               data={state.billing.data}
@@ -550,6 +1117,7 @@ const Dashboard = () => {
               onNavigate={() => handleNavigate("/carga", { tipo: "factura" })}
             />
           </Grid>
+          */}
         </Grid>
 
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
@@ -563,7 +1131,10 @@ const Dashboard = () => {
         open={Boolean(snackbar)}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: isMobile ? "top" : "bottom", horizontal: "center" }}
+        anchorOrigin={{
+          vertical: isMobile ? "top" : "bottom",
+          horizontal: "center",
+        }}
       >
         {snackbar ? (
           <Alert
@@ -581,3 +1152,20 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

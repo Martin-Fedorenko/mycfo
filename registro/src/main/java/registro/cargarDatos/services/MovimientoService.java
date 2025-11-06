@@ -12,9 +12,22 @@ import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.repositories.MovimientoRepository;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import registro.cargarDatos.dtos.ConciliacionResumenResponse;
+import registro.cargarDatos.dtos.ConciliacionTipoResumen;
+import registro.cargarDatos.dtos.MontoPorCategoria;
+import registro.cargarDatos.dtos.MontosMensualesResponse;
+import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
+import registro.cargarDatos.dtos.PuntoMontoMensual;
+import registro.cargarDatos.dtos.ResumenMensualResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -74,7 +87,7 @@ public class MovimientoService {
     }
 
     /**
-     * Lista movimientos por organización
+     * Lista movimientos por Organizacion
      */
     public List<Movimiento> listarPorOrganizacion(Long organizacionId) {
         return movimientoRepository.findByOrganizacionId(organizacionId);
@@ -88,7 +101,7 @@ public class MovimientoService {
     }
 
     /**
-     * Lista movimientos por tipo y organización
+     * Lista movimientos por tipo y Organizacion
      */
     public List<Movimiento> listarPorTipoYOrganizacion(TipoMovimiento tipo, Long organizacionId) {
         return movimientoRepository.findByTipoAndOrganizacionId(tipo, organizacionId);
@@ -233,5 +246,291 @@ public class MovimientoService {
 
         return false;
     }
+
+    public ResumenMensualResponse obtenerResumenMensual(Long organizacionId, String usuarioId, LocalDate fechaReferencia) {
+        if (organizacionId == null && (usuarioId == null || usuarioId.isBlank())) {
+            throw new IllegalArgumentException("Se requiere Organizacion o usuario para calcular el resumen mensual");
+        }
+
+        LocalDate fechaBase = fechaReferencia != null ? fechaReferencia : LocalDate.now();
+        YearMonth periodo = YearMonth.from(fechaBase);
+        LocalDate inicio = periodo.atDay(1);
+        LocalDate fin = periodo.atEndOfMonth();
+
+        QueryResult result = calcularSumas(organizacionId, usuarioId, inicio, fin);
+        boolean coincideUsuario = result.totalMovimientos > 0;
+
+        if (!coincideUsuario && organizacionId != null) {
+            QueryResult soloOrganizacion = calcularSumas(organizacionId, null, inicio, fin);
+            if (soloOrganizacion.totalMovimientos > 0) {
+                result = soloOrganizacion;
+            }
+        }
+
+        return ResumenMensualResponse.builder()
+                .organizacionId(organizacionId)
+                .usuarioId(usuarioId)
+                .coincideUsuario(coincideUsuario)
+                .periodo(periodo.toString())
+                .periodoInicio(inicio)
+                .periodoFin(fin)
+                .ingresosTotales(result.ingresos)
+                .egresosTotales(result.egresos)
+                .resultadoNeto(result.ingresos - result.egresos)
+                .totalMovimientos(result.totalMovimientos)
+                .build();
+    }
+
+        public MontosMensualesResponse obtenerIngresosMensuales(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia,
+            int meses
+    ) {
+        return obtenerMontosMensuales(organizacionId, usuarioId, fechaReferencia, meses, TipoMovimiento.Ingreso);
+    }
+
+    public MontosMensualesResponse obtenerEgresosMensuales(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia,
+            int meses
+    ) {
+        return obtenerMontosMensuales(organizacionId, usuarioId, fechaReferencia, meses, TipoMovimiento.Egreso);
+    }
+
+    private MontosMensualesResponse obtenerMontosMensuales(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia,
+            int meses,
+            TipoMovimiento tipo
+    ) {
+        if (organizacionId == null || usuarioId == null || usuarioId.isBlank()) {
+            throw new IllegalArgumentException("Organizacion y usuario son obligatorios para el resumen mensual por periodo");
+        }
+
+        int mesesSeguros = Math.max(1, Math.min(meses, 24));
+        LocalDate fechaBase = fechaReferencia != null ? fechaReferencia : LocalDate.now();
+        YearMonth periodoBase = YearMonth.from(fechaBase);
+
+        List<PuntoMontoMensual> puntos = new ArrayList<>();
+        for (int offset = mesesSeguros - 1; offset >= 0; offset--) {
+            YearMonth periodo = periodoBase.minusMonths(offset);
+            LocalDate inicio = periodo.atDay(1);
+            LocalDate fin = periodo.atEndOfMonth();
+
+            Double total = movimientoRepository.sumMontoByOrganizacionOrUsuarioAndTipoAndFechaBetween(
+                    organizacionId,
+                    usuarioId,
+                    tipo,
+                    inicio,
+                    fin
+            );
+
+            puntos.add(PuntoMontoMensual.builder()
+                    .periodo(periodo.toString())
+                    .total(total != null ? total : 0d)
+                    .build());
+        }
+
+        return MontosMensualesResponse.builder()
+                .organizacionId(organizacionId)
+                .usuarioId(usuarioId)
+                .periodoBase(periodoBase.toString())
+                .mesesIncluidos(mesesSeguros)
+                .datos(puntos)
+                .build();
+    }
+
+    public MontosPorCategoriaResponse obtenerIngresosPorCategoria(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia
+    ) {
+        return obtenerMontosPorCategoria(organizacionId, usuarioId, fechaReferencia, TipoMovimiento.Ingreso);
+    }
+
+    public MontosPorCategoriaResponse obtenerEgresosPorCategoria(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia
+    ) {
+        return obtenerMontosPorCategoria(organizacionId, usuarioId, fechaReferencia, TipoMovimiento.Egreso);
+    }
+
+    private MontosPorCategoriaResponse obtenerMontosPorCategoria(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia,
+            TipoMovimiento tipo
+    ) {
+        if (organizacionId == null || usuarioId == null || usuarioId.isBlank()) {
+            throw new IllegalArgumentException("Organizacion y usuario son obligatorios para el resumen por categoria");
+        }
+
+        LocalDate fechaBase = fechaReferencia != null ? fechaReferencia : LocalDate.now();
+        int targetYear = fechaBase.getYear();
+        LocalDate inicio = LocalDate.of(targetYear, 1, 1);
+        LocalDate fin = LocalDate.of(targetYear, 12, 31);
+
+        List<Movimiento> registros = movimientoRepository
+                .findByOrganizacionIdAndUsuarioIdAndTipoAndFechaEmisionBetween(
+                        organizacionId,
+                        usuarioId,
+                        tipo,
+                        inicio,
+                        fin
+                );
+
+        Map<String, Double> acumulado = registros.stream()
+                .collect(Collectors.groupingBy(
+                        movimiento -> {
+                            String categoria = movimiento.getCategoria();
+                            return (categoria == null || categoria.isBlank()) ? "Sin categoria" : categoria;
+                        },
+                        LinkedHashMap::new,
+                        Collectors.summingDouble(mov -> mov.getMontoTotal() != null ? mov.getMontoTotal() : 0d)
+                ));
+
+        List<MontoPorCategoria> categorias = acumulado.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .map(entry -> MontoPorCategoria.builder()
+                        .categoria(entry.getKey())
+                        .total(entry.getValue())
+                        .build())
+                .toList();
+
+        return MontosPorCategoriaResponse.builder()
+                .organizacionId(organizacionId)
+                .usuarioId(usuarioId)
+                .periodo(String.valueOf(targetYear))
+                .categorias(categorias)
+                .build();
+    }
+
+    public ConciliacionResumenResponse obtenerResumenConciliacion(
+            Long organizacionId,
+            String usuarioId,
+            LocalDate fechaReferencia
+    ) {
+        if (organizacionId == null && (usuarioId == null || usuarioId.isBlank())) {
+            throw new IllegalArgumentException("Organizacion o usuario son requeridos para el resumen de conciliacion");
+        }
+
+        LocalDate fechaBase = fechaReferencia != null ? fechaReferencia : LocalDate.now();
+        YearMonth periodo = YearMonth.from(fechaBase);
+        LocalDate inicio = periodo.atDay(1);
+        LocalDate fin = periodo.atEndOfMonth();
+
+        long total = movimientoRepository.countByOrganizacionOrUsuarioAndFechaEmisionBetween(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        long conciliados = movimientoRepository.countConciliadosByOrganizacionOrUsuarioAndFechaEmisionBetween(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        long pendientes = movimientoRepository.countPendientesByOrganizacionOrUsuarioAndFechaEmisionBetween(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        double porcentaje = total > 0 ? (conciliados * 100d) / total : 0d;
+
+        LocalDate ultimaConciliacion = movimientoRepository.findUltimaConciliacion(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        LocalDate ultimoPendiente = movimientoRepository.findUltimoMovimientoPendiente(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        List<Object[]> porTipoRaw = movimientoRepository.obtenerResumenConciliacionPorTipo(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        List<ConciliacionTipoResumen> porTipo = porTipoRaw.stream()
+                .map(item -> {
+                    TipoMovimiento tipo = (TipoMovimiento) item[0];
+                    long totalTipo = item[1] != null ? ((Number) item[1]).longValue() : 0L;
+                    long conciliadosTipo = item[2] != null ? ((Number) item[2]).longValue() : 0L;
+                    long pendientesTipo = Math.max(totalTipo - conciliadosTipo, 0L);
+                    return ConciliacionTipoResumen.builder()
+                            .tipo(tipo != null ? tipo.name() : "SIN_TIPO")
+                            .total(totalTipo)
+                            .conciliados(conciliadosTipo)
+                            .pendientes(pendientesTipo)
+                            .build();
+                })
+                .toList();
+
+        return ConciliacionResumenResponse.builder()
+                .organizacionId(organizacionId)
+                .usuarioId(usuarioId)
+                .periodo(periodo.toString())
+                .totalMovimientos(total)
+                .conciliados(conciliados)
+                .pendientes(pendientes)
+                .porcentajeConciliados(porcentaje)
+                .ultimaConciliacion(ultimaConciliacion)
+                .ultimoPendiente(ultimoPendiente)
+                .porTipo(porTipo)
+                .build();
+    }
+
+    private QueryResult calcularSumas(Long organizacionId, String usuarioId, LocalDate inicio, LocalDate fin) {
+        Double ingresos = movimientoRepository.sumMontoByOrganizacionOrUsuarioAndTipoAndFechaBetween(
+                organizacionId,
+                usuarioId,
+                TipoMovimiento.Ingreso,
+                inicio,
+                fin
+        );
+
+        Double egresos = movimientoRepository.sumMontoByOrganizacionOrUsuarioAndTipoAndFechaBetween(
+                organizacionId,
+                usuarioId,
+                TipoMovimiento.Egreso,
+                inicio,
+                fin
+        );
+
+        long totalMovimientos = movimientoRepository.countByOrganizacionOrUsuarioAndFechaEmisionBetween(
+                organizacionId,
+                usuarioId,
+                inicio,
+                fin
+        );
+
+        return new QueryResult(
+                ingresos != null ? ingresos : 0d,
+                egresos != null ? egresos : 0d,
+                totalMovimientos
+        );
+    }
+
+    private record QueryResult(double ingresos, double egresos, long totalMovimientos) {}
 }
+
+
+
+
 
