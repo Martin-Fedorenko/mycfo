@@ -7,7 +7,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { jsPDF } from "jspdf";
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
 import API_CONFIG from '../../../config/api-config';
@@ -139,8 +139,44 @@ export default function MainGrid() {
     };
 
     const handleExportPdf = () => {
-        // ... (lÃ³gica de PDF sin cambios)
-    };
+    const chartElement = chartRef.current;
+    if (!chartElement) {
+        alert("No se encontró el gráfico para exportar.");
+        return;
+    }
+    html2canvas(chartElement).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const doc = new jsPDF();
+
+        // Título
+        doc.text(`Cashflow Anual (${selectedYear})`, 14, 22);
+
+        // Insertar gráfico
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        doc.addImage(imgData, 'PNG', 14, 30, pdfWidth - 28, pdfHeight);
+
+        // Tabla con totales por mes
+        const head = [["Mes", "Ingresos", "Egresos", "Neto"]];
+        const body = meses.map((mes, i) => [
+            mes,
+            (totalIngresosMensual[i] || 0).toFixed(2),
+            (totalEgresosMensual[i] || 0).toFixed(2),
+            (netosMensual[i] || 0).toFixed(2),
+        ]);
+
+        const startY = 30 + pdfHeight + 10;
+        if (doc.internal.pageSize.getHeight() - startY < 60) {
+            doc.addPage();
+            autoTable(doc, { head, body, startY: 20 });
+        } else {
+            autoTable(doc, { head, body, startY });
+        }
+
+        doc.save(`cashflow-${selectedYear}.pdf`);
+    }).catch(() => alert("No se pudo generar el PDF. Intente nuevamente."));
+};
 
     const dataGrafico = meses.map((mes, i) => ({ mes, Ingresos: totalIngresosMensual[i], Egresos: totalEgresosMensual[i] }));
 
@@ -165,20 +201,22 @@ export default function MainGrid() {
                 saldoInicial={saldoInicial}
             />
 
-            <Paper sx={{ mt: 4, p: 2 }}>
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>Comparativo mensual de Flujo de Caja</Typography>
+            <div ref={chartRef}>
+            <Paper variant="outlined" sx={{ mt: 4, p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>Comparativo mensual de Flujo de Caja</Typography>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={dataGrafico}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                         <XAxis dataKey="mes" />
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="Ingresos" fill="#4caf50" />
-                        <Bar dataKey="Egresos" fill="#f44336" />
+                        <Bar dataKey="Ingresos" fill="#2e7d32" />
+                        <Bar dataKey="Egresos" fill="#c62828" />
                     </BarChart>
                 </ResponsiveContainer>
             </Paper>
+            </div>
 
         </Box>
     );
