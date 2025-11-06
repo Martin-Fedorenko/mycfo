@@ -9,6 +9,7 @@ public class RegistroDTO {
     private LocalDate fechaEmision;
     private String categoria;
     private String medioPago;
+    private DocumentoDTO documentoComercial;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -27,4 +28,27 @@ public class RegistroDTO {
 
     public String getMedioPago() { return medioPago; }
     public void setMedioPago(String medioPago) { this.medioPago = medioPago; }
+
+    public DocumentoDTO getDocumentoComercial() { return documentoComercial; }
+    public void setDocumentoComercial(DocumentoDTO documentoComercial) { this.documentoComercial = documentoComercial; }
+
+    // Sub-DTO para mapear el documento comercial embebido en /movimientos
+    public static class DocumentoDTO {
+        private Long idDocumento;
+        private String tipoDocumento;
+        private String categoria;
+        private LocalDate fechaEmision;
+
+        public Long getIdDocumento() { return idDocumento; }
+        public void setIdDocumento(Long idDocumento) { this.idDocumento = idDocumento; }
+
+        public String getTipoDocumento() { return tipoDocumento; }
+        public void setTipoDocumento(String tipoDocumento) { this.tipoDocumento = tipoDocumento; }
+
+        public String getCategoria() { return categoria; }
+        public void setCategoria(String categoria) { this.categoria = categoria; }
+
+        public LocalDate getFechaEmision() { return fechaEmision; }
+        public void setFechaEmision(LocalDate fechaEmision) { this.fechaEmision = fechaEmision; }
+    }
 }

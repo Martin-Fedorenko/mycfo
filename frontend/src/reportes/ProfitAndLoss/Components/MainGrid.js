@@ -10,6 +10,7 @@ import { jsPDF } from "jspdf";
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
+import API_CONFIG from '../../../config/api-config';
 
 export default function MainGrid() {
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
@@ -24,13 +25,19 @@ export default function MainGrid() {
     const handleYearChange = (e) => setSelectedYear(e.target.value);
 
     React.useEffect(() => {
-        const baseUrl = process.env.REACT_APP_URL_REPORTE;
+        const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !selectedYear) return;
 
         const params = new URLSearchParams();
         params.set('anio', selectedYear);
 
-        fetch(`${baseUrl}/pyl?${params.toString()}`)
+        const headers = {};
+        const sub = sessionStorage.getItem('sub');
+        const token = sessionStorage.getItem('accessToken');
+        if (sub) headers['X-Usuario-Sub'] = sub;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${baseUrl}/pyl?${params.toString()}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const json = await r.json();

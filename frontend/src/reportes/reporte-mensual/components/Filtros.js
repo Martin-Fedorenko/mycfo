@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import API_CONFIG from '../../../config/api-config';
 
 const Filtros = ({
                      selectedMonth,
@@ -12,19 +13,19 @@ const Filtros = ({
     const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const años = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
-    const categoriasBase = ['Transporte', 'Entretenimiento', 'Educación', 'Ocio'];
+    const categoriasBase = ['Alimentos y Bebidas', 'Transporte', 'Vivienda', 'Servicios Básicos', 'Ocio y Entretenimiento', 'Compras Personales', 'Salud', 'Educación', 'Impuestos y Tasas', 'Servicios Financieros', 'Compras de Negocio', 'Otros Egresos', 'Ventas de Productos', 'Prestación de Servicios', 'Cobranzas', 'Transferencias Recibidas', 'Inversiones y Rendimientos', 'Otros Ingresos'];
     const [categoriasExtra, setCategoriasExtra] = useState([]);
 
     useEffect(() => {
-        const baseUrl = process.env.REACT_APP_URL_REGISTRO;
+        const baseUrl = API_CONFIG.REGISTRO;
         if (!baseUrl) return;
 
-        fetch(`${baseUrl}/categorias`)
+        fetch(`${baseUrl}/api/categorias`)
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const data = await r.json();
                 const nombres = Array.isArray(data)
-                    ? data.map((c) => (c?.nombre ?? c)).filter(Boolean)
+                    ? data.map((c) => (typeof c === 'string' ? c : (c?.nombre ?? ''))).filter(Boolean)
                     : [];
                 setCategoriasExtra(nombres);
             })
