@@ -24,6 +24,7 @@ import QuickActions from "./components/QuickActions";
 import KpiCard from "./components/KpiCard";
 import BudgetWidget from "./components/BudgetWidget";
 import CashflowWidget from "./components/CashflowWidget";
+import LiquidityGapWidget from "./components/LiquidityGapWidget";
 import RecentMovementsWidget from "./components/RecentMovementsWidget";
 import ReconciliationWidget from "./components/ReconciliationWidget";
 import SalesTrendWidget from "./components/SalesTrendWidget";
@@ -1076,13 +1077,8 @@ const Dashboard = () => {
             />
           </Grid>
           <Grid item xs={12} lg={4}>
-            <CashflowWidget
-              data={state.cashflow.data}
-              loading={state.cashflow.loading && !state.cashflow.data}
-              error={state.cashflow.error}
-              onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/cash-flow")}
-            />
+            {/* Sección comparativa Caja vs Devengado del último mes */}
+            <LiquidityGapWidget />
           </Grid>
           <Grid item xs={12} lg={4}>
             <RecentMovementsWidget

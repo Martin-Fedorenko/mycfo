@@ -100,9 +100,21 @@ export default function MainGrid() {
         const mesNombre = getNombreMes(selectedMonth);
         doc.text(`Resumen Mensual - ${mesNombre} ${selectedYear}`, 14, 22);
 
+        // Forzar fondo blanco y texto negro en las capturas para que la guía sea visible en el PDF
+        const nodes = [chartRefIngresos.current, chartRefEgresos.current].filter(Boolean);
+        const prev = nodes.map(n => ({
+            node: n,
+            bg: n.style.backgroundColor,
+            color: n.style.color,
+        }));
+        nodes.forEach(n => {
+            n.style.backgroundColor = '#ffffff';
+            n.style.color = '#000000';
+        });
+
         try {
-            const canvasIngresos = await html2canvas(chartRefIngresos.current);
-            const canvasEgresos = await html2canvas(chartRefEgresos.current);
+            const canvasIngresos = await html2canvas(chartRefIngresos.current, { backgroundColor: '#ffffff', scale: 2 });
+            const canvasEgresos = await html2canvas(chartRefEgresos.current, { backgroundColor: '#ffffff', scale: 2 });
             const imgDataIngresos = canvasIngresos.toDataURL('image/png');
             const imgDataEgresos = canvasEgresos.toDataURL('image/png');
 
@@ -137,6 +149,13 @@ export default function MainGrid() {
         } catch (error) {
             console.error("Error al generar el PDF:", error);
             alert("No se pudo generar el PDF. Intente nuevamente.");
+        } finally {
+            // Restaurar estilos originales
+            prev.forEach(p => {
+                if (!p.node) return;
+                p.node.style.backgroundColor = p.bg;
+                p.node.style.color = p.color;
+            });
         }
     };
     
@@ -150,6 +169,12 @@ export default function MainGrid() {
 
     const dataIngresosPie = data.detalleIngresos.map(item => ({ name: item.categoria, value: item.total }));
     const dataEgresosPie = data.detalleEgresos.map(item => ({ name: item.categoria, value: item.total }));
+
+    // Cálculo para placeholder y guía
+    const totalIngresosPie = dataIngresosPie.reduce((sum, d) => sum + (d.value || 0), 0);
+    const totalEgresosPie = dataEgresosPie.reduce((sum, d) => sum + (d.value || 0), 0);
+    const ingresosDisplayData = totalIngresosPie > 0 ? dataIngresosPie : [{ name: 'Sin datos', value: 1 }];
+    const egresosDisplayData = totalEgresosPie > 0 ? dataEgresosPie : [{ name: 'Sin datos', value: 1 }];
 
     return (
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
@@ -183,33 +208,77 @@ export default function MainGrid() {
             <Grid container spacing={3} sx={{ mt: 2 }}>
                 <Grid item xs={12} md={6}>
                     <div ref={chartRefIngresos}>
-                        <Paper sx={{ p: 2, height: 350 }}>
-                            <Typography variant="subtitle1">Desglose de Ingresos</Typography>
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={dataIngresosPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8">
-                                        {dataIngresosPie.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>Desglose de Ingresos</Typography>
+                            <Box sx={{ width: 280, height: 280, mx: 'auto', display: 'flex', alignItems: 'center' }} ref={chartRefIngresos}>
+                                {/* Guía de categorías (izquierda) */}
+                                <Box sx={{ width: 100, height: 240, overflow: 'auto', pr: 1 }}>
+                                    {ingresosDisplayData.map((item, i) => (
+                                        <Box key={`ing-cat-${i}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                            <Box sx={{ width: 10, height: 10, borderRadius: '2px', mr: 1, bgcolor: totalIngresosPie > 0 ? COLORS[i % COLORS.length] : 'rgba(160,160,160,0.35)' }} />
+                                            <Typography variant="caption" sx={{ lineHeight: 1.2 }} title={item.name}>{item.name}</Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                                {/* Torta (derecha) */}
+                                <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                                    <PieChart width={180} height={180} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                                        <Pie
+                                            data={ingresosDisplayData}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%"
+                                            cy="50%"
+                                            outerRadius={80}
+                                            labelLine={false}
+                                            label={false}
+                                        >
+                                            {ingresosDisplayData.map((entry, index) => (
+                                                <Cell key={`cell-ing-${index}`} fill={totalIngresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                    </PieChart>
+                                </Box>
+                            </Box>
                         </Paper>
                     </div>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <div ref={chartRefEgresos}>
-                        <Paper sx={{ p: 2, height: 350 }}>
-                            <Typography variant="subtitle1">Desglose de Egresos</Typography>
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={dataEgresosPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#82ca9d">
-                                        {dataEgresosPie.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>Desglose de Egresos</Typography>
+                            <Box sx={{ width: 280, height: 280, mx: 'auto', display: 'flex', alignItems: 'center' }} ref={chartRefEgresos}>
+                                {/* Guía de categorías (izquierda) */}
+                                <Box sx={{ width: 100, height: 240, overflow: 'auto', pr: 1 }}>
+                                    {egresosDisplayData.map((item, i) => (
+                                        <Box key={`egr-cat-${i}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                            <Box sx={{ width: 10, height: 10, borderRadius: '2px', mr: 1, bgcolor: totalEgresosPie > 0 ? COLORS[i % COLORS.length] : 'rgba(160,160,160,0.35)' }} />
+                                            <Typography variant="caption" sx={{ lineHeight: 1.2 }} title={item.name}>{item.name}</Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                                {/* Torta (derecha) */}
+                                <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                                    <PieChart width={180} height={180} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                                        <Pie
+                                            data={egresosDisplayData}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%"
+                                            cy="50%"
+                                            outerRadius={80}
+                                            labelLine={false}
+                                            label={false}
+                                        >
+                                            {egresosDisplayData.map((entry, index) => (
+                                                <Cell key={`cell-egr-${index}`} fill={totalEgresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                    </PieChart>
+                                </Box>
+                            </Box>
                         </Paper>
                     </div>
                 </Grid>
