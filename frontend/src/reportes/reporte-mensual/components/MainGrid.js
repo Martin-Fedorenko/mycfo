@@ -10,6 +10,7 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
+import API_CONFIG from '../../../config/api-config';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1919', '#19C9FF'];
 
@@ -22,7 +23,7 @@ export default function MainGrid() {
     const chartRefEgresos = React.useRef(null);
 
     React.useEffect(() => {
-        const baseUrl = process.env.REACT_APP_URL_REPORTE;
+        const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !(selectedYear && selectedMonth !== '')) return;
 
         const params = new URLSearchParams();
@@ -33,7 +34,13 @@ export default function MainGrid() {
             selectedCategoria.forEach((c) => params.append('categoria', c));
         }
 
-        fetch(`${baseUrl}/resumen?${params.toString()}`)
+        const headers = {};
+        const sub = sessionStorage.getItem('sub');
+        const token = sessionStorage.getItem('accessToken');
+        if (sub) headers['X-Usuario-Sub'] = sub;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${baseUrl}/resumen?${params.toString()}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const json = await r.json();

@@ -23,7 +23,8 @@ public class ResumenController {
             @RequestParam int anio,
             @RequestParam int mes,
             // Soporta: ?categoria=A&categoria=B o ?categoria=A,B
-            @RequestParam(required = false, name = "categoria") List<String> categoriaParam
+            @RequestParam(required = false, name = "categoria") List<String> categoriaParam,
+            @RequestHeader(value = "X-Usuario-Sub") String userSub
     ) {
         List<String> categorias = (categoriaParam == null ? Collections.emptyList() :
                 categoriaParam.stream()
@@ -35,6 +36,6 @@ public class ResumenController {
                         .collect(Collectors.toList())
         );
 
-        return resumenService.obtenerResumenMensual(anio, mes, categorias);
+        return resumenService.obtenerResumenMensual(anio, mes, categorias, userSub);
     }
 }

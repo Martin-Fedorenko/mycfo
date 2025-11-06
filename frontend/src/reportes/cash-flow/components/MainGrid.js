@@ -10,6 +10,7 @@ import { jsPDF } from "jspdf";
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
+import API_CONFIG from '../../../config/api-config';
 
 export default function MainGrid() {
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
@@ -19,25 +20,24 @@ export default function MainGrid() {
     const handleYearChange = (e) => setSelectedYear(e.target.value);
 
     React.useEffect(() => {
-        const baseUrl = process.env.REACT_APP_URL_REGISTRO;
+        const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !selectedYear) return;
 
-        fetch(`${baseUrl}/registros`)
+        const headers = {};
+        const sub = sessionStorage.getItem('sub');
+        const token = sessionStorage.getItem('accessToken');
+        if (sub) headers['X-Usuario-Sub'] = sub;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${baseUrl}/cashflow?anio=${selectedYear}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const json = await r.json();
-
-                const filtrados = json.filter(r =>
-                    r.fechaEmision &&
-                    new Date(r.fechaEmision).getFullYear() === selectedYear &&
-                    (r.tipo === "Ingreso" || r.tipo === "Egreso") &&
-                    ["Efectivo", "Transferencia", "MercadoPago"].includes(r.medioPago)
-                );
-
-                setRegistros(filtrados);
+                // El backend ya filtra por año, tipos y medios válidos
+                setRegistros(Array.isArray(json) ? json : []);
             })
             .catch((error) => {
-                console.error('Error al obtener registros:', error);
+                console.error('Error al obtener cashflow:', error);
                 setRegistros([]);
             });
     }, [selectedYear]);

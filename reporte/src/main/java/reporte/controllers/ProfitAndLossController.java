@@ -19,7 +19,8 @@ public class ProfitAndLossController {
      * Devuelve el estado de resultados (Profit & Loss) del año solicitado.
      */
     @GetMapping
-    public ProfitAndLossDTO obtenerProfitAndLoss(@RequestParam int anio) {
-        return profitAndLossService.obtenerFacturasPorAnio(anio);
+    public ProfitAndLossDTO obtenerProfitAndLoss(@RequestParam int anio,
+                                                 @RequestHeader(value = "X-Usuario-Sub") String userSub) {
+        return profitAndLossService.obtenerFacturasPorAnio(anio, userSub);
     }
 }

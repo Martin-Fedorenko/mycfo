@@ -63,7 +63,8 @@ export const getResumenMensual = async (anio, mes, categorias = []) => {
       });
     }
 
-    const response = await axios.get(`${URL_REPORTE}/resumen`, { params });
+    const headers = getUsuarioHeaders();
+    const response = await axios.get(`${URL_REPORTE}/resumen`, { params, headers });
     return response.data;
   } catch (error) {
     console.error('Error al obtener resumen mensual:', error);
