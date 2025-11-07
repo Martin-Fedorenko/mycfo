@@ -35,9 +35,17 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
         width: "100%",
         backdropFilter: "blur(6px)",
         borderRadius: 2,
+        mx: "auto",
       }}
     >
-      <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <CardContent
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+          alignItems: "center",
+        }}
+      >
         <Typography variant="subtitle2" color="text.secondary">
           Acciones rápidas
         </Typography>
@@ -48,6 +56,9 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
             overflowX: { xs: "auto", md: "visible" },
             gap: 1,
             pb: { xs: 0.5, md: 0 },
+            justifyContent: { xs: "flex-start", md: "center" },
+            alignItems: "center",
+            width: "100%",
             "&::-webkit-scrollbar": {
               display: "none",
             },

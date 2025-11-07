@@ -115,7 +115,7 @@ const routeConfig = [
     icon: <StorageIcon />,
     children: [
       {
-        label: "Presupuesto",
+        label: "Presupuestos",
         path: "/presupuestos",
         icon: <DescriptionIcon />,
         element: <Presupuesto />,
@@ -129,6 +129,12 @@ const routeConfig = [
             label: "Detalle",
             path: "/presupuestos/:nombre",
             element: <PresupuestoDetalle />,
+          },
+          {
+            path: "/presupuestos/:nombre/detalle",
+            element: <PresupuestoDetalle />,
+            hidden: true,
+            breadcrumb: () => null,
           },
           {
             label: (params) => `Mes ${params.mesNombre}`,

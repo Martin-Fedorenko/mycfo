@@ -1,5 +1,6 @@
 package pronostico.services;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -7,9 +8,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Servicio para comunicarse con el microservicio de Administración
+ * Servicio para comunicarse con el microservicio de Administracion.
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class AdministracionService {
 

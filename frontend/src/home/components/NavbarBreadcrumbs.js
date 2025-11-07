@@ -94,6 +94,10 @@ export default function NavbarBreadcrumbs() {
           label = formatLabel(value);
         }
 
+        if (label === null || label === undefined || label === false) {
+          return null;
+        }
+
         return isLast ? (
           <Typography
             variant="body1"

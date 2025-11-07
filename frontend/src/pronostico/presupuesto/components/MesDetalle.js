@@ -1,29 +1,34 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import {
   Box, Typography, Paper, Grid, Button, Tabs, Tab, Avatar, Chip, Stack, Tooltip,
-  IconButton, Divider, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, FormControlLabel, Switch, Select, InputLabel, FormControl, Snackbar, Alert
+  IconButton, Divider, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Autocomplete, FormControlLabel, Switch, Select, InputLabel, FormControl, Snackbar, Alert
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
+import { buildTipoSelectSx } from '../../../shared-components/tipoSelectStyles';
 import http from '../../../api/http';
 import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
+import dayjs from 'dayjs';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { getMovimientosPorRango } from '../../../reportes/reportes.service';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend
 } from 'recharts';
-import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
-import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
-import PlaylistAddOutlinedIcon from '@mui/icons-material/PlaylistAddOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import EditOffOutlinedIcon from '@mui/icons-material/EditOffOutlined';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
 
 // ===== Helpers =====
 const safeNumber = (v) =>
@@ -33,26 +38,46 @@ const baseURL = process.env.REACT_APP_URL_PRONOSTICO;
 
 const GUARD_MESSAGES = {
   categoria: {
-    title: 'Habilitar edici\u00f3n de categor\u00eda',
-    body: 'La categor\u00eda ayuda a ordenar tus an\u00e1lisis. Cambiarla manualmente puede afectar reportes y automatizaciones. \u00bfQuer\u00e9s habilitar la edici\u00f3n manual?',
-    confirmLabel: 'Habilitar edici\u00f3n'
+    title: 'Habilitar edicion manual',
+    body: 'La categoria, tipo y monto estimado ayudan a ordenar tus analisis. Cambiarlos manualmente puede afectar reportes y automatizaciones. Queres habilitar la edicion manual?',
+    confirmLabel: 'Habilitar edicion'
   },
-  montoReal: {
+  real: {
     title: 'Editar monto real',
-    body: 'El monto real refleja los registros consolidados. Si lo modificas manualmente ya no coincidira con tus movimientos cargados. Queres continuar?',
-    confirmLabel: 'Habilitar Edicion'
+    body: 'El monto real refleja los registros consolidados. Para ajustarlo, edita los movimientos registrados del periodo. Te llevamos a Ver movimientos.',
+    confirmLabel: 'Habilitar edicion en movimientos'
   }
 };
 
 const GUARD_FIELD_LABELS = {
-  categoria: 'la categor\u00eda',
-  montoReal: 'el monto real'
+  categoria: 'la categoria, tipo y estimado',
+  tipo: 'el tipo',
+  montoEstimado: 'el estimado',
+  real: 'el monto real'
 };
 const INGRESO_COLOR = '#4caf50';
 const EGRESO_COLOR = '#f44336';
 const INGRESO_EST_COLOR = '#a5d6a7';
 const EGRESO_EST_COLOR = '#ef9a9a';
+const SIN_PRONOSTICO_CHIP_SX = {
+  fontWeight: 500,
+  bgcolor: '#FFDE70',
+  backgroundColor: '#FFDE70',
+  color: '#000',
+  border: '1px solid #F5C16C',
+  '& .MuiChip-label': { color: '#000' },
+  '& .MuiChip-icon': { color: '#000' },
+  '&.MuiChip-filled': { backgroundColor: '#FFDE70' },
+};
 
+const CENTERED_INPUT_LABEL_SX = {
+  top: '50%',
+  transform: 'translate(14px, -50%) scale(1)',
+  '&.MuiInputLabel-shrink': {
+    top: 0,
+    transform: 'translate(14px, -9px) scale(0.75)',
+  },
+};
 const mesANumero = {
   enero: '01', febrero: '02', marzo: '03', abril: '04',
   mayo: '05', junio: '06', julio: '07', agosto: '08',
@@ -86,36 +111,68 @@ const mesesEntre = (fromYM, toYM) => {
 };
 
 // Normaliza payload de distintas respuestas posibles
-const normalizeLine = (x) => ({
-  id: x.id,
-  categoria: x.categoria,
-  tipo: x.tipo, // "INGRESO" | "EGRESO"
-  montoEstimado: x.montoEstimado ?? x.monto_estimado ?? 0,
-  montoReal: x.montoReal ?? x.monto_real ?? null,
-});
+const normalizeLine = (x) => {
+  const rawMovementArray = x?.movimientoIds ?? x?.movimiento_ids ?? x?.movementIds;
+  const rawMovementSingle = x?.movimientoId ?? x?.movimiento_id ?? x?.movementId ?? null;
+  const movementIds = Array.isArray(rawMovementArray)
+    ? rawMovementArray.map((id) => String(id))
+    : rawMovementSingle != null
+      ? [String(rawMovementSingle)]
+      : [];
+  return {
+    id: x.id,
+    categoria: x.categoria,
+    tipo: normalizeTipo(x.tipo),
+    montoEstimado: x.montoEstimado ?? x.monto_estimado ?? 0,
+    real: 0,
+    movimientoIds: movementIds,
+  };
+};
+
+const normCat = (value) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+const normalizeTipo = (value) => {
+  const upper = (value || '').toString().toUpperCase();
+  if (upper === 'INGRESO') return 'Ingreso';
+  if (upper === 'EGRESO') return 'Egreso';
+  return value || '';
+};
 
 export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }, []);
+
   // ===== State principal =====
   const [lineas, setLineas] = React.useState([]);
-  const [edits, setEdits] = React.useState({}); // { [id]: {categoria, tipo, montoEstimado, montoReal} }
-  const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, montoReal: bool } }
-  const [guardPrompt, setGuardPrompt] = React.useState({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
+  const [lineasSoloReal, setLineasSoloReal] = React.useState([]);
+  const [edits, setEdits] = React.useState({}); // { [id]: {categoria, tipo, montoEstimado, real} }
+  const [manualGuards, setManualGuards] = React.useState({}); // { [id]: { categoria: bool, tipo: bool, montoEstimado: bool, real: bool } }
+  const [guardPrompt, setGuardPrompt] = React.useState({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
   const [nombreMes, setNombreMes] = React.useState('Mes desconocido');
   const [presupuestoNombre, setPresupuestoNombre] = React.useState('');
   const [presupuestoId, setPresupuestoId] = React.useState(null);
   const [ym, setYm] = React.useState(null); // YYYY-MM
+  const [mesesDisponibles, setMesesDisponibles] = React.useState([]);
   const [tab, setTab] = React.useState(0);
+  const [totalRealMes, setTotalRealMes] = React.useState(0);
 
   // UI
   const [simulacion, setSimulacion] = React.useState(false);
-  const [anchorRowMenu, setAnchorRowMenu] = React.useState(null);
   const [rowMenuIdx, setRowMenuIdx] = React.useState(null);
   const [snack, setSnack] = React.useState({ open: false, message: '', severity: 'success' });
 
-  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' });
+  const [nueva, setNueva] = React.useState({ categoria: '', tipo: 'Egreso', montoEstimado: '' });
   const [agregando, setAgregando] = React.useState(false);
 
   const [dlgReglas, setDlgReglas] = React.useState(false);
@@ -124,9 +181,71 @@ export default function MesDetalle() {
   const [dlgVarios, setDlgVarios] = React.useState(false);
   const [bulkCfg, setBulkCfg] = React.useState({ accion: 'replicar', desde: '', hasta: '' });
   const [deletePrompt, setDeletePrompt] = React.useState({ open: false, id: null, categoria: '', tipo: '' });
+  const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
+
+  const categoriasPronosticadas = React.useMemo(() => {
+    const ocupadas = new Set();
+    for (const linea of lineas) {
+      const normalizada = normCat(linea?.categoria);
+      if (normalizada) ocupadas.add(normalizada);
+    }
+    return ocupadas;
+  }, [lineas]);
+
+  const opcionesNuevaLinea = React.useMemo(() => {
+    let disponibles = categoriasOptions.filter((option) => {
+      if (typeof option !== 'string') return false;
+      const normalizada = normCat(option);
+      if (!normalizada) return false;
+      return !categoriasPronosticadas.has(normalizada);
+    });
+
+    if (nueva.categoria) {
+      const categoriaActualNorm = normCat(nueva.categoria);
+      const yaIncluida = disponibles.some((opt) => normCat(opt) === categoriaActualNorm);
+      if (!yaIncluida) {
+        disponibles = [nueva.categoria, ...disponibles];
+      }
+    }
+
+    return disponibles;
+  }, [categoriasOptions, categoriasPronosticadas, nueva.categoria]);
+
+  const { prevYm, nextYm } = React.useMemo(() => {
+    if (!ym || !mesesDisponibles.length) {
+      return { prevYm: null, nextYm: null };
+    }
+    const idx = mesesDisponibles.findIndex((value) => value === ym);
+    if (idx === -1) {
+      return { prevYm: null, nextYm: null };
+    }
+    return {
+      prevYm: idx > 0 ? mesesDisponibles[idx - 1] : null,
+      nextYm: idx < mesesDisponibles.length - 1 ? mesesDisponibles[idx + 1] : null,
+    };
+  }, [ym, mesesDisponibles]);
+
+  React.useEffect(() => {
+    let activo = true;
+    const cargarCategorias = async () => {
+      try {
+        const response = await http.get(`${process.env.REACT_APP_URL_REGISTRO}/api/categorias`);
+        if (!activo) return;
+        if (Array.isArray(response?.data) && response.data.length > 0) {
+          setCategoriasOptions(response.data);
+        }
+      } catch (error) {
+        console.error('No se pudieron obtener las categorías, se usan las predefinidas', error);
+      }
+    };
+    cargarCategorias();
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   // ===== Carga de datos =====
-  const fetchMes = React.useCallback(async (pid, ymStr) => {
+  const fetchMes = React.useCallback(async (pid, ymStr, { skipStateUpdate = false } = {}) => {
     if (!pid || !ymStr) return;
 
     // 1) intento con YYYY-MM
@@ -151,8 +270,146 @@ export default function MesDetalle() {
 
     let l = await tryFetch(url1);
     if (!l || l.length === 0) l = await tryFetch(url2);
-    setLineas(l || []);
+    const finalLineas = l || [];
+    if (!skipStateUpdate) setLineas(finalLineas);
+    return finalLineas;
   }, []);
+
+  const cargarLineasConReales = React.useCallback(async (pid, ymStr) => {
+    const lineasBase = (await fetchMes(pid, ymStr, { skipStateUpdate: true })) || [];
+    const ymKey = typeof ymStr === 'string' ? ymStr.slice(0, 7) : '';
+    const referencia = dayjs(`${ymKey}-01`);
+    if (!referencia.isValid()) {
+      const sinReales = lineasBase.map((linea) => ({ ...linea, real: 0 }));
+      setLineas(sinReales);
+      setLineasSoloReal([]);
+      setTotalRealMes(0);
+      return sinReales;
+    }
+
+    try {
+      const refDate = referencia.toDate();
+      const fechaDesde = format(startOfMonth(refDate), 'yyyy-MM-dd');
+      const fechaHasta = format(endOfMonth(refDate), 'yyyy-MM-dd');
+
+      const [respEgreso, respIngreso] = await Promise.all([
+        getMovimientosPorRango({
+          fechaDesde,
+          fechaHasta,
+          tipos: 'Egreso',
+        }),
+        getMovimientosPorRango({
+          fechaDesde,
+          fechaHasta,
+          tipos: 'Ingreso',
+        }),
+      ]);
+      const movimientosEgreso = Array.isArray(respEgreso?.content) ? respEgreso.content : (Array.isArray(respEgreso) ? respEgreso : []);
+      const movimientosIngreso = Array.isArray(respIngreso?.content) ? respIngreso.content : (Array.isArray(respIngreso) ? respIngreso : []);
+
+      const agruparPorCategoria = (lista) => lista.reduce((acc, movimiento) => {
+        const nombreOriginal =
+          movimiento?.categoriaNombre || movimiento?.categoria || movimiento?.categoria_id_nombre || 'Sin categoría';
+        const key = normCat(nombreOriginal);
+        if (!key) return acc;
+        const monto = Math.abs(
+          Number(movimiento?.monto ?? movimiento?.montoTotal ?? movimiento?.monto_total ?? 0)
+        ) || 0;
+        if (!Number.isFinite(monto)) return acc;
+        if (!acc[key]) {
+          acc[key] = { total: 0, label: nombreOriginal || 'Sin categoría', movementIds: [] };
+        }
+        acc[key].total += monto;
+        const rawMovimientoId =
+          movimiento?.id ??
+          movimiento?.movimientoId ??
+          movimiento?.movimiento_id ??
+          movimiento?.movimientoID ??
+          movimiento?.idMovimiento ??
+          null;
+        const movimientoId = rawMovimientoId != null ? String(rawMovimientoId) : null;
+        if (movimientoId && !acc[key].movementIds.includes(movimientoId)) {
+          acc[key].movementIds.push(movimientoId);
+        }
+        return acc;
+      }, {});
+
+      const realesPorCategoriaEgreso = agruparPorCategoria(movimientosEgreso);
+      const realesPorCategoriaIngreso = agruparPorCategoria(movimientosIngreso);
+      const totalRealEgreso = Object.values(realesPorCategoriaEgreso).reduce((acc, data) => acc + data.total, 0);
+
+      const lineasConReales = lineasBase.map((linea) => {
+        const key = normCat(linea.categoriaNombre || linea.categoria);
+        const tipoKey = (linea.tipo || '').toUpperCase();
+        const baseMovementIds = Array.isArray(linea.movimientoIds)
+          ? linea.movimientoIds.map((id) => String(id))
+          : [];
+        let real = 0;
+        let movementIds = baseMovementIds;
+        if (tipoKey === 'INGRESO') {
+          const info = realesPorCategoriaIngreso[key];
+          real = info?.total || 0;
+          const extraIds = Array.isArray(info?.movementIds) ? info.movementIds.map((id) => String(id)) : [];
+          movementIds = Array.from(new Set([...baseMovementIds, ...extraIds]));
+        } else if (tipoKey === 'EGRESO') {
+          const info = realesPorCategoriaEgreso[key];
+          real = info?.total || 0;
+          const extraIds = Array.isArray(info?.movementIds) ? info.movementIds.map((id) => String(id)) : [];
+          movementIds = Array.from(new Set([...baseMovementIds, ...extraIds]));
+        }
+        return {
+          ...linea,
+          real,
+          movimientoIds: movementIds,
+        };
+      });
+
+      const categoriasPorTipo = lineasBase.reduce((acc, linea) => {
+        const tipoKey = (linea.tipo || '').toUpperCase();
+        const key = normCat(linea.categoriaNombre || linea.categoria);
+        if (!acc[tipoKey]) acc[tipoKey] = new Set();
+        acc[tipoKey].add(key);
+        return acc;
+      }, {});
+
+      const adicionales = [];
+      const registrarAdicionales = (tipoKey, mapa) => {
+        const set = categoriasPorTipo[tipoKey] || new Set();
+        Object.entries(mapa).forEach(([key, data]) => {
+          if (!set.has(key)) {
+            adicionales.push({
+              id: `real-only-${tipoKey}-${key}`,
+              categoria: data.label || 'Sin categoría',
+              tipo: normalizeTipo(tipoKey),
+              montoEstimado: 0,
+              real: data.total,
+              _soloReal: true,
+              movimientoIds: Array.from(new Set((data.movementIds || []).map((id) => String(id)))),
+            });
+          }
+        });
+      };
+
+      registrarAdicionales('EGRESO', realesPorCategoriaEgreso);
+      registrarAdicionales('INGRESO', realesPorCategoriaIngreso);
+
+      setLineas(lineasConReales);
+      setLineasSoloReal(adicionales);
+      setTotalRealMes(totalRealEgreso);
+      return lineasConReales;
+    } catch (movErr) {
+      console.error('Error al obtener datos reales del mes:', movErr);
+      const fallback = lineasBase.map((linea) => ({
+        ...linea,
+        real: 0,
+      }));
+      setLineas(fallback);
+      setLineasSoloReal([]);
+      setTotalRealMes(0);
+      setSnack({ open: true, message: 'No se pudieron cargar los datos reales del mes.', severity: 'error' });
+      return fallback;
+    }
+  }, [fetchMes, setSnack]);
 
   React.useEffect(() => {
     const cargar = async () => {
@@ -180,138 +437,252 @@ export default function MesDetalle() {
 
       const resTot = await http.get(`${baseURL}/api/presupuestos/${p.id}/totales`);
       const totales = Array.isArray(resTot.data) ? resTot.data : [];
+      const mesesLista = Array.from(
+        new Set(
+          totales
+            .map((t) => (t?.mes ? String(t.mes) : ''))
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b));
+      setMesesDisponibles(mesesLista);
       const item = totales.find(t => String(t?.mes || '').endsWith(`-${mesNumStr}`));
       if (!item?.mes) throw new Error('Mes no encontrado en totales');
 
       setYm(item.mes);
       setNombreMes(formatearMes(item.mes));
 
-      // 3) traer líneas
-      await fetchMes(p.id, item.mes);
+      // 3) cargar lineas reales
+      await cargarLineasConReales(p.id, item.mes);
   
       } catch (err) {
         console.error(err);
         setLineas([]);
+        setMesesDisponibles([]);
+        setYm(null);
         setNombreMes('Mes desconocido');
         setSnack({ open: true, message: err?.message || 'Error cargando mes', severity: 'error' });
       }
     };
 
     if (nombreUrl && mesNombreUrl) cargar();
-  }, [nombreUrl, mesNombreUrl, fetchMes]);
+  }, [nombreUrl, mesNombreUrl, cargarLineasConReales]);
+
+  const handleCambiarMes = React.useCallback(async (targetYm) => {
+    if (!targetYm || !presupuestoId) return;
+    try {
+      await cargarLineasConReales(presupuestoId, targetYm);
+      setYm(targetYm);
+      setNombreMes(formatearMes(targetYm));
+    } catch (err) {
+      console.error('Error cambiando de mes', err);
+      setSnack({ open: true, message: 'No se pudieron cargar los datos del mes seleccionado.', severity: 'error' });
+    }
+  }, [presupuestoId, cargarLineasConReales, setSnack]);
 
   // Sincronizo `edits` cuando cambian las lineas
+  const lineasCompleto = React.useMemo(
+    () => [...lineas, ...lineasSoloReal],
+    [lineas, lineasSoloReal]
+  );
+
   React.useEffect(() => {
     const nextEdits = {};
-    for (const l of lineas) {
+    for (const l of lineasCompleto) {
       nextEdits[l.id] = {
         categoria: l.categoria,
         tipo: l.tipo,
         montoEstimado: safeNumber(l.montoEstimado),
-        montoReal: l.montoReal === null || typeof l.montoReal === 'undefined' ? '' : safeNumber(l.montoReal)
+        real: l.real === null || typeof l.real === 'undefined' ? '' : safeNumber(l.real)
       };
     }
     setEdits(nextEdits);
     setManualGuards((prev) => {
       const nextGuards = {};
-      for (const l of lineas) {
+      for (const l of lineasCompleto) {
         nextGuards[l.id] = {
           categoria: prev[l.id]?.categoria || false,
-          montoReal: prev[l.id]?.montoReal || false,
+          tipo: prev[l.id]?.tipo || false,
+          montoEstimado: prev[l.id]?.montoEstimado || false,
+          real: prev[l.id]?.real || false,
         };
       }
       return nextGuards;
     });
-  }, [lineas]);
+  }, [lineasCompleto]);
 
   const requestManualUnlock = React.useCallback((id, field) => {
     const cfg = GUARD_MESSAGES[field] || {};
+    if (field === 'real') {
+      const targetLine = lineasCompleto.find((l) => l.id === id);
+      const movementIds = Array.isArray(targetLine?.movimientoIds)
+        ? targetLine.movimientoIds.map((value) => String(value))
+        : [];
+      if (!movementIds.length) {
+        setSnack({ open: true, message: 'No se encontro el movimiento para editar.', severity: 'error' });
+        return;
+      }
+      setGuardPrompt({
+        open: true,
+        id,
+        field,
+        title: cfg.title || 'Editar monto real',
+        message: cfg.body || 'Esta accion habilita la edicion manual.',
+        confirmLabel: cfg.confirmLabel || 'Habilitar edicion en movimientos',
+        movementIds,
+      });
+      return;
+    }
     setGuardPrompt({
       open: true,
       id,
       field,
       title: cfg.title || 'Confirmar edicion manual',
       message: cfg.body || 'Esta accion habilita la edicion manual.',
-      confirmLabel: cfg.confirmLabel || 'Habilitar'
+      confirmLabel: cfg.confirmLabel || 'Habilitar',
+      movementIds: [],
     });
-  }, []);
+  }, [lineasCompleto, setSnack]);
 
   const handleGuardCancel = React.useCallback(() => {
-    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
+    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
   }, []);
 
   const toggleManualGuard = React.useCallback((id, field, enabled) => {
+    const fieldsToToggle = field === 'categoria' ? ['categoria', 'tipo', 'montoEstimado'] : [field];
     setManualGuards((prev) => {
       const next = { ...prev };
-      next[id] = { ...(next[id] || {}), [field]: enabled };
+      const current = { ...(next[id] || {}) };
+      fieldsToToggle.forEach((key) => {
+        current[key] = enabled;
+      });
+      next[id] = current;
       return next;
     });
     if (!enabled) {
-      const linea = lineas.find((l) => l.id === id);
+      const linea = lineasCompleto.find((l) => l.id === id);
       if (linea) {
-        const restoredValue = field === 'montoReal'
-          ? (linea.montoReal === null || typeof linea.montoReal === 'undefined' ? '' : safeNumber(linea.montoReal))
-          : linea.categoria;
-        setEdits((prev) => ({
-          ...prev,
-          [id]: { ...(prev[id] || {}), [field]: restoredValue },
-        }));
+        setEdits((prev) => {
+          const updated = { ...(prev[id] || {}) };
+          fieldsToToggle.forEach((key) => {
+            if (key === 'real') {
+              updated[key] = linea.real === null || typeof linea.real === 'undefined' ? '' : safeNumber(linea.real);
+            } else if (key === 'tipo') {
+              updated[key] = linea.tipo;
+            } else if (key === 'montoEstimado') {
+              updated[key] = safeNumber(linea.montoEstimado);
+            } else if (key === 'categoria') {
+              updated[key] = linea.categoria;
+            }
+          });
+          return { ...prev, [id]: updated };
+        });
       }
       const label = GUARD_FIELD_LABELS[field] || field;
-      setSnack({ open: true, message: `Edicion manual desactivada para ${label}.`, severity: 'info' });
+      setSnack({ open: true, message: `Edición manual desactivada para ${label}.`, severity: 'info' });
     }
-  }, [lineas, setSnack]);
+  }, [lineasCompleto, setSnack]);
 
   const handleGuardConfirm = React.useCallback(() => {
-    if (guardPrompt.open && guardPrompt.id != null && guardPrompt.field) {
-      toggleManualGuard(guardPrompt.id, guardPrompt.field, true);
-      const label = GUARD_FIELD_LABELS[guardPrompt.field] || guardPrompt.field;
-      setSnack({ open: true, message: `Edicion manual habilitada para ${label}.`, severity: 'warning' });
+    if (!(guardPrompt.open && guardPrompt.id != null && guardPrompt.field)) {
+      setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
+      return;
     }
-    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '' });
-  }, [guardPrompt, toggleManualGuard, setSnack]);
 
-  const isFieldUnlocked = React.useCallback((id, field) => manualGuards[id]?.[field] === true, [manualGuards]);
+    if (guardPrompt.field === 'real') {
+      const targetLine = lineasCompleto.find((l) => l.id === guardPrompt.id);
+      const combinedIds = guardPrompt.movementIds && guardPrompt.movementIds.length
+        ? guardPrompt.movementIds
+        : Array.isArray(targetLine?.movimientoIds)
+          ? targetLine.movimientoIds.map((value) => String(value))
+          : [];
+      const movementId = combinedIds[0];
+      setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
+      if (!movementId) {
+        setSnack({ open: true, message: 'No se encontro el movimiento para editar.', severity: 'error' });
+        return;
+      }
+      const params = new URLSearchParams();
+      params.set('editMovementId', movementId);
+      navigate(`/ver-movimientos?${params.toString()}`, {
+        state: {
+          editMovementId: movementId,
+          editMovementMeta: {
+            from: 'presupuesto',
+            presupuestoId,
+            ym,
+            categoria: targetLine?.categoria || '',
+            movimientoIds: combinedIds,
+          },
+        },
+      });
+      return;
+    }
+
+    toggleManualGuard(guardPrompt.id, guardPrompt.field, true);
+    const label = GUARD_FIELD_LABELS[guardPrompt.field] || guardPrompt.field;
+    setSnack({ open: true, message: `Edicion manual habilitada para ${label}.`, severity: 'warning' });
+    setGuardPrompt({ open: false, id: null, field: null, title: '', message: '', confirmLabel: '', movementIds: [] });
+  }, [guardPrompt, lineasCompleto, navigate, toggleManualGuard, setSnack, presupuestoId, ym]);
+
+  const isFieldUnlocked = React.useCallback(
+    (id, field) => manualGuards[id]?.[field] === true,
+    [manualGuards]
+  );
 
   const reloadMes = React.useCallback(async () => {
-    if (presupuestoId && ym) await fetchMes(presupuestoId, ym);
-  }, [presupuestoId, ym, fetchMes]);
+    if (presupuestoId && ym) await cargarLineasConReales(presupuestoId, ym);
+  }, [presupuestoId, ym, cargarLineasConReales]);
 
   // ===== Derivados =====
-  const ingresos = React.useMemo(() => lineas.filter((c) => c.tipo === 'INGRESO'), [lineas]);
-  const egresos = React.useMemo(() => lineas.filter((c) => c.tipo === 'EGRESO'), [lineas]);
+  const ingresos = React.useMemo(
+    () => lineasCompleto.filter((c) => (c.tipo || '').toUpperCase() === 'INGRESO'),
+    [lineasCompleto]
+  );
+  const egresos = React.useMemo(
+    () => lineasCompleto.filter((c) => (c.tipo || '').toUpperCase() === 'EGRESO'),
+    [lineasCompleto]
+  );
 
-  const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.montoReal), 0);
-  const totalEgresos = egresos.reduce((acc, c) => acc + safeNumber(c.montoReal), 0);
+  const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
+  const totalEgresosCalculado = egresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
+  const totalEgresos = Number.isFinite(totalRealMes) ? totalRealMes : totalEgresosCalculado;
   const resultado = totalIngresos - totalEgresos;
 
-  const estimadoTotal = lineas.reduce(
-    (acc, c) => acc + safeNumber(c.montoEstimado) * (c.tipo === 'INGRESO' ? 1 : -1),
+  const estimadoTotal = lineasCompleto.reduce(
+    (acc, c) => acc + safeNumber(c.montoEstimado) * (c.tipo === 'Ingreso' ? 1 : -1),
     0
   );
   const cumplimiento = Math.abs(estimadoTotal) > 0 ? (resultado / Math.abs(estimadoTotal)) : 0;
 
   const vencidosEstimados = lineas.filter(
-    (c) => safeNumber(c.montoEstimado) !== 0 && safeNumber(c.montoReal) === 0
+    (c) => safeNumber(c.montoEstimado) !== 0 && safeNumber(c.real) === 0
   ).length;
 
-  const pieDataIngresos = ingresos.map((i) => ({ name: i.categoria, value: safeNumber(i.montoReal) }));
-  const barDataIngresos = ingresos.map((i) => ({ name: i.categoria, estimado: safeNumber(i.montoEstimado), real: safeNumber(i.montoReal) }));
-  const pieDataEgresos = egresos.map((e) => ({ name: e.categoria, value: safeNumber(e.montoReal) }));
-  const barDataEgresos = egresos.map((e) => ({ name: e.categoria, estimado: safeNumber(e.montoEstimado), real: safeNumber(e.montoReal) }));
+  const pieDataIngresos = ingresos.map((i) => ({ name: i.categoria, value: safeNumber(i.real) }));
+  const barDataIngresos = ingresos.map((i) => ({
+    name: i.categoria,
+    estimado: safeNumber(i.montoEstimado),
+    real: safeNumber(i.real),
+  }));
+  const pieDataEgresos = egresos.map((e) => ({ name: e.categoria, value: safeNumber(e.real) }));
+  const barDataEgresos = egresos.map((e) => ({
+    name: e.categoria,
+    estimado: safeNumber(e.montoEstimado),
+    real: safeNumber(e.real),
+  }));
 
   // ===== Export =====
   const handleExportExcel = () => {
     const data = [
       ['Categoría', 'Tipo', 'Monto Estimado', 'Monto Registrado', 'Desvío'],
-      ...lineas.map((item) => [
+      ...lineasCompleto.map((item) => [
         item.categoria,
         item.tipo,
         safeNumber(item.montoEstimado),
-        safeNumber(item.montoReal),
-        (item.tipo === 'EGRESO'
-            ? safeNumber(item.montoEstimado) - safeNumber(item.montoReal)
-            : safeNumber(item.montoReal) - safeNumber(item.montoEstimado)),
+        safeNumber(item.real),
+        (item.tipo === 'Egreso'
+            ? safeNumber(item.montoEstimado) - safeNumber(item.real)
+            : safeNumber(item.real) - safeNumber(item.montoEstimado)),
       ]),
     ];
     data.push(['', '', '', '', '']);
@@ -339,23 +710,19 @@ export default function MesDetalle() {
     });
   };
 
-  // ===== Menú por fila =====
-  const abrirMenuFila = (e, idx) => { setAnchorRowMenu(e.currentTarget); setRowMenuIdx(idx); };
-  const cerrarMenuFila = () => { setAnchorRowMenu(null); setRowMenuIdx(null); };
-
   // ===== CRUD =====
   const toCamelPayload = (l) => ({
     categoria: l.categoria,
     tipo: l.tipo,
     montoEstimado: Number(l.montoEstimado ?? 0),
-    montoReal: l.montoReal === '' || l.montoReal == null ? null : Number(l.montoReal),
+    real: l.real === '' || l.real == null ? null : Number(l.real),
   });
 
   const toSnakePayload = (l) => ({
     categoria: l.categoria,
     tipo: l.tipo,
     monto_estimado: Number(l.montoEstimado ?? 0),
-    monto_real: l.montoReal === '' || l.montoReal == null ? null : Number(l.montoReal),
+    real: l.real === '' || l.real == null ? null : Number(l.real),
   });
 
   const tryPatchOrPut = async (method, url, data) => {
@@ -383,7 +750,7 @@ export default function MesDetalle() {
             await tryPatchOrPut(method, url, payloads[0]);
             setManualGuards((prev) => {
               if (!prev || !prev[l.id]) return prev;
-              return { ...prev, [l.id]: { categoria: false, montoReal: false } };
+              return { ...prev, [l.id]: { categoria: false, real: false } };
             });
             await reloadMes();
             setSnack({ open: true, message: 'Línea actualizada', severity: 'success' });
@@ -397,7 +764,7 @@ export default function MesDetalle() {
                 await tryPatchOrPut(method, url, payloads[1]);
                 setManualGuards((prev) => {
                   if (!prev || !prev[l.id]) return prev;
-                  return { ...prev, [l.id]: { categoria: false, montoReal: false } };
+                  return { ...prev, [l.id]: { categoria: false, real: false } };
                 });
                 await reloadMes();
                 setSnack({ open: true, message: 'Línea actualizada', severity: 'success' });
@@ -406,7 +773,7 @@ export default function MesDetalle() {
                 lastErr = e2;
               }
             }
-            // si 404/405 seguimos probando con otra URL o método
+            // si 404/405 seguimos probando con otra URL o mÃ©todo
           }
         }
       }
@@ -460,32 +827,51 @@ export default function MesDetalle() {
     try {
       if (!presupuestoId || !ym) return;
       if (!nueva.categoria || !nueva.tipo) {
-        setSnack({ open: true, message: 'Completá categoría y tipo', severity: 'warning' });
+        setSnack({ open: true, message: 'Completá Categoría y tipo', severity: 'warning' });
         return;
       }
       const payload = {
         categoria: nueva.categoria,
         tipo: nueva.tipo,
         montoEstimado: Number(nueva.montoEstimado || 0),
-        montoReal: nueva.montoReal === '' || nueva.montoReal == null ? null : Number(nueva.montoReal),
       };
       await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
-      setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' });
+      setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '' });
       setAgregando(false);
       await reloadMes();
       setSnack({ open: true, message: 'Línea agregada', severity: 'success' });
+  } catch (e) {
+    console.error(e);
+    setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
+  }
+};
+
+  const crearLineaDesdeReal = async (l) => {
+    try {
+      if (!presupuestoId || !ym) return;
+      const payload = {
+        categoria: l.categoria,
+        tipo: l.tipo,
+        montoEstimado: safeNumber(l.montoEstimado),
+        real: l.real === '' || l.real == null ? null : safeNumber(l.real),
+      };
+      await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas`, payload);
+      setSnack({ open: true, message: 'Línea agregada desde movimiento real.', severity: 'success' });
+      await reloadMes();
     } catch (e) {
       console.error(e);
-      setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
+      const msg = e?.response?.data?.message || 'Error al crear línea';
+      setSnack({ open: true, message: msg, severity: 'error' });
     }
   };
 
   // ===== Bulk en varios meses =====
-  const abrirDlgVariosConFila = () => {
-    if (rowMenuIdx == null) return;
+  const abrirDlgVariosConFila = (idx) => {
+    const idxEfectivo = (typeof idx === 'number') ? idx : rowMenuIdx;
+    if (idxEfectivo == null) return;
+    setRowMenuIdx(idxEfectivo); // asegura que quede seteado
     setBulkCfg((c) => ({ ...c, accion: 'replicar', desde: ym || '', hasta: ym || '' }));
     setDlgVarios(true);
-    cerrarMenuFila();
   };
 
   const ejecutarBulk = async () => {
@@ -510,7 +896,7 @@ export default function MesDetalle() {
           categoria: l.categoria,
           tipo: l.tipo,
           montoEstimado: Number(l.montoEstimado || 0),
-          montoReal: l.montoReal === '' || l.montoReal == null ? null : Number(l.montoReal),
+          real: l.real === '' || l.real == null ? null : Number(l.real),
         };
         for (const ymX of meses) {
           await http.post(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ymX}/lineas`, payload);
@@ -554,14 +940,42 @@ export default function MesDetalle() {
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
       <Typography variant="overline" color="text.secondary">Presupuestos → {presupuestoNombre}</Typography>
-      <Typography variant="h4" gutterBottom fontWeight="600">{nombreMes}</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        {prevYm && (
+          <IconButton
+            size="small"
+            onClick={() => handleCambiarMes(prevYm)}
+            aria-label="Mes anterior"
+          >
+            <ChevronLeftIcon fontSize="small" />
+          </IconButton>
+        )}
+        <Typography variant="h4" fontWeight="600">
+          {nombreMes}
+        </Typography>
+        {nextYm && (
+          <IconButton
+            size="small"
+            onClick={() => handleCambiarMes(nextYm)}
+            aria-label="Mes siguiente"
+          >
+            <ChevronRightIcon fontSize="small" />
+          </IconButton>
+        )}
+      </Box>
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
           <Stack direction="row" spacing={2} alignItems="center">
             <Chip label={`Cumplimiento: ${(cumplimiento * 100).toFixed(0)}%`} color={cumplimiento >= 0.95 ? 'success' : cumplimiento >= 0.8 ? 'warning' : 'error'} />
-            <Chip icon={<WarningAmberOutlinedIcon />} label={`${vencidosEstimados} movimientos estimados sin registrar`} color={vencidosEstimados > 0 ? 'warning' : 'default'} />
+            <Chip
+              icon={vencidosEstimados > 0 ? <WarningAmberOutlinedIcon /> : undefined}
+              label={`${vencidosEstimados} movimientos estimados sin registrar`}
+              variant="filled"
+              color={vencidosEstimados === 0 ? 'success' : undefined}
+              sx={vencidosEstimados === 0 ? undefined : SIN_PRONOSTICO_CHIP_SX}
+            />
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             <ExportadorSimple onExportPdf={handleExportPdf} onExportExcel={handleExportExcel} />
@@ -605,7 +1019,7 @@ export default function MesDetalle() {
             </Grid>
           </Grid>
 
-          {/* Gráficos */}
+          {/* GrÃ¡ficos */}
           {pieDataIngresos.length > 0 ? (
             <Paper sx={{ p: 3, mb: 2 }}>
               <Typography variant="h6" gutterBottom fontWeight="600">Distribución de Ingresos por Categoría</Typography>
@@ -631,10 +1045,23 @@ export default function MesDetalle() {
               <Typography variant="h6" gutterBottom fontWeight="600">Ingresos: Estimado vs Real por Categoría</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataIngresos.map((item, index) => {
-                  const max = Math.max(item.estimado, item.real) * 1.2 || 1;
+                  const estimadoN = safeNumber(item.estimado);
+                  const realN = safeNumber(item.real);
+                  const max = Math.max(estimadoN, realN) * 1.2 || 1;
+                  const sinPronostico = estimadoN === 0 && realN > 0;
                   return (
                     <Box key={`${item.name}-${index}`} sx={{ mb: 3 }}>
-                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>{item.name}</Typography>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                        <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
+                        {sinPronostico && (
+                          <Tooltip
+                            title="Este movimiento no tiene un monto estimado."
+                            disableHoverListener={!sinPronostico}
+                          >
+                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                          </Tooltip>
+                        )}
+                      </Stack>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Typography variant="body2" sx={{ minWidth: 80 }}>Estimado:</Typography>
@@ -697,10 +1124,23 @@ export default function MesDetalle() {
               <Typography variant="h6" gutterBottom fontWeight="600">Egresos: Estimado vs Real por Categoría</Typography>
               <Box sx={{ mt: 2 }}>
                 {barDataEgresos.map((item, index) => {
-                  const max = Math.max(item.estimado, item.real) * 1.2 || 1;
+                  const estimadoN = safeNumber(item.estimado);
+                  const realN = safeNumber(item.real);
+                  const max = Math.max(estimadoN, realN) * 1.2 || 1;
+                  const sinPronostico = estimadoN === 0 && realN > 0;
                   return (
                     <Box key={`${item.name}-${index}`} sx={{ mb: 3 }}>
-                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>{item.name}</Typography>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                        <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
+                        {sinPronostico && (
+                          <Tooltip
+                            title="Este movimiento no tiene un monto estimado."
+                            disableHoverListener={!sinPronostico}
+                          >
+                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                          </Tooltip>
+                        )}
+                      </Stack>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Typography variant="body2" sx={{ minWidth: 80 }}>Estimado:</Typography>
@@ -740,10 +1180,10 @@ export default function MesDetalle() {
         </>
       )}
 
-      {/* === Pestaña 1: Tabla editable === */}
+      {/* === PestaÃ±a 1: Tabla editable === */}
       {tab === 1 && (
         <Paper sx={{ p: 2 }}>
-          {/* Agregar nueva línea */}
+          {/* Agregar nueva lÃ­nea */}
           <Box sx={{ mb: 2 }}>
             {!agregando ? (
               <Button startIcon={<AddCircleOutlineIcon />} variant="contained" onClick={() => setAgregando(true)}>
@@ -751,25 +1191,79 @@ export default function MesDetalle() {
               </Button>
             ) : (
               <Grid container spacing={1} alignItems="center">
-                <Grid item xs={12} md={3}>
-                  <TextField label="Categoría" fullWidth value={nueva.categoria}
-                    onChange={(e) => setNueva((s) => ({ ...s, categoria: e.target.value }))} />
+                <Grid item xs={12} md={4} sx={{ minWidth: 240 }}>
+                  <Autocomplete
+                    size="small"
+                    fullWidth
+                    value={nueva.categoria || null}
+                    onChange={(_, newValue) => {
+                      setNueva((s) => ({ ...s, categoria: newValue || '' }));
+                    }}
+                    options={opcionesNuevaLinea}
+                    freeSolo={false}
+                    disableClearable
+                    forcePopupIcon
+                    popupIcon={<KeyboardArrowDownIcon />}
+                    componentsProps={{
+                      popupIndicator: {
+                        disableRipple: true,
+                        disableFocusRipple: true,
+                        sx: {
+                          p: 0,
+                          m: 0,
+                          bgcolor: 'transparent',
+                          border: 'none',
+                          boxShadow: 'none',
+                          '&:hover': { bgcolor: 'transparent' },
+                          '& .MuiTouchRipple-root': { display: 'none' },
+                          '& .MuiSvgIcon-root': { fontSize: 24 },
+                        },
+                      },
+                      clearIndicator: { sx: { display: 'none' } },
+                    }}
+                    sx={{
+                      '& .MuiAutocomplete-endAdornment': {
+                        right: 0,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                      },
+                      '& .MuiAutocomplete-popupIndicator': { p: 0 },
+                      '& .MuiAutocomplete-popupIndicatorOpen .MuiSvgIcon-root': {
+                        transform: 'none',
+                      },
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Categoría"
+                        size="small"
+                        fullWidth
+                        InputLabelProps={params.InputLabelProps}
+                      />
+                    )}
+                  />
                 </Grid>
                 <Grid item xs={12} md={2}>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth size="small" sx={buildTipoSelectSx(nueva.tipo)}>
                     <InputLabel>Tipo</InputLabel>
-                    <Select label="Tipo" value={nueva.tipo}
-                      onChange={(e) => setNueva((s) => ({ ...s, tipo: e.target.value }))}>
-                      <MenuItem value="INGRESO">INGRESO</MenuItem>
-                      <MenuItem value="EGRESO">EGRESO</MenuItem>
+                    <Select
+                      label="Tipo"
+                      value={nueva.tipo}
+                      onChange={(e) => setNueva((s) => ({ ...s, tipo: e.target.value }))}
+                      size="small"
+                    >
+                      <MenuItem value="Ingreso">INGRESO</MenuItem>
+                      <MenuItem value="Egreso">EGRESO</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={2}>
+                <Grid item xs={12} md={3}>
                   <TextField
                     label="Estimado"
                     type="text"
                     fullWidth
+                    size="small"
+                    InputLabelProps={{ sx: CENTERED_INPUT_LABEL_SX }}
                     value={formatCurrencyInput(nueva.montoEstimado)}
                     onChange={(e) => {
                       const parsed = parseCurrency(e.target.value, { returnEmpty: true });
@@ -778,21 +1272,8 @@ export default function MesDetalle() {
                     inputProps={{ inputMode: 'numeric' }}
                   />
                 </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Real (opcional)"
-                    type="text"
-                    fullWidth
-                    value={formatCurrencyInput(nueva.montoReal)}
-                    onChange={(e) => {
-                      const parsed = parseCurrency(e.target.value, { returnEmpty: true });
-                      setNueva((s) => ({ ...s, montoReal: parsed === '' ? '' : parsed }));
-                    }}
-                    inputProps={{ inputMode: 'numeric' }}
-                  />
-                </Grid>
                 <Grid item xs={12} md={3} display="flex" gap={1} justifyContent="flex-end">
-                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'EGRESO', montoEstimado: '', montoReal: '' }); }}>
+                  <Button variant="outlined" onClick={() => { setAgregando(false); setNueva({ categoria: '', tipo: 'Egreso', montoEstimado: '' }); }}>
                     Cancelar
                   </Button>
                   <Button variant="contained" onClick={addLinea}>Guardar</Button>
@@ -816,112 +1297,238 @@ export default function MesDetalle() {
                 </tr>
               </thead>
               <tbody>
-                {lineas.length > 0 ? (
-                  lineas.map((item, idx) => {
-                    const e = edits[item.id] || { categoria: '', tipo: 'EGRESO', montoEstimado: 0, montoReal: '' };
-                    const estimadoN = safeNumber(e.montoEstimado);
-                    const realN = e.montoReal === '' ? 0 : safeNumber(e.montoReal);
-                    const desvio = e.tipo === 'EGRESO' ? (estimadoN - realN) : (realN - estimadoN);
-                    const allowCategoria = isFieldUnlocked(item.id, 'categoria');
-                    const allowReal = isFieldUnlocked(item.id, 'montoReal');
+                {lineasCompleto.length > 0 ? (
+                  lineasCompleto.map((item, idx) => {
+                    const e = edits[item.id] || { categoria: '', tipo: 'Egreso', montoEstimado: 0, real: '' };
+                    const estimadoOriginal = safeNumber(item.montoEstimado);
+                    const estimadoRaw = e.montoEstimado;
+                    const estimadoN = estimadoRaw === '' ? 0 : safeNumber(estimadoRaw);
+                    const realN = e.real === '' ? 0 : safeNumber(e.real);
+                    const manualEnabled = isFieldUnlocked(item.id, 'categoria');
+                    const esSoloReal = Boolean(item._soloReal);
+                    const cambioPendienteEstimado = manualEnabled && (estimadoRaw === '' || estimadoN !== estimadoOriginal);
+                    const sinPronostico = esSoloReal && realN > 0 && !cambioPendienteEstimado;
+                    const desvio = e.tipo === 'Egreso' ? (estimadoN - realN) : (realN - estimadoN);
+                    const realMovementIds = Array.isArray(item.movimientoIds) ? item.movimientoIds : [];
+                    const baseIdx = lineas.findIndex((l) => l.id === item.id);
 
                     const updateField = (field, value) =>
                       setEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], [field]: value } }));
 
+                    const handleGuardar = () => {
+                      const payload = {
+                        id: item.id,
+                        categoria: e.categoria,
+                        tipo: e.tipo,
+                        montoEstimado: safeNumber(e.montoEstimado),
+                        real: e.real === '' ? null : safeNumber(e.real),
+                      };
+                      if (esSoloReal) {
+                        crearLineaDesdeReal(payload);
+                      } else {
+                        patchLinea(payload);
+                      }
+                    };
+
                     return (
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 240 }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 215 }}>
                           <Box display="flex" alignItems="center" gap={1}>
-                            <TextField
-                              size="small"
-                              fullWidth
-                              value={e.categoria}
-                              InputProps={{ readOnly: !allowCategoria }}
-                              onChange={(ev) => {
-                                if (allowCategoria) updateField('categoria', ev.target.value);
-                              }}
-                            />
-                            {allowCategoria ? (
-                              <Tooltip title="Bloquear edicion manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
-                                  <LockOpenOutlinedIcon fontSize="small" color="warning" />
-                                </IconButton>
-                              </Tooltip>
+                            {manualEnabled ? (
+                              (() => {
+                                // Oculta las categorías ya asignadas a otras líneas del mismo mes.
+                                const categoriaActual = e.categoria || '';
+                                const categoriaActualNorm = normCat(categoriaActual);
+                                const categoriasOcupadas = new Set(
+                                  lineasCompleto
+                                    .filter((otra) => otra.id !== item.id)
+                                    .map((otra) => (edits[otra.id]?.categoria ?? otra.categoria ?? ''))
+                                    .map((valor) => normCat(valor))
+                                    .filter(Boolean)
+                                );
+
+                                let opcionesDisponibles = categoriasOptions.filter((option) => {
+                                  if (typeof option !== 'string') return false;
+                                  const normalizada = normCat(option);
+                                  if (!normalizada) return false;
+                                  if (normalizada === categoriaActualNorm) return true;
+                                  return !categoriasOcupadas.has(normalizada);
+                                });
+
+                                if (categoriaActual && !opcionesDisponibles.some((opt) => normCat(opt) === categoriaActualNorm)) {
+                                  opcionesDisponibles = [categoriaActual, ...opcionesDisponibles];
+                                }
+
+                                return (
+                                  <Autocomplete
+                                    size="small"
+                                    fullWidth
+                                    value={e.categoria || null}
+                                    onChange={(_, newValue) => {
+                                      updateField('categoria', newValue || '');
+                                    }}
+                                    options={opcionesDisponibles}
+                                    freeSolo={false}
+                                    disableClearable
+                                    forcePopupIcon
+                                    popupIcon={<KeyboardArrowDownIcon />}
+                                    componentsProps={{
+                                      popupIndicator: {
+                                        disableRipple: true,
+                                        disableFocusRipple: true,
+                                        sx: {
+                                          p: 0,
+                                          m: 0,
+                                          bgcolor: 'transparent',
+                                          border: 'none',
+                                          boxShadow: 'none',
+                                          '&:hover': { bgcolor: 'transparent' },
+                                          '& .MuiTouchRipple-root': { display: 'none' },
+                                          '& .MuiSvgIcon-root': { fontSize: 24 },
+                                        },
+                                      },
+                                      clearIndicator: { sx: { display: 'none' } },
+                                    }}
+                                    sx={{
+                                      '& .MuiAutocomplete-endAdornment': {
+                                        right: 0,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                      },
+                                      '& .MuiAutocomplete-popupIndicator': { p: 0 },
+                                      '& .MuiAutocomplete-popupIndicatorOpen .MuiSvgIcon-root': {
+                                        transform: 'none',
+                                      },
+                                    }}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        size="small"
+                                        fullWidth
+                                      />
+                                    )}
+                                  />
+                                );
+                              })()
                             ) : (
-                              <Tooltip title="Habilitar edicion manual">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
-                                  <LockOutlinedIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={e.categoria}
+                                InputProps={{ readOnly: true }}
+                              />
                             )}
                           </Box>
                         </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 160 }}>
-                          <FormControl size="small" fullWidth>
-                            <Select value={e.tipo} onChange={(ev) => updateField('tipo', ev.target.value)}>
-                              <MenuItem value="INGRESO">INGRESO</MenuItem>
-                              <MenuItem value="EGRESO">EGRESO</MenuItem>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 100 }}>
+                          <FormControl size="small" fullWidth disabled={!manualEnabled} sx={buildTipoSelectSx(e.tipo)}>
+                            <Select
+                              value={e.tipo}
+                              onChange={(ev) => {
+                                if (!manualEnabled) return;
+                                updateField('tipo', ev.target.value);
+                              }}
+                              size="small"
+                              disabled={!manualEnabled}
+                            >
+                              <MenuItem value="Ingreso">INGRESO</MenuItem>
+                              <MenuItem value="Egreso">EGRESO</MenuItem>
                             </Select>
                           </FormControl>
                         </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
-                          <TextField
-                            size="small"
-                            type="text"
-                            fullWidth
-                            value={formatCurrencyInput(e.montoEstimado)}
-                            onChange={(ev) => updateField('montoEstimado', parseCurrency(ev.target.value))}
-                            inputProps={{ inputMode: 'numeric' }}
-                          />
-                        </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 140 }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 180 }}>
                           <Box display="flex" alignItems="center" gap={1}>
                             <TextField
                               size="small"
                               type="text"
                               fullWidth
-                              value={formatCurrencyInput(e.montoReal)}
-                              InputProps={{ readOnly: !allowReal }}
+                              value={formatCurrencyInput(e.montoEstimado)}
                               onChange={(ev) => {
-                                if (allowReal) updateField('montoReal', parseCurrency(ev.target.value, { returnEmpty: true }));
+                                if (!manualEnabled) return;
+                                updateField('montoEstimado', parseCurrency(ev.target.value));
                               }}
+                              InputProps={{ readOnly: !manualEnabled }}
                               inputProps={{ inputMode: 'numeric' }}
                             />
-                            {allowReal ? (
-                              <Tooltip title="Bloquear edicion manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'montoReal', false)}>
-                                  <LockOpenOutlinedIcon fontSize="small" color="warning" />
+                            {manualEnabled ? (
+                              <Tooltip title="Deshabilitar edición manual">
+                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
+                                  <EditOffOutlinedIcon fontSize="small" color="warning" />
                                 </IconButton>
                               </Tooltip>
                             ) : (
-                              <Tooltip title="Editar monto real manualmente">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'montoReal')}>
-                                  <LockOutlinedIcon fontSize="small" />
+                              <Tooltip title="Editar (categoría, tipo y estimado)">
+                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
+                                  <EditOutlinedIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
                           </Box>
                         </td>
-                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', color: desvio >= 0 ? '#66bb6a' : '#ef5350' }}>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 180 }}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <TextField
+                              size="small"
+                              type="text"
+                              fullWidth
+                              value={formatCurrencyInput(e.real)}
+                              InputProps={{ readOnly: true }}
+                              inputProps={{ inputMode: 'numeric' }}
+                            />
+                            <Tooltip title={realMovementIds.length ? 'Editar monto real' : 'No hay movimientos para editar'}>
+                              <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'real')}>
+                                <LockOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </td>
+                        <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', color: desvio >= 0 ? '#66bb6a' : '#ef5350' , minWidth: 100 }}>
                           {desvio >= 0 ? '+' : '-'}{formatCurrency(Math.abs(desvio))}
                         </td>
-                        <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                          <Tooltip title="Guardar cambios">
-                            <IconButton size="small" onClick={() => patchLinea({ id: item.id, ...e })}>
-                              <SaveOutlinedIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Eliminar esta línea">
-                            <IconButton size="small" onClick={() => openDeletePrompt(item)}>
-                              <DeleteOutlineIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Aplicar esta línea a varios meses">
-                            <IconButton size="small" onClick={() => { setRowMenuIdx(idx); abrirDlgVariosConFila(); }}>
-                              <ContentCopyIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <IconButton size="small" onClick={(ev) => abrirMenuFila(ev, idx)}><MoreVertIcon /></IconButton>
+                        <td style={{ padding: 12, whiteSpace: 'nowrap', textAlign: 'center' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
+                            <Tooltip title={esSoloReal ? 'Crear linea de presupuesto con este movimiento' : 'Guardar cambios'}>
+                              <span>
+                                <IconButton size="small" onClick={handleGuardar}>
+                                  <SaveOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            {sinPronostico && (
+                              <Tooltip title="Movimiento sin pronosticar: no tiene monto estimado.">
+                                <Chip
+                                  size="small"
+                                  icon={<WarningAmberOutlinedIcon fontSize="small" />}
+                                  label="Sin pronosticar"
+                                  variant="filled"
+                                  sx={SIN_PRONOSTICO_CHIP_SX}
+                                />
+                              </Tooltip>
+                            )}
+                            {!esSoloReal && (
+                              <>
+                                <Tooltip title="Eliminar esta linea">
+                                  <span>
+                                    <IconButton size="small" onClick={() => openDeletePrompt(item)}>
+                                      <DeleteOutlineIcon />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                                <Tooltip title="Aplicar esta linea a varios meses">
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => {
+                                        if (baseIdx >= 0) abrirDlgVariosConFila(baseIdx);
+                                      }}
+                                    >
+                                      <ContentCopyIcon />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              </>
+                            )}
+                          </Box>
                         </td>
                       </tr>
                     );
@@ -944,28 +1551,12 @@ export default function MesDetalle() {
         <Button variant="outlined" onClick={() => navigate(-1)}>Volver</Button>
       </Box>
 
-      {/* Menú fila */}
-      <Menu anchorEl={anchorRowMenu} open={Boolean(anchorRowMenu)} onClose={cerrarMenuFila}>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Editar regla (visual).'); }}>
-          <RuleOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Editar regla (este mes / rango)
-        </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Reasignar a otra categoría (visual).'); }}>
-          <SwapHorizOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Reasignar a otra categoría
-        </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); window.alert('Distribuir en subcategorías (visual).'); }}>
-          <PlaylistAddOutlinedIcon fontSize="small" style={{ marginRight: 8 }} /> Distribuir en subcategorías
-        </MenuItem>
-        <MenuItem onClick={() => { cerrarMenuFila(); abrirDlgVariosConFila(); }}>
-          <ContentCopyIcon fontSize="small" style={{ marginRight: 8 }} /> Aplicar a varios meses
-        </MenuItem>
-      </Menu>
-
-      {/* Confirmar edicion manual */}
+      {/* Confirmar edición manual */}
       <Dialog open={guardPrompt.open} onClose={handleGuardCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>{guardPrompt.title || 'Confirmar edicion manual'}</DialogTitle>
+        <DialogTitle>{guardPrompt.title || 'Confirmar edición manual'}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" color="text.secondary">
-            {guardPrompt.message || 'Esta accion habilita la edicion manual.'}
+            {guardPrompt.message || 'Esta acción habilita la edición manual.'}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -980,10 +1571,10 @@ export default function MesDetalle() {
         <DialogTitle>Eliminar movimiento</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" color="text.secondary">
-            Se eliminara la categoria <strong>{deletePrompt.categoria || 'sin nombre'}</strong> ({deletePrompt.tipo ? deletePrompt.tipo.toLowerCase() : 'movimiento'}) de este mes.
+            Se eliminará la categoría <strong>{deletePrompt.categoria || 'sin nombre'}</strong> ({deletePrompt.tipo ? deletePrompt.tipo.toLowerCase() : 'movimiento'}) de este mes.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Esta accion no se puede deshacer.
+            Esta acción no se puede deshacer.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -992,14 +1583,14 @@ export default function MesDetalle() {
         </DialogActions>
       </Dialog>
 
-      {/* Di�logo Reglas r�pidas (visual) */}
+      {/* Diálogo Reglas rápidas (visual) */}
       <Dialog open={dlgReglas} onClose={() => setDlgReglas(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Reglas r�pidas (simulaci�n)</DialogTitle>
+        <DialogTitle>Reglas rápidas (simulación)</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField select label="�mbito" value={regla.ambito} onChange={(e) => setRegla((r) => ({ ...r, ambito: e.target.value }))}>
+            <TextField select label="Ámbito" value={regla.ambito} onChange={(e) => setRegla((r) => ({ ...r, ambito: e.target.value }))}>
               <MenuItem value="este_mes">Este mes</MenuItem>
-              <MenuItem value="hasta_fin">Desde este mes hasta fin de a�o</MenuItem>
+              <MenuItem value="hasta_fin">Desde este mes hasta fin de año</MenuItem>
               <MenuItem value="rango">Rango personalizado</MenuItem>
             </TextField>
             {regla.ambito === 'rango' && (
@@ -1011,7 +1602,7 @@ export default function MesDetalle() {
             <TextField select label="Modo" value={regla.modo} onChange={(e) => setRegla((r) => ({ ...r, modo: e.target.value }))}>
               <MenuItem value="FIJO">Monto fijo</MenuItem>
               <MenuItem value="AJUSTE_PCT">% Ajuste mensual</MenuItem>
-              <MenuItem value="UNICO">�nico (1 mes)</MenuItem>
+              <MenuItem value="UNICO">Único (1 mes)</MenuItem>
               <MenuItem value="CUOTAS">En cuotas</MenuItem>
             </TextField>
             <TextField
@@ -1030,13 +1621,13 @@ export default function MesDetalle() {
             />
             <TextField select label="Aplicar a" value={regla.solo} onChange={(e) => setRegla((r) => ({ ...r, solo: e.target.value }))}>
               <MenuItem value="todos">Ingresos y egresos</MenuItem>
-              <MenuItem value="ingresos">Solo ingresos</MenuItem>
-              <MenuItem value="egresos">Solo egresos</MenuItem>
+              <MenuItem value="Ingresos">Solo ingresos</MenuItem>
+              <MenuItem value="Egresos">Solo egresos</MenuItem>
             </TextField>
             <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>Previsualizaci�n (conceptual)</Typography>
+              <Typography variant="subtitle2" gutterBottom>Previsualización (conceptual)</Typography>
               <Typography variant="body2" color="text.secondary">
-                Aqu� mostrar�as una mini-grilla con las celdas impactadas antes de confirmar.
+                Aquí mostrarías una mini-grilla con las celdas impactadas antes de confirmar.
               </Typography>
             </Paper>
             <FormControlLabel control={<Switch checked={simulacion} onChange={(_, v) => setSimulacion(v)} />} label="Simular cambios (no impacta datos reales)" />
@@ -1044,13 +1635,13 @@ export default function MesDetalle() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDlgReglas(false)}>Cerrar</Button>
-          <Button variant="contained" disabled={!simulacion} onClick={() => { setDlgReglas(false); window.alert('Simulaci�n: regla aplicada (visual).'); }}>
+          <Button variant="contained" disabled={!simulacion} onClick={() => { setDlgReglas(false); window.alert('Simulación: regla aplicada (visual).'); }}>
             Aplicar (visual)
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Di�logo varios meses */}
+      {/* Diálogo varios meses */}
       <Dialog open={dlgVarios} onClose={() => setDlgVarios(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aplicar a varios meses</DialogTitle>
         <DialogContent dividers>
@@ -1073,9 +1664,7 @@ export default function MesDetalle() {
           <Button onClick={() => setDlgVarios(false)}>Cancelar</Button>
           <Button variant="contained" onClick={ejecutarBulk}>Confirmar</Button>
         </DialogActions>
-      </Dialog>
-
-      {/* Snackbar */}
+      </Dialog>      {/* Snackbar */}
       <Snackbar
         open={snack.open}
         autoHideDuration={3000}
@@ -1089,10 +1678,3 @@ export default function MesDetalle() {
     </Box>
   );
 }
-
-
-
-
-
-
-

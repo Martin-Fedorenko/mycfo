@@ -7,9 +7,10 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { jsPDF } from "jspdf";
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
+import API_CONFIG from '../../../config/api-config';
 
 export default function MainGrid() {
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
@@ -19,25 +20,24 @@ export default function MainGrid() {
     const handleYearChange = (e) => setSelectedYear(e.target.value);
 
     React.useEffect(() => {
-        const baseUrl = process.env.REACT_APP_URL_REGISTRO;
+        const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !selectedYear) return;
 
-        fetch(`${baseUrl}/registros`)
+        const headers = {};
+        const sub = sessionStorage.getItem('sub');
+        const token = sessionStorage.getItem('accessToken');
+        if (sub) headers['X-Usuario-Sub'] = sub;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${baseUrl}/cashflow?anio=${selectedYear}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const json = await r.json();
-
-                const filtrados = json.filter(r =>
-                    r.fechaEmision &&
-                    new Date(r.fechaEmision).getFullYear() === selectedYear &&
-                    (r.tipo === "Ingreso" || r.tipo === "Egreso") &&
-                    ["Efectivo", "Transferencia", "MercadoPago"].includes(r.medioPago)
-                );
-
-                setRegistros(filtrados);
+                // El backend ya filtra por aÃ±o, tipos y medios vÃ¡lidos
+                setRegistros(Array.isArray(json) ? json : []);
             })
             .catch((error) => {
-                console.error('Error al obtener registros:', error);
+                console.error('Error al obtener cashflow:', error);
                 setRegistros([]);
             });
     }, [selectedYear]);
@@ -139,8 +139,44 @@ export default function MainGrid() {
     };
 
     const handleExportPdf = () => {
-        // ... (lÃ³gica de PDF sin cambios)
-    };
+    const chartElement = chartRef.current;
+    if (!chartElement) {
+        alert("No se encontró el gráfico para exportar.");
+        return;
+    }
+    html2canvas(chartElement).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const doc = new jsPDF();
+
+        // Título
+        doc.text(`Cashflow Anual (${selectedYear})`, 14, 22);
+
+        // Insertar gráfico
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        doc.addImage(imgData, 'PNG', 14, 30, pdfWidth - 28, pdfHeight);
+
+        // Tabla con totales por mes
+        const head = [["Mes", "Ingresos", "Egresos", "Neto"]];
+        const body = meses.map((mes, i) => [
+            mes,
+            (totalIngresosMensual[i] || 0).toFixed(2),
+            (totalEgresosMensual[i] || 0).toFixed(2),
+            (netosMensual[i] || 0).toFixed(2),
+        ]);
+
+        const startY = 30 + pdfHeight + 10;
+        if (doc.internal.pageSize.getHeight() - startY < 60) {
+            doc.addPage();
+            autoTable(doc, { head, body, startY: 20 });
+        } else {
+            autoTable(doc, { head, body, startY });
+        }
+
+        doc.save(`cashflow-${selectedYear}.pdf`);
+    }).catch(() => alert("No se pudo generar el PDF. Intente nuevamente."));
+};
 
     const dataGrafico = meses.map((mes, i) => ({ mes, Ingresos: totalIngresosMensual[i], Egresos: totalEgresosMensual[i] }));
 
@@ -165,20 +201,22 @@ export default function MainGrid() {
                 saldoInicial={saldoInicial}
             />
 
-            <Paper sx={{ mt: 4, p: 2 }}>
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>Comparativo mensual de Flujo de Caja</Typography>
+            <div ref={chartRef}>
+            <Paper variant="outlined" sx={{ mt: 4, p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>Comparativo mensual de Flujo de Caja</Typography>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={dataGrafico}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                         <XAxis dataKey="mes" />
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="Ingresos" fill="#4caf50" />
-                        <Bar dataKey="Egresos" fill="#f44336" />
+                        <Bar dataKey="Ingresos" fill="#2e7d32" />
+                        <Bar dataKey="Egresos" fill="#c62828" />
                     </BarChart>
                 </ResponsiveContainer>
             </Paper>
+            </div>
 
         </Box>
     );

@@ -16,6 +16,19 @@ import Header from './components/Header';
 // Memoizar el componente Home para evitar re-renderizados innecesarios
 const Home = React.memo(function Home(props) {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  const handleToggleSidebar = React.useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
+
+  const handleCloseSidebar = React.useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
 
   return (
     <AppTheme {...props}>
@@ -46,7 +59,7 @@ const Home = React.memo(function Home(props) {
             mt: { xs: 8, md: 0 },
           }}
         >
-          <Header />
+          <Header onToggleSidebar={handleToggleSidebar} />
           <Outlet />
           </Stack>
         </Box>

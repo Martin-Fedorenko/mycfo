@@ -27,7 +27,9 @@ import {
   Tooltip,
   Pagination,
   CircularProgress,
+  Divider,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import http from "../../../api/http";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -741,141 +743,164 @@ export default function MainGrid() {
         </Alert>
       )}
       {hasActiveSearch && (
-        <Paper sx={{ width: "100%", mb: 3, overflowX: "auto", p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Resultado de la busqueda
-          </Typography>
-          {loadingSearch ? (
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell
-                    colSpan={columnsCount}
-                    sx={(theme) => ({
-                      ...tableCellStyle(theme),
-                      textAlign: "center",
-                      py: 3,
-                    })}
-                  >
-                    Cargando presupuestos...
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          ) : searchPage &&
-            Array.isArray(searchPage.content) &&
-            searchPage.content.length > 0 ? (
-            <>
+        <>
+          <Box sx={{ mt: 4, mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              Resultado de la búsqueda
+            </Typography>
+            <Divider />
+          </Box>
+          <Paper
+            sx={(theme) => ({
+              width: "100%",
+              mb: 3,
+              overflowX: "auto",
+              p: 0,
+              bgcolor: alpha(
+                theme.palette.primary.main,
+                theme.palette.mode === "dark" ? 0.12 : 0.06,
+              ),
+              border: `1px solid ${(theme.vars || theme).palette.divider}`,
+            })}
+          >
+            {loadingSearch ? (
               <Table>
-                <TableHead>
-                  <TableRow sx={tableRowStyle}>
+                <TableBody>
+                  <TableRow>
                     <TableCell
+                      colSpan={columnsCount}
                       sx={(theme) => ({
-                        ...headerCellStyle(theme),
-                        ...getColumnWidth(statusFilter).nombre,
+                        ...tableCellStyle(theme),
+                        textAlign: "center",
+                        py: 3,
                       })}
-                      align="left"
                     >
-                      <HeaderLabelAligned label="Nombre" ghost={headerGhostSearch.nombre} />
+                      Cargando presupuestos...
                     </TableCell>
-                    <TableCell
-                      sx={(theme) => ({
-                        ...headerCellStyle(theme),
-                        ...getColumnWidth(statusFilter).desde,
-                      })}
-                      align="left"
-                    >
-                      <HeaderLabelAligned label="Desde" ghost={headerGhostSearch.desde} />
-                    </TableCell>
-                    <TableCell
-                      sx={(theme) => ({
-                        ...headerCellStyle(theme),
-                        ...getColumnWidth(statusFilter).hasta,
-                      })}
-                      align="left"
-                    >
-                      <HeaderLabelAligned label="Hasta" ghost={headerGhostSearch.hasta} />
-                    </TableCell>
-                    {statusFilter === "deleted" && (
+                  </TableRow>
+                </TableBody>
+              </Table>
+            ) : searchPage &&
+              Array.isArray(searchPage.content) &&
+              searchPage.content.length > 0 ? (
+              <>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={tableRowStyle}>
                       <TableCell
                         sx={(theme) => ({
                           ...headerCellStyle(theme),
-                          ...getColumnWidth(statusFilter).eliminado,
+                          ...getColumnWidth(statusFilter).nombre,
                         })}
                         align="left"
                       >
-                        <HeaderLabelAligned label="Eliminados" ghost={headerGhostSearch.eliminado} />
+                        <HeaderLabelAligned label="Nombre" ghost={headerGhostSearch.nombre} />
                       </TableCell>
-                    )}
-                    <TableCell
-                      sx={(theme) => ({
-                        ...headerCellStyle(theme),
-                        ...getColumnWidth(statusFilter).acciones,
-                      })}
-                      align="right"
-                    >
-                      {/* Wrapper que replica el ancho del bloque de acciones */}
-                      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                        {/* Contenido “fantasma” para medir ancho del bloque real */}
-                        <Box
-                          aria-hidden
-                          sx={{
-                            visibility: 'hidden',
-                            pointerEvents: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 1,
-                          }}
+                      <TableCell
+                        sx={(theme) => ({
+                          ...headerCellStyle(theme),
+                          ...getColumnWidth(statusFilter).desde,
+                        })}
+                        align="left"
+                      >
+                        <HeaderLabelAligned label="Desde" ghost={headerGhostSearch.desde} />
+                      </TableCell>
+                      <TableCell
+                        sx={(theme) => ({
+                          ...headerCellStyle(theme),
+                          ...getColumnWidth(statusFilter).hasta,
+                        })}
+                        align="left"
+                      >
+                        <HeaderLabelAligned label="Hasta" ghost={headerGhostSearch.hasta} />
+                      </TableCell>
+                      {statusFilter === "deleted" && (
+                        <TableCell
+                          sx={(theme) => ({
+                            ...headerCellStyle(theme),
+                            ...getColumnWidth(statusFilter).eliminado,
+                          })}
+                          align="left"
                         >
-                          <Button variant="outlined" size="small">Ver detalle</Button>
-                          <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                          <HeaderLabelAligned label="Eliminados" ghost={headerGhostSearch.eliminado} />
+                        </TableCell>
+                      )}
+                      <TableCell
+                        sx={(theme) => ({
+                          ...headerCellStyle(theme),
+                          ...getColumnWidth(statusFilter).acciones,
+                        })}
+                        align="right"
+                      >
+                        {/* Wrapper que replica el ancho del bloque de acciones */}
+                        <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                          {/* Contenido “fantasma” para medir ancho del bloque real */}
+                          <Box
+                            aria-hidden
+                            sx={{
+                              visibility: 'hidden',
+                              pointerEvents: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <Button variant="outlined" size="small">Ver detalle</Button>
+                            <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                          </Box>
+                          {/* Texto centrado exactamente sobre ese ancho */}
+                          <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
+                            Acciones
+                          </Box>
                         </Box>
-                        {/* Texto centrado exactamente sobre ese ancho */}
-<Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
-                          Acciones
-                        </Box>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>{renderRows(searchPage.content)}</TableBody>
-              </Table>
-              {searchTotalPages > 1 && (
-                <Box mt={2} display="flex" justifyContent="center">
-                  <Pagination
-                    color="primary"
-                    size="small"
-                    count={searchTotalPages}
-                    page={searchCurrentPage}
-                    onChange={handleSearchPageChange}
-                    siblingCount={0}
-                    boundaryCount={1}
-                    aria-label="Paginacion de resultados de presupuestos"
-                    getItemAriaLabel={(type, page) => {
-                      switch (type) {
-                        case "page":
-                          return `Ir a la pagina ${page} de resultados`;
-                        case "previous":
-                          return "Pagina anterior de resultados";
-                        case "next":
-                          return "Pagina siguiente de resultados";
-                        default:
-                          return `Ir a la pagina ${page} de resultados`;
-                      }
-                    }}
-                  />
-                </Box>
-              )}
-            </>
-          ) : (
-            !searchError && (
-              <Alert severity="info">
-                No encontramos presupuestos para el rango seleccionado.
-              </Alert>
-            )
-          )}
-        </Paper>
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>{renderRows(searchPage.content)}</TableBody>
+                </Table>
+                {searchTotalPages > 1 && (
+                  <Box mt={2} display="flex" justifyContent="center">
+                    <Pagination
+                      color="primary"
+                      size="small"
+                      count={searchTotalPages}
+                      page={searchCurrentPage}
+                      onChange={handleSearchPageChange}
+                      siblingCount={0}
+                      boundaryCount={1}
+                      aria-label="Paginacion de resultados de presupuestos"
+                      getItemAriaLabel={(type, page) => {
+                        switch (type) {
+                          case "page":
+                            return `Ir a la pagina ${page} de resultados`;
+                          case "previous":
+                            return "Pagina anterior de resultados";
+                          case "next":
+                            return "Pagina siguiente de resultados";
+                          default:
+                            return `Ir a la pagina ${page} de resultados`;
+                        }
+                      }}
+                    />
+                  </Box>
+                )}
+              </>
+            ) : (
+              !searchError && (
+                <Alert severity="info">
+                  No encontramos presupuestos para el rango seleccionado.
+                </Alert>
+              )
+            )}
+          </Paper>
+        </>
       )}
+      <Box sx={{ mt: 4, mb: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+          Listado completo
+        </Typography>
+        <Divider />
+      </Box>
       {listError && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {listError}

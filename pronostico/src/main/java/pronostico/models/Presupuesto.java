@@ -1,7 +1,18 @@
 package pronostico.models;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -9,19 +20,29 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "presupuesto",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_presupuesto_owner_nombre_periodo",
-                columnNames = {"owner_sub", "nombre", "desde", "hasta"}
-        )
+        uniqueConstraints = {
+            @UniqueConstraint(
+                    name = "uk_presupuesto_organizacion_nombre_periodo",
+                    columnNames = {"organizacion_id", "nombre", "desde", "hasta"}
+            )
+        },
+        indexes = {
+            @Index(name = "idx_presupuesto_organizacion_id", columnList = "organizacion_id")
+        }
 )
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class Presupuesto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organizacion_id")
+    private Long organizacionId;
 
     @Column(name = "owner_sub", nullable = false, length = 64)
     private String ownerSub;

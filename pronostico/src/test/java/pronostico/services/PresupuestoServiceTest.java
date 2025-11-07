@@ -1,4 +1,5 @@
 package pronostico.services;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import pronostico.dtos.CrearPresupuestoRequest;
+import pronostico.dtos.PresupuestoDTO;
 import pronostico.models.Presupuesto;
 import pronostico.models.PresupuestoLinea;
 import pronostico.repositories.PresupuestoLineaRepository;
@@ -55,6 +57,15 @@ class PresupuestoServiceTest {
                 .collect(Collectors.toList());
     }
 
+    private CrearPresupuestoRequest simpleRequest(String nombre) {
+        return CrearPresupuestoRequest.builder()
+            .nombre(nombre)
+            .desde("2027-01")
+            .hasta("2027-03")
+            .autogenerarCeros(true)
+            .build();
+    }
+
     @Test
     @DisplayName("Debe persistir montos compuestos para varias líneas aun con meses en formato flexible")
     void shouldPersistCompoundMonthlyValuesAcrossCategories() {
@@ -94,7 +105,7 @@ class PresupuestoServiceTest {
                 ))
                 .build();
 
-        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, "user-compuesto");
+        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, 1L, "user-compuesto");
         List<PresupuestoLinea> lineas = obtenerLineasOrdenadas(presupuesto.getId());
 
         assertThat(lineas).hasSize(18);
@@ -155,7 +166,7 @@ class PresupuestoServiceTest {
                 ))
                 .build();
 
-        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, "user-test");
+        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, 1L, "user-test");
         List<PresupuestoLinea> lineas = obtenerLineasOrdenadas(presupuesto.getId());
 
         assertThat(lineas).hasSize(4);
@@ -189,7 +200,7 @@ class PresupuestoServiceTest {
                 ))
                 .build();
 
-        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, "user-test");
+        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, 1L, "user-test");
         List<PresupuestoLinea> lineas = obtenerLineasOrdenadas(presupuesto.getId());
 
         Map<String, List<BigDecimal>> porCategoria = lineas.stream()
@@ -220,7 +231,7 @@ class PresupuestoServiceTest {
                 ))
                 .build();
 
-        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, "user-test");
+        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, 1L, "user-test");
         List<PresupuestoLinea> lineas = obtenerLineasOrdenadas(presupuesto.getId());
 
         assertThat(lineas).extracting(PresupuestoLinea::getMontoEstimado)
@@ -245,7 +256,7 @@ class PresupuestoServiceTest {
                 .plantilla(List.of(decreciente))
                 .build();
 
-        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, "user-negativo");
+        Presupuesto presupuesto = presupuestoService.crearPresupuesto(request, 1L, "user-negativo");
         List<PresupuestoLinea> lineas = obtenerLineasOrdenadas(presupuesto.getId());
 
         assertThat(lineas).hasSize(6);
@@ -258,5 +269,29 @@ class PresupuestoServiceTest {
                         new BigDecimal("81450.63"),
                         new BigDecimal("77378.10")
                 );
+    }
+
+    @Test
+    @DisplayName("Debe listar los presupuestos de toda la organizacion")
+    void shouldListBudgetsForEntireOrganization() {
+        presupuestoService.crearPresupuesto(simpleRequest("Org-A-1"), 5L, "owner-a");
+        presupuestoService.crearPresupuesto(simpleRequest("Org-A-2"), 5L, "owner-b");
+        presupuestoService.crearPresupuesto(simpleRequest("Org-B-1"), 6L, "owner-c");
+
+        List<PresupuestoDTO> resultado = presupuestoService.listByStatus(5L, PresupuestoService.ListStatus.ACTIVE);
+
+        assertThat(resultado).extracting(PresupuestoDTO::getNombre)
+            .contains("Org-A-1", "Org-A-2")
+            .doesNotContain("Org-B-1");
+    }
+
+    @Test
+    @DisplayName("Debe obtener presupuestos de otros owners dentro de la misma organizacion")
+    void shouldRetrieveBudgetFromDifferentOwnerWithinOrganization() {
+        Presupuesto presupuesto = presupuestoService.crearPresupuesto(simpleRequest("Org-C-1"), 9L, "owner-d");
+
+        PresupuestoDTO dto = presupuestoService.getOneForOrganizacion(presupuesto.getId(), 9L);
+
+        assertThat(dto.getNombre()).isEqualTo("Org-C-1");
     }
 }

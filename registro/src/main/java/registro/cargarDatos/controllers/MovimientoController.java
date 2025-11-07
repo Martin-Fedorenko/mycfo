@@ -9,6 +9,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import registro.cargarDatos.dtos.ConciliacionResumenResponse;
+import registro.cargarDatos.dtos.MontosMensualesResponse;
+import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
+import registro.cargarDatos.dtos.ResumenMensualResponse;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.services.MovimientoService;
@@ -275,6 +279,120 @@ public class MovimientoController {
             
         } catch (RuntimeException e) {
             log.error("Error al obtener movimientos mensuales: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/mensual")
+    public ResponseEntity<ResumenMensualResponse> obtenerResumenMensual(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            ResumenMensualResponse resumen = movimientoService.obtenerResumenMensual(empresaId, usuarioSub, fecha);
+            return ResponseEntity.ok(resumen);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener resumen mensual: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/ingresos-mensuales")
+    public ResponseEntity<MontosMensualesResponse> obtenerIngresosMensuales(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam(required = false, defaultValue = "12") Integer meses
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            MontosMensualesResponse response = movimientoService.obtenerIngresosMensuales(
+                    empresaId,
+                    usuarioSub,
+                    fecha,
+                    meses != null ? meses : 12
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener ingresos mensuales: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/egresos-mensuales")
+    public ResponseEntity<MontosMensualesResponse> obtenerEgresosMensuales(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam(required = false, defaultValue = "12") Integer meses
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            MontosMensualesResponse response = movimientoService.obtenerEgresosMensuales(
+                    empresaId,
+                    usuarioSub,
+                    fecha,
+                    meses != null ? meses : 12
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener egresos mensuales: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/ingresos-categorias")
+    public ResponseEntity<MontosPorCategoriaResponse> obtenerIngresosPorCategoria(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            MontosPorCategoriaResponse response = movimientoService.obtenerIngresosPorCategoria(
+                    empresaId,
+                    usuarioSub,
+                    fecha
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener ventas por categoría: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/egresos-categorias")
+    public ResponseEntity<MontosPorCategoriaResponse> obtenerEgresosPorCategoria(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            MontosPorCategoriaResponse response = movimientoService.obtenerEgresosPorCategoria(
+                    empresaId,
+                    usuarioSub,
+                    fecha
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener egresos por categoria: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/conciliacion")
+    public ResponseEntity<ConciliacionResumenResponse> obtenerResumenConciliacion(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            ConciliacionResumenResponse response = movimientoService.obtenerResumenConciliacion(
+                    empresaId,
+                    usuarioSub,
+                    fecha
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener resumen de conciliacion: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

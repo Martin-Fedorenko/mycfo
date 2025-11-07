@@ -7,9 +7,10 @@ import TablaDetalle from './TablaDetalle';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { jsPDF } from "jspdf";
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
+import API_CONFIG from '../../../config/api-config';
 
 export default function MainGrid() {
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
@@ -24,13 +25,19 @@ export default function MainGrid() {
     const handleYearChange = (e) => setSelectedYear(e.target.value);
 
     React.useEffect(() => {
-        const baseUrl = process.env.REACT_APP_URL_REPORTE;
+        const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !selectedYear) return;
 
         const params = new URLSearchParams();
         params.set('anio', selectedYear);
 
-        fetch(`${baseUrl}/pyl?${params.toString()}`)
+        const headers = {};
+        const sub = sessionStorage.getItem('sub');
+        const token = sessionStorage.getItem('accessToken');
+        if (sub) headers['X-Usuario-Sub'] = sub;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${baseUrl}/pyl?${params.toString()}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const json = await r.json();
@@ -115,7 +122,7 @@ export default function MainGrid() {
 
             body.push(["Resultado del Ejercicio", "", resultado.toFixed(2)]);
 
-            doc.autoTable({ head: head, body: body, startY: pdfHeight + 40 });
+            autoTable(doc, { head: head, body: body, startY: pdfHeight + 40 });
             doc.save(`profit-and-loss-${selectedYear}.pdf`);
         });
     };
@@ -138,17 +145,17 @@ export default function MainGrid() {
                 <TablaDetalle year={selectedYear} ingresos={data.detalleIngresos} egresos={data.detalleEgresos} />
 
                 <div ref={chartRef}>
-                    <Paper sx={{ mt: 4, p: 2 }}>
-                        <Typography variant="subtitle1" sx={{ mb: 2 }}>Comparativo mensual de Ingresos vs Egresos</Typography>
+                    <Paper variant="outlined" sx={{ mt: 4, p: 2 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>Comparativo mensual de Ingresos vs Egresos</Typography>
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={dataGrafico}>
-                                <CartesianGrid strokeDasharray="3 3" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                                 <XAxis dataKey="mes" />
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="Ingresos" fill="#4caf50" />
-                                <Bar dataKey="Egresos" fill="#f44336" />
+                                <Bar dataKey="Ingresos" fill="#2e7d32" />
+                                <Bar dataKey="Egresos" fill="#c62828" />
                             </BarChart>
                         </ResponsiveContainer>
                     </Paper>

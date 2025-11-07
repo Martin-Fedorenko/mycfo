@@ -2,12 +2,14 @@ import * as React from 'react';
 import {
   Box, Typography, Paper, Grid, Button, Tabs, Tab, Avatar, Chip, Stack, Tooltip,
   IconButton, Divider, Drawer, List, ListItem, ListItemText, TextField, MenuItem, Switch,
-  FormControlLabel, Menu
+  FormControlLabel, Menu, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
 import { formatCurrency } from '../../../utils/currency';
+import { eachMonthOfInterval, startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
+import { getMovimientosPorRango } from '../../../reportes/reportes.service';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend,
   LineChart, Line, Area, ReferenceLine
@@ -31,6 +33,21 @@ const EGRESO_REAL_COLOR = '#f44336';
 const SUPERAVIT_COLOR = '#4caf50';
 const DEFICIT_COLOR = '#f44336';
 
+const datosBrutosTableSx = (theme) => ({
+  borderCollapse: 'collapse',
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
+});
+
+const datosBrutosCellSx = (theme) => ({
+  border: `1px solid ${(theme.vars || theme).palette.divider}`,
+  padding: '12px',
+});
+
+const datosBrutosHeaderCellSx = (theme) => ({
+  ...datosBrutosCellSx(theme),
+  fontWeight: 700,
+});
+
 // Mapeo de número de mes a nombre corto
 const mesCorto = (numStr) => {
   const nombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -52,6 +69,43 @@ const formatDiff = (est, real) => {
   return diff >= 0 ? `+${formatted}` : `-${formatted}`;
 };
 
+const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
+
+const toDateSafe = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  const [yearStr, monthStr, dayStr] = value.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  const date = new Date(year, month - 1, day);
+  return isValidDate(date) ? date : null;
+};
+
+async function getRealPorMes(meses, tipo) {
+  const out = {};
+
+  for (const d of meses) {
+    const desde = formatDate(startOfMonth(d), 'yyyy-MM-dd');
+    const hasta = formatDate(endOfMonth(d), 'yyyy-MM-dd');
+    const mesKey = formatDate(d, 'yyyy-MM');
+    try {
+      const resp = await getMovimientosPorRango({ fechaDesde: desde, fechaHasta: hasta, tipos: tipo });
+      const movimientos = Array.isArray(resp?.content) ? resp.content : (Array.isArray(resp) ? resp : []);
+      const totalMes = movimientos.reduce((acc, movimiento) => {
+        const monto = Math.abs(Number(movimiento?.monto ?? movimiento?.montoTotal ?? 0));
+        return Number.isFinite(monto) ? acc + monto : acc;
+      }, 0);
+      out[mesKey] = totalMes;
+    } catch (error) {
+      console.error(`Error al obtener movimientos del mes ${mesKey} (${tipo}):`, error);
+      out[mesKey] = 0;
+    }
+  }
+
+  return out;
+}
+
 export default function PresupuestoDetalle() {
   const { nombre: nombreUrl } = useParams();
   const navigate = useNavigate();
@@ -61,6 +115,8 @@ export default function PresupuestoDetalle() {
     nombre: '',
     detalleMensual: [],
   });
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
   const [tab, setTab] = React.useState(0); // 0: resumen, 1: tabla
 
@@ -72,11 +128,14 @@ export default function PresupuestoDetalle() {
 
   // Panel lateral (KPIs clicables)
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [drawerTipo, setDrawerTipo] = React.useState('ingresos'); // 'ingresos' | 'egresos' | 'resultado'
+  const [drawerTipo, setDrawerTipo] = React.useState('Ingresos'); // 'ingresos' | 'egresos' | 'resultado'
 
   React.useEffect(() => {
     const cargar = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         // 1) Buscar presupuesto por nombre
         const res = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
         const listaPayload = res?.data;
@@ -98,6 +157,7 @@ export default function PresupuestoDetalle() {
 
         if (!encontrado?.id) {
           setPresupuesto({ id: null, nombre: 'No encontrado', detalleMensual: [] });
+          setLoading(false);
           return;
         }
 
@@ -116,17 +176,57 @@ export default function PresupuestoDetalle() {
         const detalleMensual = totales.map((t, idx) => {
           const ingresoEst = safeNumber(t.ingresoEstimado);
           const egresoEst = safeNumber(t.egresoEstimado);
-          const ingresoReal = safeNumber(t.ingresoReal);
-          const egresoReal = safeNumber(t.egresoReal);
           return {
-            // id sintético solo para keys (no lo usamos para lógica)
             id: idx + 1,
             mes: t.mes, // "YYYY-MM"
             ingresoEst,
-            ingresoReal,
+            ingresoReal: 0, // Inicializar en 0
             egresoEst,
-            egresoReal,
+            egresoReal: 0, // Inicializar en 0
             totalEst: ingresoEst - egresoEst,
+            totalReal: 0,
+          };
+        });
+
+        let realesIngresoPorMes = {};
+        let realesEgresoPorMes = {};
+        try {
+          const fechasDisponibles = detalleMensual
+            .map((detalle) => {
+              const mesKey = (detalle?.mes || '').slice(0, 7);
+              if (!mesKey) return null;
+              return toDateSafe(`${mesKey}-01`);
+            })
+            .filter(Boolean);
+
+          if (fechasDisponibles.length > 0) {
+            const minTime = Math.min(...fechasDisponibles.map((d) => d.getTime()));
+            const maxTime = Math.max(...fechasDisponibles.map((d) => d.getTime()));
+            const rangoInicioDate = startOfMonth(new Date(minTime));
+            const rangoFinDate = endOfMonth(new Date(maxTime));
+            const meses = eachMonthOfInterval({ start: rangoInicioDate, end: rangoFinDate });
+
+            const [egresosPorMes, ingresosPorMes] = await Promise.all([
+              getRealPorMes(meses, 'Egreso'),
+              getRealPorMes(meses, 'Ingreso'),
+            ]);
+            realesEgresoPorMes = egresosPorMes;
+            realesIngresoPorMes = ingresosPorMes;
+          }
+        } catch (movError) {
+          console.error('Error al obtener datos reales del presupuesto:', movError);
+          setError((prev) => prev ?? 'No se pudieron cargar los datos reales del presupuesto.');
+        }
+
+        const detalleMensualCompleto = detalleMensual.map((detalle) => {
+          const mesKey = (detalle?.mes || '').slice(0, 7);
+          const egresoReal = safeNumber(realesEgresoPorMes[mesKey] || 0);
+          const ingresoReal = safeNumber(realesIngresoPorMes[mesKey] || 0);
+
+          return {
+            ...detalle,
+            ingresoReal,
+            egresoReal,
             totalReal: ingresoReal - egresoReal,
           };
         });
@@ -134,11 +234,15 @@ export default function PresupuestoDetalle() {
         setPresupuesto({
           id: encontrado.id,
           nombre: nombreOficial,
-          detalleMensual,
+          detalleMensual: detalleMensualCompleto,
         });
+
       } catch (error) {
         console.error('Error al cargar presupuesto:', error);
+        setError('Error al cargar el presupuesto');
         setPresupuesto({ id: null, nombre: 'Error', detalleMensual: [] });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -375,7 +479,7 @@ export default function PresupuestoDetalle() {
                 <Tooltip title="Ver meses con mayor desvío en ingresos">
                   <IconButton
                     size="small"
-                    onClick={() => setDrawerOpen(true) || setDrawerTipo('ingresos')}
+                    onClick={() => setDrawerOpen(true) || setDrawerTipo('Ingresos')}
                     sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)' }}
                   >
                     <RuleOutlinedIcon fontSize="small" />
@@ -641,19 +745,19 @@ export default function PresupuestoDetalle() {
       {/* === PESTAÑA 1: TABLA === */}
       {tab === 1 && (
         <Paper sx={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ fontWeight: 'bold', borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Mes</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Ingreso Est.</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Ingreso Real</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Egreso Est.</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Egreso Real</th>
-                <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Resultado</th>
-                <th style={{ padding: 12 }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table sx={datosBrutosTableSx}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={datosBrutosHeaderCellSx}>Mes</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Ingreso Est.</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Ingreso Real</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Egreso Est.</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Egreso Real</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Resultado</TableCell>
+                <TableCell sx={datosBrutosHeaderCellSx}>Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {datosMensuales.length > 0 ? (
                 datosMensuales.map((fila, idx) => {
                   const ingresoEst = safeNumber(fila.ingresoEst);
@@ -666,35 +770,50 @@ export default function PresupuestoDetalle() {
                   const pct = Math.abs(totalEst) > 0 ? (diff / Math.abs(totalEst)) * 100 : 0;
 
                   return (
-                    <tr key={fila.mes || idx} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>
+                    <TableRow key={fila.mes || idx}>
+                      <TableCell sx={datosBrutosCellSx}>
                         {fila.mes}
                         {totalReal < 0 && <Chip size="small" sx={{ ml: 1 }} color="warning" label="⚠ déficit" />}
-                      </td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(ingresoEst)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(ingresoReal)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(egresoEst)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>{formatCurrency(egresoReal)}</td>
-                      <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', fontWeight: 700, color: totalReal >= 0 ? '#29b6f6' : '#ffa726' }}>
-                        {formatCurrency(totalReal)} <span style={{ color: pct >= 0 ? '#66bb6a' : '#ef5350' }}>({pct.toFixed(0)}%)</span>
-                      </td>
-                      <td style={{ padding: 12 }}>
+                      </TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoEst)}</TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoReal)}</TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(egresoEst)}</TableCell>
+                      <TableCell sx={datosBrutosCellSx}>{formatCurrency(egresoReal)}</TableCell>
+                      <TableCell
+                        sx={(theme) => ({
+                          ...datosBrutosCellSx(theme),
+                          fontWeight: 700,
+                          color: totalReal >= 0 ? '#29b6f6' : '#ffa726',
+                        })}
+                      >
+                        {formatCurrency(totalReal)}{' '}
+                        <span style={{ color: pct >= 0 ? '#66bb6a' : '#ef5350' }}>({pct.toFixed(0)}%)</span>
+                      </TableCell>
+                      <TableCell sx={datosBrutosCellSx}>
                         <Stack direction="row" spacing={1}>
                           <Button size="small" variant="contained" onClick={() => goToMes(fila)}>Ver mes</Button>
                         </Stack>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               ) : (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: 20, color: 'var(--mui-palette-text-secondary)' }}>
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    sx={(theme) => ({
+                      ...datosBrutosCellSx(theme),
+                      textAlign: 'center',
+                      padding: '20px',
+                      color: (theme.vars || theme).palette.text.secondary,
+                    })}
+                  >
                     No hay datos mensuales con los filtros actuales.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </Paper>
       )}
 
@@ -711,8 +830,8 @@ export default function PresupuestoDetalle() {
             <IconButton onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {drawerTipo === 'ingresos' && 'Ordenado por diferencia Ingreso Real vs Estimado.'}
-            {drawerTipo === 'egresos' && 'Ordenado por diferencia Egreso Real vs Estimado.'}
+            {drawerTipo === 'Ingresos' && 'Ordenado por diferencia Ingreso Real vs Estimado.'}
+            {drawerTipo === 'Egresos' && 'Ordenado por diferencia Egreso Real vs Estimado.'}
             {drawerTipo === 'resultado' && 'Ordenado por diferencia de Resultado Real vs Estimado.'}
           </Typography>
           <List dense>
@@ -723,7 +842,7 @@ export default function PresupuestoDetalle() {
               const resReal = safeNumber(fila.totalReal ?? (safeNumber(fila.ingresoReal) - safeNumber(fila.egresoReal)));
               const resDelta = resReal - resEst;
 
-              const valor = drawerTipo === 'ingresos' ? ingresoDelta : drawerTipo === 'egresos' ? egresoDelta : resDelta;
+              const valor = drawerTipo === 'Ingresos' ? ingresoDelta : drawerTipo === 'egresos' ? egresoDelta : resDelta;
 
               return (
                 <ListItem
@@ -751,4 +870,3 @@ export default function PresupuestoDetalle() {
     </Box>
   );
 }
-
