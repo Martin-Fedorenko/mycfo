@@ -13,7 +13,8 @@ import Header from './components/Header';
 
 
 
-export default function Home(props) {
+// Memoizar el componente Home para evitar re-renderizados innecesarios
+const Home = React.memo(function Home(props) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
@@ -34,10 +35,8 @@ export default function Home(props) {
       <CssBaseline enableColorScheme />
       <Box sx={{ display: 'flex' }}>
         <SideMenu
-          variant="temporary"
-          open={sidebarOpen}
-          onClose={handleCloseSidebar}
-          onNavigate={handleCloseSidebar}
+          variant="permanent"
+          onNavigate={() => {}}
         />
         <AppNavbar />
         {/* Main content */}
@@ -67,7 +66,9 @@ export default function Home(props) {
       </Box>
     </AppTheme>
   );
-}
+});
+
+export default Home;
 
 
 

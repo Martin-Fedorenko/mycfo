@@ -105,13 +105,13 @@ const mockExpensesTrend = {
 };
 
 const mockExpensesByCategory = [
-  { category: "Servicios B?sicos", value: 54000 },
+  { category: "Servicios Básicos", value: 54000 },
   { category: "Vivienda", value: 76000 },
   { category: "Transporte", value: 42000 },
   { category: "Servicios Financieros", value: 35500 },
   { category: "Impuestos y Tasas", value: 68000 },
   { category: "Alimentos y Bebidas", value: 38500 },
-  { category: "Educaci?n", value: 29500 },
+  { category: "Educación", value: 29500 },
   { category: "Salud", value: 31800 },
 ];
 
@@ -315,7 +315,7 @@ const getRecentPeriods = (count = 6) =>
     return { label, value };
   });
 
-const Dashboard = () => {
+const Dashboard = React.memo(() => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -376,6 +376,19 @@ const Dashboard = () => {
     });
 
     clearTimeout(fetchTimeoutRef.current);
+
+    // Carga inmediata sin timeout artificial para navegación instantánea
+    setState((prev) => ({
+      ...prev,
+      kpis: { loading: false, error: null, data: mockKpis },
+      budget: { loading: false, error: null, data: mockBudget },
+      cashflow: { loading: false, error: null, data: mockCashflow },
+      dueDates: { loading: false, error: null, data: mockDueDates },
+      tasks: { loading: false, error: null, data: mockTasks },
+      movements: { loading: false, error: null, data: mockMovements },
+      reconciliation: { loading: false, error: null, data: mockReconciliation },
+      billing: { loading: false, error: null, data: mockBilling },
+    }));
 
     if (useMocks) {
       fetchTimeoutRef.current = setTimeout(() => {
@@ -1145,7 +1158,7 @@ const Dashboard = () => {
       </Snackbar>
     </Box>
   );
-};
+});
 
 export default Dashboard;
 

@@ -1,14 +1,18 @@
 import React from "react";
-import { Typography, Grid } from "@mui/material";
+import { Typography, Grid, Snackbar, Alert } from "@mui/material";
 import axios from "axios";
 import CustomButton from "../../../shared-components/CustomButton";
-import FormFactura from "./forms/FormFactura";
-import FormRegistro from "./forms/FormRegistro";
-import FormIngreso from "./forms/FormIngreso";
-import FormEgreso from "./forms/FormEgreso";
-import FormDeuda from "./forms/FormDeuda";
-import FormAcreencia from "./forms/FormAcreencia";
+import LazyFormWrapper from "./LazyFormWrapper";
 import API_CONFIG from "../../../config/api-config";
+import SuccessSnackbar from "../../../shared-components/SuccessSnackbar";
+
+// Lazy loading para formularios específicos
+const FormFactura = React.lazy(() => import("./forms/FormFactura"));
+const FormRegistro = React.lazy(() => import("./forms/FormRegistro"));
+const FormIngreso = React.lazy(() => import("./forms/FormIngreso"));
+const FormEgreso = React.lazy(() => import("./forms/FormEgreso"));
+const FormDeuda = React.lazy(() => import("./forms/FormDeuda"));
+const FormAcreencia = React.lazy(() => import("./forms/FormAcreencia"));
 
 // 📌 Campos obligatorios por tipo de documento
 const requiredFieldsMap = {
@@ -38,6 +42,18 @@ export default function CargaFormulario({
   errors,
   setErrors,
 }) {
+  const [localErrors, setLocalErrors] = React.useState(errors);
+  const [snackbar, setSnackbar] = React.useState({ open: false, severity: "info", message: "" });
+  const [successSnackbar, setSuccessSnackbar] = React.useState({ open: false, message: "" });
+
+  React.useEffect(() => {
+    setLocalErrors(errors);
+  }, [errors]);
+
+  React.useEffect(() => {
+    setErrors(localErrors);
+  }, [localErrors, setErrors]);
+
   const handleSubmit = async () => {
     // ✅ Validación dinámica
     const newErrors = {};
@@ -109,14 +125,14 @@ export default function CargaFormulario({
       const response = await axios.post(ENDPOINT_UNIFICADO, payload, { headers });
 
       console.log("✅ Respuesta del servidor:", response.data);
-      alert(`✅ ${response.data.mensaje || 'Datos guardados exitosamente'}`);
+      setSuccessSnackbar({ open: true, message: response.data.mensaje || "Datos guardados exitosamente" });
       setFormData({});
-      setErrors({});
+      setLocalErrors({});
 
     } catch (err) {
       console.error("❌ Error en envío:", err);
       const mensaje = err.response?.data?.mensaje || err.message || "Error desconocido";
-      alert(`❌ Error al enviar el formulario: ${mensaje}`);
+      setSnackbar({ open: true, severity: "error", message: mensaje });
     }
   };
 
@@ -124,52 +140,64 @@ export default function CargaFormulario({
     switch (tipoDoc) {
       case "factura":
         return (
-          <FormFactura
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormFactura
+              formData={formData}
+              setFormData={setFormData}
+              errors={localErrors}
+            />
+          </LazyFormWrapper>
         );
       case "movimiento":
         return (
-          <FormRegistro
-            tipoDoc={tipoDoc}
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormRegistro
+              tipoDoc={tipoDoc}
+              formData={formData}
+              setFormData={setFormData}
+              errors={localErrors}
+            />
+          </LazyFormWrapper>
         );
       case "ingreso":
         return (
-          <FormIngreso
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormIngreso
+              formData={formData}
+              setFormData={setFormData}
+              errors={localErrors}
+            />
+          </LazyFormWrapper>
         );
       case "egreso":
         return (
-          <FormEgreso
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormEgreso
+              formData={formData}
+              setFormData={setFormData}
+              errors={localErrors}
+            />
+          </LazyFormWrapper>
         );
       case "deuda":
         return (
-          <FormDeuda
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormDeuda
+              formData={formData}
+              setFormData={setFormData}
+              errors={localErrors}
+            />
+          </LazyFormWrapper>
         );
       case "acreencia":
         return (
-          <FormAcreencia
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
+          <LazyFormWrapper>
+            <FormAcreencia
+              formData={formData}
+              setFormData={setFormData}
+              errors={localErrors}
+            />
+          </LazyFormWrapper>
         );
       default:
         return <Typography>No hay formulario definido para {tipoDoc}</Typography>;
@@ -187,6 +215,26 @@ export default function CargaFormulario({
         width="100%"
         onClick={handleSubmit}
       />
+      <SuccessSnackbar
+        open={successSnackbar.open}
+        message={successSnackbar.message}
+        onClose={() => setSuccessSnackbar({ open: false, message: "" })}
+      />
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ open: false, severity: "info", message: "" })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ open: false, severity: "info", message: "" })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Grid>
   );
 }

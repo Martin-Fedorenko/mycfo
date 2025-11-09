@@ -9,6 +9,7 @@ const API_CONFIG = {
   PRONOSTICO: process.env.REACT_APP_URL_PRONOSTICO || 'http://localhost:8085',
   REGISTRO: process.env.REACT_APP_URL_REGISTRO || 'http://localhost:8086',
   REPORTE: process.env.REACT_APP_URL_REPORTE || 'http://localhost:8087',
+  FORECAST: process.env.REACT_APP_URL_FORECAST || 'http://localhost:8088',
   WEBSOCKET: process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8084/ws'
 };
 

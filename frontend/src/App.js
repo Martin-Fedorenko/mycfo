@@ -1,10 +1,9 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import SignIn from "./sign-in/SignIn";
 import SignUp from "./sign-up/SignUp";
 import Home from "./home/Home";
-import Dashboard from "./dashboard/Dashboard";
 import ConfirmAccount from "./sign-up/ConfirmAccount";
 import routeConfig from "./config/routes";
 import Checkout from "./template/checkout/Checkout";
@@ -12,8 +11,13 @@ import Perfil from "./administracion/perfil/Perfil";
 
 import "./App.css";
 import Organizacion from "./administracion/organizacion/Organizacion";
+import LoadingSpinner from "./shared-components/LoadingSpinner";
 
-function flattenRoutes(routes) {
+// Lazy loading para componentes pesados
+const Dashboard = React.lazy(() => import("./dashboard/Dashboard"));
+
+// Función helper para aplanar rutas (fuera del componente)
+function flattenRoutesHelper(routes) {
   let flatRoutes = [];
 
   routes.forEach((route) => {
@@ -25,21 +29,25 @@ function flattenRoutes(routes) {
       });
     }
     if (route.children) {
-      flatRoutes = flatRoutes.concat(flattenRoutes(route.children));
+      flatRoutes = flatRoutes.concat(flattenRoutesHelper(route.children));
     }
   });
 
   return flatRoutes;
 }
 
-const routes = flattenRoutes(routeConfig);
-
 function RequireAuth() {
   const isLoggedIn = !!sessionStorage.getItem("accessToken");
   return isLoggedIn ? <Outlet /> : <Navigate to="/signin" replace />;
 }
 
-function App() {
+// Memoizar el componente App para evitar re-renderizados innecesarios
+const App = React.memo(() => {
+  // Memoizar las rutas aplanadas dentro del componente
+  const flattenRoutes = React.useMemo(() => {
+    return flattenRoutesHelper(routeConfig);
+  }, []);
+
   return (
     <Router>
       <Routes>
@@ -52,15 +60,31 @@ function App() {
         <Route element={<RequireAuth />}>
           {/* Layout principal con Home como contenedor */}
           <Route path="/" element={<Home />}>
-            {/* Ruta por defecto (podrías redirigir a dashboard u otra página) */}
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            {/* Ruta por defecto - mostrar dashboard en la URL principal */}
+            <Route index element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <Dashboard />
+              </Suspense>
+            } />
+            <Route path="dashboard" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <Dashboard />
+              </Suspense>
+            } />
             <Route path="perfil" element={<Perfil />} />
             <Route path="organizacion" element={<Organizacion />} />
             
             {/* Rutas dinámicas desde la configuración */}
-            {routes.map(({ path, element }, idx) => (
-              <Route key={idx} path={path} element={element} />
+            {flattenRoutes.map(({ path, element }, idx) => (
+              <Route 
+                key={idx} 
+                path={path} 
+                element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    {element}
+                  </Suspense>
+                } 
+              />
             ))}
           </Route>
         </Route>
@@ -70,7 +94,7 @@ function App() {
       </Routes>
     </Router>
   );
-}
+});
 
 export default App;
 export { routeConfig };

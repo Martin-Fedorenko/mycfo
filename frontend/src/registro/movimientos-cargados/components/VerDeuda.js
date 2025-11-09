@@ -1,18 +1,15 @@
 import React from "react";
-import { Box, Typography, FormLabel, useTheme } from "@mui/material";
+import { Box, FormLabel, OutlinedInput } from "@mui/material";
 
 export default function VerDeuda({ movimiento }) {
-  const theme = useTheme();
-  
   if (!movimiento) return null;
 
-  // Formatear fecha
   const formatearFecha = (fecha) => {
     if (!fecha) return "-";
     try {
       if (Array.isArray(fecha)) {
         const [year, month, day] = fecha;
-        return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+        return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
       }
       const date = new Date(fecha);
       return date.toLocaleDateString("es-AR");
@@ -21,154 +18,75 @@ export default function VerDeuda({ movimiento }) {
     }
   };
 
-  // Formatear monto
   const formatearMonto = (monto, moneda = "ARS") => {
     if (monto === null || monto === undefined) return "-";
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency: moneda === "USD" ? "USD" : moneda === "EUR" ? "EUR" : "ARS",
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
     }).format(Math.abs(monto));
   };
 
+  const renderField = ({ label, value, flex = 1, multiline = false, minRows = 1 }) => (
+    <Box sx={{ flex }}>
+      <FormLabel sx={{ mb: 1, display: "block" }}>{label}</FormLabel>
+      <OutlinedInput
+        value={value ?? "-"}
+        size="small"
+        fullWidth
+        disabled
+        multiline={multiline}
+        minRows={minRows}
+      />
+    </Box>
+  );
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
-      {/* 1️⃣ Monto total + Moneda + Medio de pago */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel sx={{ mb: 1, display: "block" }}>Monto total</FormLabel>
-          <Typography variant="body1" sx={{ 
-            p: 1, 
-            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            minHeight: "32px",
-            display: "flex",
-            alignItems: "center",
-            color: theme.palette.text.primary
-          }}>
-            {formatearMonto(movimiento.montoTotal, movimiento.moneda)}
-          </Typography>
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel sx={{ mb: 1, display: "block" }}>Moneda</FormLabel>
-          <Typography variant="body1" sx={{ 
-            p: 1, 
-            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            minHeight: "32px",
-            display: "flex",
-            alignItems: "center",
-            color: theme.palette.text.primary
-          }}>
-            {movimiento.moneda || "-"}
-          </Typography>
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel sx={{ mb: 1, display: "block" }}>Medio de pago</FormLabel>
-          <Typography variant="body1" sx={{ 
-            p: 1, 
-            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            minHeight: "32px",
-            display: "flex",
-            alignItems: "center",
-            color: theme.palette.text.primary
-          }}>
-            {movimiento.medioPago || "-"}
-          </Typography>
-        </Box>
+        {renderField({
+          label: "Monto total",
+          value: formatearMonto(movimiento.montoTotal, movimiento.moneda),
+        })}
+        {renderField({
+          label: "Moneda",
+          value: movimiento.moneda || "-",
+        })}
+        {renderField({
+          label: "Medio de pago",
+          value: movimiento.medioPago || "-",
+        })}
       </Box>
 
-      {/* 2️⃣ Fecha emisión */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel sx={{ mb: 1, display: "block" }}>Fecha emisión</FormLabel>
-          <Typography variant="body1" sx={{ 
-            p: 1, 
-            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            minHeight: "32px",
-            display: "flex",
-            alignItems: "center",
-            color: theme.palette.text.primary
-          }}>
-            {formatearFecha(movimiento.fechaEmision)}
-          </Typography>
-        </Box>
+        {renderField({
+          label: "Fecha emisión",
+          value: formatearFecha(movimiento.fechaEmision),
+        })}
       </Box>
 
-      {/* 3️⃣ Datos del cliente (origen) */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel sx={{ mb: 1, display: "block" }}>Nombre del cliente</FormLabel>
-          <Typography variant="body1" sx={{ 
-            p: 1, 
-            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            minHeight: "32px",
-            display: "flex",
-            alignItems: "center",
-            color: theme.palette.text.primary
-          }}>
-            {movimiento.origenNombre || "-"}
-          </Typography>
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <FormLabel sx={{ mb: 1, display: "block" }}>CUIT del cliente</FormLabel>
-          <Typography variant="body1" sx={{ 
-            p: 1, 
-            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            minHeight: "32px",
-            display: "flex",
-            alignItems: "center",
-            color: theme.palette.text.primary
-          }}>
-            {movimiento.origenCuit || "-"}
-          </Typography>
-        </Box>
+        {renderField({
+          label: "Nombre del cliente",
+          value: movimiento.origenNombre || "-",
+        })}
+        {renderField({
+          label: "CUIT del cliente",
+          value: movimiento.origenCuit || "-",
+        })}
       </Box>
 
-      {/* 4️⃣ Categoría */}
-      <Box>
-        <FormLabel sx={{ mb: 1, display: "block" }}>Categoría</FormLabel>
-        <Typography variant="body1" sx={{ 
-          p: 1, 
-          backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-          borderRadius: 1,
-          border: `1px solid ${theme.palette.divider}`,
-          minHeight: "32px",
-          display: "flex",
-          alignItems: "center",
-          color: theme.palette.text.primary
-        }}>
-          {movimiento.categoria || "-"}
-        </Typography>
-      </Box>
+      {renderField({
+        label: "Categoría",
+        value: movimiento.categoria || "-",
+      })}
 
-      {/* 5️⃣ Descripción */}
-      <Box>
-        <FormLabel sx={{ mb: 1, display: "block" }}>Descripción</FormLabel>
-        <Typography variant="body1" sx={{ 
-          p: 1, 
-          backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
-          borderRadius: 1,
-          border: `1px solid ${theme.palette.divider}`,
-          minHeight: "80px",
-          display: "flex",
-          alignItems: "flex-start",
-          whiteSpace: "pre-wrap",
-          color: theme.palette.text.primary
-        }}>
-          {movimiento.descripcion || "-"}
-        </Typography>
-      </Box>
+      {renderField({
+        label: "Descripción",
+        value: movimiento.descripcion || "-",
+        multiline: true,
+        minRows: 3,
+      })}
     </Box>
   );
 }

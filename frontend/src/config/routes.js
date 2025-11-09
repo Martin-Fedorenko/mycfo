@@ -1,33 +1,38 @@
+import React from "react";
 import StorageIcon from "@mui/icons-material/Storage";
 import DescriptionIcon from "@mui/icons-material/Description";
 import LinkIcon from "@mui/icons-material/Link";
 
-import ReporteMensual from "../reportes/reporte-mensual/ReporteMensual";
-import ExcelManagement from "../consolidacion/carga-movimientos/ExcelManagement";
-import CashFlow from "../reportes/cash-flow/CashFlow";
-import ProfitLoss from "../reportes/ProfitAndLoss/ProfitLoss";
-import Notificaciones from "../notificaciones/listado-notificaciones/Notificaciones";
-import NotificationCenter from "../notificaciones/components/NotificationCenter/NotificationCenter";
-import ReminderManager from "../notificaciones/components/ReminderManager/ReminderManager";
-import NotificationSettings from "../notificaciones/components/NotificationSettings/NotificationSettings";
-import EmailConfiguration from "../notificaciones/components/EmailConfiguration/EmailConfiguration";
-import Presupuesto from "../pronostico/presupuesto/Presupuesto";
-import PresupuestoNuevo from "../pronostico/presupuesto/components/PresupuestoNuevo";
-import PresupuestoDetalle from "../pronostico/presupuesto/components/PresupuestoDetalle";
-import MesDetalle from "../pronostico/presupuesto/components/MesDetalle";
-import CashFlowForecast from "../pronostico/rolling-forecast/RollingForecast";
-import RollingForecast from "../pronostico/cash-flow-forecast/CashFlowForecast";
-import HistorialCambios from "../administracion/historial-cambios/HistorialCambios";
-import Roles from "../administracion/roles/Roles";
-import Invitaciones from "../administracion/invitaciones/Invitaciones";
-import MovimientosCargados from "../registro/movimientos-cargados/MovimientosCargados";
-import MercadoPagoPage from "../consolidacion/mercado-pago/Mercado-Pago";
-import TablaDetalle from "../reportes/reporte-mensual/components/TablaDetalle";
-import TablaRegistrosV2 from "../registro/movimientos-cargados/TablaRegistrosV2";
-import ConciliacionPanel from "../conciliacion/ConciliacionPanel";
-import CargaSeleccionTipo from "../registro/carga-general/CargaSeleccionTipo";
-import CargaSeleccionMetodo from "../registro/carga-general/CargaSeleccionMetodo";
-import CargaVistaFinal from "../registro/carga-general/CargaVistaFinal";
+// Lazy loading para componentes pesados
+const ReporteMensual = React.lazy(() => import("../reportes/reporte-mensual/ReporteMensual"));
+const ExcelManagement = React.lazy(() => import("../consolidacion/carga-movimientos/ExcelManagement"));
+const CashFlow = React.lazy(() => import("../reportes/cash-flow/CashFlow"));
+const ProfitLoss = React.lazy(() => import("../reportes/ProfitAndLoss/ProfitLoss"));
+const Notificaciones = React.lazy(() => import("../notificaciones/listado-notificaciones/Notificaciones"));
+const NotificationCenter = React.lazy(() => import("../notificaciones/components/NotificationCenter/NotificationCenter"));
+const ReminderManager = React.lazy(() => import("../notificaciones/components/ReminderManager/ReminderManager"));
+const NotificationSettings = React.lazy(() => import("../notificaciones/components/NotificationSettings/NotificationSettings"));
+const EmailConfiguration = React.lazy(() => import("../notificaciones/components/EmailConfiguration/EmailConfiguration"));
+const Presupuesto = React.lazy(() => import("../pronostico/presupuesto/Presupuesto"));
+const PresupuestoNuevo = React.lazy(() => import("../pronostico/presupuesto/components/PresupuestoNuevo"));
+const PresupuestoDetalle = React.lazy(() => import("../pronostico/presupuesto/components/PresupuestoDetalle"));
+const MesDetalle = React.lazy(() => import("../pronostico/presupuesto/components/MesDetalle"));
+const PronosticoContinuo = React.lazy(() => import("../pronostico/pronostico-continuo/PronosticoContinuo"));
+const PronosticoFijo = React.lazy(() => import("../pronostico/pronostico-fijo/PronosticoFijo"));
+const CrearForecastConfig = React.lazy(() => import("../pronostico/pronostico-fijo/CrearForecastConfig"));
+const PronosticoFijoDetalle = React.lazy(() => import("../pronostico/pronostico-fijo/PronosticoFijoDetalle"));
+const HistorialCambios = React.lazy(() => import("../administracion/historial-cambios/HistorialCambios"));
+const Roles = React.lazy(() => import("../administracion/roles/Roles"));
+const Invitaciones = React.lazy(() => import("../administracion/invitaciones/Invitaciones"));
+const MovimientosCargados = React.lazy(() => import("../registro/movimientos-cargados/MovimientosCargados"));
+const MercadoPagoPage = React.lazy(() => import("../consolidacion/mercado-pago/Mercado-Pago"));
+const TablaDetalle = React.lazy(() => import("../reportes/reporte-mensual/components/TablaDetalle"));
+const TablaRegistrosV2 = React.lazy(() => import("../registro/movimientos-cargados/TablaRegistrosV2"));
+const FacturaListPage = React.lazy(() => import("../registro/facturas/FacturaListPage"));
+const ConciliacionPanel = React.lazy(() => import("../conciliacion/ConciliacionPanel"));
+const CargaSeleccionTipo = React.lazy(() => import("../registro/carga-general/CargaSeleccionTipo"));
+const CargaSeleccionMetodo = React.lazy(() => import("../registro/carga-general/CargaSeleccionMetodo"));
+const CargaVistaFinal = React.lazy(() => import("../registro/carga-general/CargaVistaFinal"));
 
 const routeConfig = [
   {
@@ -53,13 +58,19 @@ const routeConfig = [
     element: <TablaRegistrosV2 />,
   },
   {
+    label: "Ver facturas",
+    path: "/ver-facturas",
+    icon: <DescriptionIcon />,
+    element: <FacturaListPage />,
+  },
+  {
     label: "Conciliación",
     path: "/conciliacion",
     icon: <LinkIcon />,
     element: <ConciliacionPanel />,
   },
   {
-    label: "Consolidación Bancaria",
+    label: "Vinculación Bancaria",
     icon: <StorageIcon />,
     children: [
       {
@@ -73,12 +84,6 @@ const routeConfig = [
         path: "/mercado-pago",
         icon: <DescriptionIcon />,
         element: <MercadoPagoPage />,
-      },
-      { 
-        label: "Ver movimientos consolidados", 
-        icon: <DescriptionIcon />,
-        path: "/ver-movimientos-consolidados",
-        element: <TablaRegistrosV2 />
       },
     ],
   },
@@ -140,41 +145,36 @@ const routeConfig = [
         ],
       },
       {
-        label: "Cash Flow Forecast",
-        path: "/cash-flow-forecast",
+        label: "Pronóstico Continuo",
+        path: "/pronostico-continuo",
         icon: <DescriptionIcon />,
-        element: <CashFlowForecast />,
+        element: <PronosticoContinuo />,
       },
       {
-        label: "Rolling Forecast",
-        path: "/rolling-forecast",
+        label: "Pronóstico Fijo",
+        path: "/pronostico-fijo",
         icon: <DescriptionIcon />,
-        element: <RollingForecast />,
-      },
-    ],
-  },
-  {
-    label: "Administración",
-    icon: <StorageIcon />,
-    path: "/administracion",
-    children: [
-      {
-        label: "Invitaciones",
-        path: "/invitaciones",
-        icon: <DescriptionIcon />,
-        element: <Invitaciones />,
-      },
-      {
-        label: "Roles",
-        path: "/roles",
-        icon: <DescriptionIcon />,
-        element: <Roles />,
-      },
-      {
-        label: "Historial de cambios",
-        path: "/historial",
-        icon: <DescriptionIcon />,
-        element: <HistorialCambios />,
+        element: <PronosticoFijo />,
+        children: [
+          {
+            label: "Nueva Configuración",
+            path: "/pronostico-fijo/configuracion/nueva",
+            element: <CrearForecastConfig />,
+            hidden: true,
+          },
+          {
+            label: "Editar Configuración",
+            path: "/pronostico-fijo/configuracion/:id",
+            element: <CrearForecastConfig />,
+            hidden: true,
+          },
+          {
+            label: "Detalle Pronóstico",
+            path: "/pronostico-fijo/:id",
+            element: <PronosticoFijoDetalle />,
+            hidden: true,
+          },
+        ],
       },
     ],
   },

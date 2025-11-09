@@ -51,36 +51,36 @@ class PresupuestoControllerIntegrationTest {
 
     private static CrearPresupuestoRequest buildRequest() {
         CrearPresupuestoRequest.PlantillaLinea sueldos = CrearPresupuestoRequest.PlantillaLinea.builder()
-            .categoria("Sueldos")
-            .tipo("EGRESO")
-            .montoEstimado(new BigDecimal("100.00"))
-            .meses(List.of(
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-01").montoEstimado(new BigDecimal("100.00")).build(),
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-02").montoEstimado(new BigDecimal("110.00")).build(),
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-03").montoEstimado(new BigDecimal("121.00")).build(),
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-04").montoEstimado(new BigDecimal("133.10")).build()
-            ))
-            .build();
+                .categoria("Sueldos")
+                .tipo("EGRESO")
+                .montoEstimado(new BigDecimal("100.00"))
+                .meses(List.of(
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-01").montoEstimado(new BigDecimal("100.00")).build(),
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-02").montoEstimado(new BigDecimal("110.00")).build(),
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-03").montoEstimado(new BigDecimal("121.00")).build(),
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-04").montoEstimado(new BigDecimal("133.10")).build()
+                ))
+                .build();
 
         CrearPresupuestoRequest.PlantillaLinea alquiler = CrearPresupuestoRequest.PlantillaLinea.builder()
-            .categoria("Alquiler")
-            .tipo("EGRESO")
-            .montoEstimado(new BigDecimal("80.00"))
-            .meses(List.of(
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-01").montoEstimado(new BigDecimal("80.00")).build(),
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-02").montoEstimado(new BigDecimal("80.00")).build(),
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-03").montoEstimado(new BigDecimal("80.00")).build(),
-                CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-04").montoEstimado(new BigDecimal("80.00")).build()
-            ))
-            .build();
+                .categoria("Alquiler")
+                .tipo("EGRESO")
+                .montoEstimado(new BigDecimal("80.00"))
+                .meses(List.of(
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-01").montoEstimado(new BigDecimal("80.00")).build(),
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-02").montoEstimado(new BigDecimal("80.00")).build(),
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-03").montoEstimado(new BigDecimal("80.00")).build(),
+                        CrearPresupuestoRequest.PlantillaMes.builder().mes("2027-04").montoEstimado(new BigDecimal("80.00")).build()
+                ))
+                .build();
 
         return CrearPresupuestoRequest.builder()
-            .nombre("Presupuesto Integracion")
-            .desde("2027-01")
-            .hasta("2027-04")
-            .autogenerarCeros(false)
-            .plantilla(List.of(sueldos, alquiler))
-            .build();
+                .nombre("Presupuesto Integracion")
+                .desde("2027-01")
+                .hasta("2027-04")
+                .autogenerarCeros(false)
+                .plantilla(List.of(sueldos, alquiler))
+                .build();
     }
 
     private static CrearPresupuestoRequest buildCompoundRequest() {
@@ -109,35 +109,35 @@ class PresupuestoControllerIntegrationTest {
         ventasMontos.put("2028-06", "300000.00");
 
         return CrearPresupuestoRequest.builder()
-            .nombre("Presupuesto Compuesto Integración")
-            .desde("2028-01")
-            .hasta("2028-06")
-            .autogenerarCeros(false)
-            .plantilla(List.of(
-                buildLinea("Alquiler", "EGRESO", alquilerMontos),
-                buildLinea("Sueldos", "EGRESO", sueldosMontos),
-                buildLinea("Ventas esperadas", "INGRESO", ventasMontos)
-            ))
-            .build();
+                .nombre("Presupuesto Compuesto Integración")
+                .desde("2028-01")
+                .hasta("2028-06")
+                .autogenerarCeros(false)
+                .plantilla(List.of(
+                        buildLinea("Alquiler", "EGRESO", alquilerMontos),
+                        buildLinea("Sueldos", "EGRESO", sueldosMontos),
+                        buildLinea("Ventas esperadas", "INGRESO", ventasMontos)
+                ))
+                .build();
     }
 
     private static CrearPresupuestoRequest.PlantillaLinea buildLinea(String categoria, String tipo, Map<String, String> montos) {
         List<CrearPresupuestoRequest.PlantillaMes> meses = montos.entrySet().stream()
-            .map(entry -> CrearPresupuestoRequest.PlantillaMes.builder()
-                .mes(entry.getKey())
-                .montoEstimado(new BigDecimal(entry.getValue()))
-                .build())
-            .sorted(Comparator.comparing(CrearPresupuestoRequest.PlantillaMes::getMes))
-            .collect(Collectors.toList());
+                .map(entry -> CrearPresupuestoRequest.PlantillaMes.builder()
+                        .mes(entry.getKey())
+                        .montoEstimado(new BigDecimal(entry.getValue()))
+                        .build())
+                .sorted(Comparator.comparing(CrearPresupuestoRequest.PlantillaMes::getMes))
+                .collect(Collectors.toList());
 
         BigDecimal montoBase = meses.isEmpty() ? BigDecimal.ZERO : meses.get(0).getMontoEstimado();
 
         return CrearPresupuestoRequest.PlantillaLinea.builder()
-            .categoria(categoria)
-            .tipo(tipo)
-            .montoEstimado(montoBase)
-            .meses(meses)
-            .build();
+                .categoria(categoria)
+                .tipo(tipo)
+                .montoEstimado(montoBase)
+                .meses(meses)
+                .build();
     }
 
     @Test
@@ -154,19 +154,19 @@ class PresupuestoControllerIntegrationTest {
             .andExpect(status().isOk());
 
         List<PresupuestoLinea> lineas = presupuestoLineaRepository.findAll().stream()
-            .sorted(Comparator.comparing(PresupuestoLinea::getCategoria).thenComparing(PresupuestoLinea::getMes))
-            .collect(Collectors.toList());
+                .sorted(Comparator.comparing(PresupuestoLinea::getCategoria).thenComparing(PresupuestoLinea::getMes))
+                .collect(Collectors.toList());
 
         assertThat(lineas).hasSize(8);
 
         Map<String, List<BigDecimal>> porCategoria = lineas.stream()
-            .collect(Collectors.groupingBy(PresupuestoLinea::getCategoria,
-                Collectors.mapping(PresupuestoLinea::getMontoEstimado, Collectors.toList())));
+                .collect(Collectors.groupingBy(PresupuestoLinea::getCategoria,
+                        Collectors.mapping(PresupuestoLinea::getMontoEstimado, Collectors.toList())));
 
         assertThat(porCategoria.get("Sueldos"))
-            .containsExactly(new BigDecimal("100.00"), new BigDecimal("110.00"), new BigDecimal("121.00"), new BigDecimal("133.10"));
+                .containsExactly(new BigDecimal("100.00"), new BigDecimal("110.00"), new BigDecimal("121.00"), new BigDecimal("133.10"));
         assertThat(porCategoria.get("Alquiler"))
-            .containsExactly(new BigDecimal("80.00"), new BigDecimal("80.00"), new BigDecimal("80.00"), new BigDecimal("80.00"));
+                .containsExactly(new BigDecimal("80.00"), new BigDecimal("80.00"), new BigDecimal("80.00"), new BigDecimal("80.00"));
     }
 
     @Test
@@ -216,20 +216,20 @@ class PresupuestoControllerIntegrationTest {
 
             List<Map<String, Object>> lineas = objectMapper.readValue(body, new TypeReference<>() {});
             Map<String, BigDecimal> valores = lineas.stream()
-                .collect(Collectors.toMap(
-                    l -> (String) l.get("categoria"),
-                    l -> new BigDecimal(l.get("montoEstimado").toString()),
-                    (a, b) -> a,
-                    LinkedHashMap::new
-                ));
+                    .collect(Collectors.toMap(
+                            l -> (String) l.get("categoria"),
+                            l -> new BigDecimal(l.get("montoEstimado").toString()),
+                            (a, b) -> a,
+                            LinkedHashMap::new
+                    ));
             valoresPorMes.put(ym, valores);
         }
 
         esperadoSueldos.forEach((mes, monto) ->
-            assertThat(valoresPorMes.get(mes).get("Sueldos")).isEqualByComparingTo(monto));
+                assertThat(valoresPorMes.get(mes).get("Sueldos")).isEqualByComparingTo(monto));
         esperadoAlquiler.forEach((mes, monto) ->
-            assertThat(valoresPorMes.get(mes).get("Alquiler")).isEqualByComparingTo(monto));
+                assertThat(valoresPorMes.get(mes).get("Alquiler")).isEqualByComparingTo(monto));
         esperadoVentas.forEach((mes, monto) ->
-            assertThat(valoresPorMes.get(mes).get("Ventas esperadas")).isEqualByComparingTo(monto));
+                assertThat(valoresPorMes.get(mes).get("Ventas esperadas")).isEqualByComparingTo(monto));
     }
 }

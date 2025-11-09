@@ -15,4 +15,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, String> {
     List<Usuario> findByEmpresaId(Long empresaId);
     
     Optional<Usuario> findBySub(String sub);
+    
+    long countByEmpresa(administracion.models.Empresa empresa);
 }

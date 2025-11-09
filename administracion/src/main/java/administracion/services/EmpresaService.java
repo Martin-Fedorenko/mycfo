@@ -76,6 +76,30 @@ public class EmpresaService {
      * Optimizado para llamadas rápidas desde otros microservicios
      */
     public Long obtenerEmpresaIdPorUsuarioSub(String sub) {
+        System.out.println("🔍 [EMPRESA-SERVICE] Buscando usuario con sub: " + sub);
+        
+        Usuario usuario = usuarioRepository.findBySub(sub)
+                .orElseThrow(() -> {
+                    System.out.println("❌ [EMPRESA-SERVICE] Usuario no encontrado con sub: " + sub);
+                    return new RuntimeException("Usuario no encontrado con sub: " + sub);
+                });
+        
+        System.out.println("✅ [EMPRESA-SERVICE] Usuario encontrado: " + usuario.getNombre() + " (" + usuario.getEmail() + ")");
+        
+        if (usuario.getEmpresa() == null) {
+            System.out.println("❌ [EMPRESA-SERVICE] Usuario sin empresa asociada: " + sub);
+            throw new RuntimeException("El usuario no tiene una empresa asociada");
+        }
+        
+        System.out.println("✅ [EMPRESA-SERVICE] Empresa encontrada: " + usuario.getEmpresa().getNombre() + " (ID: " + usuario.getEmpresa().getId() + ")");
+        return usuario.getEmpresa().getId();
+    }
+
+    /**
+     * Obtiene solo el nombre de empresa del usuario por su sub
+     * Optimizado para llamadas rápidas desde otros microservicios
+     */
+    public String obtenerNombreEmpresaPorUsuario(String sub) {
         Usuario usuario = usuarioRepository.findBySub(sub)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con sub: " + sub));
         
@@ -83,7 +107,11 @@ public class EmpresaService {
             throw new RuntimeException("El usuario no tiene una empresa asociada");
         }
         
-        return usuario.getEmpresa().getId();
+        return usuario.getEmpresa().getNombre();
+    }
+
+    public List<Usuario> listarTodosLosUsuarios() {
+        return usuarioRepository.findAll();
     }
 
     private EmpresaDTO convertirADTO(Empresa empresa) {

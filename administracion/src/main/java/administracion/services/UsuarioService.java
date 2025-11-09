@@ -64,7 +64,15 @@ public class UsuarioService {
         usuario.setNombre(usuarioDTO.getNombre());
         usuario.setEmail(usuarioDTO.getEmail());
         usuario.setTelefono(usuarioDTO.getTelefono());
-        usuario.setRol(usuarioDTO.getRol() != null ? usuarioDTO.getRol() : Rol.NORMAL);
+        
+        // REGLA: Solo asignar rol ADMINISTRADOR si viene explícitamente y es válido
+        // Por defecto, todos los usuarios nuevos empiezan como NORMAL
+        if (usuarioDTO.getRol() != null) {
+            usuario.setRol(usuarioDTO.getRol());
+        } else {
+            usuario.setRol(Rol.NORMAL); // Rol por defecto para usuarios nuevos
+        }
+        
         usuario.setActivo(true);
 
         if (usuarioDTO.getEmpresaId() != null) {
@@ -99,15 +107,33 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioDTO actualizarEmpleado(String subEmpleado, ActualizarUsuarioDTO dto) {
+    public UsuarioDTO actualizarEmpleado(String subEmpleado, ActualizarUsuarioDTO dto, String subUsuarioActual) {
         Usuario usuario = usuarioRepository.findBySub(subEmpleado)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Verificar que el usuario actual es administrador
+        Usuario usuarioActual = usuarioRepository.findBySub(subUsuarioActual)
+                .orElseThrow(() -> new RuntimeException("Usuario actual no encontrado"));
+        
+        if (usuarioActual.getRol() != Rol.ADMINISTRADOR) {
+            throw new RuntimeException("Solo los administradores pueden actualizar empleados");
+        }
 
         usuario.setNombre(dto.getNombre());
         usuario.setEmail(dto.getEmail());
         usuario.setTelefono(dto.getTelefono());
         
+        // Solo un administrador puede asignar rol de administrador
         if (dto.getRol() != null) {
+            if (dto.getRol() == Rol.ADMINISTRADOR && usuarioActual.getRol() != Rol.ADMINISTRADOR) {
+                throw new RuntimeException("Solo un administrador puede asignar el rol de administrador");
+            }
+            
+            // Validación adicional: no permitir que un usuario normal cambie roles
+            if (usuarioActual.getRol() != Rol.ADMINISTRADOR) {
+                throw new RuntimeException("Solo los administradores pueden cambiar roles de usuarios");
+            }
+            
             usuario.setRol(dto.getRol());
         }
 
@@ -124,18 +150,44 @@ public class UsuarioService {
     }
 
     @Transactional
-    public void eliminarEmpleado(String subEmpleado) {
+    public void eliminarEmpleado(String subEmpleado, String subUsuarioActual) {
+        // Verificar que no se está eliminando a sí mismo
+        if (subEmpleado.equals(subUsuarioActual)) {
+            throw new RuntimeException("No puedes eliminar tu propia cuenta. Debe hacerlo otro administrador.");
+        }
+
         Usuario usuario = usuarioRepository.findBySub(subEmpleado)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Verificar que el usuario actual es administrador
+        Usuario usuarioActual = usuarioRepository.findBySub(subUsuarioActual)
+                .orElseThrow(() -> new RuntimeException("Usuario actual no encontrado"));
+        
+        if (usuarioActual.getRol() != Rol.ADMINISTRADOR) {
+            throw new RuntimeException("Solo los administradores pueden eliminar empleados");
+        }
 
         usuarioRepository.delete(usuario);
         cognitoService.eliminarUsuarioEnCognito(subEmpleado);
     }
 
     @Transactional
-    public UsuarioDTO desactivarEmpleado(String subEmpleado) {
+    public UsuarioDTO desactivarEmpleado(String subEmpleado, String subUsuarioActual) {
+        // Verificar que no se está desactivando a sí mismo
+        if (subEmpleado.equals(subUsuarioActual)) {
+            throw new RuntimeException("No puedes desactivar tu propia cuenta. Debe hacerlo otro administrador.");
+        }
+
         Usuario usuario = usuarioRepository.findBySub(subEmpleado)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Verificar que el usuario actual es administrador
+        Usuario usuarioActual = usuarioRepository.findBySub(subUsuarioActual)
+                .orElseThrow(() -> new RuntimeException("Usuario actual no encontrado"));
+        
+        if (usuarioActual.getRol() != Rol.ADMINISTRADOR) {
+            throw new RuntimeException("Solo los administradores pueden desactivar empleados");
+        }
 
         usuario.setActivo(false);
         Usuario actualizado = usuarioRepository.save(usuario);
@@ -145,9 +197,17 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioDTO activarEmpleado(String subEmpleado) {
+    public UsuarioDTO activarEmpleado(String subEmpleado, String subUsuarioActual) {
         Usuario usuario = usuarioRepository.findBySub(subEmpleado)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Verificar que el usuario actual es administrador
+        Usuario usuarioActual = usuarioRepository.findBySub(subUsuarioActual)
+                .orElseThrow(() -> new RuntimeException("Usuario actual no encontrado"));
+        
+        if (usuarioActual.getRol() != Rol.ADMINISTRADOR) {
+            throw new RuntimeException("Solo los administradores pueden activar empleados");
+        }
 
         usuario.setActivo(true);
         Usuario actualizado = usuarioRepository.save(usuario);

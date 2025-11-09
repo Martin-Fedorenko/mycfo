@@ -10,7 +10,9 @@ import registro.cargarDatos.repositories.FacturaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -74,6 +76,11 @@ public class FacturaService {
         return facturaRepository.findByUsuarioId(usuarioId);
     }
 
+    public org.springframework.data.domain.Page<Factura> listarPaginadasPorOrganizacion(Long organizacionId,
+                                                                                       org.springframework.data.domain.Pageable pageable) {
+        return facturaRepository.findByOrganizacionId(organizacionId, pageable);
+    }
+
     /**
      * Busca factura por número de documento
      */
@@ -125,5 +132,56 @@ public class FacturaService {
     @Transactional
     public void eliminarFactura(Long id) {
         facturaRepository.deleteById(id);
+    }
+
+    public org.springframework.data.domain.Page<Factura> buscarFacturas(
+            Long organizacionId,
+            String usuarioId,
+            java.time.LocalDate fechaDesde,
+            java.time.LocalDate fechaHasta,
+            String tipoFactura,
+            EstadoPago estadoPago,
+            org.springframework.data.domain.Pageable pageable
+    ) {
+        return facturaRepository.buscarFacturas(
+                organizacionId,
+                usuarioId,
+                fechaDesde,
+                fechaHasta,
+                tipoFactura,
+                estadoPago,
+                pageable
+        );
+    }
+
+    public List<Factura> buscarFacturas(
+            Long organizacionId,
+            String usuarioId,
+            java.time.LocalDate fechaDesde,
+            java.time.LocalDate fechaHasta,
+            String tipoFactura,
+            EstadoPago estadoPago
+    ) {
+        return facturaRepository.buscarFacturas(
+                organizacionId,
+                usuarioId,
+                fechaDesde,
+                fechaHasta,
+                tipoFactura,
+                estadoPago
+        );
+    }
+
+    public Map<java.time.YearMonth, List<Factura>> agruparFacturasPorMes(
+            Long organizacionId,
+            java.time.LocalDate fechaDesde,
+            java.time.LocalDate fechaHasta
+    ) {
+        return buscarFacturas(organizacionId, null, fechaDesde, fechaHasta, null, null).stream()
+                .collect(Collectors.groupingBy(
+                        factura -> java.time.YearMonth.from(factura.getFechaEmision() != null
+                                ? factura.getFechaEmision()
+                                : java.time.LocalDate.now())
+                ));
     }
 }

@@ -375,6 +375,9 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
 
         // Nota: mpPaymentId removido temporalmente
 
+        // Normalizar monto según tipo antes de guardar
+        normalizarMontoMovimiento(r);
+
         // === 3) Guardar en tabla Registro ===
         Movimiento savedRegistro = movimientoRepo.save(r);
         
@@ -773,5 +776,30 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         }
         
         return 1;
+    }
+    
+    /**
+     * Normaliza el monto de un movimiento según su tipo:
+     * - Egresos siempre negativos
+     * - Ingresos siempre positivos
+     */
+    private void normalizarMontoMovimiento(Movimiento movimiento) {
+        if (movimiento.getMontoTotal() == null || movimiento.getTipo() == null) {
+            return;
+        }
+        
+        double monto = movimiento.getMontoTotal();
+        
+        if (movimiento.getTipo() == TipoMovimiento.Egreso) {
+            // Egreso siempre negativo
+            if (monto > 0) {
+                movimiento.setMontoTotal(-monto);
+            }
+        } else if (movimiento.getTipo() == TipoMovimiento.Ingreso) {
+            // Ingreso siempre positivo
+            if (monto < 0) {
+                movimiento.setMontoTotal(-monto);
+            }
+        }
     }
 }

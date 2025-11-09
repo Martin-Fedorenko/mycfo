@@ -16,6 +16,7 @@ export default function CustomSelect({
   options = [],
   error = "",
   width = "100%",
+  disabled = false,
 }) {
   return (
     <Box sx={{ width }}>
@@ -34,6 +35,7 @@ export default function CustomSelect({
         size="small"
         input={<OutlinedInput />}
         sx={{ width: "100%" }}
+        disabled={disabled}
       >
         <MenuItem value="" disabled>
           Elegir...

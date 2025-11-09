@@ -130,6 +130,7 @@ services:
       - PRONOSTICO_URL=http://pronostico:8085
       - REGISTRO_URL=http://registro:8086
       - REPORTE_URL=http://reporte:8087
+      - FORECAST_URL=http://forecast:8088
 
   registro:
     container_name: registro
@@ -188,6 +189,14 @@ services:
       - PRONOSTICO_URL=http://pronostico:8085
       - REGISTRO_URL=http://registro:8086
       - REPORTE_URL=http://reporte:8087
+
+  forecast:
+    container_name: forecast
+    build: ./forecast
+    ports:
+      - "8088:8088"
+    networks:
+      - mycfo_network
 
   mysql:
     image: mysql:8

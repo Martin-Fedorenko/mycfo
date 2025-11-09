@@ -71,7 +71,17 @@ public class AuthController {
             usuario.setSub(sub);
             usuario.setNombre(dto.getNombre() + " " + dto.getApellido());
             usuario.setEmail(dto.getEmail());
-            usuario.setRol(Rol.ADMINISTRADOR); // Primer usuario es administrador
+            
+            // Determinar rol: ADMINISTRADOR si es el primer usuario de la empresa, NORMAL si es invitación
+            boolean esPrimerUsuario = usuarioRepository.countByEmpresa(empresa) == 0;
+            boolean esInvitacion = dto.getEsInvitacion() != null && dto.getEsInvitacion();
+            
+            if (esPrimerUsuario && !esInvitacion) {
+                usuario.setRol(Rol.ADMINISTRADOR); // Primer usuario de empresa nueva es administrador
+            } else {
+                usuario.setRol(Rol.NORMAL); // Usuarios invitados siempre son NORMAL
+            }
+            
             usuario.setActivo(true);
             usuario.setEmpresa(empresa);
             usuarioRepository.save(usuario);

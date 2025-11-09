@@ -27,6 +27,7 @@ import VerEgreso from "./components/VerEgreso";
 import VerDeuda from "./components/VerDeuda";
 import VerAcreencia from "./components/VerAcreencia";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import SuccessSnackbar from "../../shared-components/SuccessSnackbar";
 
 export default function TablaRegistrosV2() {
   const [movimientos, setMovimientos] = useState([]);
@@ -40,6 +41,7 @@ export default function TablaRegistrosV2() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [movimientoToDelete, setMovimientoToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
+  const [successSnackbar, setSuccessSnackbar] = useState({ open: false, message: "" });
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -248,7 +250,8 @@ export default function TablaRegistrosV2() {
         origenCuit: formData.origenCuit && formData.origenCuit.trim() !== "" ? formData.origenCuit : null,
         destinoNombre: formData.destinoNombre && formData.destinoNombre.trim() !== "" ? formData.destinoNombre : null,
         destinoCuit: formData.destinoCuit && formData.destinoCuit.trim() !== "" ? formData.destinoCuit : null,
-        descripcion: formData.descripcion && formData.descripcion.trim() !== "" ? formData.descripcion : null
+        descripcion: formData.descripcion && formData.descripcion.trim() !== "" ? formData.descripcion : null,
+        estado: formData.estado && formData.estado.trim() !== "" ? formData.estado : null
       };
       
       console.log("📤 Enviando datos al backend:", datosParaBackend);
@@ -258,8 +261,7 @@ export default function TablaRegistrosV2() {
         datosParaBackend,
         { headers }
       );
-      
-      alert("✅ Movimiento actualizado exitosamente");
+      setSuccessSnackbar({ open: true, message: "Movimiento actualizado correctamente." });
       setDialogOpen(false);
       setErrors({}); // Limpiar errores
       cargarMovimientos(); // Recargar datos
@@ -286,8 +288,7 @@ export default function TablaRegistrosV2() {
         `${API_BASE}/movimientos/${movimientoToDelete.id}`,
         { headers }
       );
-      
-      alert("✅ Movimiento eliminado exitosamente");
+      setSuccessSnackbar({ open: true, message: "Movimiento eliminado correctamente." });
       setDeleteConfirmOpen(false);
       setMovimientoToDelete(null);
       cargarMovimientos(); // Recargar datos
@@ -714,16 +715,16 @@ export default function TablaRegistrosV2() {
       </Box>
 
       {/* Dialog para VER o EDITAR - Estilo exacto del formulario original */}
-      <Dialog 
-        open={dialogOpen} 
+      <Dialog
+        open={dialogOpen}
         onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ textAlign: "center", fontSize: "1.5rem", fontWeight: 600 }}>
-          {dialogMode === "view" ? "👁️ Ver Movimiento" : "✏️ Editar Movimiento"}
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          {dialogMode === "edit" ? "Editar movimiento" : "Detalle de movimiento"}
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }} ref={dialogContentRef}>
+        <DialogContent dividers sx={{ p: 3 }} ref={dialogContentRef}>
           {selectedMovimiento && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
               {renderFormularioMovimiento()}
@@ -731,19 +732,12 @@ export default function TablaRegistrosV2() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={handleCloseDialog}
-            variant="outlined"
-          >
-            {dialogMode === "view" ? "Cerrar" : "Cancelar"}
+          <Button onClick={handleCloseDialog} variant="outlined">
+            {dialogMode === "edit" ? "Cancelar" : "Cerrar"}
           </Button>
           {dialogMode === "edit" && (
-            <Button 
-              onClick={handleGuardarCambios} 
-              variant="contained" 
-              color="primary"
-            >
-              Guardar Cambios
+            <Button onClick={handleGuardarCambios} variant="contained">
+              Guardar cambios
             </Button>
           )}
         </DialogActions>
@@ -785,6 +779,11 @@ export default function TablaRegistrosV2() {
           </Button>
         </DialogActions>
       </Dialog>
+      <SuccessSnackbar
+        open={successSnackbar.open}
+        message={successSnackbar.message}
+        onClose={() => setSuccessSnackbar({ open: false, message: "" })}
+      />
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
