@@ -9,6 +9,7 @@ import registro.cargarDatos.services.FacturaService;
 import registro.services.AdministracionService;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controlador para gestión de Facturas
@@ -114,6 +115,86 @@ public class FacturaController {
             
         } catch (RuntimeException e) {
             log.error("Error al actualizar factura {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/paginadas")
+    public ResponseEntity<org.springframework.data.domain.Page<Factura>> listarFacturasPaginadas(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fechaEmision") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            org.springframework.data.domain.Sort.Direction direction = sortDir.equalsIgnoreCase("asc")
+                    ? org.springframework.data.domain.Sort.Direction.ASC
+                    : org.springframework.data.domain.Sort.Direction.DESC;
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                    page, size, org.springframework.data.domain.Sort.by(direction, sortBy));
+
+            org.springframework.data.domain.Page<Factura> facturas = facturaService.listarPaginadasPorOrganizacion(empresaId, pageable);
+            return ResponseEntity.ok(facturas);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener facturas paginadas: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<org.springframework.data.domain.Page<Factura>> buscarFacturas(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate fechaDesde,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate fechaHasta,
+            @RequestParam(required = false) String tipoFactura,
+            @RequestParam(required = false) registro.cargarDatos.models.EstadoPago estadoPago,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fechaEmision") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            org.springframework.data.domain.Sort.Direction direction = sortDir.equalsIgnoreCase("asc")
+                    ? org.springframework.data.domain.Sort.Direction.ASC
+                    : org.springframework.data.domain.Sort.Direction.DESC;
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                    page, size, org.springframework.data.domain.Sort.by(direction, sortBy));
+
+            org.springframework.data.domain.Page<Factura> facturas = facturaService.buscarFacturas(
+                    empresaId,
+                    null,
+                    fechaDesde,
+                    fechaHasta,
+                    tipoFactura,
+                    estadoPago,
+                    pageable
+            );
+            return ResponseEntity.ok(facturas);
+        } catch (RuntimeException e) {
+            log.error("Error al buscar facturas: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/mensuales")
+    public ResponseEntity<Map<java.time.YearMonth, List<Factura>>> obtenerFacturasMensuales(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate fechaDesde,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate fechaHasta
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            Map<java.time.YearMonth, List<Factura>> agrupadas = facturaService.agruparFacturasPorMes(
+                    empresaId,
+                    fechaDesde,
+                    fechaHasta
+            );
+            return ResponseEntity.ok(agrupadas);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener facturas mensuales: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

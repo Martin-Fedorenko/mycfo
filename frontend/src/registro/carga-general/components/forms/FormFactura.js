@@ -12,16 +12,16 @@ import CustomSingleAutoComplete from "../../../../shared-components/CustomSingle
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
 import { sessionService } from "../../../../shared-services/sessionService";
 
-export default function FormFactura({ formData, setFormData, errors = {} }) {
+export default function FormFactura({ formData, setFormData, errors = {}, modoEdicion = true }) {
   const [datosEmpresa, setDatosEmpresa] = useState(null);
 
   // Establecer fecha de hoy por defecto si no hay fecha de emisión
   useEffect(() => {
-    if (!formData.fechaEmision) {
+    if (!formData.fechaEmision && modoEdicion) {
       const hoy = dayjs();
       setFormData((p) => ({ ...p, fechaEmision: hoy }));
     }
-  }, [formData.fechaEmision, setFormData]);
+  }, [formData.fechaEmision, setFormData, modoEdicion]);
 
   // Cargar datos de la empresa del usuario desde la sesión (diferido)
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
     if (version === "Original") {
       // Para Original: empresa va en comprador, limpiar vendedor
       console.log('Autocompletando datos del comprador y limpiando vendedor');
-      setFormData((p) => ({
+      setFormData((p) => (modoEdicion ? {
         ...p,
         // Autocompletar comprador
         compradorNombre: datosEmpresa.nombre || "",
@@ -65,11 +65,11 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         vendedorCuit: "",
         vendedorCondicionIVA: "",
         vendedorDomicilio: ""
-      }));
+      } : p));
     } else if (version === "Duplicado") {
       // Para Duplicado: empresa va en vendedor, limpiar comprador
       console.log('Autocompletando datos del vendedor y limpiando comprador');
-      setFormData((p) => ({
+      setFormData((p) => (modoEdicion ? {
         ...p,
         // Limpiar comprador
         compradorNombre: "",
@@ -81,7 +81,7 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         vendedorCuit: datosEmpresa.cuit || "",
         vendedorCondicionIVA: datosEmpresa.condicionIVA || "",
         vendedorDomicilio: datosEmpresa.domicilio || ""
-      }));
+      } : p));
     }
   };
 
@@ -94,12 +94,14 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
         <FormLabel>Número documento *</FormLabel>
         <OutlinedInput
           value={formData.numeroDocumento || ""}
-          onChange={(e) =>
-            setFormData((p) => ({ ...p, numeroDocumento: e.target.value }))
-          }
+          onChange={(e) => {
+            if (!modoEdicion) return;
+            setFormData((p) => ({ ...p, numeroDocumento: e.target.value }));
+          }}
           size="small"
           fullWidth
           error={!!errors.numeroDocumento}
+          disabled={!modoEdicion}
         />
         {errors.numeroDocumento && (
           <FormHelperText error>{errors.numeroDocumento}</FormHelperText>
@@ -113,12 +115,14 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <CustomSelect
             value={formData.versionDocumento || ""}
             onChange={(valor) => {
+              if (!modoEdicion) return;
               setFormData((p) => ({ ...p, versionDocumento: valor }));
               autocompletarDatos(valor);
             }}
             options={["Original", "Duplicado"]}
             width="100%"
             error={!!errors.versionDocumento}
+            disabled={!modoEdicion}
           />
           {errors.versionDocumento && (
             <FormHelperText error>{errors.versionDocumento}</FormHelperText>
@@ -128,12 +132,14 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>Tipo factura *</FormLabel>
           <CustomSelect
             value={formData.tipoFactura || ""}
-            onChange={(valor) =>
+            onChange={(valor) => {
+              if (!modoEdicion) return;
               setFormData((p) => ({ ...p, tipoFactura: valor }))
-            }
+            }}
             options={["A", "B", "C"]}
             width="100%"
             error={!!errors.tipoFactura}
+            disabled={!modoEdicion}
           />
           {errors.tipoFactura && (
             <FormHelperText error>{errors.tipoFactura}</FormHelperText>
@@ -143,10 +149,12 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>Fecha emisión *</FormLabel>
           <CustomDatePicker
             value={formData.fechaEmision || null}
-            onChange={(fecha) =>
-              setFormData((p) => ({ ...p, fechaEmision: fecha }))
-            }
+            onChange={(fecha) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, fechaEmision: fecha }));
+            }}
             error={!!errors.fechaEmision}
+            disabled={!modoEdicion}
           />
           {errors.fechaEmision && (
             <FormHelperText error>{errors.fechaEmision}</FormHelperText>
@@ -161,12 +169,14 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <OutlinedInput
             type="number"
             value={formData.montoTotal || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, montoTotal: e.target.value }))
-            }
+            onChange={(e) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, montoTotal: e.target.value }));
+            }}
             size="small"
             fullWidth
             error={!!errors.montoTotal}
+            disabled={!modoEdicion}
           />
           {errors.montoTotal && (
             <FormHelperText error>{errors.montoTotal}</FormHelperText>
@@ -176,10 +186,14 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>Moneda *</FormLabel>
           <CustomSelect
             value={formData.moneda || ""}
-            onChange={(valor) => setFormData((p) => ({ ...p, moneda: valor }))}
+            onChange={(valor) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, moneda: valor }));
+            }}
             options={["ARS", "USD", "EUR"]}
             width="100%"
             error={!!errors.moneda}
+            disabled={!modoEdicion}
           />
           {errors.moneda && (
             <FormHelperText error>{errors.moneda}</FormHelperText>
@@ -194,7 +208,11 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <CustomSingleAutoComplete
             options={TODAS_LAS_CATEGORIAS}
             value={formData.categoria || ""}
-            onChange={(valor) => setFormData((p) => ({ ...p, categoria: valor }))}
+            onChange={(valor) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, categoria: valor }));
+            }}
+            disabled={!modoEdicion}
           />
         </Box>
       </Box>
@@ -206,12 +224,14 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>Nombre vendedor *</FormLabel>
           <OutlinedInput
             value={formData.vendedorNombre || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, vendedorNombre: e.target.value }))
-            }
+            onChange={(e) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, vendedorNombre: e.target.value }));
+            }}
             size="small"
             fullWidth
             error={!!errors.vendedorNombre}
+            disabled={!modoEdicion}
           />
           {errors.vendedorNombre && (
             <FormHelperText error>{errors.vendedorNombre}</FormHelperText>
@@ -221,33 +241,39 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>CUIT vendedor</FormLabel>
           <OutlinedInput
             value={formData.vendedorCuit || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, vendedorCuit: e.target.value }))
-            }
+            onChange={(e) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, vendedorCuit: e.target.value }));
+            }}
             size="small"
             fullWidth
+            disabled={!modoEdicion}
           />
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Condición IVA vendedor</FormLabel>
           <CustomSelect
             value={formData.vendedorCondicionIVA || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, vendedorCondicionIVA: valor }))
-            }
+            onChange={(valor) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, vendedorCondicionIVA: valor }));
+            }}
             options={["Responsable Inscripto", "Monotributo", "Exento"]}
             width="100%"
+            disabled={!modoEdicion}
           />
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Domicilio vendedor</FormLabel>
           <OutlinedInput
             value={formData.vendedorDomicilio || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, vendedorDomicilio: e.target.value }))
-            }
+            onChange={(e) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, vendedorDomicilio: e.target.value }));
+            }}
             size="small"
             fullWidth
+            disabled={!modoEdicion}
           />
         </Box>
       </Box>
@@ -258,12 +284,14 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>Nombre comprador *</FormLabel>
           <OutlinedInput
             value={formData.compradorNombre || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, compradorNombre: e.target.value }))
-            }
+            onChange={(e) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, compradorNombre: e.target.value }));
+            }}
             size="small"
             fullWidth
             error={!!errors.compradorNombre}
+            disabled={!modoEdicion}
           />
           {errors.compradorNombre && (
             <FormHelperText error>{errors.compradorNombre}</FormHelperText>
@@ -273,33 +301,39 @@ export default function FormFactura({ formData, setFormData, errors = {} }) {
           <FormLabel>CUIT comprador</FormLabel>
           <OutlinedInput
             value={formData.compradorCuit || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, compradorCuit: e.target.value }))
-            }
+            onChange={(e) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, compradorCuit: e.target.value }));
+            }}
             size="small"
             fullWidth
+            disabled={!modoEdicion}
           />
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Condición IVA comprador</FormLabel>
           <CustomSelect
             value={formData.compradorCondicionIVA || ""}
-            onChange={(valor) =>
-              setFormData((p) => ({ ...p, compradorCondicionIVA: valor }))
-            }
+            onChange={(valor) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, compradorCondicionIVA: valor }));
+            }}
             options={["Responsable Inscripto", "Monotributo", "Exento"]}
             width="100%"
+            disabled={!modoEdicion}
           />
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Domicilio comprador</FormLabel>
           <OutlinedInput
             value={formData.compradorDomicilio || ""}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, compradorDomicilio: e.target.value }))
-            }
+            onChange={(e) => {
+              if (!modoEdicion) return;
+              setFormData((p) => ({ ...p, compradorDomicilio: e.target.value }));
+            }}
             size="small"
             fullWidth
+            disabled={!modoEdicion}
           />
         </Box>
       </Box>

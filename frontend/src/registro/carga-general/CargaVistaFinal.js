@@ -15,43 +15,40 @@ export default function CargaVistaFinal() {
 
   const API_BASE = process.env.REACT_APP_URL_REGISTRO;
 
-  // Endpoint unificado para todos los tipos
-  const ENDPOINT_UNIFICADO = `${API_BASE}/api/carga-datos`;
-
   const endpointMap = {
     factura: {
-      formulario: ENDPOINT_UNIFICADO,
-      documento: `${API_BASE}/api/carga-datos`,
+      formulario: `${API_BASE}/api/carga-datos`,
+      documento: `${API_BASE}/facturas/documento`,
       foto: `${API_BASE}/api/carga-datos`,
       audio: `${API_BASE}/api/carga-datos/audio`,
     },
     movimiento: {
-      formulario: ENDPOINT_UNIFICADO,
-      documento: `${API_BASE}/api/carga-datos`,
+      formulario: `${API_BASE}/api/carga-datos`,
+      documento: `${API_BASE}/movimientos/documento`,
       foto: `${API_BASE}/api/carga-datos`,
       audio: `${API_BASE}/api/carga-datos/audio`,
     },
     ingreso: {
-      formulario: ENDPOINT_UNIFICADO,
-      documento: `${API_BASE}/api/carga-datos`,
+      formulario: `${API_BASE}/api/carga-datos`,
+      documento: `${API_BASE}/movimientos/ingreso/documento`,
       foto: `${API_BASE}/api/carga-datos`,
       audio: `${API_BASE}/api/carga-datos/audio`,
     },
     egreso: {
-      formulario: ENDPOINT_UNIFICADO,
-      documento: `${API_BASE}/api/carga-datos`,
+      formulario: `${API_BASE}/api/carga-datos`,
+      documento: `${API_BASE}/movimientos/egreso/documento`,
       foto: `${API_BASE}/api/carga-datos`,
       audio: `${API_BASE}/api/carga-datos/audio`,
     },
     deuda: {
-      formulario: ENDPOINT_UNIFICADO,
-      documento: `${API_BASE}/api/carga-datos`,
+      formulario: `${API_BASE}/api/carga-datos`,
+      documento: `${API_BASE}/movimientos/deuda/documento`,
       foto: `${API_BASE}/api/carga-datos`,
       audio: `${API_BASE}/api/carga-datos/audio`,
     },
     acreencia: {
-      formulario: ENDPOINT_UNIFICADO,
-      documento: `${API_BASE}/api/carga-datos`,
+      formulario: `${API_BASE}/api/carga-datos`,
+      documento: `${API_BASE}/movimientos/acreencia/documento`,
       foto: `${API_BASE}/api/carga-datos`,
       audio: `${API_BASE}/api/carga-datos/audio`,
     },

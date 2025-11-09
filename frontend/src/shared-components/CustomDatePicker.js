@@ -31,24 +31,30 @@ function ButtonField(props) {
       size="small"
       startIcon={<CalendarTodayRoundedIcon fontSize="small" />}
       sx={{ minWidth: 'fit-content', width: '100%' }}
-      onClick={() => pickerContext.setOpen((prev) => !prev)}
+      disabled={pickerContext.disabled || forwardedProps?.disabled}
+      onClick={() => {
+        if (pickerContext.disabled || forwardedProps?.disabled) return;
+        pickerContext.setOpen((prev) => !prev);
+      }}
     >
       {pickerContext.label ?? valueStr}
     </Button>
   );
 }
 
-export default function CustomDatePicker({ value, onChange }) {
+export default function CustomDatePicker({ value, onChange, disabled = false }) {
   return (
     <LocalizationProvider  dateAdapter={AdapterDayjs}>
       <DatePicker
         value={value}
         label={value == null ? null : value.format('MMM DD, YYYY')}
         onChange={onChange}
+        disabled={disabled}
         slots={{ field: ButtonField }}
         slotProps={{
-          nextIconButton: { size: 'small' },
-          previousIconButton: { size: 'small' },
+          nextIconButton: { size: 'small', disabled },
+          previousIconButton: { size: 'small', disabled },
+          field: { disabled },
         }}
         views={['day', 'month', 'year']}
         sx={{ width: '100%' }}

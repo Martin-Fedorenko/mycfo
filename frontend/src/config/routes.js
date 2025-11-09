@@ -28,6 +28,7 @@ const MovimientosCargados = React.lazy(() => import("../registro/movimientos-car
 const MercadoPagoPage = React.lazy(() => import("../consolidacion/mercado-pago/Mercado-Pago"));
 const TablaDetalle = React.lazy(() => import("../reportes/reporte-mensual/components/TablaDetalle"));
 const TablaRegistrosV2 = React.lazy(() => import("../registro/movimientos-cargados/TablaRegistrosV2"));
+const FacturaListPage = React.lazy(() => import("../registro/facturas/FacturaListPage"));
 const ConciliacionPanel = React.lazy(() => import("../conciliacion/ConciliacionPanel"));
 const CargaSeleccionTipo = React.lazy(() => import("../registro/carga-general/CargaSeleccionTipo"));
 const CargaSeleccionMetodo = React.lazy(() => import("../registro/carga-general/CargaSeleccionMetodo"));
@@ -60,7 +61,7 @@ const routeConfig = [
     label: "Ver facturas",
     path: "/ver-facturas",
     icon: <DescriptionIcon />,
-    element: <TablaRegistrosV2 />,
+    element: <FacturaListPage />,
   },
   {
     label: "Conciliación",

@@ -378,7 +378,8 @@ const Dashboard = React.memo(() => {
     clearTimeout(fetchTimeoutRef.current);
 
     // Carga inmediata sin timeout artificial para navegación instantánea
-    setState({
+    setState((prev) => ({
+      ...prev,
       kpis: { loading: false, error: null, data: mockKpis },
       budget: { loading: false, error: null, data: mockBudget },
       cashflow: { loading: false, error: null, data: mockCashflow },
@@ -387,7 +388,7 @@ const Dashboard = React.memo(() => {
       movements: { loading: false, error: null, data: mockMovements },
       reconciliation: { loading: false, error: null, data: mockReconciliation },
       billing: { loading: false, error: null, data: mockBilling },
-    });
+    }));
 
     if (useMocks) {
       fetchTimeoutRef.current = setTimeout(() => {
