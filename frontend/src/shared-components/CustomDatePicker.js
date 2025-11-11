@@ -1,5 +1,6 @@
 import * as React from 'react';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { useForkRef } from '@mui/material/utils';
 import Button from '@mui/material/Button';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
@@ -11,6 +12,8 @@ import {
   usePickerContext,
   useSplitFieldProps,
 } from '@mui/x-date-pickers';
+
+dayjs.extend(utc);
 
 function ButtonField(props) {
   const { forwardedProps } = useSplitFieldProps(props, 'date');
@@ -43,12 +46,22 @@ function ButtonField(props) {
 }
 
 export default function CustomDatePicker({ value, onChange, disabled = false }) {
+  const handleChange = (newValue) => {
+    if (!onChange) return;
+    if (dayjs.isDayjs(newValue)) {
+      const normalized = dayjs.utc(newValue.startOf("day").format("YYYY-MM-DD"));
+      onChange(normalized);
+    } else {
+      onChange(newValue);
+    }
+  };
+
   return (
-    <LocalizationProvider  dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DatePicker
-        value={value}
-        label={value == null ? null : value.format('MMM DD, YYYY')}
-        onChange={onChange}
+        value={value ? dayjs(value) : null}
+        label={value == null ? null : dayjs(value).format('MMM DD, YYYY')}
+        onChange={handleChange}
         disabled={disabled}
         slots={{ field: ButtonField }}
         slotProps={{

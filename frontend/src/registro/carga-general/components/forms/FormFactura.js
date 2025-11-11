@@ -148,7 +148,7 @@ export default function FormFactura({ formData, setFormData, errors = {}, modoEd
         <Box sx={{ flex: 1 }}>
           <FormLabel>Fecha emisión *</FormLabel>
           <CustomDatePicker
-            value={formData.fechaEmision || null}
+            value={formData.fechaEmision ? dayjs(formData.fechaEmision) : null}
             onChange={(fecha) => {
               if (!modoEdicion) return;
               setFormData((p) => ({ ...p, fechaEmision: fecha }));
@@ -183,21 +183,13 @@ export default function FormFactura({ formData, setFormData, errors = {}, modoEd
           )}
         </Box>
         <Box sx={{ flex: 1 }}>
-          <FormLabel>Moneda *</FormLabel>
-          <CustomSelect
-            value={formData.moneda || ""}
-            onChange={(valor) => {
-              if (!modoEdicion) return;
-              setFormData((p) => ({ ...p, moneda: valor }));
-            }}
-            options={["ARS", "USD", "EUR"]}
-            width="100%"
-            error={!!errors.moneda}
-            disabled={!modoEdicion}
+          <FormLabel>Moneda</FormLabel>
+          <OutlinedInput
+            value={formData.moneda || "ARS"}
+            size="small"
+            fullWidth
+            disabled
           />
-          {errors.moneda && (
-            <FormHelperText error>{errors.moneda}</FormHelperText>
-          )}
         </Box>
       </Box>
 

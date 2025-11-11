@@ -262,9 +262,7 @@ const FacturaListPage = () => {
         minWidth: 160,
         renderCell: (params) => (
           <Box>
-            <Typography variant="body2" fontWeight={600}>
-              {params.value ?? "-"}
-            </Typography>
+            <Typography variant="body2">{params.value ?? "-"}</Typography>
           </Box>
         ),
       },
@@ -275,9 +273,7 @@ const FacturaListPage = () => {
         minWidth: 160,
         renderCell: (params) => (
           <Box>
-            <Typography variant="body2" fontWeight={600}>
-              {params.value ?? "-"}
-            </Typography>
+            <Typography variant="body2">{params.value ?? "-"}</Typography>
           </Box>
         ),
       },
