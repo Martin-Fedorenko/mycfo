@@ -98,17 +98,13 @@ export default function FormPagare({ formData, setFormData, errors = {} }) {
           )}
         </Box>
         <Box sx={{ flex: 1 }}>
-          <FormLabel>Moneda *</FormLabel>
-          <CustomSelect
-            value={formData.moneda || ""}
-            onChange={(valor) => setFormData((p) => ({ ...p, moneda: valor }))}
-            options={["ARS", "USD", "EUR"]}
-            width="100%"
-            error={!!errors.moneda}
+          <FormLabel>Moneda</FormLabel>
+          <OutlinedInput
+            value={formData.moneda || "ARS"}
+            size="small"
+            fullWidth
+            disabled
           />
-          {errors.moneda && (
-            <FormHelperText error>{errors.moneda}</FormHelperText>
-          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Fecha vencimiento *</FormLabel>

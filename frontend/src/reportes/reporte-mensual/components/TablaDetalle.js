@@ -5,8 +5,8 @@ import {
 } from '@mui/material';
 
 const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
-  const totalIngresos = ingresos.reduce((acc, curr) => acc + (curr.total || 0), 0);
-  const totalEgresos = egresos.reduce((acc, curr) => acc + (curr.total || 0), 0);
+  const totalIngresos = ingresos.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+  const totalEgresos = egresos.reduce((acc, curr) => acc + Math.abs(Number(curr.total) || 0), 0);
   const balance = totalIngresos - totalEgresos;
 
   return (
@@ -51,8 +51,8 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
       )}
 
       {/* Tabla de ingresos */}
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
-        <Table>
+      <TableContainer component={Paper} sx={{ mb: 4, maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
+        <Table stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>N°</TableCell>
@@ -72,8 +72,8 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
                 }}
               >
                 <TableCell>{index + 1}</TableCell>
-                <TableCell>{row.categoria}</TableCell>
-                <TableCell align="right">${row.total?.toLocaleString()}</TableCell>
+                <TableCell>{(row.categoria && String(row.categoria).trim().length) ? row.categoria : 'Sin categoría'}</TableCell>
+                <TableCell align="right">${(Number(row.total) || 0).toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -84,8 +84,8 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
       <Typography variant="h6" gutterBottom>
         Detalle de Egresos
       </Typography>
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{ maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
+        <Table stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>N°</TableCell>
@@ -105,8 +105,8 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
                 }}
               >
                 <TableCell>{index + 1}</TableCell>
-                <TableCell>{row.categoria}</TableCell>
-                <TableCell align="right">${row.total?.toLocaleString()}</TableCell>
+                <TableCell>{(row.categoria && String(row.categoria).trim().length) ? row.categoria : 'Sin categoría'}</TableCell>
+                <TableCell align="right">${Math.abs(Number(row.total) || 0).toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>

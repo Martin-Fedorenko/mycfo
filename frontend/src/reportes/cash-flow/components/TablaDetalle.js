@@ -10,14 +10,20 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
     const ultimoMes = (year === ahora.getFullYear()) ? ahora.getMonth() : 11;
     const mesesVisibles = meses.slice(0, ultimoMes + 1);
 
+    const normalizeCategoria = (c) => {
+        const s = (c ?? '').toString().trim();
+        return s.length ? s : 'Sin categoría';
+    };
+
     const agruparYOrdenar = (data) => {
         const map = {};
         data.forEach((tx) => {
             const mes = new Date(tx.fecha).getMonth();
-            if (!map[tx.categoria]) {
-                map[tx.categoria] = Array(12).fill(0);
+            const cat = normalizeCategoria(tx.categoria);
+            if (!map[cat]) {
+                map[cat] = Array(12).fill(0);
             }
-            map[tx.categoria][mes] += tx.monto;
+            map[cat][mes] += tx.monto;
         });
         return Object.entries(map)
             .map(([categoria, valores]) => ({
@@ -33,8 +39,8 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
 
     const totalIngresos = Array(12).fill(0);
     const totalEgresos = Array(12).fill(0);
-    ingresos.forEach((tx) => totalIngresos[new Date(tx.fecha).getMonth()] += tx.monto);
-    egresos.forEach((tx) => totalEgresos[new Date(tx.fecha).getMonth()] += tx.monto);
+    ingresos.forEach((tx) => totalIngresos[new Date(tx.fecha).getMonth()] += Number(tx.monto) || 0);
+    egresos.forEach((tx) => totalEgresos[new Date(tx.fecha).getMonth()] += Math.abs(Number(tx.monto) || 0));
 
     const netos = totalIngresos.map((v, i) => v - totalEgresos[i]);
     const saldoFinal = [];
@@ -70,7 +76,7 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                         </TableRow>
                         {ingresosPorCategoria.map(({ categoria, valores }) => (
                             <TableRow key={categoria}>
-                                <TableCell sx={{ pl: 4 }}>{categoria}</TableCell>
+                                <TableCell sx={{ pl: 4 }}>{normalizeCategoria(categoria)}</TableCell>
                                 {mesesVisibles.map((_, i) => (
                                     <TableCell key={i} align="right" sx={{ color: 'green' }}>
                                         {valores[i] ? `$${valores[i].toLocaleString()}` : '-'}
@@ -85,10 +91,10 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                         </TableRow>
                         {egresosPorCategoria.map(({ categoria, valores }) => (
                             <TableRow key={categoria}>
-                                <TableCell sx={{ pl: 4 }}>{categoria}</TableCell>
+                                <TableCell sx={{ pl: 4 }}>{normalizeCategoria(categoria)}</TableCell>
                                 {mesesVisibles.map((_, i) => (
                                     <TableCell key={i} align="right" sx={{ color: 'red' }}>
-                                        {valores[i] ? `-$${valores[i].toLocaleString()}` : '-'}
+                                        {valores[i] ? `-$${Math.abs(valores[i]).toLocaleString()}` : '-'}
                                     </TableCell>
                                 ))}
                             </TableRow>

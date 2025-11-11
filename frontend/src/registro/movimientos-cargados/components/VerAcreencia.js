@@ -11,8 +11,13 @@ export default function VerAcreencia({ movimiento }) {
         const [year, month, day] = fecha;
         return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
       }
-      const date = new Date(fecha);
-      return date.toLocaleDateString("es-AR");
+      const date = new Date(`${fecha}T00:00:00`);
+      return new Intl.DateTimeFormat("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(date);
     } catch (e) {
       return "-";
     }

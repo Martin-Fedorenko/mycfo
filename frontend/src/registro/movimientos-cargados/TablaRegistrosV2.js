@@ -94,9 +94,16 @@ export default function TablaRegistrosV2() {
     Acreencia: ["montoTotal", "moneda", "fechaEmision"],
   };
 
+  const initializedRef = useRef(false);
+
   useEffect(() => {
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
     cargarMovimientos();
     cargarRolUsuario();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cargarRolUsuario = () => {
@@ -418,11 +425,16 @@ export default function TablaRegistrosV2() {
   };
 
   // Helpers para chips estilizados
+  const COLOR_INGRESO = "#2e7d32";
+  const COLOR_EGRESO = "#d32f2f";
+  const COLOR_DEUDA = "#1565c0";
+  const COLOR_ACREENCIA = "#ed6c02";
+
   const getTipoColor = (tipo) => {
-    if (tipo === "Ingreso") return "#2e7d32";
-    if (tipo === "Egreso") return "#d32f2f";
-    if (tipo === "Deuda") return "#ed6c02";
-    if (tipo === "Acreencia") return "#0288d1";
+    if (tipo === "Ingreso") return COLOR_INGRESO;
+    if (tipo === "Egreso") return COLOR_EGRESO;
+    if (tipo === "Deuda") return COLOR_DEUDA;
+    if (tipo === "Acreencia") return COLOR_ACREENCIA;
     return "#757575";
   };
 
@@ -445,14 +457,17 @@ export default function TablaRegistrosV2() {
   const formatearFecha = (fecha) => {
     if (!fecha) return "-";
     try {
-      // Si la fecha viene como array [year, month, day]
       if (Array.isArray(fecha)) {
         const [year, month, day] = fecha;
-        return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+        return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
       }
-      // Si viene como string
-      const date = new Date(fecha);
-      return date.toLocaleDateString("es-AR");
+      const date = new Date(`${fecha}T00:00:00`);
+      return new Intl.DateTimeFormat("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(date);
     } catch (e) {
       return "-";
     }
@@ -503,11 +518,34 @@ export default function TablaRegistrosV2() {
       flex: 0.8,
       minWidth: 120,
       renderCell: (params) => {
-        const monto = params.row.montoTotal;
+        const monto = params.row.montoTotal || 0;
         const moneda = params.row.moneda || "ARS";
+        const tipo = params.row.tipo;
+        const multiplicador = tipo === "Egreso" ? -1 : 1;
+        const valor = monto * multiplicador;
+        const color =
+          tipo === "Ingreso"
+            ? COLOR_INGRESO
+            : tipo === "Egreso"
+              ? COLOR_EGRESO
+              : tipo === "Deuda"
+                ? COLOR_DEUDA
+                : tipo === "Acreencia"
+                  ? COLOR_ACREENCIA
+                  : "#424242";
+        const signo =
+          tipo === "Egreso" && valor !== 0
+            ? "-"
+            : "";
         return (
-          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: "24px" }}>
-            {monto ? `${new Intl.NumberFormat("es-AR").format(Math.abs(monto))} ${moneda}` : "-"}
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            sx={{ lineHeight: "24px", color }}
+          >
+            {`${signo}${new Intl.NumberFormat("es-AR", {
+              minimumFractionDigits: 2,
+            }).format(Math.abs(valor))} ${moneda}`}
           </Typography>
         );
       },
@@ -534,6 +572,10 @@ export default function TablaRegistrosV2() {
         if (!params.value) return <Typography variant="body2" sx={{ lineHeight: "24px" }}>-</Typography>;
         const estado = params.value;
         const getEstadoColor = () => {
+          if (params.row.tipo === "Ingreso") return COLOR_INGRESO;
+          if (params.row.tipo === "Egreso") return COLOR_EGRESO;
+          if (params.row.tipo === "Deuda") return COLOR_DEUDA;
+          if (params.row.tipo === "Acreencia") return COLOR_ACREENCIA;
           if (estado === "COBRADO" || estado === "PAGADO") return "#4caf50";
           if (estado === "PENDIENTE") return "#ff9800";
           if (estado === "VENCIDO") return "#d32f2f";

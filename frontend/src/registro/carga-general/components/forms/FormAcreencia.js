@@ -42,17 +42,13 @@ export default function FormAcreencia({
           )}
         </Box>
         <Box sx={{ flex: 1 }}>
-          <FormLabel>Moneda *</FormLabel>
-          <CustomSelect
-            value={formData.moneda || ""}
-            onChange={(valor) => setFormData((p) => ({ ...p, moneda: valor }))}
-            options={["ARS", "USD", "EUR"]}
-            width="100%"
-            error={!!errors.moneda}
+          <FormLabel>Moneda</FormLabel>
+          <OutlinedInput
+            value={formData.moneda || "ARS"}
+            size="small"
+            fullWidth
+            disabled
           />
-          {errors.moneda && (
-            <FormHelperText error>{errors.moneda}</FormHelperText>
-          )}
         </Box>
       </Box>
 
@@ -61,7 +57,7 @@ export default function FormAcreencia({
         <Box sx={{ flex: 1 }}>
           <FormLabel>Fecha emisión *</FormLabel>
           <CustomDatePicker
-            value={formData.fechaEmision || null}
+            value={formData.fechaEmision ? dayjs(formData.fechaEmision) : null}
             onChange={(fecha) =>
               setFormData((p) => ({ ...p, fechaEmision: fecha }))
             }

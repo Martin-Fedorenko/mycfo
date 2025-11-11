@@ -22,14 +22,14 @@ export default function MainGrid() {
     });
     const chartRef = React.useRef(null);
 
-    const handleYearChange = (e) => setSelectedYear(e.target.value);
+    const handleYearChange = (e) => setSelectedYear(Number(e.target.value));
 
     React.useEffect(() => {
         const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !selectedYear) return;
 
         const params = new URLSearchParams();
-        params.set('anio', selectedYear);
+        params.set('anio', Number(selectedYear));
 
         const headers = {};
         const sub = sessionStorage.getItem('sub');
@@ -54,20 +54,25 @@ export default function MainGrid() {
             });
     }, [selectedYear]);
 
+    const normalizeCategoria = (c) => {
+        const s = (c ?? '').toString().trim();
+        return s.length ? s : 'Sin categoría';
+    };
+
     const handleExportExcel = () => {
         const { detalleIngresos, detalleEgresos } = data;
-        const totalIngresos = detalleIngresos.reduce((sum, item) => sum + item.total, 0);
-        const totalEgresos = detalleEgresos.reduce((sum, item) => sum + item.total, 0);
+        const totalIngresos = detalleIngresos.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+        const totalEgresos = detalleEgresos.reduce((sum, item) => sum + Math.abs(Number(item.total) || 0), 0);
         const resultado = totalIngresos - totalEgresos;
 
         const excelData = [
             ["Estado de Resultados", `(${selectedYear})`],
             [], // Fila vacía
             ["Ingresos", "", {v: totalIngresos, t: 'n'}],
-            ...detalleIngresos.map(item => ["", item.categoria, {v: item.total, t: 'n'}]),
+            ...detalleIngresos.map(item => ["", normalizeCategoria(item.categoria), {v: Number(item.total) || 0, t: 'n'}]),
             [], // Fila vacía
             ["Egresos", "", {v: totalEgresos, t: 'n'}],
-            ...detalleEgresos.map(item => ["", item.categoria, {v: item.total, t: 'n'}]),
+            ...detalleEgresos.map(item => ["", normalizeCategoria(item.categoria), {v: Math.abs(Number(item.total) || 0), t: 'n'}]),
             [], // Fila vacía
             ["Resultado del Ejercicio", "", {v: resultado, t: 'n'}]
         ];
@@ -112,12 +117,14 @@ export default function MainGrid() {
 
             body.push(["Ingresos", "", totalIngresos.toFixed(2)]);
             detalleIngresos.forEach(item => {
-                body.push(["", item.categoria, item.total.toFixed(2)]);
+                const val = Number(item.total) || 0;
+                body.push(["", normalizeCategoria(item.categoria), val.toFixed(2)]);
             });
 
             body.push(["Egresos", "", totalEgresos.toFixed(2)]);
             detalleEgresos.forEach(item => {
-                body.push(["", item.categoria, item.total.toFixed(2)]);
+                const val = Math.abs(Number(item.total) || 0);
+                body.push(["", normalizeCategoria(item.categoria), val.toFixed(2)]);
             });
 
             body.push(["Resultado del Ejercicio", "", resultado.toFixed(2)]);

@@ -4,7 +4,7 @@ import axios from "axios";
 import CustomButton from "../../../shared-components/CustomButton";
 import LazyFormWrapper from "./LazyFormWrapper";
 import API_CONFIG from "../../../config/api-config";
-import SuccessSnackbar from "../../../shared-components/SuccessSnackbar";
+import dayjs from "dayjs";
 
 // Lazy loading para formularios específicos
 const FormFactura = React.lazy(() => import("./forms/FormFactura"));
@@ -22,16 +22,15 @@ const requiredFieldsMap = {
     "tipoFactura",
     "fechaEmision",
     "montoTotal",
-    "moneda",
     "categoria",
     "vendedorNombre",
     "compradorNombre",
   ],
-  Movimiento: ["montoTotal", "moneda", "medioPago", "fechaEmision"],
-  Ingreso: ["montoTotal", "moneda", "fechaEmision"],
-  Egreso: ["montoTotal", "moneda", "fechaEmision"],
-  Deuda: ["montoTotal", "moneda", "fechaEmision"],
-  Acreencia: ["montoTotal", "moneda", "fechaEmision"],
+  Movimiento: ["montoTotal", "fechaEmision"],
+  Ingreso: ["montoTotal", "fechaEmision"],
+  Egreso: ["montoTotal", "fechaEmision"],
+  Deuda: ["montoTotal", "fechaEmision"],
+  Acreencia: ["montoTotal", "fechaEmision"],
 };
 
 export default function CargaFormulario({
@@ -47,12 +46,53 @@ export default function CargaFormulario({
   const [successSnackbar, setSuccessSnackbar] = React.useState({ open: false, message: "" });
 
   React.useEffect(() => {
+    setFormData((prev) => {
+      const actual = prev || {};
+      if (actual.moneda === "ARS") {
+        return actual;
+      }
+      return { ...actual, moneda: "ARS" };
+    });
+  }, [setFormData]);
+
+  React.useEffect(() => {
+    if (!successSnackbar.open) return;
+    const timer = setTimeout(
+      () => setSuccessSnackbar({ open: false, message: "" }),
+      3500
+    );
+    return () => clearTimeout(timer);
+  }, [successSnackbar.open]);
+
+  React.useEffect(() => {
     setLocalErrors(errors);
   }, [errors]);
 
   React.useEffect(() => {
     setErrors(localErrors);
   }, [localErrors, setErrors]);
+
+  const normalizarDatos = React.useCallback(
+    (datos) => {
+      const resultado = {};
+      Object.entries(datos || {}).forEach(([clave, valor]) => {
+        if (dayjs.isDayjs(valor)) {
+          resultado[clave] = valor.format("YYYY-MM-DD");
+        } else if (Array.isArray(valor)) {
+          resultado[clave] = valor.map((item) =>
+            dayjs.isDayjs(item) ? item.format("YYYY-MM-DD") : item ?? ""
+          );
+        } else if (valor && typeof valor === "object") {
+          resultado[clave] = valor;
+        } else {
+          resultado[clave] = valor ?? "";
+        }
+      });
+      resultado.moneda = "ARS";
+      return resultado;
+    },
+    []
+  );
 
   const handleSubmit = async () => {
     // ✅ Validación dinámica
@@ -86,6 +126,8 @@ export default function CargaFormulario({
         "X-Usuario-Sub": usuarioSub
       };
 
+      const datosParaEnviar = normalizarDatos(formData);
+
       // Preparar payload para el endpoint unificado /api/carga-datos
       let payload;
       let tipoMovimiento = null;
@@ -98,7 +140,7 @@ export default function CargaFormulario({
         payload = {
           tipo: "movimiento",
           metodo: "formulario",
-          datos: formData,
+          datos: datosParaEnviar,
           tipoMovimiento: tipoMovimiento
         };
       } else if (tipoDoc.toLowerCase() === "factura") {
@@ -106,14 +148,14 @@ export default function CargaFormulario({
         payload = {
           tipo: "factura",
           metodo: "formulario",
-          datos: formData
+          datos: datosParaEnviar
         };
       } else {
         // Movimiento genérico
         payload = {
           tipo: "movimiento",
           metodo: "formulario",
-          datos: formData
+          datos: datosParaEnviar
         };
       }
       
@@ -215,11 +257,16 @@ export default function CargaFormulario({
         width="100%"
         onClick={handleSubmit}
       />
-      <SuccessSnackbar
-        open={successSnackbar.open}
-        message={successSnackbar.message}
-        onClose={() => setSuccessSnackbar({ open: false, message: "" })}
-      />
+      {successSnackbar.open && (
+        <Alert
+          severity="success"
+          variant="outlined"
+          sx={{ width: "100%", mt: 2 }}
+          onClose={() => setSuccessSnackbar({ open: false, message: "" })}
+        >
+          {successSnackbar.message}
+        </Alert>
+      )}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
