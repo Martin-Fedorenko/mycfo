@@ -10,16 +10,16 @@ const formatCurrency = (value) => {
 };
 
 export default function TablaDetalle({ year, ingresos, egresos }) {
-    const totalIngresos = ingresos.reduce((sum, item) => sum + (item.total || 0), 0);
-    const totalEgresos = egresos.reduce((sum, item) => sum + (item.total || 0), 0);
+    const totalIngresos = ingresos.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+    const totalEgresos = egresos.reduce((sum, item) => sum + Math.abs(Number(item.total) || 0), 0);
     const resultado = totalIngresos - totalEgresos;
 
     const headerCellStyle = { fontWeight: 'bold', color: 'white' };
 
     return (
         <Paper sx={{ width: '100%', mt: 2 }}>
-            <TableContainer>
-                <Table aria-label="simple table">
+            <TableContainer sx={{ maxHeight: 420, overflowY: 'auto', overflowX: 'auto' }}>
+                <Table aria-label="simple table" stickyHeader>
                     <TableHead>
                         <TableRow>
                             <TableCell sx={{ fontWeight: 'bold' }}>Estado de Resultados ({year})</TableCell>
@@ -36,7 +36,7 @@ export default function TablaDetalle({ year, ingresos, egresos }) {
                         </TableRow>
                         {ingresos.map((item) => (
                             <TableRow hover key={item.categoria}>
-                                <TableCell sx={{ pl: 4 }}>{item.categoria}</TableCell>
+                                <TableCell sx={{ pl: 4 }}>{(item.categoria && String(item.categoria).trim().length) ? item.categoria : 'Sin categoría'}</TableCell>
                                 <TableCell align="right">{formatCurrency(item.total)}</TableCell>
                             </TableRow>
                         ))}
@@ -50,8 +50,8 @@ export default function TablaDetalle({ year, ingresos, egresos }) {
                         </TableRow>
                         {egresos.map((item) => (
                             <TableRow hover key={item.categoria}>
-                                <TableCell sx={{ pl: 4 }}>{item.categoria}</TableCell>
-                                <TableCell align="right">{formatCurrency(item.total)}</TableCell>
+                                <TableCell sx={{ pl: 4 }}>{(item.categoria && String(item.categoria).trim().length) ? item.categoria : 'Sin categoría'}</TableCell>
+                                <TableCell align="right">{formatCurrency(Math.abs(Number(item.total) || 0))}</TableCell>
                             </TableRow>
                         ))}
 
