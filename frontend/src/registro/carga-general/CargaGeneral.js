@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Grid,
-  Tooltip,
-  IconButton,
-  ButtonBase,
-} from "@mui/material";
+import { Box, Typography, Grid, ButtonBase, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
 import {
   Edit,
   Description,
@@ -16,16 +9,61 @@ import {
   SwapHoriz,
 } from "@mui/icons-material";
 
+import dayjs from "dayjs";
 import CargaFormulario from "./components/CargaFormulario";
 import CargaDocumento from "./components/CargaDocumento";
 import CargaImagen from "./components/CargaImagen";
 import CargaAudio from "./components/CargaAudio";
+import VerIngreso from "../movimientos-cargados/components/VerIngreso";
+import VerEgreso from "../movimientos-cargados/components/VerEgreso";
+import VerDeuda from "../movimientos-cargados/components/VerDeuda";
+import VerAcreencia from "../movimientos-cargados/components/VerAcreencia";
 
 export default function CargaGeneral() {
   const [tipoDoc, setTipoDoc] = useState(""); // Factura, Movimiento...
   const [modoCarga, setModoCarga] = useState(""); // formulario, documento, foto, audio
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [dialogTipoDoc, setDialogTipoDoc] = useState("");
+  const [dialogEndpoint, setDialogEndpoint] = useState("");
+  const [dialogData, setDialogData] = useState(null);
+
+  const prepararVistaPrevia = (datos) => {
+    if (!datos) return null;
+    const normalizarMonto = (valor) => {
+      if (valor === null || valor === undefined || valor === "") return "";
+      const numero = Number(String(valor).replace(",", "."));
+      return Number.isNaN(numero) ? valor : numero;
+    };
+    const fecha = datos.fechaEmision
+      ? dayjs(datos.fechaEmision).format("YYYY-MM-DD")
+      : "";
+    return {
+      ...datos,
+      montoTotal: normalizarMonto(datos.montoTotal),
+      fechaEmision: fecha,
+    };
+  };
+
+  const renderVistaPrevia = () => {
+    if (!dialogData) return null;
+    const tipo = dialogTipoDoc;
+    if (!tipo) return null;
+    if (tipo === "ingreso") {
+      return <VerIngreso movimiento={dialogData} />;
+    }
+    if (tipo === "egreso") {
+      return <VerEgreso movimiento={dialogData} />;
+    }
+    if (tipo === "deuda") {
+      return <VerDeuda movimiento={dialogData} />;
+    }
+    if (tipo === "acreencia") {
+      return <VerAcreencia movimiento={dialogData} />;
+    }
+    return null;
+  };
 
   const API_BASE = process.env.REACT_APP_URL_REGISTRO;
 
@@ -34,42 +72,40 @@ export default function CargaGeneral() {
       formulario: `${API_BASE}/facturas/formulario`,
       documento: `${API_BASE}/facturas/documento`,
       foto: `${API_BASE}/facturas/foto`,
-      audio: `${API_BASE}/facturas/audio`,
+      audio: `${API_BASE}/api/carga-datos/facturas/audio`,
     },
-    // Todos los movimientos usan el mismo endpoint unificado
     Movimiento: {
       formulario: `${API_BASE}/movimientos`,
       documento: `${API_BASE}/movimientos/documento`,
       foto: `${API_BASE}/movimientos/foto`,
-      audio: `${API_BASE}/movimientos/audio`,
+      audio: `${API_BASE}/api/carga-datos/movimientos/audio`,
     },
     Ingreso: {
       formulario: `${API_BASE}/movimientos`,
       documento: `${API_BASE}/movimientos/ingreso/documento`,
       foto: `${API_BASE}/movimientos/foto`,
-      audio: `${API_BASE}/movimientos/audio`,
+      audio: `${API_BASE}/api/carga-datos/movimientos/audio`,
     },
     Egreso: {
       formulario: `${API_BASE}/movimientos`,
       documento: `${API_BASE}/movimientos/egreso/documento`,
       foto: `${API_BASE}/movimientos/foto`,
-      audio: `${API_BASE}/movimientos/audio`,
+      audio: `${API_BASE}/api/carga-datos/movimientos/audio`,
     },
     Deuda: {
       formulario: `${API_BASE}/movimientos`,
       documento: `${API_BASE}/movimientos/deuda/documento`,
       foto: `${API_BASE}/movimientos/foto`,
-      audio: `${API_BASE}/movimientos/audio`,
+      audio: `${API_BASE}/api/carga-datos/movimientos/audio`,
     },
     Acreencia: {
       formulario: `${API_BASE}/movimientos`,
       documento: `${API_BASE}/movimientos/acreencia/documento`,
       foto: `${API_BASE}/movimientos/foto`,
-      audio: `${API_BASE}/movimientos/audio`,
+      audio: `${API_BASE}/api/carga-datos/movimientos/audio`,
     },
   };
 
-  // Botones disponibles de tipo de documento
   const tipos = [
     { key: "Factura", label: "Factura", icon: <Receipt fontSize="large" /> },
     { key: "Ingreso", label: "Ingreso", icon: <SwapHoriz fontSize="large" /> },
@@ -78,7 +114,6 @@ export default function CargaGeneral() {
     { key: "Acreencia", label: "Acreencia", icon: <SwapHoriz fontSize="large" /> },
   ];
 
-  // Botones disponibles de método de carga
   const modos = [
     { key: "formulario", label: "Formulario", icon: <Edit fontSize="large" /> },
     { key: "documento", label: "Documento", icon: <Description fontSize="large" /> },
@@ -86,16 +121,85 @@ export default function CargaGeneral() {
     { key: "audio", label: "Audio", icon: <Mic fontSize="large" /> },
   ];
 
+  const handleResultadoAudio = (respuesta) => {
+    if (!respuesta) return;
+    console.group("Resultado de audio");
+    console.log("Payload recibido:", respuesta);
+    const campos = respuesta.campos || {};
+    const normalizados = {};
+    Object.entries(campos).forEach(([clave, valor]) => {
+      if (!valor) return;
+      if (clave === "fechaEmision") {
+        const fecha = dayjs(valor);
+        if (fecha.isValid()) {
+          normalizados[clave] = fecha;
+        }
+      } else {
+        normalizados[clave] = valor;
+      }
+    });
+    normalizados.moneda = "ARS";
+    const merged = { ...formData, ...normalizados };
+    setFormData(merged);
+    setErrors({});
+    const transcript =
+      respuesta.transcript ||
+      respuesta.texto ||
+      respuesta.text ||
+      respuesta.rawTranscript ||
+      "";
+    if (transcript) {
+      console.info("Transcripción de audio:", transcript);
+    } else {
+      console.warn("No se recibió texto transcripto en la respuesta.");
+    }
+    const camposLog = Object.keys(normalizados).length ? normalizados : campos;
+    const camposDetectados =
+      camposLog &&
+      Object.entries(camposLog).some(([campo, valor]) => {
+        if (!campo) return false;
+        if (campo.toLowerCase() === "moneda") return false;
+        if (valor === null || valor === undefined) return false;
+        return String(valor).trim() !== "";
+      });
+
+    if (camposDetectados) {
+      console.table(
+        Object.entries(camposLog).map(([campo, valor]) => ({
+          campo,
+          valor,
+        }))
+      );
+    } else {
+      console.warn("Autocompletado por audio: no se detectaron campos para completar.");
+      alert("No se detectaron datos válidos en el audio. Por favor, grabalo nuevamente.");
+      setDialogData(null);
+      setFormDialogOpen(false);
+      console.groupEnd();
+      return;
+    }
+    console.groupEnd();
+    const tipoDocLower = (tipoDoc || "").toLowerCase();
+    setDialogTipoDoc(tipoDocLower);
+    const formularioEndpoint = endpointMap[tipoDoc]?.formulario;
+    setDialogEndpoint(formularioEndpoint || "");
+    const vistaPrevia = prepararVistaPrevia(merged);
+    setDialogData(vistaPrevia);
+    setFormDialogOpen(true);
+  };
+
   const renderContenido = () => {
     if (!tipoDoc || !modoCarga)
       return <Typography sx={{ mt: 3 }}>Seleccioná un tipo y un método</Typography>;
 
-    const endpoint = endpointMap[tipoDoc][modoCarga];
+    const endpoint = endpointMap[tipoDoc]?.[modoCarga];
+    const tipoDocLower = (tipoDoc || "").toLowerCase();
+
     switch (modoCarga) {
       case "formulario":
         return (
           <CargaFormulario
-            tipoDoc={tipoDoc}
+            tipoDoc={tipoDocLower}
             endpoint={endpoint}
             formData={formData}
             setFormData={setFormData}
@@ -108,13 +212,21 @@ export default function CargaGeneral() {
       case "foto":
         return <CargaImagen tipoDoc={tipoDoc} endpoint={endpoint} />;
       case "audio":
-        return <CargaAudio tipoDoc={tipoDoc} endpoint={endpoint} />;
+        return (
+          <CargaAudio
+            tipoDoc={tipoDoc}
+            endpoint={endpoint}
+            onResultado={handleResultadoAudio}
+          />
+        );
+
       default:
         return null;
     }
   };
 
   return (
+    <>
     <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
       {/* Encabezado */}
       <Box sx={{ mb: 3 }}>
@@ -135,6 +247,9 @@ export default function CargaGeneral() {
                   setModoCarga(""); // resetear modo al elegir tipo
                   setFormData({});
                   setErrors({});
+                  setFormDialogOpen(false);
+                  setDialogTipoDoc("");
+                  setDialogEndpoint("");
                 }}
                 sx={{
                   flexDirection: "column",
@@ -172,7 +287,11 @@ export default function CargaGeneral() {
             {modos.map((m) => (
               <Grid item key={m.key}>
                 <ButtonBase
-                  onClick={() => setModoCarga(m.key)}
+                  onClick={() => {
+                    setModoCarga(m.key);
+                    setErrors({});
+                    setFormDialogOpen(false);
+                  }}
                   sx={{
                     flexDirection: "column",
                     p: 3,
@@ -205,7 +324,12 @@ export default function CargaGeneral() {
         <Box sx={{ mt: 4 }}>
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
             <ButtonBase
-              onClick={() => setModoCarga("")}
+              onClick={() => {
+                setModoCarga("");
+                setFormData({});
+                setErrors({});
+                setFormDialogOpen(false);
+              }}
               sx={{
                 p: 1,
                 borderRadius: 2,
@@ -219,6 +343,11 @@ export default function CargaGeneral() {
               onClick={() => {
                 setTipoDoc("");
                 setModoCarga("");
+                setFormData({});
+                setErrors({});
+                setFormDialogOpen(false);
+                setDialogTipoDoc("");
+                setDialogEndpoint("");
               }}
               sx={{
                 p: 1,
@@ -234,5 +363,48 @@ export default function CargaGeneral() {
         </Box>
       )}
     </Box>
+    <Dialog
+      open={formDialogOpen && !!dialogData}
+      onClose={() => {
+        setFormDialogOpen(false);
+        setDialogData(null);
+      }}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle sx={{ fontWeight: 600 }}>
+        Revisá y completá la información detectada
+      </DialogTitle>
+      <DialogContent dividers sx={{ p: 3 }}>
+        {dialogData && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {renderVistaPrevia()}
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Podés editar los datos antes de guardar
+            </Typography>
+            <CargaFormulario
+              tipoDoc={dialogTipoDoc || (tipoDoc || "").toLowerCase()}
+              endpoint={dialogEndpoint || endpointMap[tipoDoc]?.formulario}
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+              setErrors={setErrors}
+            />
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ p: 3 }}>
+        <Button
+          onClick={() => {
+            setFormDialogOpen(false);
+            setDialogData(null);
+          }}
+          variant="outlined"
+        >
+          Cerrar
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }

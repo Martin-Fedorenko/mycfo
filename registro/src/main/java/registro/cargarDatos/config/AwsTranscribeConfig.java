@@ -1,5 +1,6 @@
-package administracion.config;
+package registro.cargarDatos.config;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,11 +12,15 @@ import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.transcribe.TranscribeClient;
 
 @Configuration
+@RequiredArgsConstructor
 @Slf4j
-public class CognitoConfig {
+public class AwsTranscribeConfig {
+
+    private final AwsTranscribeProperties awsTranscribeProperties;
 
     @Value("${aws.accessKeyId:}")
     private String accessKeyId;
@@ -26,33 +31,34 @@ public class CognitoConfig {
     @Value("${aws.sessionToken:}")
     private String sessionToken;
 
-    @Value("${aws.region:sa-east-1}")
-    private String region;
+    @Bean
+    public TranscribeClient transcribeClient() {
+        return TranscribeClient.builder()
+                .credentialsProvider(resolveCredentialsProvider())
+                .region(Region.of(awsTranscribeProperties.getRegion()))
+                .build();
+    }
 
     @Bean
-    public CognitoIdentityProviderClient cognitoClient() {
-        AwsCredentialsProvider credentialsProvider = resolveCredentialsProvider();
-
-        log.info("Configurando Cognito con región {}", region);
-
-        return CognitoIdentityProviderClient.builder()
-                .region(Region.of(region))
-                .credentialsProvider(credentialsProvider)
+    public S3Client s3Client() {
+        return S3Client.builder()
+                .credentialsProvider(resolveCredentialsProvider())
+                .region(Region.of(awsTranscribeProperties.getRegion()))
                 .build();
     }
 
     private AwsCredentialsProvider resolveCredentialsProvider() {
         if (StringUtils.hasText(accessKeyId) && StringUtils.hasText(secretAccessKey)) {
-            log.info("Usando credenciales AWS explícitas para Cognito (accessKeyId={}...)", mask(accessKeyId));
+            log.info("Usando credenciales AWS explícitas para Transcribe/S3 (accessKeyId={}...)", mask(accessKeyId));
             if (StringUtils.hasText(sessionToken)) {
                 AwsSessionCredentials sessionCredentials = AwsSessionCredentials.create(accessKeyId, secretAccessKey, sessionToken);
                 return StaticCredentialsProvider.create(sessionCredentials);
             }
-            AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
-            return StaticCredentialsProvider.create(awsCreds);
+            AwsBasicCredentials basicCredentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
+            return StaticCredentialsProvider.create(basicCredentials);
         }
 
-        log.warn("No se configuraron credenciales explícitas para Cognito; se usará DefaultCredentialsProvider.");
+        log.warn("No se configuraron credenciales explícitas para Transcribe/S3; se usará DefaultCredentialsProvider.");
         return DefaultCredentialsProvider.create();
     }
 

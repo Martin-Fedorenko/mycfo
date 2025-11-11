@@ -73,14 +73,20 @@ public class ResumenService {
 
         // Agrupar por categoría
         List<DetalleCategoriaDTO> detalleIngresos = ingresos.stream()
-                .collect(Collectors.groupingBy(RegistroDTO::getCategoria,
+                .collect(Collectors.groupingBy(registro -> {
+                            String categoria = registro.getCategoria();
+                            return (categoria == null || categoria.isBlank()) ? "Sin categoría" : categoria;
+                        },
                         Collectors.summingDouble(RegistroDTO::getMontoTotal)))
                 .entrySet().stream()
                 .map(e -> new DetalleCategoriaDTO(e.getKey(), e.getValue()))
                 .toList();
 
         List<DetalleCategoriaDTO> detalleEgresos = egresos.stream()
-                .collect(Collectors.groupingBy(RegistroDTO::getCategoria,
+                .collect(Collectors.groupingBy(registro -> {
+                            String categoria = registro.getCategoria();
+                            return (categoria == null || categoria.isBlank()) ? "Sin categoría" : categoria;
+                        },
                         Collectors.summingDouble(RegistroDTO::getMontoTotal)))
                 .entrySet().stream()
                 .map(e -> new DetalleCategoriaDTO(e.getKey(), e.getValue()))
@@ -145,14 +151,20 @@ public class ResumenService {
         double balance = totalIngresos - totalEgresos;
 
         List<DetalleCategoriaDTO> detalleIngresos = ingresos.stream()
-                .collect(Collectors.groupingBy(RegistroDTO::getCategoria,
+                .collect(Collectors.groupingBy(registro -> {
+                            String categoria = registro.getCategoria();
+                            return (categoria == null || categoria.isBlank()) ? "Sin categoría" : categoria;
+                        },
                         Collectors.summingDouble(RegistroDTO::getMontoTotal)))
                 .entrySet().stream()
                 .map(e -> new DetalleCategoriaDTO(e.getKey(), e.getValue()))
                 .toList();
 
         List<DetalleCategoriaDTO> detalleEgresos = egresos.stream()
-                .collect(Collectors.groupingBy(RegistroDTO::getCategoria,
+                .collect(Collectors.groupingBy(registro -> {
+                            String categoria = registro.getCategoria();
+                            return (categoria == null || categoria.isBlank()) ? "Sin categoría" : categoria;
+                        },
                         Collectors.summingDouble(RegistroDTO::getMontoTotal)))
                 .entrySet().stream()
                 .map(e -> new DetalleCategoriaDTO(e.getKey(), e.getValue()))

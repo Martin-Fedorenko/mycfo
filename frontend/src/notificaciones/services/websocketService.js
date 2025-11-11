@@ -1,5 +1,5 @@
 import SockJS from "sockjs-client";
-import { Stomp } from "@stomp/stompjs";
+import { Client } from "@stomp/stompjs";
 
 class WebSocketService {
   constructor() {
@@ -22,7 +22,7 @@ class WebSocketService {
         const socket = new SockJS("http://localhost:8084/ws/notifications");
 
         // Crear cliente STOMP
-        this.stompClient = new Stomp({
+        this.stompClient = new Client({
           webSocketFactory: () => socket,
           debug: (str) => {
             console.log("STOMP Debug:", str);
