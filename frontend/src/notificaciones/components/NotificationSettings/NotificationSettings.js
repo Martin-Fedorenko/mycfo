@@ -23,6 +23,22 @@ import {
   Schedule as ScheduleIcon,
   Settings as SettingsIcon,
 } from "@mui/icons-material";
+import dayjs from "dayjs";
+import CustomTimePicker from "../../../shared-components/CustomTimePicker";
+
+const FieldBox = ({ label, children }) => (
+  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+    <Typography variant="subtitle2" color="text.secondary">
+      {label}
+    </Typography>
+    {children}
+  </Box>
+);
+
+const timeStringToDayjs = (timeStr) => {
+  const [hours = "00", minutes = "00"] = (timeStr || "00:00").split(":");
+  return dayjs().hour(Number(hours) || 0).minute(Number(minutes) || 0).second(0);
+};
 
 export default function NotificationSettings() {
   const [preferences, setPreferences] = React.useState({
@@ -46,8 +62,18 @@ export default function NotificationSettings() {
   React.useEffect(() => {
     const loadPreferences = async () => {
       try {
+        const usuarioSub = sessionStorage.getItem("sub");
+        if (!usuarioSub) {
+          console.error("No se encontró el sub del usuario en sesión");
+          return;
+        }
         const response = await fetch(
-          `http://localhost:8084/api/users/1/notification-preferences`
+          `http://localhost:8084/api/users/1/notification-preferences`,
+          {
+            headers: {
+              "X-Usuario-Sub": usuarioSub,
+            },
+          }
         );
         if (response.ok) {
           const data = await response.json();
@@ -88,6 +114,14 @@ export default function NotificationSettings() {
     }));
   };
 
+  const handleTimeFieldChange = (field, value) => {
+    if (value && value.isValid && value.isValid()) {
+      handlePreferenceChange(field, value.format("HH:mm"));
+    } else {
+      handlePreferenceChange(field, dayjs().format("HH:mm"));
+    }
+  };
+
   const handleTypeConfigChange = (type, field, value) => {
     setPreferences((prev) => ({
       ...prev,
@@ -113,6 +147,10 @@ export default function NotificationSettings() {
   const handleSave = async () => {
     try {
       setLoading(true);
+      const usuarioSub = sessionStorage.getItem("sub");
+      if (!usuarioSub) {
+        throw new Error("No se encontró el usuario autenticado");
+      }
 
       // Enviar preferencias al backend
       const response = await fetch(
@@ -121,6 +159,7 @@ export default function NotificationSettings() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            "X-Usuario-Sub": usuarioSub,
           },
           body: JSON.stringify(preferences),
         }
@@ -224,7 +263,7 @@ export default function NotificationSettings() {
                     }
                     label="Notificaciones en la Aplicación"
                   />
-                  <FormControlLabel
+                  {/*<FormControlLabel
                     control={
                       <Switch
                         checked={preferences.pushEnabled}
@@ -237,7 +276,7 @@ export default function NotificationSettings() {
                       />
                     }
                     label="Notificaciones Push"
-                  />
+                  />*/}
                 </FormGroup>
 
                 {/* Espaciado adicional */}
@@ -253,7 +292,6 @@ export default function NotificationSettings() {
                     handlePreferenceChange("userEmail", e.target.value)
                   }
                   placeholder="tu-email@ejemplo.com"
-                  helperText="Si no especificas un email, se usará el email de desarrollo para pruebas"
                   InputProps={{
                     startAdornment: (
                       <EmailIcon sx={{ mr: 1, color: "action.active" }} />
@@ -303,18 +341,12 @@ export default function NotificationSettings() {
                   }
                   label="Resumen Semanal"
                 />
-                <TextField
-                  label="Hora del Resumen"
-                  type="time"
-                  value={preferences.digestTime}
-                  onChange={(e) =>
-                    handlePreferenceChange("digestTime", e.target.value)
-                  }
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  size="small"
-                />
+                <FieldBox label="Hora del resumen">
+                  <CustomTimePicker
+                    value={timeStringToDayjs(preferences.digestTime)}
+                    onChange={(value) => handleTimeFieldChange("digestTime", value)}
+                  />
+                </FieldBox>
               </Stack>
             </CardContent>
           </Card>
@@ -333,31 +365,19 @@ export default function NotificationSettings() {
                 {/* Espaciado adicional después del título */}
                 <Box sx={{ mt: 1 }} />
 
-                <TextField
-                  label="Inicio del Silencio"
-                  type="time"
-                  value={preferences.quietStart}
-                  onChange={(e) =>
-                    handlePreferenceChange("quietStart", e.target.value)
-                  }
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  size="small"
-                />
-                <TextField
-                  label="Fin del Silencio"
-                  type="time"
-                  value={preferences.quietEnd}
-                  onChange={(e) =>
-                    handlePreferenceChange("quietEnd", e.target.value)
-                  }
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  size="small"
-                />
-                <Divider />
+                <FieldBox label="Inicio del silencio">
+                  <CustomTimePicker
+                    value={timeStringToDayjs(preferences.quietStart)}
+                    onChange={(value) => handleTimeFieldChange("quietStart", value)}
+                  />
+                </FieldBox>
+                <FieldBox label="Fin del silencio">
+                  <CustomTimePicker
+                    value={timeStringToDayjs(preferences.quietEnd)}
+                    onChange={(value) => handleTimeFieldChange("quietEnd", value)}
+                  />
+                </FieldBox>
+                {/* <Divider />
                 <Typography variant="subtitle2" gutterBottom>
                   Días de Silencio
                 </Typography>
@@ -375,7 +395,7 @@ export default function NotificationSettings() {
                       label={day.label}
                     />
                   ))}
-                </FormGroup>
+                </FormGroup> */}
               </Stack>
             </CardContent>
           </Card>

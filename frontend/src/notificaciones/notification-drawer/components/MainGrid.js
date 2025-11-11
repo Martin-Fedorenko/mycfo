@@ -123,12 +123,13 @@ export default function MainGrid({
                       >
                         {notification.title}
                       </Typography>
-                      <Chip
+                      {/* Badge oculto en el drawer */}
+                      {/* <Chip
                         label={notification.badge}
                         size="small"
                         color={getSeverityColor(notification.badge)}
                         variant="outlined"
-                      />
+                      /> */}
                     </Box>
                   }
                   secondary={

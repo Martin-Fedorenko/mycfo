@@ -88,16 +88,21 @@ export default function MpImportDialog({ open, onClose, onImport }) {
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Box
               sx={{
-                p: 1.5,
+                p: 1.1,
                 borderRadius: 2,
-                bgcolor: "action.hover",
+                bgcolor: "#0d1117",
+                border: "1px solid rgba(255,255,255,0.08)",
                 display: "inline-flex",
               }}
             >
               <img
                 src={logoMp}
                 alt="Mercado Pago"
-                style={{ height: 80, opacity: 0.9 }}
+                style={{
+                  height: 125,
+                  opacity: 0.95,
+                  filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.45))",
+                }}
               />
             </Box>
           </Box>

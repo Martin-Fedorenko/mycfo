@@ -17,4 +17,21 @@ const api = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.request.use((config) => {
+  const updatedConfig = { ...config };
+  updatedConfig.headers = updatedConfig.headers ?? {};
+
+  const accessToken = sessionStorage.getItem("accessToken");
+  if (accessToken) {
+    updatedConfig.headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  const usuarioSub = sessionStorage.getItem("sub");
+  if (usuarioSub) {
+    updatedConfig.headers["X-Usuario-Sub"] = usuarioSub;
+  }
+
+  return updatedConfig;
+});
+
 export default api;

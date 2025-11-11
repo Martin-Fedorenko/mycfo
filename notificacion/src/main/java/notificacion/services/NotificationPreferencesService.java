@@ -1,5 +1,6 @@
 package notificacion.services;
 
+import notificacion.models.NotificationConfig;
 import notificacion.models.NotificationPreferences;
 import notificacion.models.NotificationType;
 import notificacion.repositories.NotificationPreferencesRepository;
@@ -18,25 +19,27 @@ public class NotificationPreferencesService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<NotificationPreferences> getPreferences(Long userId) {
-        return repository.findByUserId(userId);
+    public Optional<NotificationPreferences> getPreferences(Long organizacionId, String usuarioId) {
+        return repository.findByOrganizacionIdAndUsuarioId(organizacionId, usuarioId);
     }
 
     @Transactional
-    public NotificationPreferences getOrCreatePreferences(Long userId) {
-        return repository.findByUserId(userId)
-            .orElseGet(() -> {
-                NotificationPreferences prefs = new NotificationPreferences();
-                prefs.setUserId(userId);
-                return repository.save(prefs);
-            });
+    public NotificationPreferences getOrCreatePreferences(Long organizacionId, String usuarioId) {
+        return getPreferences(organizacionId, usuarioId)
+                .orElseGet(() -> {
+                    NotificationPreferences prefs = new NotificationPreferences();
+                    prefs.setOrganizacionId(organizacionId);
+                    prefs.setUsuarioId(usuarioId);
+                    return repository.save(prefs);
+                });
     }
 
     @Transactional
-    public NotificationPreferences updatePreferences(Long userId, NotificationPreferences preferences) {
-        NotificationPreferences existing = getOrCreatePreferences(userId);
-        
-        // Actualizar campos generales
+    public NotificationPreferences updatePreferences(Long organizacionId,
+                                                     String usuarioId,
+                                                     NotificationPreferences preferences) {
+        NotificationPreferences existing = getOrCreatePreferences(organizacionId, usuarioId);
+
         existing.setEmailEnabled(preferences.isEmailEnabled());
         existing.setInAppEnabled(preferences.isInAppEnabled());
         existing.setPushEnabled(preferences.isPushEnabled());
@@ -46,51 +49,64 @@ public class NotificationPreferencesService {
         existing.setDailyDigestEnabled(preferences.isDailyDigestEnabled());
         existing.setWeeklyDigestEnabled(preferences.isWeeklyDigestEnabled());
         existing.setDigestTime(preferences.getDigestTime());
-        existing.setUserEmail(preferences.getUserEmail()); // ✅ Agregar esta línea
-        
-        // Actualizar configuraciones por tipo
+        existing.setUserEmail(preferences.getUserEmail());
+
         if (preferences.getTypeConfigs() != null) {
-            existing.getTypeConfigs().putAll(preferences.getTypeConfigs());
+            preferences.getTypeConfigs().forEach((type, config) -> {
+                NotificationConfig target = existing.getTypeConfigs()
+                        .computeIfAbsent(type, t -> new NotificationConfig());
+                target.setEnabled(config.isEnabled());
+                target.setEmailEnabled(config.isEmailEnabled());
+                target.setInAppEnabled(config.isInAppEnabled());
+                target.setMinSeverity(config.getMinSeverity());
+                target.setMaxPerDay(config.getMaxPerDay());
+            });
         }
-        
+
         return repository.save(existing);
     }
 
     @Transactional
-    public void updateTypePreference(Long userId, NotificationType type, 
-                                   boolean enabled, boolean emailEnabled, boolean inAppEnabled) {
-        NotificationPreferences prefs = getOrCreatePreferences(userId);
-        prefs.getTypeConfigs().get(type).setEnabled(enabled);
-        prefs.getTypeConfigs().get(type).setEmailEnabled(emailEnabled);
-        prefs.getTypeConfigs().get(type).setInAppEnabled(inAppEnabled);
+    public void updateTypePreference(Long organizacionId,
+                                     String usuarioId,
+                                     NotificationType type,
+                                     boolean enabled,
+                                     boolean emailEnabled,
+                                     boolean inAppEnabled) {
+        NotificationPreferences prefs = getOrCreatePreferences(organizacionId, usuarioId);
+        NotificationConfig config = prefs.getTypeConfigs()
+                .computeIfAbsent(type, t -> new NotificationConfig());
+        config.setEnabled(enabled);
+        config.setEmailEnabled(emailEnabled);
+        config.setInAppEnabled(inAppEnabled);
         repository.save(prefs);
     }
 
-    @Transactional
-    public boolean isNotificationEnabled(Long userId, NotificationType type) {
-        return getPreferences(userId)
-            .map(prefs -> prefs.isNotificationEnabled(type))
-            .orElse(true); // Por defecto habilitado
+    @Transactional(readOnly = true)
+    public boolean isNotificationEnabled(Long organizacionId, String usuarioId, NotificationType type) {
+        return getPreferences(organizacionId, usuarioId)
+                .map(prefs -> prefs.isNotificationEnabled(type))
+                .orElse(true);
     }
 
-    @Transactional
-    public boolean isEmailEnabled(Long userId, NotificationType type) {
-        return getPreferences(userId)
-            .map(prefs -> prefs.isEmailEnabled(type))
-            .orElse(true); // Por defecto habilitado
+    @Transactional(readOnly = true)
+    public boolean isEmailEnabled(Long organizacionId, String usuarioId, NotificationType type) {
+        return getPreferences(organizacionId, usuarioId)
+                .map(prefs -> prefs.isEmailEnabled(type))
+                .orElse(true);
     }
 
-    @Transactional
-    public boolean isInAppEnabled(Long userId, NotificationType type) {
-        return getPreferences(userId)
-            .map(prefs -> prefs.isInAppEnabled(type))
-            .orElse(true); // Por defecto habilitado
+    @Transactional(readOnly = true)
+    public boolean isInAppEnabled(Long organizacionId, String usuarioId, NotificationType type) {
+        return getPreferences(organizacionId, usuarioId)
+                .map(prefs -> prefs.isInAppEnabled(type))
+                .orElse(true);
     }
 
-    @Transactional
-    public boolean isInQuietHours(Long userId) {
-        return getPreferences(userId)
-            .map(NotificationPreferences::isInQuietHours)
-            .orElse(false);
+    @Transactional(readOnly = true)
+    public boolean isInQuietHours(Long organizacionId, String usuarioId) {
+        return getPreferences(organizacionId, usuarioId)
+                .map(NotificationPreferences::isInQuietHours)
+                .orElse(false);
     }
 }
