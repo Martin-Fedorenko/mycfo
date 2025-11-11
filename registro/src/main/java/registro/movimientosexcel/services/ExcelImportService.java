@@ -12,6 +12,7 @@ import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.movimientosexcel.models.ExcelImportHistory;
 import registro.movimientosexcel.repositories.ExcelImportHistoryRepository;
+import registro.services.AdministracionService;
 
 import java.io.InputStream;
 import java.time.LocalDate;
@@ -35,44 +36,49 @@ public class ExcelImportService {
     
     @Autowired
     private DuplicateDetectionService duplicateDetectionService;
+    
+    @Autowired
+    private AdministracionService administracionService;
 
-    public ResumenCargaDTO procesarArchivo(MultipartFile file, String tipoOrigen) {
+    public ResumenCargaDTO procesarArchivo(MultipartFile file, String tipoOrigen, String usuarioSub) {
+        Long organizacionId = obtenerOrganizacionId(usuarioSub);
         switch (tipoOrigen.toLowerCase()) {
-            case "mycfo": return procesarGenerico(file);
-            case "mercado-pago": return procesarMercadoPago(file);
-            case "santander": return procesarSantander(file);
+            case "mycfo": return procesarGenerico(file, usuarioSub, organizacionId);
+            case "mercado-pago": return procesarMercadoPago(file, usuarioSub, organizacionId);
+            case "santander": return procesarSantander(file, usuarioSub, organizacionId);
             default: throw new IllegalArgumentException("Tipo de origen no soportado: " + tipoOrigen);
         }
     }
     
-    public PreviewDataDTO procesarArchivoParaPreview(MultipartFile file, String tipoOrigen) {
+    public PreviewDataDTO procesarArchivoParaPreview(MultipartFile file, String tipoOrigen, String usuarioSub) {
+        Long organizacionId = obtenerOrganizacionId(usuarioSub);
         switch (tipoOrigen.toLowerCase()) {
-            case "mycfo": return procesarGenericoParaPreview(file);
-            case "mercado-pago": return procesarMercadoPagoParaPreview(file);
-            case "santander": return procesarSantanderParaPreview(file);
+            case "mycfo": return procesarGenericoParaPreview(file, organizacionId);
+            case "mercado-pago": return procesarMercadoPagoParaPreview(file, organizacionId);
+            case "santander": return procesarSantanderParaPreview(file, organizacionId);
             default: throw new IllegalArgumentException("Tipo de origen no soportado: " + tipoOrigen);
         }
     }
     
-    public ResumenCargaDTO guardarRegistrosSeleccionados(SaveSelectedRequestDTO request, java.util.UUID usuario) {
+    public ResumenCargaDTO guardarRegistrosSeleccionados(SaveSelectedRequestDTO request, String usuarioSub) {
         List<RegistroPreviewDTO> registrosSeleccionados = request.getRegistrosSeleccionados();
         int totalGuardados = 0;
         List<FilaConErrorDTO> errores = new ArrayList<>();
+        Long organizacionId = obtenerOrganizacionId(usuarioSub);
+        java.util.UUID usuarioUuid = parseUsuarioUuid(usuarioSub);
         
         // Crear historial de importación
         ExcelImportHistory history = new ExcelImportHistory();
         history.setFileName(request.getFileName());
         history.setTipoOrigen(request.getTipoOrigen());
         history.setTotalRegistros(registrosSeleccionados.size());
-        history.setUsuario(usuario);
+        history.setUsuario(usuarioUuid);
         
         try {
             for (RegistroPreviewDTO preview : registrosSeleccionados) {
                 try {
                     Movimiento movimiento = convertirPreviewAMovimiento(preview);
-                    movimiento.setUsuarioId(usuario.toString());
-                    movimiento.setFechaCreacion(LocalDate.now());
-                    movimiento.setFechaActualizacion(LocalDate.now());
+                    enriquecerConContexto(movimiento, usuarioSub, organizacionId);
                     
                     // Normalizar monto según tipo
                     normalizarMontoMovimiento(movimiento);
@@ -100,12 +106,16 @@ public class ExcelImportService {
         return new ResumenCargaDTO(registrosSeleccionados.size(), totalGuardados, errores);
     }
     
-    public java.util.List<ExcelImportHistory> obtenerHistorialCargas(java.util.UUID usuario) {
-        return importHistoryRepository.findByUsuarioOrderByFechaImportacionDesc(usuario);
+    public java.util.List<ExcelImportHistory> obtenerHistorialCargas(String usuarioSub) {
+        java.util.UUID usuarioUuid = parseUsuarioUuid(usuarioSub);
+        if (usuarioUuid == null) {
+            return java.util.Collections.emptyList();
+        }
+        return importHistoryRepository.findByUsuarioOrderByFechaImportacionDesc(usuarioUuid);
     }
 
     /** Carga genérica de registros desde MyCFO */
-    private ResumenCargaDTO procesarGenerico(MultipartFile file) {
+    private ResumenCargaDTO procesarGenerico(MultipartFile file, String usuarioSub, Long organizacionId) {
         int total = 0;
         int correctos = 0;
         List<FilaConErrorDTO> errores = new ArrayList<>();
@@ -156,8 +166,7 @@ public class ExcelImportService {
                     reg.setMedioPago(parseMedioPago(medioPagoStr));
                     reg.setMoneda(TipoMoneda.ARS);
                     reg.setOrigenNombre("MYCFO");
-                    reg.setFechaCreacion(LocalDate.now());
-                    reg.setFechaActualizacion(LocalDate.now());
+                    enriquecerConContexto(reg, usuarioSub, organizacionId);
                     
                     // Normalizar monto según tipo
                     normalizarMontoMovimiento(reg);
@@ -180,7 +189,7 @@ public class ExcelImportService {
     private static final int HEADER_ROW_INDEX = 3;
 
     /** Carga de registros desde un archivo de Mercado Pago (sin id de referencia) */
-    private ResumenCargaDTO procesarMercadoPago(MultipartFile file) {
+    private ResumenCargaDTO procesarMercadoPago(MultipartFile file, String usuarioSub, Long organizacionId) {
         int total = 0;
         int correctos = 0;
         List<FilaConErrorDTO> errores = new ArrayList<>();
@@ -237,8 +246,7 @@ public class ExcelImportService {
                     mov.setMedioPago(parseMedioPago("Mercado Pago"));
                     mov.setMoneda(TipoMoneda.ARS);
                     mov.setOrigenNombre("MERCADO_PAGO");
-                    mov.setFechaCreacion(LocalDate.now());
-                    mov.setFechaActualizacion(LocalDate.now());
+                    enriquecerConContexto(mov, usuarioSub, organizacionId);
                     
                     // Normalizar monto según tipo
                     normalizarMontoMovimiento(mov);
@@ -291,8 +299,30 @@ public class ExcelImportService {
         if (val.contains("MERCADO PAGO")) return TipoMedioPago.MercadoPago;
         return TipoMedioPago.Otro;
     }
+    
+    private Long obtenerOrganizacionId(String usuarioSub) {
+        if (usuarioSub == null || usuarioSub.isBlank()) {
+            throw new IllegalArgumentException("El usuario en sesión es requerido para la carga de movimientos desde Excel");
+        }
+        return administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+    }
+    
+    private java.util.UUID parseUsuarioUuid(String usuarioSub) {
+        try {
+            return usuarioSub != null ? java.util.UUID.fromString(usuarioSub) : null;
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+    
+    private void enriquecerConContexto(Movimiento movimiento, String usuarioSub, Long organizacionId) {
+        movimiento.setUsuarioId(usuarioSub);
+        movimiento.setOrganizacionId(organizacionId);
+        movimiento.setFechaCreacion(LocalDate.now());
+        movimiento.setFechaActualizacion(LocalDate.now());
+    }
 
-    private ResumenCargaDTO procesarSantander(MultipartFile file) {
+    private ResumenCargaDTO procesarSantander(MultipartFile file, String usuarioSub, Long organizacionId) {
         // TODO: lógica específica para Santander
         return new ResumenCargaDTO(0, 0, new ArrayList<>());
     }
@@ -310,7 +340,7 @@ public class ExcelImportService {
         return mov;
     }
     
-    private PreviewDataDTO procesarGenericoParaPreview(MultipartFile file) {
+    private PreviewDataDTO procesarGenericoParaPreview(MultipartFile file, Long organizacionId) {
         List<RegistroPreviewDTO> registros = new ArrayList<>();
         List<FilaConErrorDTO> errores = new ArrayList<>();
         int total = 0;
@@ -379,12 +409,12 @@ public class ExcelImportService {
         }
         
         // Detectar duplicados en la base de datos
-        List<RegistroPreviewDTO> registrosConDuplicados = duplicateDetectionService.detectarDuplicadosEnBD(registros);
+        List<RegistroPreviewDTO> registrosConDuplicados = duplicateDetectionService.detectarDuplicadosEnBD(registros, organizacionId);
         
         return new PreviewDataDTO(registrosConDuplicados, total, registrosConDuplicados.size(), errores, "mycfo");
     }
     
-    private PreviewDataDTO procesarMercadoPagoParaPreview(MultipartFile file) {
+    private PreviewDataDTO procesarMercadoPagoParaPreview(MultipartFile file, Long organizacionId) {
         List<RegistroPreviewDTO> registros = new ArrayList<>();
         List<FilaConErrorDTO> errores = new ArrayList<>();
         int total = 0;
@@ -457,12 +487,12 @@ public class ExcelImportService {
         }
         
         // Detectar duplicados en la base de datos
-        List<RegistroPreviewDTO> registrosConDuplicados = duplicateDetectionService.detectarDuplicadosEnBD(registros);
+        List<RegistroPreviewDTO> registrosConDuplicados = duplicateDetectionService.detectarDuplicadosEnBD(registros, organizacionId);
         
         return new PreviewDataDTO(registrosConDuplicados, total, registrosConDuplicados.size(), errores, "mercado-pago");
     }
     
-    private PreviewDataDTO procesarSantanderParaPreview(MultipartFile file) {
+    private PreviewDataDTO procesarSantanderParaPreview(MultipartFile file, Long organizacionId) {
         // TODO: implementar lógica específica para Santander
         return new PreviewDataDTO(new ArrayList<>(), 0, 0, new ArrayList<>(), "santander");
     }

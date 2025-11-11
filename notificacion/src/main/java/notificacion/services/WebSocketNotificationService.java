@@ -17,39 +17,39 @@ public class WebSocketNotificationService {
         this.messagingTemplate = messagingTemplate;
     }
 
-    public void sendNotificationToUser(Long userId, NotificationDTO notification) {
-        // Enviar notificación específica al usuario
+    public void sendNotificationToUser(String usuarioId, NotificationDTO notification) {
+        // Enviar notificacion especifica al usuario
         messagingTemplate.convertAndSendToUser(
-            userId.toString(),
+            usuarioId,
             "/queue/notifications",
             notification
         );
     }
 
-    public void sendNotificationToUser(Long userId, Notification notification) {
+    public void sendNotificationToUser(String usuarioId, Notification notification) {
         // Convertir Notification a NotificationDTO y enviar
         NotificationDTO dto = convertToDTO(notification);
-        sendNotificationToUser(userId, dto);
+        sendNotificationToUser(usuarioId, dto);
     }
 
-    public void sendUnreadCountUpdate(Long userId, int unreadCount) {
-        // Enviar actualización del contador de no leídas
+    public void sendUnreadCountUpdate(String usuarioId, int unreadCount) {
+        // Enviar actualizacion del contador de no leidas
         messagingTemplate.convertAndSendToUser(
-            userId.toString(),
+            usuarioId,
             "/queue/unread-count",
             Map.of("unreadCount", unreadCount)
         );
     }
 
     public void sendNotificationToAllUsers(NotificationDTO notification) {
-        // Enviar notificación a todos los usuarios conectados
+        // Enviar notificacion a todos los usuarios conectados
         messagingTemplate.convertAndSend("/topic/notifications", notification);
     }
 
     public void sendSystemNotification(String message, NotificationType type) {
-        // Enviar notificación del sistema a todos los usuarios
+        // Enviar notificacion del sistema a todos los usuarios
         NotificationDTO systemNotification = new NotificationDTO(
-            null, // ID será generado
+            null, // ID sera generado
             "Sistema",
             message,
             type.name(),

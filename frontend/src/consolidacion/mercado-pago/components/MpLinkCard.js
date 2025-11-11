@@ -57,19 +57,24 @@ export default function MpLinkCard({ onLinked }) {
       <Stack alignItems="center" justifyContent="center" sx={{ mt: 3, mb: 1 }}>
         <Box
           sx={{
-            p: 2,
+            p: 1.25,
             borderRadius: 2,
-            bgcolor: "action.hover",
+            bgcolor: "#0d1117",
+            border: "1px solid rgba(255,255,255,0.08)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            minWidth: 96,
+            minWidth: 80,
           }}
         >
           <img
             src={logo}
             alt="Mercado Pago"
-            style={{ height: 80, opacity: 0.9 }}
+            style={{
+              height: 125,
+              opacity: 0.95,
+              filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.45))",
+            }}
           />
         </Box>
       </Stack>

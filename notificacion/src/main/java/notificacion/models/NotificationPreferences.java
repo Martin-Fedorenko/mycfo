@@ -12,14 +12,26 @@ import java.util.Map;
 import java.util.Set;
 
 @Entity
-@Table(name = "notification_preferences")
+@Table(
+    name = "notification_preferences",
+    uniqueConstraints = @UniqueConstraint(
+            name = "uk_notif_pref_org_user",
+            columnNames = {"organizacion_id", "usuario_id"}
+    )
+)
 @Getter
 @Setter
 public class NotificationPreferences {
 
     @Id
-    @Column(name = "user_id")
-    private Long userId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "organizacion_id", nullable = false)
+    private Long organizacionId;
+
+    @Column(name = "usuario_id", nullable = false, length = 64)
+    private String usuarioId;
 
     // Preferencias generales
     @Column(name = "email_enabled", nullable = false)
@@ -40,13 +52,13 @@ public class NotificationPreferences {
 
     @ElementCollection
     @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "notification_quiet_days", joinColumns = @JoinColumn(name = "user_id"))
+    @CollectionTable(name = "notification_quiet_days", joinColumns = @JoinColumn(name = "preference_id"))
     @Column(name = "day_of_week")
     private Set<DayOfWeek> quietDays = new HashSet<>();
 
     // Configuración por tipo de notificación
     @ElementCollection
-    @CollectionTable(name = "notification_type_configs", joinColumns = @JoinColumn(name = "user_id"))
+    @CollectionTable(name = "notification_type_configs", joinColumns = @JoinColumn(name = "preference_id"))
     @MapKeyEnumerated(EnumType.STRING)
     @MapKeyColumn(name = "notification_type")
     private Map<NotificationType, NotificationConfig> typeConfigs = new HashMap<>();

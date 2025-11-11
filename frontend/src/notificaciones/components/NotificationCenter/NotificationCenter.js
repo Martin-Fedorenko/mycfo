@@ -375,12 +375,13 @@ export default function NotificationCenter() {
                         >
                           {notification.title}
                         </Typography>
-                        <Chip
+                        {/* Se oculta el badge de tipo por pedido de UX */}
+                        {/* <Chip
                           label={notification.badge}
                           size="small"
                           color={getSeverityColor(notification.badge)}
                           variant="outlined"
-                        />
+                        /> */}
                       </Box>
                       <Typography
                         variant="body2"

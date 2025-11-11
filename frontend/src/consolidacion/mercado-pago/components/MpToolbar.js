@@ -10,6 +10,7 @@ import {
   Button,
   Divider,
   Box,
+  Typography,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -17,8 +18,9 @@ import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import IosShareIcon from "@mui/icons-material/IosShare";
-import FilterListOffIcon from "@mui/icons-material/FilterListOff";
 import { PAYMENT_STATUS } from "../catalogs";
+import CustomDatePicker from "../../../shared-components/CustomDatePicker";
+import dayjs from "dayjs";
 
 export default function MpToolbar({
   accountLabel,
@@ -35,12 +37,48 @@ export default function MpToolbar({
 }) {
   const set = (patch) => onFiltersChange({ ...filters, ...patch });
 
-  const handleReset = () => {
-    // Reset suave: limpia solo si hay algo cargado
-    if (filters.from || filters.to || filters.payStatus || filters.q) {
-      onFiltersChange({ from: "", to: "", payStatus: "", q: "" });
-    }
+  const parseDate = (value) => {
+    if (!value) return null;
+    const parsed = dayjs(value);
+    return parsed.isValid() ? parsed : null;
   };
+
+  const handleDateChange = (field) => (value) => {
+    set({
+      [field]: value && value.isValid() ? value.format("YYYY-MM-DD") : "",
+    });
+  };
+
+  const fieldLabelSx = {
+    fontWeight: 600,
+    color: "text.secondary",
+    mb: 0.5,
+    display: "block",
+  };
+
+  const DateField = ({ label, value, onChange }) => (
+    <Box sx={{ minWidth: { xs: "100%", sm: 200 } }}>
+      <Typography variant="caption" sx={fieldLabelSx}>
+        {label}
+      </Typography>
+      <CustomDatePicker value={value} onChange={onChange} />
+    </Box>
+  );
+
+  const SearchField = ({ value, onChange }) => (
+    <Box sx={{ minWidth: { xs: "100%", sm: 260 } }}>
+      <Typography variant="caption" sx={fieldLabelSx}>
+        Buscar
+      </Typography>
+      <TextField
+        size="small"
+        placeholder="Buscar..."
+        value={value}
+        onChange={onChange}
+        fullWidth
+      />
+    </Box>
+  );
 
   return (
     <Toolbar
@@ -54,9 +92,49 @@ export default function MpToolbar({
       }}
     >
       {/* Identificación de cuenta */}
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mr: 1 }}>
-        <Chip label={accountLabel} color="primary" variant="outlined" />
-      </Stack>
+      <Box
+        sx={{
+          mr: 1,
+          p: 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          minWidth: { xs: "100%", sm: 220 },
+        }}
+      >
+        <Stack spacing={1} alignItems="center">
+          <Chip
+            label={accountLabel}
+            color="primary"
+            variant="outlined"
+            sx={{ fontSize: "0.9rem", fontWeight: 600 }}
+          />
+          <Tooltip title={unlinkBusy ? "Desvinculando..." : "Desvincular"}>
+            <span>
+              <Button
+                variant="outlined"
+                startIcon={<LinkOffIcon />}
+                onClick={onUnlink}
+                disabled={unlinkBusy}
+                size="small"
+                sx={{
+                  borderColor: "divider",
+                  color: "text.primary",
+                  bgcolor: "background.paper",
+                  minWidth: 0,
+                  "&:hover": {
+                    borderColor: "primary.main",
+                    bgcolor: "action.hover",
+                  },
+                }}
+              >
+                Desvincular
+              </Button>
+            </span>
+          </Tooltip>
+        </Stack>
+      </Box>
 
       {/* Filtros */}
       <Stack
@@ -66,21 +144,15 @@ export default function MpToolbar({
         justifyContent="center"
         sx={{ flexGrow: 1 }}
       >
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label="Desde"
-          InputLabelProps={{ shrink: true }}
-          value={filters.from}
-          onChange={(e) => set({ from: e.target.value })}
+          value={parseDate(filters.from)}
+          onChange={handleDateChange("from")}
         />
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label="Hasta"
-          InputLabelProps={{ shrink: true }}
-          value={filters.to}
-          onChange={(e) => set({ to: e.target.value })}
+          value={parseDate(filters.to)}
+          onChange={handleDateChange("to")}
         />
         {/* Filtro de estado oculto temporalmente */}
         {/* <TextField
@@ -98,27 +170,10 @@ export default function MpToolbar({
             </MenuItem>
           ))}
         </TextField> */}
-        <TextField
-          size="small"
-          label="Buscar"
-          placeholder="ID, comprador, comprobante, detalle…"
+        <SearchField
           value={filters.q}
           onChange={(e) => set({ q: e.target.value })}
-          sx={{ minWidth: { xs: "100%", sm: 260 } }}
         />
-        <Tooltip title="Limpiar filtros">
-          <span>
-            <IconButton
-              onClick={handleReset}
-              disabled={
-                !(filters.from || filters.to || filters.payStatus || filters.q)
-              }
-            >
-              <FilterListOffIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
-
         {/* Botón de refrescar oculto temporalmente */}
         {/* <Tooltip title="Refrescar">
           <IconButton onClick={onRefresh}>
@@ -126,28 +181,26 @@ export default function MpToolbar({
           </IconButton>
         </Tooltip> */}
 
-        <Tooltip title="Configuración">
+        {/* <Tooltip title="Configuración">
           <IconButton onClick={onOpenConfig}>
             <SettingsIcon />
           </IconButton>
-        </Tooltip>
+        </Tooltip> */}
 
-        <Tooltip title={unlinkBusy ? "Desvinculando..." : "Desvincular"}>
-          <span>
-            <IconButton color="error" onClick={onUnlink} disabled={unlinkBusy}>
-              <LinkOffIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
       </Stack>
 
       {/* Acciones */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Divider flexItem orientation="vertical" />
         <Button
           variant="contained"
           startIcon={<CloudDownloadIcon />}
           onClick={onOpenImport}
+          sx={{
+            px: 4,
+            py: 1.4,
+            fontSize: "1rem",
+            ml: 0,
+          }}
         >
           Importar
         </Button>

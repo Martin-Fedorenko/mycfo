@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
@@ -25,36 +24,38 @@ public class ExcelImportController {
     @PostMapping("/importar-excel")
     public ResponseEntity<ResumenCargaDTO> importarExcel(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("tipoOrigen") String tipoOrigen) {
+            @RequestParam("tipoOrigen") String tipoOrigen,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
 
-        ResumenCargaDTO resultado = excelImportService.procesarArchivo(file, tipoOrigen);
+        ResumenCargaDTO resultado = excelImportService.procesarArchivo(file, tipoOrigen, usuarioSub);
         return ResponseEntity.ok(resultado);
     }
     
     @PostMapping("/preview-excel")
     public ResponseEntity<PreviewDataDTO> previewExcel(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("tipoOrigen") String tipoOrigen) {
+            @RequestParam("tipoOrigen") String tipoOrigen,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
 
-        PreviewDataDTO resultado = excelImportService.procesarArchivoParaPreview(file, tipoOrigen);
+        PreviewDataDTO resultado = excelImportService.procesarArchivoParaPreview(file, tipoOrigen, usuarioSub);
         return ResponseEntity.ok(resultado);
     }
     
     @PostMapping("/guardar-seleccionados")
     public ResponseEntity<ResumenCargaDTO> guardarSeleccionados(
             @RequestBody SaveSelectedRequestDTO request,
-            @RequestHeader("X-User-ID") UUID usuario) {
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
 
-        ResumenCargaDTO resultado = excelImportService.guardarRegistrosSeleccionados(request, usuario);
+        ResumenCargaDTO resultado = excelImportService.guardarRegistrosSeleccionados(request, usuarioSub);
         return ResponseEntity.ok(resultado);
     }
     
     @GetMapping("/historial-cargas")
     public ResponseEntity<java.util.List<registro.movimientosexcel.models.ExcelImportHistory>> obtenerHistorialCargas(
-            @RequestHeader("X-User-ID") UUID usuario) {
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
         
         java.util.List<registro.movimientosexcel.models.ExcelImportHistory> historial = 
-            excelImportService.obtenerHistorialCargas(usuario);
+            excelImportService.obtenerHistorialCargas(usuarioSub);
         return ResponseEntity.ok(historial);
     }
     

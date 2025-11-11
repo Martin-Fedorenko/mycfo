@@ -1,7 +1,10 @@
 package notificacion.services;
 
 import notificacion.dtos.*;
-import notificacion.models.*;
+import notificacion.models.Notification;
+import notificacion.models.NotificationType;
+import notificacion.models.ResourceType;
+import notificacion.models.Severity;
 import notificacion.repositories.NotificationRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,52 +20,52 @@ public class EventService {
 
     private final NotificationRepository repo;
     private final NotificationService notificationService;
+    private final AdministracionService administracionService;
 
-    @Value("${notifications.default-user-id:1}")
-    private Long defaultUserId;
+    @Value("${notifications.default-user-id:demo-user}")
+    private String defaultUsuarioId;
 
     @Value("${notifications.high-threshold:100000}")
     private BigDecimal highThreshold;
 
     public EventService(NotificationRepository repo,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        AdministracionService administracionService) {
         this.repo = repo;
         this.notificationService = notificationService;
+        this.administracionService = administracionService;
     }
 
     @Transactional
     public void handleMovementCreated(MovementCreatedEvent evt) {
-        // 0) Normalizar datos
-        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
-        final String refId = Objects.requireNonNull(evt.refId(), "refId es obligatorio");
-        final Instant createdAt = evt.date() != null ? evt.date() : Instant.now();
-        final boolean isIncome = evt.amount() != null && evt.amount().signum() >= 0;
+        TenantContext ctx = resolveTenant(evt.userId());
+        String refId = Objects.requireNonNull(evt.refId(), "refId es obligatorio");
+        Instant createdAt = evt.date() != null ? evt.date() : Instant.now();
+        boolean isIncome = evt.amount() != null && evt.amount().signum() >= 0;
 
-        // 1) Siempre: MOVEMENT_NEW (idempotente por (user,type,resourceId,día))
-        saveIfNew(userId, NotificationType.MOVEMENT_NEW, refId,
+        saveIfNew(ctx, NotificationType.MOVEMENT_NEW, ResourceType.MOVEMENT, refId,
                 isIncome ? "Ingreso detectado" : "Egreso registrado",
-                body(evt),
+                formatMovementBody(evt),
                 Severity.INFO, createdAt);
 
-        // 2) Umbral alto
         if (evt.amount() != null && evt.amount().abs().compareTo(highThreshold) >= 0) {
-            saveIfNew(userId, NotificationType.MOVEMENT_HIGH, refId,
-                    "Movimiento alto detectado", body(evt),
+            saveIfNew(ctx, NotificationType.MOVEMENT_HIGH, ResourceType.MOVEMENT, refId,
+                    "Movimiento alto detectado",
+                    formatMovementBody(evt),
                     Severity.WARN, createdAt);
         }
-
-        // 3) (opcional v2) Duplicado por monto+descripcion en ventana — lo dejamos para luego
     }
 
     @Transactional
     public void handleBudgetCreated(BudgetCreatedEvent evt) {
-        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
-        final Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
-        final String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
+        TenantContext ctx = resolveTenant(evt.userId());
+        Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
+        String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
 
         Instant now = Instant.now();
-        boolean recentDuplicate = repo.existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
-                userId,
+        boolean recentDuplicate = repo.existsByOrganizacionIdAndUsuarioIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+                ctx.organizacionId(),
+                ctx.usuarioId(),
                 NotificationType.BUDGET_CREATED,
                 ResourceType.BUDGET,
                 String.valueOf(budgetId),
@@ -72,8 +75,7 @@ public class EventService {
             return;
         }
 
-        Notification notification = new Notification();
-        notification.setUserId(userId);
+        Notification notification = buildBaseNotification(ctx);
         notification.setType(NotificationType.BUDGET_CREATED);
         notification.setTitle("Presupuesto creado");
         notification.setBody("Se creo el presupuesto %s%s".formatted(
@@ -89,22 +91,20 @@ public class EventService {
                         : "/app/presupuestos/%d/detalle/actual".formatted(budgetId)
         );
         notification.setCreatedAt(now);
-        notification.setRead(false);
 
         notificationService.create(notification);
-
-        System.out.println("Notificacion creada: Presupuesto creado para usuario " + userId);
     }
 
     @Transactional
     public void handleBudgetDeleted(BudgetDeletedEvent evt) {
-        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
-        final Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
-        final String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
+        TenantContext ctx = resolveTenant(evt.userId());
+        Long budgetId = Objects.requireNonNull(evt.budgetId(), "budgetId es obligatorio");
+        String budgetName = Objects.requireNonNull(evt.budgetName(), "budgetName es obligatorio");
 
         Instant now = Instant.now();
-        boolean recentDuplicate = repo.existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
-                userId,
+        boolean recentDuplicate = repo.existsByOrganizacionIdAndUsuarioIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+                ctx.organizacionId(),
+                ctx.usuarioId(),
                 NotificationType.BUDGET_DELETED,
                 ResourceType.BUDGET,
                 String.valueOf(budgetId),
@@ -114,8 +114,7 @@ public class EventService {
             return;
         }
 
-        Notification notification = new Notification();
-        notification.setUserId(userId);
+        Notification notification = buildBaseNotification(ctx);
         notification.setType(NotificationType.BUDGET_DELETED);
         notification.setTitle("Presupuesto eliminado");
         notification.setBody("Se elimino el presupuesto %s%s".formatted(
@@ -131,107 +130,150 @@ public class EventService {
                         : "/app/presupuestos?tab=eliminados"
         );
         notification.setCreatedAt(now);
-        notification.setRead(false);
 
         notificationService.create(notification);
-
-        System.out.println("Notificacion creada: Presupuesto eliminado para usuario " + userId);
     }
 
     @Transactional
     public void handleBudgetExceeded(BudgetExceededEvent evt) {
-        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
-        final Instant createdAt = evt.occurredAt() != null ? evt.occurredAt() : Instant.now();
-        
+        TenantContext ctx = resolveTenant(evt.userId());
+        Instant createdAt = evt.occurredAt() != null ? evt.occurredAt() : Instant.now();
+
         String title = "Presupuesto excedido: " + evt.budgetName();
-        String body = String.format("Categoría: %s | Presupuestado: $%s | Real: $%s | Diferencia: $%s", 
-            evt.category(), evt.budgeted(), evt.actual(), evt.variance());
-        
-        saveIfNew(userId, NotificationType.BUDGET_EXCEEDED, 
-            "budget_" + evt.budgetId() + "_" + evt.category(),
-            title, body, Severity.WARN, createdAt);
+        String body = String.format("Categoria: %s | Presupuestado: $%s | Real: $%s | Diferencia: $%s",
+                evt.category(), evt.budgeted(), evt.actual(), evt.variance());
+
+        saveIfNew(ctx,
+                NotificationType.BUDGET_EXCEEDED,
+                ResourceType.BUDGET,
+                "budget_" + evt.budgetId() + "_" + evt.category(),
+                title,
+                body,
+                Severity.WARN,
+                createdAt);
     }
 
     @Transactional
     public void handleReportGenerated(ReportGeneratedEvent evt) {
-        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
-        final Instant createdAt = evt.generatedAt() != null ? evt.generatedAt() : Instant.now();
-        
+        TenantContext ctx = resolveTenant(evt.userId());
+        Instant createdAt = evt.generatedAt() != null ? evt.generatedAt() : Instant.now();
+
         String title = "Reporte generado: " + evt.reportName();
-        String body = String.format("Tipo: %s | Período: %s", evt.reportType(), evt.period());
-        
+        String body = String.format("Tipo: %s | Periodo: %s", evt.reportType(), evt.period());
+
         NotificationType type = evt.hasAnomalies() ? NotificationType.REPORT_ANOMALY : NotificationType.REPORT_READY;
         Severity severity = evt.hasAnomalies() ? Severity.WARN : Severity.INFO;
-        
-        saveIfNew(userId, type, "report_" + evt.reportType() + "_" + evt.period(),
-            title, body, severity, createdAt);
+
+        saveIfNew(ctx,
+                type,
+                ResourceType.REPORT,
+                "report_" + evt.reportType() + "_" + evt.period(),
+                title,
+                body,
+                severity,
+                createdAt);
     }
 
     @Transactional
     public void handleCashFlowAlert(CashFlowAlertEvent evt) {
-        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
-        final Instant createdAt = evt.occurredAt() != null ? evt.occurredAt() : Instant.now();
-        
+        TenantContext ctx = resolveTenant(evt.userId());
+        Instant createdAt = evt.occurredAt() != null ? evt.occurredAt() : Instant.now();
+
         String title = "Alerta de Cash Flow";
-        String body = evt.message() != null ? evt.message() : 
-            String.format("Balance actual: $%s | Balance pronosticado: $%s", 
+        String body = evt.message() != null
+                ? evt.message()
+                : String.format("Balance actual: $%s | Balance pronosticado: $%s",
                 evt.currentBalance(), evt.forecastBalance());
-        
+
         Severity severity = "NEGATIVE".equals(evt.alertType()) ? Severity.CRIT : Severity.WARN;
-        
-        saveIfNew(userId, NotificationType.CASH_FLOW_ALERT, 
-            "cashflow_" + evt.alertType() + "_" + evt.period(),
-            title, body, severity, createdAt);
+
+        saveIfNew(ctx,
+                NotificationType.CASH_FLOW_ALERT,
+                ResourceType.CASH_FLOW,
+                "cashflow_" + evt.alertType() + "_" + evt.period(),
+                title,
+                body,
+                severity,
+                createdAt);
     }
 
     @Transactional
     public void handleCustomReminder(CustomReminderEvent evt) {
-        final Long userId = evt.userId() != null ? evt.userId() : defaultUserId;
-        final Instant createdAt = evt.scheduledFor() != null ? evt.scheduledFor() : Instant.now();
-        
-        NotificationType type = NotificationType.REMINDER_CUSTOM;
-        if ("DEADLINE".equals(evt.reminderType())) {
-            type = NotificationType.REMINDER_DEADLINE;
-        } else if ("DATA_LOAD".equals(evt.reminderType())) {
-            type = NotificationType.REMINDER_DATA_LOAD;
-        } else if ("BILL_DUE".equals(evt.reminderType())) {
-            type = NotificationType.REMINDER_BILL_DUE;
-        }
-        
-        saveIfNew(userId, type, "reminder_" + evt.title().hashCode(),
-            evt.title(), evt.message(), Severity.INFO, createdAt);
+        TenantContext ctx = resolveTenant(evt.userId());
+        Instant createdAt = evt.scheduledFor() != null ? evt.scheduledFor() : Instant.now();
+
+        NotificationType type = switch (evt.reminderType()) {
+            case "DEADLINE" -> NotificationType.REMINDER_DEADLINE;
+            case "DATA_LOAD" -> NotificationType.REMINDER_DATA_LOAD;
+            case "BILL_DUE" -> NotificationType.REMINDER_BILL_DUE;
+            default -> NotificationType.REMINDER_CUSTOM;
+        };
+
+        saveIfNew(ctx,
+                type,
+                ResourceType.SYSTEM,
+                "reminder_" + evt.title().hashCode(),
+                evt.title(),
+                evt.message(),
+                Severity.INFO,
+                createdAt);
     }
 
-    private String body(MovementCreatedEvent e) {
-        String desc = e.description() != null ? e.description() + " – " : "";
-        return desc + "$" + (e.amount() != null ? e.amount() : "0");
+    private String formatMovementBody(MovementCreatedEvent evt) {
+        String desc = evt.description() != null && !evt.description().isBlank()
+                ? evt.description() + " - "
+                : "";
+        return desc + "$" + (evt.amount() != null ? evt.amount() : "0");
     }
 
-    private void saveIfNew(Long userId, NotificationType type, String resourceId,
-                           String title, String body, Severity sev, Instant createdAt) {
+    private void saveIfNew(TenantContext ctx,
+                           NotificationType type,
+                           ResourceType resourceType,
+                           String resourceId,
+                           String title,
+                           String body,
+                           Severity severity,
+                           Instant createdAt) {
         Instant start = createdAt.truncatedTo(ChronoUnit.DAYS);
         Instant end = start.plus(1, ChronoUnit.DAYS);
 
-        boolean exists = repo.existsByUserIdAndTypeAndResourceIdAndCreatedAtBetween(
-                userId, type, resourceId, start, end
+        boolean exists = repo.existsByOrganizacionIdAndUsuarioIdAndTypeAndResourceIdAndCreatedAtBetween(
+                ctx.organizacionId(),
+                ctx.usuarioId(),
+                type,
+                resourceId,
+                start,
+                end
         );
-        if (exists) return;
+        if (exists) {
+            return;
+        }
 
-        Notification n = new Notification();
-        n.setUserId(userId);
-        n.setType(type);
-        n.setTitle(title);
-        n.setBody(body);
-        n.setSeverity(sev);
-        n.setResourceType(ResourceType.MOVEMENT);
-        n.setResourceId(resourceId);
-        n.setCreatedAt(createdAt);
-        n.setRead(false);
-        
-        repo.save(n);
-        
-        // Log para debugging
-        System.out.println("Notificación creada: " + title + " para usuario " + userId);
+        Notification notification = buildBaseNotification(ctx);
+        notification.setType(type);
+        notification.setTitle(title);
+        notification.setBody(body);
+        notification.setSeverity(severity);
+        notification.setResourceType(resourceType);
+        notification.setResourceId(resourceId);
+        notification.setCreatedAt(createdAt);
+
+        repo.save(notification);
     }
-}
 
+    private Notification buildBaseNotification(TenantContext ctx) {
+        Notification notification = new Notification();
+        notification.setOrganizacionId(ctx.organizacionId());
+        notification.setUsuarioId(ctx.usuarioId());
+        notification.setRead(false);
+        return notification;
+    }
+
+    private TenantContext resolveTenant(Long userIdFromEvent) {
+        String usuarioId = userIdFromEvent != null ? userIdFromEvent.toString() : defaultUsuarioId;
+        Long organizacionId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioId);
+        return new TenantContext(organizacionId, usuarioId);
+    }
+
+    private record TenantContext(Long organizacionId, String usuarioId) {}
+}

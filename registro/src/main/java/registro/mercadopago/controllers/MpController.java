@@ -15,6 +15,7 @@ import registro.mercadopago.services.util.MpWalletMovementImportService;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMedioPago;
 import registro.cargarDatos.repositories.MovimientoRepository;
+import registro.services.AdministracionService;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +26,11 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -60,6 +63,9 @@ public class MpController {
 
     @Autowired
     private MpProperties mpProps;
+
+    @Autowired
+    private AdministracionService administracionService;
 
     public MpController(
             MpAuthService auth,
@@ -128,19 +134,23 @@ public class MpController {
        ====================== */
 
     @PostMapping("/preview")
-    public Map<String, Object> previewPagos(@RequestBody ImportRequest req) {
+    public Map<String, Object> previewPagos(
+            @RequestBody ImportRequest req,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
+
+        final String usuarioActual = requireUsuarioSub(usuarioSub);
         final Long uid = currentUserId();
         List<PaymentDTO> previewData;
 
         if (req.getPaymentId() != null) {
             System.out.println("[/preview] by paymentId=" + req.getPaymentId());
-            previewData = importer.previewPaymentById(uid, req.getPaymentId());
+            previewData = importer.previewPaymentById(uid, req.getPaymentId(), usuarioActual);
         } else if (req.getExternalReference() != null && !req.getExternalReference().isBlank()) {
             System.out.println("[/preview] by externalReference=" + req.getExternalReference());
-            previewData = importer.previewByExternalReference(uid, req.getExternalReference().trim());
+            previewData = importer.previewByExternalReference(uid, req.getExternalReference().trim(), usuarioActual);
         } else if (req.getMonth() != null && req.getYear() != null) {
             System.out.println("[/preview] by month/year " + req.getMonth() + "/" + req.getYear());
-            previewData = importer.previewByMonth(uid, req.getMonth(), req.getYear());
+            previewData = importer.previewByMonth(uid, req.getMonth(), req.getYear(), usuarioActual);
         } else {
             throw new IllegalArgumentException("Debes indicar paymentId, externalReference o month/year");
         }
@@ -157,19 +167,23 @@ public class MpController {
        ====================== */
 
     @PostMapping("/import")
-    public Map<String, Object> importPagos(@RequestBody ImportRequest req) {
+    public Map<String, Object> importPagos(
+            @RequestBody ImportRequest req,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
+
         final Long uid = currentUserId();
+        final String usuarioActual = requireUsuarioSub(usuarioSub);
         int cant;
 
         if (req.getPaymentId() != null) {
             System.out.println("[/import] by paymentId=" + req.getPaymentId());
-            cant = importer.importPaymentById(uid, req.getPaymentId());
+            cant = importer.importPaymentById(uid, req.getPaymentId(), usuarioActual);
         } else if (req.getExternalReference() != null && !req.getExternalReference().isBlank()) {
             System.out.println("[/import] by externalReference=" + req.getExternalReference());
-            cant = importer.importByExternalReference(uid, req.getExternalReference().trim());
+            cant = importer.importByExternalReference(uid, req.getExternalReference().trim(), usuarioActual);
         } else if (req.getMonth() != null && req.getYear() != null) {
             System.out.println("[/import] by month/year " + req.getMonth() + "/" + req.getYear());
-            cant = importer.importByMonth(uid, req.getMonth(), req.getYear());
+            cant = importer.importByMonth(uid, req.getMonth(), req.getYear(), usuarioActual);
         } else {
             throw new IllegalArgumentException("Debes indicar paymentId, externalReference o month/year");
         }
@@ -182,9 +196,13 @@ public class MpController {
        ====================== */
 
     @PostMapping("/import/selected")
-    public Map<String, Object> importPagosSeleccionados(@RequestBody List<Long> paymentIds) {
+    public Map<String, Object> importPagosSeleccionados(
+            @RequestBody List<Long> paymentIds,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
+
         final Long uid = currentUserId();
-        int cant = importer.importSelectedPayments(uid, paymentIds);
+        final String usuarioActual = requireUsuarioSub(usuarioSub);
+        int cant = importer.importSelectedPayments(uid, paymentIds, usuarioActual);
         return Map.of("importados", cant);
     }
 
@@ -197,9 +215,11 @@ public class MpController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String q,
-            @PageableDefault(size = 10, sort = "fechaEmision", direction = Sort.Direction.DESC) Pageable pg
+            @PageableDefault(size = 10, sort = "fechaEmision", direction = Sort.Direction.DESC) Pageable pg,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub
     ) {
         final Long userId = currentUserId();
+        final Long organizacionId = resolveOrganizacionId(requireUsuarioSub(usuarioSub));
 
         // Verificar que el usuario tenga cuenta vinculada
         MpAccountLink accountLink = auth.getAccountLink(userId);
@@ -210,8 +230,9 @@ public class MpController {
         Specification<Movimiento> spec = (root, query, cb) -> {
             List<Predicate> ands = new ArrayList<>();
             
-        // Filtrar solo registros de MercadoPago del usuario actual
-        ands.add(cb.equal(root.get("medioPago"), TipoMedioPago.MercadoPago));
+            // Filtrar solo registros de MercadoPago del usuario actual
+            ands.add(cb.equal(root.get("medioPago"), TipoMedioPago.MercadoPago));
+            ands.add(cb.equal(root.get("organizacionId"), organizacionId));
             
             // Filtrar por usuario si está disponible
             if (accountLink.getUserIdApp() != null) {
@@ -229,8 +250,8 @@ public class MpController {
                 String ql = "%" + q.toLowerCase().trim() + "%";
                 Predicate or = cb.or(
                         cb.like(cb.lower(root.get("descripcion")), ql),
-                        cb.like(cb.lower(root.get("origen")), ql),
-                        cb.like(cb.lower(root.get("destino")), ql),
+                        cb.like(cb.lower(root.get("origenNombre")), ql),
+                        cb.like(cb.lower(root.get("destinoNombre")), ql),
                         cb.like(cb.lower(root.get("categoria")), ql)
                 );
                 ands.add(or);
@@ -271,9 +292,13 @@ public class MpController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String q,
-            @PageableDefault(size = 10, sort = "fechaEmision", direction = Sort.Direction.DESC) Pageable pg
+            @PageableDefault(size = 10, sort = "fechaEmision", direction = Sort.Direction.DESC) Pageable pg,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub
     ) {
         final Long userId = currentUserId();
+        final String usuarioActual = requireUsuarioSub(usuarioSub);
+        final UUID usuarioUuid = parseUsuarioUuid(usuarioActual);
+        resolveOrganizacionId(usuarioActual); // valida empresa asociada
         System.out.println(">>> [IMPORTED-PAYMENTS] Endpoint llamado para usuario: " + userId);
 
         // Verificar que el usuario tenga cuenta vinculada
@@ -287,7 +312,7 @@ public class MpController {
             List<Predicate> ands = new ArrayList<>();
             
             // Filtrar solo pagos importados del usuario actual
-            ands.add(cb.equal(root.get("usuarioId"), UUID.fromString("00000000-0000-0000-0000-000000000001"))); // TODO: obtener del contexto de usuario
+            ands.add(cb.equal(root.get("usuarioId"), usuarioUuid));
             
             // Filtrar por cuenta de MP si se especifica
             if (accountId != null) {
@@ -514,6 +539,29 @@ public class MpController {
             mapped.add(new Sort.Order(o.getDirection(), prop));
         }
         return PageRequest.of(pg.getPageNumber(), pg.getPageSize(), Sort.by(mapped));
+    }
+
+    private String requireUsuarioSub(String usuarioSub) {
+        if (usuarioSub == null || usuarioSub.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El header X-Usuario-Sub es obligatorio");
+        }
+        return usuarioSub;
+    }
+
+    private Long resolveOrganizacionId(String usuarioSub) {
+        Long organizacionId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+        if (organizacionId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario no tiene empresa asociada");
+        }
+        return organizacionId;
+    }
+
+    private UUID parseUsuarioUuid(String usuarioSub) {
+        try {
+            return UUID.fromString(usuarioSub);
+        } catch (IllegalArgumentException ex) {
+            return UUID.nameUUIDFromBytes(usuarioSub.getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     /**

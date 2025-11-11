@@ -8,7 +8,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "custom_reminders", indexes = {
-    @Index(name = "idx_reminder_user", columnList = "user_id"),
+    @Index(name = "idx_reminder_org_user", columnList = "organizacion_id,usuario_id"),
     @Index(name = "idx_reminder_scheduled", columnList = "scheduled_for"),
     @Index(name = "idx_reminder_active", columnList = "is_active")
 })
@@ -20,8 +20,11 @@ public class CustomReminder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "usuario_id", nullable = false, length = 64)
+    private String usuarioId;
+
+    @Column(name = "organizacion_id", nullable = false)
+    private Long organizacionId;
 
     @Column(name = "title", nullable = false, length = 200)
     private String title;
@@ -64,8 +67,9 @@ public class CustomReminder {
     }
 
     // Constructor con parámetros básicos
-    public CustomReminder(Long userId, String title, String message, Instant scheduledFor) {
-        this.userId = userId;
+    public CustomReminder(String usuarioId, Long organizacionId, String title, String message, Instant scheduledFor) {
+        this.usuarioId = usuarioId;
+        this.organizacionId = organizacionId;
         this.title = title;
         this.message = message;
         this.scheduledFor = scheduledFor;

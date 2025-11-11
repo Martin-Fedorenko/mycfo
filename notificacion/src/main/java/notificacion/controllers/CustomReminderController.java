@@ -1,6 +1,7 @@
 package notificacion.controllers;
 
 import notificacion.models.CustomReminder;
+import notificacion.services.AdministracionService;
 import notificacion.services.CustomReminderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,83 +15,88 @@ import java.util.List;
 public class CustomReminderController {
 
     private final CustomReminderService reminderService;
+    private final AdministracionService administracionService;
 
-    public CustomReminderController(CustomReminderService reminderService) {
+    public CustomReminderController(CustomReminderService reminderService,
+                                    AdministracionService administracionService) {
         this.reminderService = reminderService;
+        this.administracionService = administracionService;
     }
 
     @GetMapping
-    public ResponseEntity<List<CustomReminder>> getUserReminders(@PathVariable Long userId) {
-        List<CustomReminder> reminders = reminderService.getUserReminders(userId);
+    public ResponseEntity<List<CustomReminder>> getUserReminders(
+            @PathVariable String userId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+        List<CustomReminder> reminders = reminderService.getUserReminders(empresaId, usuarioSub);
         return ResponseEntity.ok(reminders);
     }
 
     @PostMapping
     public ResponseEntity<CustomReminder> createReminder(
-            @PathVariable Long userId,
+            @PathVariable String userId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub,
             @RequestBody CreateReminderRequest request) {
-        
+
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
         CustomReminder reminder = reminderService.createReminder(
-            userId,
+            empresaId,
+            usuarioSub,
             request.title(),
             request.message(),
             request.scheduledFor(),
             request.isRecurring(),
             request.recurrencePattern()
         );
-        
+
         return ResponseEntity.ok(reminder);
     }
 
     @GetMapping("/{reminderId}")
     public ResponseEntity<CustomReminder> getReminder(
-            @PathVariable Long userId,
-            @PathVariable Long reminderId) {
-        
-        CustomReminder reminder = reminderService.getReminder(reminderId, userId);
+            @PathVariable String userId,
+            @PathVariable Long reminderId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
+
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+        CustomReminder reminder = reminderService.getReminder(empresaId, usuarioSub, reminderId);
         return ResponseEntity.ok(reminder);
     }
 
     @PutMapping("/{reminderId}")
     public ResponseEntity<CustomReminder> updateReminder(
-            @PathVariable Long userId,
+            @PathVariable String userId,
             @PathVariable Long reminderId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub,
             @RequestBody UpdateReminderRequest request) {
-        
+
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
         reminderService.updateReminder(
+            empresaId,
+            usuarioSub,
             reminderId,
-            userId,
             request.title(),
             request.message(),
             request.scheduledFor(),
             request.isRecurring(),
             request.recurrencePattern()
         );
-        
-        CustomReminder updated = reminderService.getReminder(reminderId, userId);
+
+        CustomReminder updated = reminderService.getReminder(empresaId, usuarioSub, reminderId);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{reminderId}")
     public ResponseEntity<Void> deleteReminder(
-            @PathVariable Long userId,
-            @PathVariable Long reminderId) {
-        
-        reminderService.deleteReminder(reminderId, userId);
+            @PathVariable String userId,
+            @PathVariable Long reminderId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
+
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+        reminderService.deleteReminder(empresaId, usuarioSub, reminderId);
         return ResponseEntity.noContent().build();
     }
-    
-    @GetMapping("/debug")
-    public ResponseEntity<String> debugReminders(@PathVariable Long userId) {
-        try {
-            reminderService.debugReminders(userId);
-            return ResponseEntity.ok("Debug ejecutado - revisar logs del backend");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error en debug: " + e.getMessage());
-        }
-    }
 
-    // DTOs para requests
     public record CreateReminderRequest(
         String title,
         String message,

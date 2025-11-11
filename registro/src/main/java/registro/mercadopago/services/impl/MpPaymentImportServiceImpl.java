@@ -11,6 +11,7 @@ import registro.mercadopago.repositories.MpImportedPaymentRepository;
 import registro.mercadopago.services.MpDuplicateDetectionService;
 import registro.mercadopago.services.MpPaymentImportService;
 import registro.movimientosexcel.services.CategorySuggestionService;
+import registro.services.AdministracionService;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -31,6 +32,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     private final MpProperties props;
     private final CategorySuggestionService categorySuggestionService;
     private final MpDuplicateDetectionService duplicateDetectionService;
+    private final AdministracionService administracionService;
 
     private final RestTemplate rest = new RestTemplate();
 
@@ -40,7 +42,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             MpImportedPaymentRepository mpImportedRepo,
             MpProperties props,
             CategorySuggestionService categorySuggestionService,
-            MpDuplicateDetectionService duplicateDetectionService
+            MpDuplicateDetectionService duplicateDetectionService,
+            AdministracionService administracionService
     ) {
         this.movimientoRepo = movimientoRepo;
         this.linkRepo = linkRepo;
@@ -48,6 +51,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         this.props = props;
         this.categorySuggestionService = categorySuggestionService;
         this.duplicateDetectionService = duplicateDetectionService;
+        this.administracionService = administracionService;
     }
 
     /* =========================
@@ -55,16 +59,18 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
        ========================= */
 
     @Override
-    public int importPaymentById(Long userIdApp, Long paymentId) {
+    public int importPaymentById(Long userIdApp, Long paymentId, String usuarioSub) {
+        TenantContext tenant = resolveTenant(usuarioSub);
         MpAccountLink link = requireLink(userIdApp);
         Map<String, Object> body = get("/v1/payments/" + paymentId, link.getAccessToken());
         if (body == null || body.isEmpty()) return 0;
-        upsertRegistro(body, link);
+        upsertRegistro(body, link, tenant);
         return 1;
     }
 
     @Override
-    public int importByMonth(Long userIdApp, int month, int year) {
+    public int importByMonth(Long userIdApp, int month, int year, String usuarioSub) {
+        TenantContext tenant = resolveTenant(usuarioSub);
         MpAccountLink link = requireLink(userIdApp);
 
         ZoneId zone = ZoneId.systemDefault();
@@ -93,7 +99,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
                     continue;
                 }
                 if (approved.isBefore(to)) {
-                    upsertRegistro(p, link);
+                    upsertRegistro(p, link, tenant);
                     imported++;
                 }
             }
@@ -103,7 +109,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     }
 
     @Override
-    public int importByExternalReference(Long userIdApp, String externalRef) {
+    public int importByExternalReference(Long userIdApp, String externalRef, String usuarioSub) {
+        TenantContext tenant = resolveTenant(usuarioSub);
         MpAccountLink link = requireLink(userIdApp);
         int imported = 0;
 
@@ -118,7 +125,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             if (rs instanceof List<?> list) {
                 for (Object o : list) {
                     if (o instanceof Map<?, ?> m) {
-                        upsertRegistro((Map<String, Object>) m, link);
+                        upsertRegistro((Map<String, Object>) m, link, tenant);
                         imported++;
                     }
                 }
@@ -131,10 +138,10 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         }
 
         // B) merchant_orders/search
-        imported += importViaMerchantOrders(link, externalRef);
+        imported += importViaMerchantOrders(link, externalRef, tenant);
 
         // C) búsqueda laxa
-        imported += importByLooseQuery(link, externalRef);
+        imported += importByLooseQuery(link, externalRef, tenant);
 
         return imported;
     }
@@ -144,7 +151,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
        ========================= */
 
     @SuppressWarnings("unchecked")
-    private int importViaMerchantOrders(MpAccountLink link, String externalRef) {
+    private int importViaMerchantOrders(MpAccountLink link, String externalRef, TenantContext tenant) {
         String url = props.getApiBase()
                 + "/merchant_orders/search?external_reference=" + enc(externalRef)
                 + "&limit=10";
@@ -165,7 +172,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
                                     if (pid != null) {
                                         Map<String, Object> full = get("/v1/payments/" + pid, link.getAccessToken());
                                         if (full != null && !full.isEmpty()) {
-                                            upsertRegistro(full, link);
+                                            upsertRegistro(full, link, tenant);
                                             imported++;
                                         }
                                     }
@@ -184,7 +191,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     }
 
     @SuppressWarnings("unchecked")
-    private int importByLooseQuery(MpAccountLink link, String query) {
+    private int importByLooseQuery(MpAccountLink link, String query, TenantContext tenant) {
         String url = props.getApiBase()
                 + "/v1/payments/search?q=" + enc(query) + "&limit=50";
         int imported = 0;
@@ -195,7 +202,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             if (rs instanceof List<?> list) {
                 for (Object o : list) {
                     if (o instanceof Map<?, ?> m) {
-                        upsertRegistro((Map<String, Object>) m, link);
+                        upsertRegistro((Map<String, Object>) m, link, tenant);
                         imported++;
                     }
                 }
@@ -231,6 +238,27 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
                 .orElseThrow(() -> new IllegalStateException("No hay cuenta vinculada de Mercado Pago para el usuario"));
     }
 
+    private TenantContext resolveTenant(String usuarioSub) {
+        if (usuarioSub == null || usuarioSub.isBlank()) {
+            throw new IllegalArgumentException("El usuario en sesión es requerido para importar pagos de Mercado Pago");
+        }
+        Long organizacionId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+        if (organizacionId == null) {
+            throw new IllegalStateException("El usuario en sesión no tiene una empresa asociada");
+        }
+        return new TenantContext(usuarioSub, organizacionId, parseUsuarioUuid(usuarioSub));
+    }
+
+    private UUID parseUsuarioUuid(String usuarioSub) {
+        try {
+            return UUID.fromString(usuarioSub);
+        } catch (IllegalArgumentException ex) {
+            return UUID.nameUUIDFromBytes(usuarioSub.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private record TenantContext(String usuarioSub, Long organizacionId, UUID usuarioUuid) {}
+
     private HttpHeaders authHeaders(String accessToken) {
         HttpHeaders h = new HttpHeaders();
         h.setBearerAuth(accessToken);
@@ -252,7 +280,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         }
     }
 
-    private void upsertRegistro(Map<String, Object> body, MpAccountLink link) {
+    private void upsertRegistro(Map<String, Object> body, MpAccountLink link, TenantContext tenant) {
         // === 1) Parseos base ===
 
         // fechas: fechaEmision = date_created (LocalDate)
@@ -342,7 +370,9 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         r.setFechaCreacion(fechaCreacion);
         r.setFechaActualizacion(fechaActualizacion);
 
-        // usuarioId se setea como null por defecto
+        // usuario/organización del contexto actual
+        r.setUsuarioId(tenant.usuarioSub());
+        r.setOrganizacionId(tenant.organizacionId());
 
         // medioPago = payment_method_id  (es ENUM: puede fallar si el literal no existe)
         // Si tu enum es, por ejemplo, { EFECTIVO, TRANSFERENCIA, MERCADO_PAGO, ... }
@@ -383,7 +413,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         
         // === 4) Guardar en tabla MpImportedPayment ===
         String mpPaymentId = asString(body.get("id"));
-        UUID usuarioId = UUID.fromString("00000000-0000-0000-0000-000000000001"); // TODO: obtener del contexto de usuario
+        UUID usuarioId = tenant.usuarioUuid();
         String mpAccountId = link.getMpUserId(); // ID de la cuenta de MP
         
         MpImportedPayment mpImported = new MpImportedPayment(savedRegistro, mpPaymentId, usuarioId, mpAccountId);
@@ -583,7 +613,8 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
        ========================= */
 
     @Override
-    public List<PaymentDTO> previewPaymentById(Long userIdApp, Long paymentId) {
+    public List<PaymentDTO> previewPaymentById(Long userIdApp, Long paymentId, String usuarioSub) {
+        TenantContext tenant = resolveTenant(usuarioSub);
         MpAccountLink link = requireLink(userIdApp);
         Map<String, Object> body = get("/v1/payments/" + paymentId, link.getAccessToken());
         if (body == null || body.isEmpty()) return List.of();
@@ -592,11 +623,12 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         List<PaymentDTO> previewData = List.of(dto);
         
         // Detectar duplicados antes de devolver
-        return duplicateDetectionService.detectarDuplicadosEnBD(previewData);
+        return duplicateDetectionService.detectarDuplicadosEnBD(previewData, tenant.organizacionId());
     }
 
     @Override
-    public List<PaymentDTO> previewByMonth(Long userIdApp, int month, int year) {
+    public List<PaymentDTO> previewByMonth(Long userIdApp, int month, int year, String usuarioSub) {
+        TenantContext tenant = resolveTenant(usuarioSub);
         MpAccountLink link = requireLink(userIdApp);
         List<PaymentDTO> previewData = new ArrayList<>();
 
@@ -633,11 +665,12 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         }
         
         // Detectar duplicados antes de devolver
-        return duplicateDetectionService.detectarDuplicadosEnBD(previewData);
+        return duplicateDetectionService.detectarDuplicadosEnBD(previewData, tenant.organizacionId());
     }
 
     @Override
-    public List<PaymentDTO> previewByExternalReference(Long userIdApp, String externalRef) {
+    public List<PaymentDTO> previewByExternalReference(Long userIdApp, String externalRef, String usuarioSub) {
+        TenantContext tenant = resolveTenant(usuarioSub);
         MpAccountLink link = requireLink(userIdApp);
         List<PaymentDTO> previewData = new ArrayList<>();
 
@@ -663,15 +696,15 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         }
 
         // Detectar duplicados antes de devolver
-        return duplicateDetectionService.detectarDuplicadosEnBD(previewData);
+        return duplicateDetectionService.detectarDuplicadosEnBD(previewData, tenant.organizacionId());
     }
 
     @Override
-    public int importSelectedPayments(Long userIdApp, List<Long> paymentIds) {
+    public int importSelectedPayments(Long userIdApp, List<Long> paymentIds, String usuarioSub) {
         if (paymentIds == null || paymentIds.isEmpty()) {
             return 0;
         }
-
+        TenantContext tenant = resolveTenant(usuarioSub);
         MpAccountLink link = requireLink(userIdApp);
         int imported = 0;
 
@@ -679,7 +712,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
             try {
                 Map<String, Object> body = get("/v1/payments/" + paymentId, link.getAccessToken());
                 if (body != null && !body.isEmpty()) {
-                    upsertRegistro(body, link);
+                    upsertRegistro(body, link, tenant);
                     imported++;
                 }
             } catch (Exception e) {

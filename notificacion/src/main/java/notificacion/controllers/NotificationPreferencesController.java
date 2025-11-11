@@ -2,6 +2,7 @@ package notificacion.controllers;
 
 import notificacion.models.NotificationPreferences;
 import notificacion.models.NotificationType;
+import notificacion.services.AdministracionService;
 import notificacion.services.NotificationPreferencesService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,50 +15,63 @@ import java.util.Map;
 public class NotificationPreferencesController {
 
     private final NotificationPreferencesService preferencesService;
+    private final AdministracionService administracionService;
 
-    public NotificationPreferencesController(NotificationPreferencesService preferencesService) {
+    public NotificationPreferencesController(NotificationPreferencesService preferencesService,
+                                             AdministracionService administracionService) {
         this.preferencesService = preferencesService;
+        this.administracionService = administracionService;
     }
 
     @GetMapping
-    public ResponseEntity<NotificationPreferences> getPreferences(@PathVariable Long userId) {
-        return preferencesService.getPreferences(userId)
+    public ResponseEntity<NotificationPreferences> getPreferences(
+            @PathVariable String userId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub) {
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+        return preferencesService.getPreferences(empresaId, usuarioSub)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping
     public ResponseEntity<NotificationPreferences> updatePreferences(
-            @PathVariable Long userId,
+            @PathVariable String userId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub,
             @RequestBody NotificationPreferences preferences) {
-        NotificationPreferences updated = preferencesService.updatePreferences(userId, preferences);
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+        NotificationPreferences updated = preferencesService.updatePreferences(empresaId, usuarioSub, preferences);
         return ResponseEntity.ok(updated);
     }
 
     @PatchMapping("/type/{type}")
     public ResponseEntity<Void> updateTypePreference(
-            @PathVariable Long userId,
+            @PathVariable String userId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub,
             @PathVariable NotificationType type,
             @RequestBody Map<String, Boolean> preferences) {
-        
+
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
         boolean enabled = preferences.getOrDefault("enabled", true);
         boolean emailEnabled = preferences.getOrDefault("emailEnabled", true);
         boolean inAppEnabled = preferences.getOrDefault("inAppEnabled", true);
-        
-        preferencesService.updateTypePreference(userId, type, enabled, emailEnabled, inAppEnabled);
+
+        preferencesService.updateTypePreference(empresaId, usuarioSub, type, enabled, emailEnabled, inAppEnabled);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/enabled/{type}")
     public ResponseEntity<Map<String, Boolean>> isNotificationEnabled(
-            @PathVariable Long userId,
+            @PathVariable String userId,
+            @RequestHeader("X-Usuario-Sub") String usuarioSub,
             @PathVariable NotificationType type) {
-        
-        boolean enabled = preferencesService.isNotificationEnabled(userId, type);
-        boolean emailEnabled = preferencesService.isEmailEnabled(userId, type);
-        boolean inAppEnabled = preferencesService.isInAppEnabled(userId, type);
-        boolean inQuietHours = preferencesService.isInQuietHours(userId);
-        
+
+        Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+
+        boolean enabled = preferencesService.isNotificationEnabled(empresaId, usuarioSub, type);
+        boolean emailEnabled = preferencesService.isEmailEnabled(empresaId, usuarioSub, type);
+        boolean inAppEnabled = preferencesService.isInAppEnabled(empresaId, usuarioSub, type);
+        boolean inQuietHours = preferencesService.isInQuietHours(empresaId, usuarioSub);
+
         return ResponseEntity.ok(Map.of(
             "enabled", enabled,
             "emailEnabled", emailEnabled,
