@@ -22,6 +22,9 @@ export default function MainGrid() {
     const chartRefIngresos = React.useRef(null);
     const chartRefEgresos = React.useRef(null);
 
+    // Formateo de moneda para tooltips de tortas
+    const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
+
     React.useEffect(() => {
         const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !(selectedYear && selectedMonth !== '')) return;
@@ -242,7 +245,7 @@ export default function MainGrid() {
                                                 <Cell key={`cell-ing-${index}`} fill={totalIngresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                        <Tooltip formatter={(v, n) => [currency(v), n]} />
                                     </PieChart>
                                 </Box>
                             </Box>
@@ -280,7 +283,7 @@ export default function MainGrid() {
                                                 <Cell key={`cell-egr-${index}`} fill={totalEgresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                        <Tooltip formatter={(v, n) => [currency(v), n]} />
                                     </PieChart>
                                 </Box>
                             </Box>
