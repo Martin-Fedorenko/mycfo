@@ -22,6 +22,9 @@ export default function MainGrid() {
     });
     const chartRef = React.useRef(null);
 
+    // Formateador de moneda para tooltips del gráfico
+    const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
+
     const handleYearChange = (e) => setSelectedYear(Number(e.target.value));
 
     React.useEffect(() => {
@@ -159,7 +162,7 @@ export default function MainGrid() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                                 <XAxis dataKey="mes" />
                                 <YAxis />
-                                <Tooltip />
+                                <Tooltip formatter={(v) => currency(v)} />
                                 <Legend />
                                 <Bar dataKey="Ingresos" fill="#2e7d32" />
                                 <Bar dataKey="Egresos" fill="#c62828" />
