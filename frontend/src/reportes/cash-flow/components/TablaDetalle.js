@@ -61,16 +61,8 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        <TableRow>
-                            <TableCell>Cash on hand (Inicio)</TableCell>
-                            {mesesVisibles.map((_, i) => (
-                                <TableCell key={i} align="right">
-                                    {i === 0 ? `$${saldoInicial.toLocaleString()}` : ''}
-                                </TableCell>
-                            ))}
-                        </TableRow>
 
-                        <TableRow>
+                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
                             <TableCell><b>Ingresos</b></TableCell>
                             {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>
@@ -85,7 +77,7 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                             </TableRow>
                         ))}
 
-                        <TableRow>
+                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
                             <TableCell><b>Egresos</b></TableCell>
                             {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>
@@ -100,7 +92,7 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                             </TableRow>
                         ))}
 
-                        <TableRow>
+                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
                             <TableCell><b>Total Ingresos</b></TableCell>
                             {mesesVisibles.map((_, i) => (
                                 <TableCell key={i} align="right" sx={{ color: 'green' }}>
@@ -108,7 +100,7 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                                 </TableCell>
                             ))}
                         </TableRow>
-                        <TableRow>
+                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
                             <TableCell><b>Total Egresos</b></TableCell>
                             {mesesVisibles.map((_, i) => (
                                 <TableCell key={i} align="right" sx={{ color: 'red' }}>
@@ -116,7 +108,7 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                                 </TableCell>
                             ))}
                         </TableRow>
-                        <TableRow>
+                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
                             <TableCell><b>Net Cash Flow</b></TableCell>
                             {mesesVisibles.map((_, i) => (
                                 <TableCell key={i} align="right" sx={{ color: netos[i] >= 0 ? 'green' : 'red' }}>
@@ -126,7 +118,7 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                                 </TableCell>
                             ))}
                         </TableRow>
-                        <TableRow>
+                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
                             <TableCell><b>Cash on hand (Fin)</b></TableCell>
                             {mesesVisibles.map((_, i) => (
                                 <TableCell key={i} align="right">
