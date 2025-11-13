@@ -188,7 +188,7 @@ export default function MainGrid() {
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography component="h2" variant="h4">
-                    Resumen mensual de ingresos y egresos
+                    Resumen mensual
                 </Typography>
                 <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
             </Box>
@@ -202,8 +202,8 @@ export default function MainGrid() {
                 onCategoriaChange={handleCategoriaChange}
             />
 
-            <Typography component="h3" variant="h4" sx={{ mb: 2, mt: 2 }}>
-                {getNombreMes(selectedMonth) && selectedYear ? `Resumen - ${getNombreMes(selectedMonth)} ${selectedYear}` : 'Resumen mensual'}
+            <Typography component="h3" variant="h5" sx={{ mb: 2, mt: 2 }}>
+                {getNombreMes(selectedMonth) && selectedYear ? `${getNombreMes(selectedMonth)} ${selectedYear}` : 'Resumen mensual'}
             </Typography>
 
             <TablaDetalle
