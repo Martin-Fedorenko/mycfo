@@ -120,6 +120,7 @@ export default function MainGrid() {
   const tabsLabelColor = isLightMode
     ? paletteVars.text?.primary ?? "#000"
     : paletteVars.common?.white ?? "#fff";
+  const darkActionButtonSx = isLightMode ? undefined : { color: "#42897f" };
   const navigate = useNavigate();
   const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
   const retentionDays = React.useMemo(() => parseRetentionDays(), []);
@@ -590,6 +591,7 @@ export default function MainGrid() {
                   variant="outlined"
                   size="small"
                   onClick={() => navigate(`/presupuestos/${slug}`)}
+                  sx={darkActionButtonSx}
                 >
                   Ver detalle
                 </Button>
@@ -866,7 +868,7 @@ export default function MainGrid() {
                               gap: 1,
                             }}
                           >
-                            <Button variant="outlined" size="small">Ver detalle</Button>
+                            <Button variant="outlined" size="small" sx={darkActionButtonSx}>Ver detalle</Button>
                             <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
                           </Box>
                           {/* Texto centrado exactamente sobre ese ancho */}
@@ -989,7 +991,7 @@ export default function MainGrid() {
                       gap: 1,
                     }}
                   >
-                    <Button variant="outlined" size="small">Ver detalle</Button>
+                    <Button variant="outlined" size="small" sx={darkActionButtonSx}>Ver detalle</Button>
                     <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
                   </Box>
                   {/* Texto centrado exactamente sobre ese ancho */}
