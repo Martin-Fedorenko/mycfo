@@ -8,8 +8,8 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "notifications", indexes = {
-        @Index(name = "idx_notif_user_read", columnList = "user_id,is_read"),
-        @Index(name = "idx_notif_user_created", columnList = "user_id,created_at")
+        @Index(name = "idx_notif_org_user_read", columnList = "organizacion_id,usuario_id,is_read"),
+        @Index(name = "idx_notif_org_user_created", columnList = "organizacion_id,usuario_id,created_at")
 })
 public class Notification {
 
@@ -19,10 +19,15 @@ public class Notification {
     @Setter
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "usuario_id", nullable = false, length = 64)
     @Getter
     @Setter
-    private Long userId;
+    private String usuarioId;
+
+    @Column(name = "organizacion_id", nullable = false)
+    @Getter
+    @Setter
+    private Long organizacionId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 40)

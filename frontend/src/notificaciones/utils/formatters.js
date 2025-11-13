@@ -4,17 +4,14 @@ export const formatDate = (dateString) => {
   if (!dateString) return "Fecha no disponible";
 
   try {
-    // Si la fecha no tiene hora (00:00:00), extraer solo la fecha
+    // Fechas provenientes de MySQL sin hora
     if (dateString.includes("00:00:00")) {
-      // Extraer solo la parte de la fecha (YYYY-MM-DD)
       const datePart = dateString.split(" ")[0];
       const [year, month, day] = datePart.split("-");
-
-      // Crear fecha local sin problemas de zona horaria
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
 
       if (isNaN(date.getTime())) {
-        return "Fecha inválida";
+        return "Fecha invalida";
       }
 
       return date.toLocaleDateString("es-AR", {
@@ -24,12 +21,17 @@ export const formatDate = (dateString) => {
       });
     }
 
-    // Para fechas con hora, usar UTC
-    const date = new Date(dateString + "Z");
+    // Para Instants (ISO) o strings con hora
+    let date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      return "Fecha inválida";
+      date = new Date(`${dateString}Z`);
     }
-    return date.toLocaleDateString("es-AR", {
+
+    if (isNaN(date.getTime())) {
+      return "Fecha invalida";
+    }
+
+    return date.toLocaleString("es-AR", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -39,7 +41,7 @@ export const formatDate = (dateString) => {
     });
   } catch (error) {
     console.error("Error formateando fecha:", error, "Input:", dateString);
-    return "Fecha inválida";
+    return "Fecha invalida";
   }
 };
 
@@ -54,7 +56,7 @@ export const formatNumber = (value) => {
   }
 
   if (typeof value === "string") {
-    // Detectar notación científica y formatear
+    // Detectar notacion cientifica y formatear
     if (value.includes("E+") || value.includes("e+")) {
       const num = parseFloat(value);
       if (!isNaN(num)) {
@@ -67,7 +69,7 @@ export const formatNumber = (value) => {
       }
     }
 
-    // Detectar números en formato científico en texto
+    // Detectar numeros en formato cientifico en texto
     const scientificMatch = value.match(/\$-?\d+\.?\d*E\+\d+/g);
     if (scientificMatch) {
       let formattedValue = value;
@@ -111,12 +113,12 @@ export const formatRelativeTime = (dateString) => {
   }
 };
 
-// Función específica para fechas de movimientos (sin hora)
+// Funcion especifica para fechas de movimientos (sin hora)
 export const formatMovementDate = (dateString) => {
   if (!dateString) return "Fecha no disponible";
 
   try {
-    // Si la fecha ya está en formato ISO, usarla directamente
+    // Si la fecha ya esta en formato ISO, usarla directamente
     if (dateString.includes("T") || dateString.includes("Z")) {
       const date = new Date(dateString);
       return date.toLocaleDateString("es-AR", {
@@ -131,17 +133,14 @@ export const formatMovementDate = (dateString) => {
     const datePart = dateString.split(" ")[0];
     const [year, month, day] = datePart.split("-");
 
-    // Validar que los valores sean números
     if (isNaN(year) || isNaN(month) || isNaN(day)) {
-      return "Fecha inválida";
+      return "Fecha invalida";
     }
 
-    // Crear fecha local sin problemas de zona horaria
     const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 
-    // Verificar que la fecha sea válida
     if (isNaN(date.getTime())) {
-      return "Fecha inválida";
+      return "Fecha invalida";
     }
 
     return date.toLocaleDateString("es-AR", {
@@ -151,6 +150,6 @@ export const formatMovementDate = (dateString) => {
     });
   } catch (error) {
     console.error("Error formateando fecha:", error, "Input:", dateString);
-    return "Fecha inválida";
+    return "Fecha invalida";
   }
 };

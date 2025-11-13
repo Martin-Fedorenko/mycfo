@@ -1,24 +1,38 @@
-FROM python:3.11-slim
+FROM public.ecr.aws/lambda/python:3.10
 
-WORKDIR /app
+# -------------------------------
+# Actualizar pip
+# -------------------------------
+RUN pip install --no-cache-dir --upgrade pip
 
-# Instalar dependencias del sistema necesarias para Prophet y scipy
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# -------------------------------
+# Librerías requeridas por numpy/scipy/statsmodels
+# -------------------------------
+RUN yum install -y gcc gcc-c++ make \
+    && yum install -y libgfortran libquadmath \
+    && yum clean all
 
-# Copiar requirements y instalar dependencias
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# -------------------------------
+# Instalar dependencias Python
+# -------------------------------
+RUN pip install --no-cache-dir \
+    numpy \
+    pandas \
+    matplotlib \
+    scipy \
+    scikit-learn \
+    statsmodels \
+    prophet \
+    flask \
+    flask-cors \
+    joblib
 
-# Copiar el código de la aplicación
-COPY forecast.py .
+# -------------------------------
+# Copiar tu aplicación
+# -------------------------------
+COPY app.py ${LAMBDA_TASK_ROOT}/app.py
 
-# Exponer el puerto
-EXPOSE 8088
-
-# Comando para ejecutar la aplicación
-CMD ["python", "forecast.py"]
-
+# -------------------------------
+# Comando handler
+# -------------------------------
+CMD ["app.lambda_handler"]

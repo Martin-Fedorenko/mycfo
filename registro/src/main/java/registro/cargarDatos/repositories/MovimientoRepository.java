@@ -29,6 +29,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
     // Buscar por fecha emision
     List<Movimiento> findByFechaEmisionIn(java.util.Set<LocalDate> fechas);
 
+    List<Movimiento> findByOrganizacionIdAndFechaEmisionIn(Long organizacionId, java.util.Set<LocalDate> fechas);
+
     // Buscar por organización y rango de fechas
     List<Movimiento> findByOrganizacionIdAndFechaEmisionBetween(Long organizacionId, LocalDate inicio, LocalDate fin);
 

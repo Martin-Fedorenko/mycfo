@@ -22,12 +22,15 @@ export default function MainGrid() {
     const chartRefIngresos = React.useRef(null);
     const chartRefEgresos = React.useRef(null);
 
+    // Formateo de moneda para tooltips de tortas
+    const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
+
     React.useEffect(() => {
         const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !(selectedYear && selectedMonth !== '')) return;
 
         const params = new URLSearchParams();
-        params.set('anio', selectedYear);
+        params.set('anio', Number(selectedYear));
         params.set('mes', Number(selectedMonth) + 1);
 
         if (Array.isArray(selectedCategoria) && selectedCategoria.length > 0) {
@@ -68,19 +71,19 @@ export default function MainGrid() {
         ];
 
         if (detalleIngresos.length > 0) {
-            const totalIngresos = detalleIngresos.reduce((sum, item) => sum + item.total, 0);
+            const totalIngresos = detalleIngresos.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
             excelData.push(["Ingresos", "", {v: totalIngresos, t: 'n'}]);
             detalleIngresos.forEach(item => {
-                excelData.push(["", item.categoria, {v: item.total, t: 'n'}]);
+                excelData.push(["", (item.categoria ?? 'Sin categoría'), {v: (Number(item.total) || 0), t: 'n'}]);
             });
         }
 
         if (detalleEgresos.length > 0) {
             excelData.push([]); // Fila vacía
-            const totalEgresos = detalleEgresos.reduce((sum, item) => sum + item.total, 0);
+            const totalEgresos = detalleEgresos.reduce((sum, item) => sum + Math.abs(Number(item.total) || 0), 0);
             excelData.push(["Egresos", "", {v: totalEgresos, t: 'n'}]);
             detalleEgresos.forEach(item => {
-                excelData.push(["", item.categoria, {v: item.total, t: 'n'}]);
+                excelData.push(["", (item.categoria ?? 'Sin categoría'), {v: Math.abs(Number(item.total) || 0), t: 'n'}]);
             });
         }
 
@@ -167,8 +170,13 @@ export default function MainGrid() {
         setSelectedCategoria(arr);
     };
 
-    const dataIngresosPie = data.detalleIngresos.map(item => ({ name: item.categoria, value: item.total }));
-    const dataEgresosPie = data.detalleEgresos.map(item => ({ name: item.categoria, value: item.total }));
+    const normalizeCategoria = (c) => {
+        const s = (c ?? '').toString().trim();
+        return s.length ? s : 'Sin categoría';
+    };
+
+    const dataIngresosPie = data.detalleIngresos.map(item => ({ name: normalizeCategoria(item.categoria), value: item.total }));
+    const dataEgresosPie = data.detalleEgresos.map(item => ({ name: normalizeCategoria(item.categoria), value: Math.abs(item.total) }));
 
     // Cálculo para placeholder y guía
     const totalIngresosPie = dataIngresosPie.reduce((sum, d) => sum + (d.value || 0), 0);
@@ -237,7 +245,7 @@ export default function MainGrid() {
                                                 <Cell key={`cell-ing-${index}`} fill={totalIngresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                        <Tooltip formatter={(v, n) => [currency(v), n]} />
                                     </PieChart>
                                 </Box>
                             </Box>
@@ -275,7 +283,7 @@ export default function MainGrid() {
                                                 <Cell key={`cell-egr-${index}`} fill={totalEgresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                        <Tooltip formatter={(v, n) => [currency(v), n]} />
                                     </PieChart>
                                 </Box>
                             </Box>

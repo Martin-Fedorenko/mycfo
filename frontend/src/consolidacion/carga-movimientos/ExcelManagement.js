@@ -25,11 +25,17 @@ export default function ExcelManagement() {
   const loadHistorial = async () => {
     setHistorialLoading(true);
     try {
+      const usuarioSub = sessionStorage.getItem("sub");
+      if (!usuarioSub) {
+        alert("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        setHistorialLoading(false);
+        return;
+      }
       const response = await axios.get(
         `${process.env.REACT_APP_URL_REGISTRO}/api/historial-cargas`,
         {
           headers: {
-            "X-User-ID": "00000000-0000-0000-0000-000000000001", // TODO: obtener del contexto de usuario
+            "X-Usuario-Sub": usuarioSub,
           },
         }
       );

@@ -16,32 +16,65 @@ import java.time.Instant;
 import java.util.List;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    Page<Notification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
-    Page<Notification> findByUserIdAndIsReadFalseOrderByCreatedAtDesc(Long userId, Pageable pageable);
-    int countByUserIdAndIsReadFalse(Long userId);
-    boolean existsByUserIdAndTypeAndResourceIdAndCreatedAtBetween(
-            Long userId, NotificationType type, String resourceId, Instant from, Instant to
+
+    interface TenantScope {
+        Long getOrganizacionId();
+        String getUsuarioId();
+    }
+
+    Page<Notification> findByOrganizacionIdAndUsuarioIdOrderByCreatedAtDesc(Long organizacionId, String usuarioId, Pageable pageable);
+
+    Page<Notification> findByOrganizacionIdAndUsuarioIdAndIsReadFalseOrderByCreatedAtDesc(Long organizacionId, String usuarioId, Pageable pageable);
+
+    int countByOrganizacionIdAndUsuarioIdAndIsReadFalse(Long organizacionId, String usuarioId);
+
+    boolean existsByOrganizacionIdAndUsuarioIdAndTypeAndResourceIdAndCreatedAtBetween(
+            Long organizacionId,
+            String usuarioId,
+            NotificationType type,
+            String resourceId,
+            Instant from,
+            Instant to
     );
 
-    // Métodos para digest
-    @Query("SELECT DISTINCT n.userId FROM Notification n WHERE n.createdAt BETWEEN :start AND :end")
-    List<Long> findDistinctUserIdsByCreatedAtBetween(@Param("start") Instant start, @Param("end") Instant end);
+    @Query("SELECT DISTINCT n.organizacionId AS organizacionId, n.usuarioId AS usuarioId " +
+           "FROM Notification n " +
+           "WHERE n.createdAt BETWEEN :start AND :end")
+    List<TenantScope> findDistinctTenantScopeByCreatedAtBetween(@Param("start") Instant start, @Param("end") Instant end);
 
-    List<Notification> findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long userId, Instant start, Instant end);
+    List<Notification> findByOrganizacionIdAndUsuarioIdAndCreatedAtBetweenOrderByCreatedAtDesc(
+            Long organizacionId,
+            String usuarioId,
+            Instant start,
+            Instant end
+    );
 
-    // Métodos para filtros avanzados
-    Page<Notification> findByUserIdAndTypeOrderByCreatedAtDesc(Long userId, NotificationType type, Pageable pageable);
+    Page<Notification> findByOrganizacionIdAndUsuarioIdAndTypeOrderByCreatedAtDesc(
+            Long organizacionId,
+            String usuarioId,
+            NotificationType type,
+            Pageable pageable
+    );
 
-    Page<Notification> findByUserIdAndSeverityOrderByCreatedAtDesc(Long userId, Severity severity, Pageable pageable);
+    Page<Notification> findByOrganizacionIdAndUsuarioIdAndSeverityOrderByCreatedAtDesc(
+            Long organizacionId,
+            String usuarioId,
+            Severity severity,
+            Pageable pageable
+    );
 
-    @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND " +
+    @Query("SELECT n FROM Notification n WHERE n.organizacionId = :organizacionId AND n.usuarioId = :usuarioId AND " +
            "(LOWER(n.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "LOWER(n.body) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
            "ORDER BY n.createdAt DESC")
-    Page<Notification> findByUserIdAndSearchTerm(@Param("userId") Long userId, @Param("searchTerm") String searchTerm, Pageable pageable);
+    Page<Notification> findByOrganizacionIdAndUsuarioIdAndSearchTerm(@Param("organizacionId") Long organizacionId,
+                                                                     @Param("usuarioId") String usuarioId,
+                                                                     @Param("searchTerm") String searchTerm,
+                                                                     Pageable pageable);
 
-    boolean existsByUserIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
-            Long userId,
+    boolean existsByOrganizacionIdAndUsuarioIdAndTypeAndResourceTypeAndResourceIdAndCreatedAtAfter(
+            Long organizacionId,
+            String usuarioId,
             NotificationType type,
             ResourceType resourceType,
             String resourceId,

@@ -30,7 +30,19 @@ import {
   Schedule as ScheduleIcon,
   Notifications as NotificationsIcon,
 } from "@mui/icons-material";
+import dayjs from "dayjs";
+import CustomDatePicker from "../../../shared-components/CustomDatePicker";
+import CustomTimePicker from "../../../shared-components/CustomTimePicker";
 import { useReminders } from "../../hooks/useReminders";
+
+const FieldBox = ({ label, children }) => (
+  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+    <Typography variant="subtitle2" color="text.secondary">
+      {label}
+    </Typography>
+    {children}
+  </Box>
+);
 
 export default function ReminderManager() {
   const [openDialog, setOpenDialog] = React.useState(false);
@@ -49,14 +61,17 @@ export default function ReminderManager() {
   } = useReminders(userId);
 
   // Form state
-  const [formData, setFormData] = React.useState({
+  const createDefaultFormData = () => ({
     title: "",
     message: "",
-    scheduledFor: "",
+    date: dayjs(),
+    time: dayjs(),
     isRecurring: false,
     recurrencePattern: "DAILY",
     reminderType: "CUSTOM",
   });
+
+  const [formData, setFormData] = React.useState(createDefaultFormData());
 
   const reminderTypes = [
     { value: "CUSTOM", label: "Personalizado" },
@@ -71,28 +86,28 @@ export default function ReminderManager() {
     { value: "MONTHLY", label: "Mensual" },
     { value: "YEARLY", label: "Anual" },
   ];
+  const recurrenceOptions = [
+    { value: "NONE", label: "No recurrente" },
+    ...recurrencePatterns,
+  ];
 
   const handleOpenDialog = (reminder = null) => {
     if (reminder) {
       setEditingReminder(reminder);
+      const scheduled = dayjs(reminder.scheduledFor);
+      const validDate = scheduled.isValid() ? scheduled : dayjs();
       setFormData({
         title: reminder.title,
         message: reminder.message,
-        scheduledFor: reminder.scheduledFor,
+        date: validDate,
+        time: validDate,
         isRecurring: reminder.isRecurring,
         recurrencePattern: reminder.recurrencePattern,
         reminderType: reminder.reminderType,
       });
     } else {
       setEditingReminder(null);
-      setFormData({
-        title: "",
-        message: "",
-        scheduledFor: "",
-        isRecurring: false,
-        recurrencePattern: "DAILY",
-        reminderType: "CUSTOM",
-      });
+      setFormData(createDefaultFormData());
     }
     setOpenDialog(true);
   };
@@ -113,9 +128,24 @@ export default function ReminderManager() {
     try {
       setLoading(true);
 
+      const selectedDate =
+        formData.date && formData.date.isValid() ? formData.date : dayjs();
+      const selectedTime =
+        formData.time && formData.time.isValid() ? formData.time : dayjs();
+      const scheduledFor = selectedDate
+        .hour(selectedTime.hour())
+        .minute(selectedTime.minute())
+        .second(0)
+        .millisecond(0)
+        .toISOString();
+
       const reminderData = {
-        ...formData,
-        scheduledFor: new Date(formData.scheduledFor).toISOString(),
+        title: formData.title,
+        message: formData.message,
+        scheduledFor,
+        isRecurring: formData.isRecurring,
+        recurrencePattern: formData.recurrencePattern,
+        reminderType: formData.reminderType,
       };
 
       if (editingReminder) {
@@ -394,96 +424,105 @@ export default function ReminderManager() {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Título"
-                value={formData.title}
-                onChange={(e) => handleFormChange("title", e.target.value)}
-                required
-              />
+              <FieldBox label="Título">
+                <TextField
+                  fullWidth
+                  placeholder="Título"
+                  value={formData.title}
+                  onChange={(e) => handleFormChange("title", e.target.value)}
+                  size="small"
+                  required
+                />
+              </FieldBox>
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Mensaje"
-                value={formData.message}
-                onChange={(e) => handleFormChange("message", e.target.value)}
-                multiline
-                rows={3}
-                required
-              />
+              <FieldBox label="Mensaje">
+                <TextField
+                  fullWidth
+                  placeholder="Descripción"
+                  value={formData.message}
+                  onChange={(e) => handleFormChange("message", e.target.value)}
+                  size="small"
+                  required
+                />
+              </FieldBox>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo de Recordatorio</InputLabel>
-                <Select
-                  value={formData.reminderType}
-                  label="Tipo de Recordatorio"
-                  onChange={(e) =>
-                    handleFormChange("reminderType", e.target.value)
-                  }
-                >
-                  {reminderTypes.map((type) => (
-                    <MenuItem key={type.value} value={type.value}>
-                      {type.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Fecha y Hora"
-                type="datetime-local"
-                value={formData.scheduledFor}
-                onChange={(e) =>
-                  handleFormChange("scheduledFor", e.target.value)
-                }
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isRecurring}
-                    onChange={(e) =>
-                      handleFormChange("isRecurring", e.target.checked)
-                    }
-                  />
-                }
-                label="Recordatorio recurrente"
-              />
-            </Grid>
-
-            {formData.isRecurring && (
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Frecuencia</InputLabel>
+            {/*<Grid item xs={12} sm={6}>
+              <FieldBox label="Tipo de recordatorio">
+                <FormControl fullWidth size="small">
                   <Select
-                    value={formData.recurrencePattern}
-                    label="Frecuencia"
+                    value={formData.reminderType}
                     onChange={(e) =>
-                      handleFormChange("recurrencePattern", e.target.value)
+                      handleFormChange("reminderType", e.target.value)
+                    }
+                    displayEmpty
+                    renderValue={(value) =>
+                      value
+                        ? reminderTypes.find((type) => type.value === value)
+                            ?.label
+                        : "Seleccioná una opción"
                     }
                   >
-                    {recurrencePatterns.map((pattern) => (
-                      <MenuItem key={pattern.value} value={pattern.value}>
-                        {pattern.label}
+                    {reminderTypes.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
+                        {type.label}
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
-            )}
+              </FieldBox>
+            </Grid>*/}
+
+            <Grid item xs={12} sm={6}>
+              <FieldBox label="Fecha">
+                <CustomDatePicker
+                  value={formData.date}
+                  onChange={(value) =>
+                    handleFormChange("date", value || dayjs())
+                  }
+                />
+              </FieldBox>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FieldBox label="Hora">
+                <CustomTimePicker
+                  value={formData.time}
+                  onChange={(value) =>
+                    handleFormChange("time", value || dayjs())
+                  }
+                />
+              </FieldBox>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FieldBox label="Tipo">
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={
+                      formData.isRecurring ? formData.recurrencePattern : "NONE"
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "NONE") {
+                        handleFormChange("isRecurring", false);
+                      } else {
+                        handleFormChange("isRecurring", true);
+                        handleFormChange("recurrencePattern", value);
+                      }
+                    }}
+                  >
+                    {recurrenceOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </FieldBox>
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -491,11 +530,13 @@ export default function ReminderManager() {
           <Button
             onClick={handleSubmit}
             variant="contained"
+            sx={{ color: "common.white" }}
             disabled={
               loading ||
               !formData.title ||
               !formData.message ||
-              !formData.scheduledFor
+              !formData.date ||
+              !formData.time
             }
           >
             {loading

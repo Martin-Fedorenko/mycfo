@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.repositories.MovimientoRepository;
-import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.mercadopago.dtos.PaymentDTO;
 import registro.mercadopago.repositories.MpImportedPaymentRepository;
 
@@ -38,9 +37,12 @@ public class MpDuplicateDetectionService {
      * @param pagosPreview Lista de pagos a verificar
      * @return Lista de pagos con información de duplicados actualizada
      */
-    public List<PaymentDTO> detectarDuplicadosEnBD(List<PaymentDTO> pagosPreview) {
+    public List<PaymentDTO> detectarDuplicadosEnBD(List<PaymentDTO> pagosPreview, Long organizacionId) {
         if (pagosPreview == null || pagosPreview.isEmpty()) {
             return pagosPreview;
+        }
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("El ID de organización es obligatorio para validar duplicados");
         }
         
         // 1. Verificar duplicados por ID de Mercado Pago (más confiable)
@@ -60,7 +62,7 @@ public class MpDuplicateDetectionService {
             .map(this::crearPagoKey)
             .collect(Collectors.toSet());
         
-        List<Movimiento> duplicadosEnBD = buscarDuplicadosEnBD(pagosParaVerificar);
+        List<Movimiento> duplicadosEnBD = buscarDuplicadosEnBD(pagosParaVerificar, organizacionId);
         
         Set<PagoKey> duplicadosSet = duplicadosEnBD.stream()
             .map(this::crearPagoKey)
@@ -91,7 +93,7 @@ public class MpDuplicateDetectionService {
     /**
      * Busca duplicados en la base de datos usando una consulta optimizada
      */
-    private List<Movimiento> buscarDuplicadosEnBD(Set<PagoKey> pagosParaVerificar) {
+    private List<Movimiento> buscarDuplicadosEnBD(Set<PagoKey> pagosParaVerificar, Long organizacionId) {
         // Obtener todas las fechas únicas para optimizar la consulta
         Set<LocalDate> fechasUnicas = pagosParaVerificar.stream()
             .map(PagoKey::getFechaEmision)
@@ -103,7 +105,7 @@ public class MpDuplicateDetectionService {
         }
         
         // Buscar registros que coincidan en fecha (primer filtro)
-        List<Movimiento> registrosPorFecha = MovimientoRepo.findByFechaEmisionIn(fechasUnicas);
+        List<Movimiento> registrosPorFecha = MovimientoRepo.findByOrganizacionIdAndFechaEmisionIn(organizacionId, fechasUnicas);
         
         // Filtrar los que realmente son duplicados (comparar fecha, monto, descripción, origen)
         return registrosPorFecha.stream()

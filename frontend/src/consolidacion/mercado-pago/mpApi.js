@@ -2,9 +2,21 @@
 const BASE_URL =
   import.meta?.env?.VITE_API_URL || process.env.REACT_APP_URL_REGISTRO || "";
 
+const USER_HEADER = "X-Usuario-Sub";
+
 async function request(path, { method = "GET", body, headers } = {}) {
   const url = `${BASE_URL}${path}`;
-  const opts = { method, headers: { ...(headers || {}) } };
+  const opts = {
+    method,
+    headers: {
+      ...(headers || {}),
+    },
+  };
+
+  const usuarioSub = sessionStorage.getItem("sub");
+  if (usuarioSub) {
+    opts.headers[USER_HEADER] = usuarioSub;
+  }
 
   // Solo seteamos JSON si hay body
   if (body !== undefined) {

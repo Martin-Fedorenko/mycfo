@@ -15,16 +15,21 @@ import java.util.stream.Collectors;
 public class DuplicateDetectionService {
     
     @Autowired
-    private MovimientoRepository MovimientoRepository;
+    private MovimientoRepository movimientoRepository;
     
     /**
      * Detecta duplicados en la base de datos para una lista de registros preview
      * @param registrosPreview Lista de registros a verificar
+     * @param organizacionId   Tenant actual para limitar la búsqueda
      * @return Lista de registros con información de duplicados actualizada
      */
-    public List<RegistroPreviewDTO> detectarDuplicadosEnBD(List<RegistroPreviewDTO> registrosPreview) {
+    public List<RegistroPreviewDTO> detectarDuplicadosEnBD(List<RegistroPreviewDTO> registrosPreview, Long organizacionId) {
         if (registrosPreview.isEmpty()) {
             return registrosPreview;
+        }
+        
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("La organización es requerida para detectar duplicados");
         }
         
         // Crear un set de registros únicos para verificar eficientemente
@@ -33,7 +38,7 @@ public class DuplicateDetectionService {
             .collect(Collectors.toSet());
         
         // Buscar duplicados en la BD de una sola vez
-        List<Movimiento> duplicadosEnBD = buscarDuplicadosEnBD(registrosParaVerificar);
+        List<Movimiento> duplicadosEnBD = buscarDuplicadosEnBD(registrosParaVerificar, organizacionId);
         
         // Crear un set de duplicados para búsqueda rápida
         Set<RegistroKey> duplicadosSet = duplicadosEnBD.stream()
@@ -56,14 +61,14 @@ public class DuplicateDetectionService {
     /**
      * Busca duplicados en la base de datos usando una consulta optimizada
      */
-    private List<Movimiento> buscarDuplicadosEnBD(Set<RegistroKey> registrosParaVerificar) {
+    private List<Movimiento> buscarDuplicadosEnBD(Set<RegistroKey> registrosParaVerificar, Long organizacionId) {
         // Obtener todas las fechas únicas para optimizar la consulta
         Set<LocalDate> fechasUnicas = registrosParaVerificar.stream()
             .map(RegistroKey::getFechaEmision)
             .collect(Collectors.toSet());
         
         // Buscar registros que coincidan en fecha (primer filtro)
-        List<Movimiento> registrosPorFecha = MovimientoRepository.findByFechaEmisionIn(fechasUnicas);
+        List<Movimiento> registrosPorFecha = movimientoRepository.findByOrganizacionIdAndFechaEmisionIn(organizacionId, fechasUnicas);
         
         // Filtrar los que realmente son duplicados
         return registrosPorFecha.stream()

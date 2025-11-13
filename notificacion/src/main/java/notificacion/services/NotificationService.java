@@ -10,9 +10,9 @@ import notificacion.models.Severity;
 import notificacion.repositories.NotificationRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 @Service
 public class NotificationService {
@@ -20,124 +20,151 @@ public class NotificationService {
     private final NotificationRepository repo;
     private final WebSocketNotificationService webSocketService;
     private final EmailNotificationService emailService;
-    private final NotificationPreferencesService preferencesService;
 
     public NotificationService(NotificationRepository repo,
-                             WebSocketNotificationService webSocketService,
-                             EmailNotificationService emailService,
-                             NotificationPreferencesService preferencesService) {
+                               WebSocketNotificationService webSocketService,
+                               EmailNotificationService emailService) {
         this.repo = repo;
         this.webSocketService = webSocketService;
         this.emailService = emailService;
-        this.preferencesService = preferencesService;
     }
 
     @Transactional(readOnly = true)
-    public NotificationListResponse getNotifications(Long userId, String status, int page, int size) {
-        var pageable = PageRequest.of(page, size);
-        var pageData = ("unread".equalsIgnoreCase(status))
-                ? repo.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId, pageable)
-                : repo.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    public NotificationListResponse getNotifications(Long organizacionId,
+                                                     String usuarioId,
+                                                     String status,
+                                                     int page,
+                                                     int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Notification> pageData = ("unread".equalsIgnoreCase(status))
+                ? repo.findByOrganizacionIdAndUsuarioIdAndIsReadFalseOrderByCreatedAtDesc(organizacionId, usuarioId, pageable)
+                : repo.findByOrganizacionIdAndUsuarioIdOrderByCreatedAtDesc(organizacionId, usuarioId, pageable);
 
-        var items = pageData.getContent().stream()
-                .map(NotificationMapper::toDTO).toList();
-        var unread = repo.countByUserIdAndIsReadFalse(userId);
-
-        return new NotificationListResponse(unread, items);
+        return buildListResponse(organizacionId, usuarioId, pageData);
     }
 
     @Transactional(readOnly = true)
-    public int unreadCount(Long userId) {
-        return repo.countByUserIdAndIsReadFalse(userId);
+    public int unreadCount(Long organizacionId, String usuarioId) {
+        return repo.countByOrganizacionIdAndUsuarioIdAndIsReadFalse(organizacionId, usuarioId);
     }
 
     @Transactional
-    public void markRead(Long userId, Long notifId, boolean isRead) {
-        var n = repo.findById(notifId).orElseThrow();
-        if (!n.getUserId().equals(userId)) throw new IllegalArgumentException("Usuario inválido");
-        n.setRead(isRead);
-        repo.save(n);
+    public void markRead(Long organizacionId, String usuarioId, Long notifId, boolean isRead) {
+        Notification notification = repo.findById(notifId).orElseThrow();
+        enforceTenant(notification, organizacionId, usuarioId);
+        notification.setRead(isRead);
+        repo.save(notification);
+        publishUnreadCount(organizacionId, usuarioId);
     }
 
     @Transactional
-    public void markAllRead(Long userId) {
-        // versión simple: paginar y marcar (evita update nativo si no querés)
-        repo.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId, PageRequest.of(0, 500))
-                .forEach(n -> { n.setRead(true); repo.save(n); });
+    public void markAllRead(Long organizacionId, String usuarioId) {
+        var unread = repo
+                .findByOrganizacionIdAndUsuarioIdAndIsReadFalseOrderByCreatedAtDesc(
+                        organizacionId,
+                        usuarioId,
+                        Pageable.unpaged())
+                .getContent();
+        unread.forEach(notification -> notification.setRead(true));
+        repo.saveAll(unread);
+        publishUnreadCount(organizacionId, usuarioId);
     }
 
-    // Helper para crear notificaciones desde el import del Excel
     @Transactional
-    public NotificationDTO create(Notification n) {
-        var saved = repo.save(n);
-        
-        // Enviar notificación en tiempo real
-        webSocketService.sendNotificationToUser(n.getUserId(), saved);
-        
-        // Enviar email si está habilitado
-        if (preferencesService.isEmailEnabled(n.getUserId(), n.getType())) {
-            try {
-                emailService.sendNotificationEmail(n.getUserId(), saved);
-                System.out.println("Email enviado para notificación: " + saved.getTitle());
-            } catch (Exception e) {
-                System.err.println("Error enviando email: " + e.getMessage());
-            }
+    public NotificationDTO create(Notification notification) {
+        if (notification.getOrganizacionId() == null || notification.getUsuarioId() == null) {
+            throw new IllegalArgumentException("La notificacion debe incluir organizacion y usuario.");
         }
-        
-        // Actualizar contador de no leídas
-        int unreadCount = repo.countByUserIdAndIsReadFalse(n.getUserId());
-        webSocketService.sendUnreadCountUpdate(n.getUserId(), unreadCount);
-        
+
+        Notification saved = repo.save(notification);
+
+        webSocketService.sendNotificationToUser(notification.getUsuarioId(), saved);
+
+        try {
+            emailService.sendNotificationEmail(notification.getOrganizacionId(), notification.getUsuarioId(), saved);
+        } catch (Exception e) {
+            System.err.println("Error enviando email de notificacion: " + e.getMessage());
+        }
+
+        publishUnreadCount(notification.getOrganizacionId(), notification.getUsuarioId());
         return NotificationMapper.toDTO(saved);
     }
 
-    // Métodos avanzados para filtros
     @Transactional(readOnly = true)
-    public NotificationListResponse getNotificationsByType(Long userId, NotificationType type, int page, int size) {
-        var pageable = PageRequest.of(page, size);
-        var pageData = repo.findByUserIdAndTypeOrderByCreatedAtDesc(userId, type, pageable);
-        
-        var items = pageData.getContent().stream()
-                .map(NotificationMapper::toDTO).toList();
-        var unread = repo.countByUserIdAndIsReadFalse(userId);
-        
-        return new NotificationListResponse(unread, items);
+    public NotificationListResponse getNotificationsByType(Long organizacionId,
+                                                           String usuarioId,
+                                                           NotificationType type,
+                                                           int page,
+                                                           int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Notification> pageData = repo.findByOrganizacionIdAndUsuarioIdAndTypeOrderByCreatedAtDesc(
+                organizacionId,
+                usuarioId,
+                type,
+                pageable
+        );
+        return buildListResponse(organizacionId, usuarioId, pageData);
     }
 
     @Transactional(readOnly = true)
-    public NotificationListResponse getNotificationsBySeverity(Long userId, Severity severity, int page, int size) {
-        var pageable = PageRequest.of(page, size);
-        var pageData = repo.findByUserIdAndSeverityOrderByCreatedAtDesc(userId, severity, pageable);
-        
-        var items = pageData.getContent().stream()
-                .map(NotificationMapper::toDTO).toList();
-        var unread = repo.countByUserIdAndIsReadFalse(userId);
-        
-        return new NotificationListResponse(unread, items);
+    public NotificationListResponse getNotificationsBySeverity(Long organizacionId,
+                                                               String usuarioId,
+                                                               Severity severity,
+                                                               int page,
+                                                               int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Notification> pageData = repo.findByOrganizacionIdAndUsuarioIdAndSeverityOrderByCreatedAtDesc(
+                organizacionId,
+                usuarioId,
+                severity,
+                pageable
+        );
+        return buildListResponse(organizacionId, usuarioId, pageData);
     }
 
     @Transactional(readOnly = true)
-    public NotificationListResponse searchNotifications(Long userId, String searchTerm, int page, int size) {
-        var pageable = PageRequest.of(page, size);
-        var pageData = repo.findByUserIdAndSearchTerm(userId, searchTerm, pageable);
-        
-        var items = pageData.getContent().stream()
-                .map(NotificationMapper::toDTO).toList();
-        var unread = repo.countByUserIdAndIsReadFalse(userId);
-        
-        return new NotificationListResponse(unread, items);
+    public NotificationListResponse searchNotifications(Long organizacionId,
+                                                        String usuarioId,
+                                                        String searchTerm,
+                                                        int page,
+                                                        int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Notification> pageData = repo.findByOrganizacionIdAndUsuarioIdAndSearchTerm(
+                organizacionId,
+                usuarioId,
+                searchTerm,
+                pageable
+        );
+        return buildListResponse(organizacionId, usuarioId, pageData);
     }
 
     @Transactional
-    public void deleteNotification(Long notificationId, Long userId) {
-        var notification = repo.findById(notificationId).orElseThrow();
-        if (!notification.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("No autorizado para eliminar esta notificación");
-        }
+    public void deleteNotification(Long organizacionId, String usuarioId, Long notificationId) {
+        Notification notification = repo.findById(notificationId).orElseThrow();
+        enforceTenant(notification, organizacionId, usuarioId);
         repo.delete(notification);
-        
-        // Actualizar contador de no leídas
-        int unreadCount = repo.countByUserIdAndIsReadFalse(userId);
-        webSocketService.sendUnreadCountUpdate(userId, unreadCount);
+        publishUnreadCount(organizacionId, usuarioId);
+    }
+
+    private NotificationListResponse buildListResponse(Long organizacionId,
+                                                       String usuarioId,
+                                                       Page<Notification> pageData) {
+        var items = pageData.getContent().stream()
+                .map(NotificationMapper::toDTO)
+                .toList();
+        int unread = repo.countByOrganizacionIdAndUsuarioIdAndIsReadFalse(organizacionId, usuarioId);
+        return new NotificationListResponse(unread, items);
+    }
+
+    private void enforceTenant(Notification notification, Long organizacionId, String usuarioId) {
+        if (!notification.getOrganizacionId().equals(organizacionId) ||
+            !notification.getUsuarioId().equals(usuarioId)) {
+            throw new IllegalArgumentException("Notificacion fuera del alcance del usuario actual");
+        }
+    }
+
+    private void publishUnreadCount(Long organizacionId, String usuarioId) {
+        int unreadCount = repo.countByOrganizacionIdAndUsuarioIdAndIsReadFalse(organizacionId, usuarioId);
+        webSocketService.sendUnreadCountUpdate(usuarioId, unreadCount);
     }
 }

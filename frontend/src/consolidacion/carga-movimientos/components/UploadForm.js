@@ -67,7 +67,7 @@ const UploadForm = ({ onUpload }) => {
           <MenuItem value="">Seleccione una opción</MenuItem>
           <MenuItem value="mycfo">MyCFO (plantilla genérica)</MenuItem>
           <MenuItem value="mercado-pago">Mercado Pago</MenuItem>
-          <MenuItem value="santander">Banco Santander</MenuItem>
+          {/*<MenuItem value="santander">Banco Santander</MenuItem>*/}
         </Select>
       </FormControl>
 

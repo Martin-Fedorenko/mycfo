@@ -9,7 +9,7 @@ import java.util.Optional;
 @Repository
 public interface NotificationPreferencesRepository extends JpaRepository<NotificationPreferences, Long> {
     
-    Optional<NotificationPreferences> findByUserId(Long userId);
+    Optional<NotificationPreferences> findByOrganizacionIdAndUsuarioId(Long organizacionId, String usuarioId);
     
-    boolean existsByUserId(Long userId);
+    boolean existsByOrganizacionIdAndUsuarioId(Long organizacionId, String usuarioId);
 }

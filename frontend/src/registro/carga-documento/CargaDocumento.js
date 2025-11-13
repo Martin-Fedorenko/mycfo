@@ -36,6 +36,11 @@ export default function CargaDocumento() {
 
     try {
       setError("");
+      const usuarioSub = sessionStorage.getItem("sub");
+      if (!usuarioSub) {
+        setError("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        return;
+      }
       const formData = new FormData();
       formData.append("file", file);
       formData.append("tipoOrigen", tipoOrigen);
@@ -43,7 +48,12 @@ export default function CargaDocumento() {
       const { data } = await axios.post(
         `${process.env.REACT_APP_URL_REGISTRO}/api/importar-excel`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-Usuario-Sub": usuarioSub,
+          },
+        }
       );
 
       setResumen(data);

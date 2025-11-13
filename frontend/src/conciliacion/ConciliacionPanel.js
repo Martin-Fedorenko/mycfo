@@ -18,6 +18,7 @@ import {
   ToggleButton,
   Divider,
   LinearProgress,
+  Pagination,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -26,6 +27,9 @@ import PendingIcon from "@mui/icons-material/Pending";
 import MovimientoCard from "./components/MovimientoCard";
 import DocumentoCard from "./components/DocumentoCard";
 import conciliacionApi from "./api/conciliacionApi";
+
+const MOVIMIENTOS_POR_PAGINA = 10;
+const DOCUMENTOS_POR_PAGINA = 5;
 
 export default function ConciliacionPanel() {
   const [movimientos, setMovimientos] = useState([]);
@@ -40,6 +44,12 @@ export default function ConciliacionPanel() {
   const [filtroEstado, setFiltroEstado] = useState("sin-conciliar"); // 'todos', 'sin-conciliar', 'conciliados'
   const [filtroTipo, setFiltroTipo] = useState("todos"); // 'todos', 'Ingreso', 'Egreso'
   const [filtroBusqueda, setFiltroBusqueda] = useState("");
+  const [paginaMovimientos, setPaginaMovimientos] = useState(1);
+  const [paginaSugerencias, setPaginaSugerencias] = useState(1);
+
+  useEffect(() => {
+    setPaginaMovimientos(1);
+  }, [filtroEstado, filtroTipo, filtroBusqueda]);
 
   const cargarMovimientos = useCallback(async () => {
     setLoading(true);
@@ -88,9 +98,11 @@ export default function ConciliacionPanel() {
     try {
       const response = await conciliacionApi.obtenerSugerencias(movimientoId);
       setSugerencias(response.sugerencias || []);
+      setPaginaSugerencias(1);
     } catch (err) {
       console.error("Error cargando sugerencias:", err);
       setSugerencias([]);
+      setPaginaSugerencias(1);
     } finally {
       setLoadingSugerencias(false);
     }
@@ -98,10 +110,12 @@ export default function ConciliacionPanel() {
 
   const handleSeleccionarMovimiento = (movimiento) => {
     setMovimientoSeleccionado(movimiento);
+    setPaginaSugerencias(1);
     if (!movimiento.conciliado) {
       cargarSugerencias(movimiento.id);
     } else {
       setSugerencias([]);
+      setPaginaSugerencias(1);
     }
   };
 
@@ -150,6 +164,7 @@ export default function ConciliacionPanel() {
       if (movimientoSeleccionado?.id === movimientoId) {
         setMovimientoSeleccionado(null);
         setSugerencias([]);
+        setPaginaSugerencias(1);
       }
     } catch (err) {
       console.error("Error desvinculando movimiento:", err);
@@ -186,6 +201,46 @@ export default function ConciliacionPanel() {
 
     return true;
   });
+
+  const totalPaginasMovimientos = Math.max(
+    1,
+    Math.ceil(movimientosFiltrados.length / MOVIMIENTOS_POR_PAGINA)
+  );
+  const totalPaginasSugerencias = Math.max(
+    1,
+    Math.ceil(sugerencias.length / DOCUMENTOS_POR_PAGINA)
+  );
+
+  useEffect(() => {
+    if (paginaMovimientos > totalPaginasMovimientos) {
+      setPaginaMovimientos(totalPaginasMovimientos || 1);
+    }
+  }, [paginaMovimientos, totalPaginasMovimientos]);
+
+  useEffect(() => {
+    if (paginaSugerencias > totalPaginasSugerencias) {
+      setPaginaSugerencias(totalPaginasSugerencias || 1);
+    }
+  }, [paginaSugerencias, totalPaginasSugerencias]);
+
+  const paginaMovimientosActiva = Math.min(
+    paginaMovimientos,
+    totalPaginasMovimientos
+  );
+  const paginaSugerenciasActiva = Math.min(
+    paginaSugerencias,
+    totalPaginasSugerencias
+  );
+
+  const movimientosPaginados = movimientosFiltrados.slice(
+    (paginaMovimientosActiva - 1) * MOVIMIENTOS_POR_PAGINA,
+    paginaMovimientosActiva * MOVIMIENTOS_POR_PAGINA
+  );
+
+  const sugerenciasPaginadas = sugerencias.slice(
+    (paginaSugerenciasActiva - 1) * DOCUMENTOS_POR_PAGINA,
+    paginaSugerenciasActiva * DOCUMENTOS_POR_PAGINA
+  );
 
   return (
     <Box
@@ -338,10 +393,11 @@ export default function ConciliacionPanel() {
 
         {/* Contador de resultados */}
         <Box sx={{ mt: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            Mostrando {movimientosFiltrados.length} de {movimientos.length}{" "}
-            movimientos
-          </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Mostrando {movimientosPaginados.length} de{" "}
+              {movimientosFiltrados.length} movimientos filtrados (pagina{" "}
+              {paginaMovimientosActiva}/{totalPaginasMovimientos})
+            </Typography>
         </Box>
       </Paper>
 
@@ -388,17 +444,36 @@ export default function ConciliacionPanel() {
                   </Typography>
                 </Box>
               ) : (
-                <Box sx={{ flex: 1, overflow: "auto", pr: 1 }}>
-                  {movimientosFiltrados.map((mov) => (
-                    <MovimientoCard
-                      key={mov.id}
-                      movimiento={mov}
-                      selected={movimientoSeleccionado?.id === mov.id}
-                      onClick={() => handleSeleccionarMovimiento(mov)}
-                      onDesvincular={handleDesvincular}
-                    />
-                  ))}
-                </Box>
+                <>
+                  <Box sx={{ flex: 1, overflow: "auto", pr: 1 }}>
+                    {movimientosPaginados.map((mov) => (
+                      <MovimientoCard
+                        key={mov.id}
+                        movimiento={mov}
+                        selected={movimientoSeleccionado?.id === mov.id}
+                        onClick={() => handleSeleccionarMovimiento(mov)}
+                        onDesvincular={handleDesvincular}
+                      />
+                    ))}
+                  </Box>
+                  {totalPaginasMovimientos > 1 && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        mt: 2,
+                      }}
+                    >
+                      <Pagination
+                        count={totalPaginasMovimientos}
+                        page={paginaMovimientosActiva}
+                        onChange={(_, value) => setPaginaMovimientos(value)}
+                        color="primary"
+                        size="small"
+                      />
+                    </Box>
+                  )}
+                </>
               )}
             </Paper>
           </Grid>
@@ -472,7 +547,7 @@ export default function ConciliacionPanel() {
                     documento(s) que podrían corresponder a este movimiento
                   </Alert>
                   <Box sx={{ flex: 1, overflow: "auto", pr: 1 }}>
-                    {sugerencias.map((doc) => (
+                    {sugerenciasPaginadas.map((doc) => (
                       <DocumentoCard
                         key={doc.idDocumento}
                         documento={doc}
@@ -480,6 +555,23 @@ export default function ConciliacionPanel() {
                       />
                     ))}
                   </Box>
+                  {totalPaginasSugerencias > 1 && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        mt: 2,
+                      }}
+                    >
+                      <Pagination
+                        count={totalPaginasSugerencias}
+                        page={paginaSugerenciasActiva}
+                        onChange={(_, value) => setPaginaSugerencias(value)}
+                        color="primary"
+                        size="small"
+                      />
+                    </Box>
+                  )}
                 </>
               )}
             </Paper>

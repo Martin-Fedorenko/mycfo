@@ -51,6 +51,7 @@ public class MpAuthServiceImpl implements MpAuthService {
             System.out.println(">>> Limpiando sesión anterior antes de nuevo login");
             // No borramos el link completo, solo invalidamos los tokens
             MpAccountLink link = existingLink.get();
+            revokeAuthorization(link);
             link.setAccessToken(null);
             link.setRefreshToken(null);
             link.setExpiresAt(Instant.now().minusSeconds(1)); // Token expirado
@@ -74,7 +75,9 @@ public class MpAuthServiceImpl implements MpAuthService {
                 + "&redirect_uri=" + enc(props.getRedirectUri())
                 + "&state=" + enc(signedState)
                 + "&prompt=login"  // Forzar login
-                + "&approval_prompt=force"; // Forzar aprobación
+                + "&approval_prompt=force" // Forzar aprobación
+                + "&force_login=true"      // Parám específico de MP
+                + "&skip_confirm=false";   // Evita saltar confirmaciones previas
         
         System.out.println(">>> URL de autorización generada con forzado de login");
         return props.getOauthAuthorize() + "?" + q;
@@ -172,6 +175,9 @@ public class MpAuthServiceImpl implements MpAuthService {
 
         System.out.println(">>> Desvinculando cuenta MP para usuario: " + userIdApp);
 
+        // Revocar autorización en Mercado Pago antes de limpiar localmente
+        revokeAuthorization(link);
+
         // 1) Borro pagos NO facturados del link
         int deletedPayments = paymentRepo.deleteNotInvoicedByLink(linkId);
         System.out.println(">>> Pagos no facturados eliminados: " + deletedPayments);
@@ -194,6 +200,33 @@ public class MpAuthServiceImpl implements MpAuthService {
         repo.delete(link);
         
         System.out.println(">>> Cuenta MP desvinculada completamente para usuario: " + userIdApp);
+    }
+
+    private void revokeAuthorization(MpAccountLink link) {
+        if (link == null || isBlank(link.getAccessToken()) || isBlank(link.getMpUserId())) {
+            return;
+        }
+
+        String clientId = props.getClientId();
+        if (isBlank(clientId)) {
+            System.err.println(">>> No se puede revocar autorización MP: clientId no configurado");
+            return;
+        }
+
+        String url = ensureSuffix(props.getApiBase(), "") +
+                "/users/" + link.getMpUserId() + "/applications/" + clientId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(link.getAccessToken());
+
+        try {
+            rest.exchange(url, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+            System.out.println(">>> Autorización MP revocada para user " + link.getMpUserId());
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            System.err.println(">>> Error revocando autorización MP (" + e.getStatusCode() + "): " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            System.err.println(">>> Error revocando autorización MP: " + e.getMessage());
+        }
     }
 
     /* =========================

@@ -22,6 +22,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
   const [previewData, setPreviewData] = React.useState([]);
   const [previewLoading, setPreviewLoading] = React.useState(false);
   const [fileName, setFileName] = React.useState("");
+  const obtenerUsuarioSub = () => sessionStorage.getItem("sub");
 
   const handleFileSelected = (archivo) => {
     setFile(archivo);
@@ -37,6 +38,12 @@ export default function CargaMovimientos({ onCargaCompletada }) {
 
     setPreviewLoading(true);
     try {
+      const usuarioSub = obtenerUsuarioSub();
+      if (!usuarioSub) {
+        alert("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        setPreviewLoading(false);
+        return;
+      }
       const formData = new FormData();
       formData.append("file", file);
       formData.append("tipoOrigen", tipoOrigen);
@@ -47,6 +54,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
         {
           headers: {
             "Content-Type": "multipart/form-data",
+            "X-Usuario-Sub": usuarioSub,
           },
         }
       );
@@ -63,6 +71,11 @@ export default function CargaMovimientos({ onCargaCompletada }) {
 
   const handleImportSelected = async (selectedRegistros) => {
     try {
+      const usuarioSub = obtenerUsuarioSub();
+      if (!usuarioSub) {
+        alert("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        return;
+      }
       const requestData = {
         registrosSeleccionados: selectedRegistros,
         fileName: fileName,
@@ -75,7 +88,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
         {
           headers: {
             "Content-Type": "application/json",
-            "X-User-ID": "00000000-0000-0000-0000-000000000001", // TODO: obtener del contexto de usuario
+            "X-Usuario-Sub": usuarioSub,
           },
         }
       );
@@ -114,7 +127,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
           <MenuItem value="">Seleccione una opción</MenuItem>
           <MenuItem value="mycfo">MyCFO (plantilla genérica)</MenuItem>
           <MenuItem value="mercado-pago">Mercado Pago</MenuItem>
-          <MenuItem value="santander">Banco Santander</MenuItem>
+          {/*<MenuItem value="santander">Banco Santander</MenuItem>*/}
         </Select>
       </FormControl>
       {/* Área Drag and Drop solo si hay tipo seleccionado */}

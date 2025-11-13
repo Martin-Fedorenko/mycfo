@@ -22,14 +22,17 @@ export default function MainGrid() {
     });
     const chartRef = React.useRef(null);
 
-    const handleYearChange = (e) => setSelectedYear(e.target.value);
+    // Formateador de moneda para tooltips del gráfico
+    const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
+
+    const handleYearChange = (e) => setSelectedYear(Number(e.target.value));
 
     React.useEffect(() => {
         const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !selectedYear) return;
 
         const params = new URLSearchParams();
-        params.set('anio', selectedYear);
+        params.set('anio', Number(selectedYear));
 
         const headers = {};
         const sub = sessionStorage.getItem('sub');
@@ -54,20 +57,25 @@ export default function MainGrid() {
             });
     }, [selectedYear]);
 
+    const normalizeCategoria = (c) => {
+        const s = (c ?? '').toString().trim();
+        return s.length ? s : 'Sin categoría';
+    };
+
     const handleExportExcel = () => {
         const { detalleIngresos, detalleEgresos } = data;
-        const totalIngresos = detalleIngresos.reduce((sum, item) => sum + item.total, 0);
-        const totalEgresos = detalleEgresos.reduce((sum, item) => sum + item.total, 0);
+        const totalIngresos = detalleIngresos.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+        const totalEgresos = detalleEgresos.reduce((sum, item) => sum + Math.abs(Number(item.total) || 0), 0);
         const resultado = totalIngresos - totalEgresos;
 
         const excelData = [
             ["Estado de Resultados", `(${selectedYear})`],
             [], // Fila vacía
             ["Ingresos", "", {v: totalIngresos, t: 'n'}],
-            ...detalleIngresos.map(item => ["", item.categoria, {v: item.total, t: 'n'}]),
+            ...detalleIngresos.map(item => ["", normalizeCategoria(item.categoria), {v: Number(item.total) || 0, t: 'n'}]),
             [], // Fila vacía
             ["Egresos", "", {v: totalEgresos, t: 'n'}],
-            ...detalleEgresos.map(item => ["", item.categoria, {v: item.total, t: 'n'}]),
+            ...detalleEgresos.map(item => ["", normalizeCategoria(item.categoria), {v: Math.abs(Number(item.total) || 0), t: 'n'}]),
             [], // Fila vacía
             ["Resultado del Ejercicio", "", {v: resultado, t: 'n'}]
         ];
@@ -81,7 +89,7 @@ export default function MainGrid() {
         ];
         const currencyColumns = ['C']; // Columna C para formato de moneda
 
-        exportToExcel(excelData, `profit-and-loss-${selectedYear}`, "Profit & Loss", colsConfig, mergesConfig, currencyColumns);
+        exportToExcel(excelData, `estado-de-resultados-${selectedYear}`, "Estado de Resultados", colsConfig, mergesConfig, currencyColumns);
     };
 
     const handleExportPdf = () => {
@@ -112,18 +120,20 @@ export default function MainGrid() {
 
             body.push(["Ingresos", "", totalIngresos.toFixed(2)]);
             detalleIngresos.forEach(item => {
-                body.push(["", item.categoria, item.total.toFixed(2)]);
+                const val = Number(item.total) || 0;
+                body.push(["", normalizeCategoria(item.categoria), val.toFixed(2)]);
             });
 
             body.push(["Egresos", "", totalEgresos.toFixed(2)]);
             detalleEgresos.forEach(item => {
-                body.push(["", item.categoria, item.total.toFixed(2)]);
+                const val = Math.abs(Number(item.total) || 0);
+                body.push(["", normalizeCategoria(item.categoria), val.toFixed(2)]);
             });
 
             body.push(["Resultado del Ejercicio", "", resultado.toFixed(2)]);
 
             autoTable(doc, { head: head, body: body, startY: pdfHeight + 40 });
-            doc.save(`profit-and-loss-${selectedYear}.pdf`);
+            doc.save(`estado-de-resultados-${selectedYear}.pdf`);
         });
     };
 
@@ -136,7 +146,7 @@ export default function MainGrid() {
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography component="h2" variant="h6">
-                        Profit & Loss (Estado de Resultados)
+                        Estado de Resultados
                     </Typography>
                     <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
                 </Box>
@@ -152,7 +162,7 @@ export default function MainGrid() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                                 <XAxis dataKey="mes" />
                                 <YAxis />
-                                <Tooltip />
+                                <Tooltip formatter={(v) => currency(v)} />
                                 <Legend />
                                 <Bar dataKey="Ingresos" fill="#2e7d32" />
                                 <Bar dataKey="Egresos" fill="#c62828" />
