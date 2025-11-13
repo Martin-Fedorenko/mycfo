@@ -58,10 +58,11 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
     color: '#fff',
   },
   '&.Mui-selected': {
-    backgroundColor: theme.palette.grey[200],
-    color: '#000',
+    backgroundColor: '#04564c !important',
+    color: '#fff !important',
     [`& .${listItemTextClasses.primary}`]: {
       fontWeight: 'bold',
+      color: 'inherit !important',
     },
     '&:hover': {
       backgroundColor: '#008375',
@@ -72,8 +73,8 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
     ? theme.applyStyles('dark', {
         color: '#fff',
         '&.Mui-selected': {
-          backgroundColor: theme.palette.grey[800],
-          color: '#fff',
+          backgroundColor: '#04564c !important',
+          color: '#fff !important',
         },
         '&:hover': {
           backgroundColor: '#008375',
@@ -84,8 +85,8 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
     ? {
         color: '#fff',
         '&.Mui-selected': {
-          backgroundColor: theme.palette.grey[800],
-          color: '#fff',
+          backgroundColor: '#04564c !important',
+          color: '#fff !important',
         },
         '&:hover': {
           backgroundColor: '#008375',
