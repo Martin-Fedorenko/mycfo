@@ -28,7 +28,7 @@ import MovimientoCard from "./components/MovimientoCard";
 import DocumentoCard from "./components/DocumentoCard";
 import conciliacionApi from "./api/conciliacionApi";
 
-const MOVIMIENTOS_POR_PAGINA = 10;
+const MOVIMIENTOS_POR_PAGINA = 5;
 const DOCUMENTOS_POR_PAGINA = 5;
 
 export default function ConciliacionPanel() {
@@ -246,10 +246,10 @@ export default function ConciliacionPanel() {
     <Box
       sx={{
         p: 3,
-        height: "100vh",
-        overflow: "hidden",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
+        gap: 2,
       }}
     >
       {/* Header */}
@@ -433,6 +433,7 @@ export default function ConciliacionPanel() {
               sx={{
                 p: 2,
                 height: "100%",
+                minHeight: { xs: 160, sm: 180, md: 210 },
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -500,6 +501,7 @@ export default function ConciliacionPanel() {
               sx={{
                 p: 2,
                 height: "100%",
+                minHeight: { xs: 160, sm: 180, md: 210 },
                 display: "flex",
                 flexDirection: "column",
               }}
