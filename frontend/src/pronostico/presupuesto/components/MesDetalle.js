@@ -956,28 +956,44 @@ export default function MesDetalle() {
   // ===== Render =====
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        {prevYm && (
-          <IconButton
-            size="small"
-            onClick={() => handleCambiarMes(prevYm)}
-            aria-label="Mes anterior"
-          >
-            <ChevronLeftIcon fontSize="small" />
-          </IconButton>
-        )}
-        <Typography variant="h4" fontWeight="600">
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          mb: 1.5,
+          justifyContent: 'center',
+        }}
+      >
+        <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-end' }}>
+          {prevYm && (
+            <IconButton
+              size="small"
+              onClick={() => handleCambiarMes(prevYm)}
+              aria-label="Mes anterior"
+            >
+              <ChevronLeftIcon fontSize="small" />
+            </IconButton>
+          )}
+        </Box>
+        <Typography
+          variant="h4"
+          fontWeight="600"
+          sx={{ flexGrow: 1, textAlign: 'center', minWidth: 0 }}
+        >
           {nombreMes}
         </Typography>
-        {nextYm && (
-          <IconButton
-            size="small"
-            onClick={() => handleCambiarMes(nextYm)}
-            aria-label="Mes siguiente"
-          >
-            <ChevronRightIcon fontSize="small" />
-          </IconButton>
-        )}
+        <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-start' }}>
+          {nextYm && (
+            <IconButton
+              size="small"
+              onClick={() => handleCambiarMes(nextYm)}
+              aria-label="Mes siguiente"
+            >
+              <ChevronRightIcon fontSize="small" />
+            </IconButton>
+          )}
+        </Box>
       </Box>
       <Typography variant="subtitle1" sx={{ color: 'text.primary' }} gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
