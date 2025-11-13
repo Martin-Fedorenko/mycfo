@@ -966,15 +966,18 @@ export default function MesDetalle() {
         }}
       >
         <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-start' }}>
-          {prevYm && (
-            <IconButton
-              size="small"
-              onClick={() => handleCambiarMes(prevYm)}
-              aria-label="Mes anterior"
-            >
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
-          )}
+          <IconButton
+            size="small"
+            onClick={() => prevYm && handleCambiarMes(prevYm)}
+            aria-label="Mes anterior"
+            disabled={!prevYm}
+            sx={{
+              color: '#04564c',
+              '&.Mui-disabled': { color: '#04564c', opacity: 0.5 },
+            }}
+          >
+            <ChevronLeftIcon fontSize="small" />
+          </IconButton>
         </Box>
         <Typography
           variant="h4"
@@ -990,15 +993,18 @@ export default function MesDetalle() {
           {nombreMes}
         </Typography>
         <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-start' }}>
-          {nextYm && (
-            <IconButton
-              size="small"
-              onClick={() => handleCambiarMes(nextYm)}
-              aria-label="Mes siguiente"
-            >
-              <ChevronRightIcon fontSize="small" />
-            </IconButton>
-          )}
+          <IconButton
+            size="small"
+            onClick={() => nextYm && handleCambiarMes(nextYm)}
+            aria-label="Mes siguiente"
+            disabled={!nextYm}
+            sx={{
+              color: '#04564c',
+              '&.Mui-disabled': { color: '#04564c', opacity: 0.5 },
+            }}
+          >
+            <ChevronRightIcon fontSize="small" />
+          </IconButton>
         </Box>
       </Box>
       <Typography variant="subtitle1" sx={{ color: 'text.primary' }} gutterBottom>Detalle de {presupuestoNombre}</Typography>
