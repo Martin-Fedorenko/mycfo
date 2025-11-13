@@ -261,7 +261,7 @@ export default function ConciliacionPanel() {
         >
           Conciliación de Movimientos
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.primary' }}>
           Vincula tus movimientos bancarios con documentos comerciales
         </Typography>
       </Box>

@@ -645,7 +645,7 @@ export default function MainGrid() {
       </Tabs>
       <Typography
         variant="caption"
-        sx={{ display: "block", mb: 2, color: "#000" }}
+        sx={{ display: "block", mb: 2, color: 'text.primary' }}
       >
         {`Los presupuestos se purgan de forma definitiva a los ${retentionDays} días.`}
       </Typography>

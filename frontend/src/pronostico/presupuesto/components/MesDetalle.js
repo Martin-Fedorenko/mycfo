@@ -939,7 +939,6 @@ export default function MesDetalle() {
   // ===== Render =====
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
-      <Typography variant="overline" color="text.secondary">Presupuestos → {presupuestoNombre}</Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
         {prevYm && (
           <IconButton
@@ -963,7 +962,7 @@ export default function MesDetalle() {
           </IconButton>
         )}
       </Box>
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>Detalle de {presupuestoNombre}</Typography>
+      <Typography variant="subtitle1" sx={{ color: 'text.primary' }} gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>

@@ -419,7 +419,7 @@ export default function PresupuestoDetalle() {
       <Typography variant="h4" gutterBottom fontWeight="600">
         Detalle de {presupuesto.nombre}
       </Typography>
-      <Typography variant="subtitle1" gutterBottom sx={{ color: '#000' }}>
+      <Typography variant="subtitle1" gutterBottom sx={{ color: 'text.primary' }}>
         Compará tu planificación con lo real
       </Typography>
 
