@@ -3,10 +3,12 @@ package ia.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -14,6 +16,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InsightsService {
 
     @Value("${mycfo.reporte.url}")
@@ -75,6 +78,7 @@ public class InsightsService {
             payload.put("ai", ai);
             return ai;
         } catch (Exception e) {
+            log.error("Error generando insights para userSub={}, anio={}, mes={}", userSub, anio, mes, e);
             Map<String, Object> fallback = new HashMap<>();
             fallback.put("diagnostico_corto", "No se pudo generar el análisis en este momento.");
             fallback.put("senales", Map.of());
@@ -177,18 +181,30 @@ public class InsightsService {
         body.put("max_tokens", 700);
 
         String req = mapper.writeValueAsString(body);
-        ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(req, headers), String.class);
-        String json = Optional.ofNullable(resp.getBody()).orElse("{}");
-
-        // Parse respuesta tipo OpenAI
-        JsonNode root = mapper.readTree(json);
-        String content = Optional.ofNullable(root.path("choices").get(0)).map(n -> n.path("message").path("content").asText()).orElse("");
-
-        // Intentar parsear contenido a JSON; si falla, devolver texto crudo
         try {
-            return mapper.readValue(content, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>(){});
+            ResponseEntity<String> resp = restTemplate.exchange(
+                    url, HttpMethod.POST, new HttpEntity<>(req, headers), String.class);
+            String json = Optional.ofNullable(resp.getBody()).orElse("{}");
+
+            // Parse respuesta tipo OpenAI
+            JsonNode root = mapper.readTree(json);
+            String content = Optional.ofNullable(root.path("choices").get(0))
+                    .map(n -> n.path("message").path("content").asText())
+                    .orElse("");
+
+            // Intentar parsear contenido a JSON; si falla, devolver texto crudo
+            try {
+                return mapper.readValue(content, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>(){});
+            } catch (Exception ex) {
+                log.warn("No se pudo parsear respuesta de DeepSeek como JSON estructurado: {}", content, ex);
+                return Map.of("diagnostico_corto", content, "senales", Map.of(), "tips", List.of(), "alerta", false);
+            }
+        } catch (RestClientResponseException ex) {
+            log.error("DeepSeek API respondió con error HTTP {}: {}", ex.getRawStatusCode(), ex.getResponseBodyAsString());
+            throw ex;
         } catch (Exception ex) {
-            return Map.of("diagnostico_corto", content, "senales", Map.of(), "tips", List.of(), "alerta", false);
+            log.error("Error inesperado al invocar DeepSeek", ex);
+            throw ex;
         }
     }
 }

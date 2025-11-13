@@ -76,6 +76,8 @@ services:
       - PRONOSTICO_URL=http://pronostico:8085
       - REGISTRO_URL=http://registro:8086
       - REPORTE_URL=http://reporte:8087
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL}
 
   notificacion:
     container_name: notificacion

@@ -28,6 +28,7 @@ import RecentMovementsWidget from "./components/RecentMovementsWidget";
 import ReconciliationWidget from "./components/ReconciliationWidget";
 import SalesTrendWidget from "./components/SalesTrendWidget";
 import SalesByCategoryWidget from "./components/SalesByCategoryWidget";
+import InsightsWidget from "./components/InsightsWidget";
 // import BillingWidget from "./components/BillingWidget";
 import { fetchRecentMovements } from "./services/movementsService";
 import { fetchMonthlySummary } from "./services/kpisService";
@@ -1111,6 +1112,9 @@ const Dashboard = React.memo(() => {
                 handleNavigate("/conciliacion", account ? { cuenta: account } : undefined)
               }
             />
+          </Grid>
+          <Grid item xs={12} md={6} xl={4}>
+            <InsightsWidget />
           </Grid>
           {/*
           <Grid item xs={12} md={6} xl={4}>
