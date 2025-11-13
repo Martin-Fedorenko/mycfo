@@ -213,7 +213,7 @@ export default function ReminderManager() {
           <Typography variant="h4" component="h1" gutterBottom>
             Recordatorios
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" sx={{ color: "#000" }}>
             Gestiona tus recordatorios y alertas personalizadas
           </Typography>
         </Box>
