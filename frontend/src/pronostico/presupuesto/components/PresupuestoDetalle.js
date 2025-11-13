@@ -21,6 +21,7 @@ import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 
 // Helper seguro para números
 const safeNumber = (v) =>
@@ -33,6 +34,16 @@ const EGRESO_EST_COLOR = '#ef9a9a';
 const EGRESO_REAL_COLOR = '#f44336';
 const SUPERAVIT_COLOR = '#4caf50';
 const DEFICIT_COLOR = '#f44336';
+const DEFICIT_CHIP_SX = {
+  fontWeight: 500,
+  bgcolor: '#FFDE70',
+  backgroundColor: '#FFDE70',
+  color: '#000',
+  border: '1px solid #F5C16C',
+  '& .MuiChip-label': { color: '#000' },
+  '& .MuiChip-icon': { color: '#000' },
+  '&.MuiChip-filled': { backgroundColor: '#FFDE70' },
+};
 
 const datosBrutosTableSx = (theme) => ({
   borderCollapse: 'collapse',
@@ -802,7 +813,14 @@ export default function PresupuestoDetalle() {
                     <TableRow key={fila.mes || idx}>
                       <TableCell sx={datosBrutosCellSx}>
                         {fila.mes}
-                        {totalReal < 0 && <Chip size="small" sx={{ ml: 1 }} color="warning" label="⚠ déficit" />}
+                        {totalReal < 0 && (
+                          <Chip
+                            size="small"
+                            icon={<WarningAmberOutlinedIcon fontSize="small" />}
+                            sx={{ ml: 1, ...DEFICIT_CHIP_SX }}
+                            label="Mes con déficit"
+                          />
+                        )}
                       </TableCell>
                       <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoEst)}</TableCell>
                       <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoReal)}</TableCell>
