@@ -12,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
-import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import PublishedWithChangesRoundedIcon from "@mui/icons-material/PublishedWithChangesRounded";
@@ -769,16 +768,10 @@ const Dashboard = React.memo(() => {
   const quickActions = React.useMemo(
     () => [
       {
-        id: "income",
-        label: "+ Ingreso",
+        id: "movement",
+        label: "Cargar movimiento",
         icon: <AddCircleOutlineRoundedIcon />,
-        action: () => handleNavigate("/carga", { tipo: "ingreso" }),
-      },
-      {
-        id: "expense",
-        label: "+ Egreso",
-        icon: <RemoveCircleOutlineRoundedIcon />,
-        action: () => handleNavigate("/carga", { tipo: "egreso" }),
+        action: () => handleNavigate("/carga"),
       },
       {
         id: "excel",
