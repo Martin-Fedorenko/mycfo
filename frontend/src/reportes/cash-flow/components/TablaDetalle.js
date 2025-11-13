@@ -80,7 +80,12 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                     </TableHead>
                     <TableBody>
 
-                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
+                        <TableRow
+                            sx={{
+                                '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' },
+                                backgroundColor: 'rgba(46, 125, 50, 0.08)',
+                            }}
+                        >
                             <TableCell><b>Ingresos</b></TableCell>
                             {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>
@@ -95,7 +100,12 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                             </TableRow>
                         ))}
 
-                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
+                        <TableRow
+                            sx={{
+                                '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' },
+                                backgroundColor: 'rgba(198, 40, 40, 0.08)',
+                            }}
+                        >
                             <TableCell><b>Egresos</b></TableCell>
                             {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>
