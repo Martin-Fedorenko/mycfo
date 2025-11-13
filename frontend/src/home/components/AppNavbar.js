@@ -7,10 +7,9 @@ import MuiToolbar from '@mui/material/Toolbar';
 import { tabsClasses } from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import SideMenuMobile from './SideMenuMobile';
-import MenuButton from './MenuButton';
+import SideMenuMobile from '../../template/dashboard/components/SideMenuMobile';
+import MenuButton from '../../template/dashboard/components/MenuButton';
 import ColorModeIconDropdown from '../../shared-theme/ColorModeIconDropdown';
-import NotificationButton from '../../notificaciones/notification-button/NotificationButton';
 
 const Toolbar = styled(MuiToolbar)({
   width: '100%',
@@ -61,21 +60,13 @@ export default function AppNavbar() {
           <Stack
             direction="row"
             spacing={1}
-            sx={{
-              justifyContent: 'center',
-              mr: 'auto',
-              alignItems: 'center' // Añadido para centrar verticalmente
-            }}
+            sx={{ justifyContent: 'center', mr: 'auto' }}
           >
             <CustomIcon />
             <Typography variant="h4" component="h1" sx={{ color: 'text.primary' }}>
-              MyCFO
+              Dashboard
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={1}>
-            <NotificationButton />
-          </Stack>
-
           <ColorModeIconDropdown />
           <MenuButton aria-label="menu" onClick={toggleDrawer(true)}>
             <MenuRoundedIcon />
@@ -87,18 +78,16 @@ export default function AppNavbar() {
   );
 }
 
-// CustomIcon modificado para usar imagen y estar correctamente alineado
 export function CustomIcon() {
   return (
     <Box
       component="img"
-      src={`${process.env.PUBLIC_URL}/logo192.png`}
+      src={`${process.env.PUBLIC_URL}/logo512.png`}
       alt="Logo MyCFO"
       sx={{
-        width: '2.5rem',
-        height: '2.5rem',
-        objectFit: 'cover',
-        alignSelf: 'center', // Asegura que la imagen esté centrada verticalmente
+        width: '2.25rem',
+        height: '2.25rem',
+        objectFit: 'contain',
       }}
       onError={(e) => {
         console.error('Error al cargar logo:', e.target.src);

@@ -198,7 +198,7 @@ export default function NotificationSettings() {
           <Typography variant="h4" component="h1" gutterBottom>
             Configuración de Notificaciones
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" sx={{ color: 'text.primary' }}>
             Personaliza cómo y cuándo recibir notificaciones
           </Typography>
         </Box>

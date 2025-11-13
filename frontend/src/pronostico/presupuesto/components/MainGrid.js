@@ -29,7 +29,7 @@ import {
   CircularProgress,
   Divider,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import http from "../../../api/http";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -114,6 +114,13 @@ const HeaderLabelAligned = ({ label, ghost }) => (
 );
 
 export default function MainGrid() {
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === "light";
+  const paletteVars = theme.vars?.palette ?? theme.palette;
+  const tabsLabelColor = isLightMode
+    ? paletteVars.text?.primary ?? "#000"
+    : paletteVars.common?.white ?? "#fff";
+  const darkActionButtonSx = isLightMode ? undefined : { color: "#42897f" };
   const navigate = useNavigate();
   const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
   const retentionDays = React.useMemo(() => parseRetentionDays(), []);
@@ -584,6 +591,7 @@ export default function MainGrid() {
                   variant="outlined"
                   size="small"
                   onClick={() => navigate(`/presupuestos/${slug}`)}
+                  sx={darkActionButtonSx}
                 >
                   Ver detalle
                 </Button>
@@ -640,13 +648,28 @@ export default function MainGrid() {
         Visualiza tus presupuestos creados o genera uno nuevo
       </Typography>
       <Tabs value={statusFilter} onChange={handleStatusChange} sx={{ mt: 1 }}>
-        <Tab value="active" label="Activos" />
-        <Tab value="deleted" label="Borrados" />
+        <Tab
+          value="active"
+          label="Activos"
+          sx={{
+            color: tabsLabelColor,
+            "&.Mui-selected": { color: tabsLabelColor },
+            "& .MuiTab-wrapper": { color: tabsLabelColor },
+          }}
+        />
+        <Tab
+          value="deleted"
+          label="Borrados"
+          sx={{
+            color: tabsLabelColor,
+            "&.Mui-selected": { color: tabsLabelColor },
+            "& .MuiTab-wrapper": { color: tabsLabelColor },
+          }}
+        />
       </Tabs>
       <Typography
         variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mb: 2 }}
+        sx={{ display: "block", mb: 2, color: 'text.primary' }}
       >
         {`Los presupuestos se purgan de forma definitiva a los ${retentionDays} días.`}
       </Typography>
@@ -845,7 +868,7 @@ export default function MainGrid() {
                               gap: 1,
                             }}
                           >
-                            <Button variant="outlined" size="small">Ver detalle</Button>
+                            <Button variant="outlined" size="small" sx={darkActionButtonSx}>Ver detalle</Button>
                             <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
                           </Box>
                           {/* Texto centrado exactamente sobre ese ancho */}
@@ -968,7 +991,7 @@ export default function MainGrid() {
                       gap: 1,
                     }}
                   >
-                    <Button variant="outlined" size="small">Ver detalle</Button>
+                    <Button variant="outlined" size="small" sx={darkActionButtonSx}>Ver detalle</Button>
                     <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
                   </Box>
                   {/* Texto centrado exactamente sobre ese ancho */}

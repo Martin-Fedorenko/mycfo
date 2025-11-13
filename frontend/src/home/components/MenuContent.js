@@ -9,6 +9,9 @@ import {
   Collapse,
   Box,
 } from '@mui/material';
+import { listItemTextClasses } from '@mui/material/ListItemText';
+import { typographyClasses } from '@mui/material/Typography';
+import { svgIconClasses } from '@mui/material/SvgIcon';
 import { styled, keyframes } from '@mui/material/styles';
 import Stack from '@mui/material/Stack';
 import ExpandLess from '@mui/icons-material/ExpandLess';
@@ -32,38 +35,65 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
   marginBottom: theme.spacing(0.5),
   borderRadius: theme.shape.borderRadius,
   transition: 'background-color 0.3s, color 0.3s',
+  color: '#000',
   '& .MuiListItemIcon-root': {
     minWidth: 'auto',
     marginRight: theme.spacing(2),
-    color: theme.palette.text.secondary,
+    color: 'inherit !important',
     transition: 'color 0.3s',
+    [`& .${svgIconClasses.root}`]: {
+      color: 'inherit !important',
+    },
   },
-  '& .MuiListItemText-primary': {
+  [`& .${listItemTextClasses.primary}`]: {
     fontSize: '0.95rem',
     fontWeight: 500,
+    color: 'inherit !important',
+  },
+  [`& .${typographyClasses.root}`]: {
+    color: 'inherit !important',
   },
   '&:hover': {
-    backgroundColor: theme.palette.action.hover,
-    '& .MuiListItemIcon-root': {
-      color: theme.palette.primary.main,
-    },
+    backgroundColor: '#008375',
+    color: '#fff',
   },
   '&.Mui-selected': {
-    backgroundColor:
-      theme.palette.mode === 'light'
-        ? theme.palette.grey[200]
-        : theme.palette.grey[800],
-    '& .MuiListItemText-primary': {
+    backgroundColor: '#008375 !important',
+    color: '#fff !important',
+    [`& .${listItemTextClasses.primary}`]: {
       fontWeight: 'bold',
+      color: 'inherit !important',
     },
-    // El color del texto y del icono se hereda automáticamente
     '&:hover': {
-      backgroundColor:
-        theme.palette.mode === 'light'
-          ? theme.palette.grey[300]
-          : theme.palette.grey[700],
+      backgroundColor: '#008375',
+      color: '#fff',
     },
   },
+  ...(theme.applyStyles
+    ? theme.applyStyles('dark', {
+        color: '#fff',
+        '&.Mui-selected': {
+          backgroundColor: '#008375 !important',
+          color: '#fff !important',
+        },
+        '&:hover': {
+          backgroundColor: '#008375',
+          color: '#000',
+        },
+      })
+    : theme.palette.mode === 'dark'
+    ? {
+        color: '#fff',
+        '&.Mui-selected': {
+          backgroundColor: '#008375 !important',
+          color: '#fff !important',
+        },
+        '&:hover': {
+          backgroundColor: '#008375',
+          color: '#000',
+        },
+      }
+    : {}),
 }));
 
 export default function MenuContent({ onNavigate }) {
@@ -110,7 +140,10 @@ export default function MenuContent({ onNavigate }) {
                       selected={isParentActive}
                     >
                       <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText primary={item.label} />
+                      <ListItemText
+                        primary={item.label}
+                        primaryTypographyProps={{ sx: { color: 'inherit' } }}
+                      />
                       {item.children ? (
                         openMenus[item.label] ? (
                           <ExpandLess />
@@ -140,7 +173,10 @@ export default function MenuContent({ onNavigate }) {
                               selected={isActive(child.path)}
                             >
                               <ListItemIcon>{child.icon}</ListItemIcon>
-                              <ListItemText primary={child.label} />
+                              <ListItemText
+                                primary={child.label}
+                                primaryTypographyProps={{ sx: { color: 'inherit' } }}
+                              />
                             </StyledListItemButton>
                           </ListItem>
                         ))}

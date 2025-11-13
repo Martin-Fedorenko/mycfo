@@ -57,32 +57,34 @@ export const inputsCustomizations = {
               variant: 'contained',
             },
             style: {
-              color: 'white',
-              backgroundColor: gray[900],
-              backgroundImage: `linear-gradient(to bottom, ${gray[700]}, ${gray[800]})`,
-              boxShadow: `inset 0 1px 0 ${gray[600]}, inset 0 -1px 0 1px hsl(220, 0%, 0%)`,
-              border: `1px solid ${gray[700]}`,
+              color: brand[50],
+              backgroundColor: brand[400],
+              border: `1px solid ${brand[400]}`,
+              transition: 'background-color 120ms ease-in, border-color 120ms ease-in',
               '&:hover': {
-                backgroundImage: 'none',
-                backgroundColor: gray[700],
-                boxShadow: 'none',
+                backgroundColor: brand[500],
+                borderColor: brand[500],
               },
               '&:active': {
-                backgroundColor: gray[800],
+                backgroundColor: brand[600],
+                borderColor: brand[600],
+              },
+              '&.Mui-disabled': {
+                backgroundColor: alpha(brand[400], 0.4),
+                color: alpha(brand[50], 0.7),
+                borderColor: alpha(brand[400], 0.4),
               },
               ...theme.applyStyles('dark', {
-                color: 'black',
-                backgroundColor: gray[50],
-                backgroundImage: `linear-gradient(to bottom, ${gray[100]}, ${gray[50]})`,
-                boxShadow: 'inset 0 -1px 0  hsl(220, 30%, 80%)',
-                border: `1px solid ${gray[50]}`,
+                color: brand[50],
+                backgroundColor: brand[400],
+                border: `1px solid ${brand[400]}`,
                 '&:hover': {
-                  backgroundImage: 'none',
-                  backgroundColor: gray[300],
-                  boxShadow: 'none',
+                  backgroundColor: brand[500],
+                  borderColor: brand[500],
                 },
                 '&:active': {
-                  backgroundColor: gray[400],
+                  backgroundColor: brand[600],
+                  borderColor: brand[600],
                 },
               }),
             },
@@ -218,6 +220,45 @@ export const inputsCustomizations = {
           },
         ],
       }),
+      containedPrimary: {
+        backgroundColor: brand[400],
+        border: `1px solid ${brand[400]}`,
+        color: brand[50],
+        transition: 'background-color 120ms ease-in, border-color 120ms ease-in',
+        '&:hover': {
+          backgroundColor: brand[500],
+          borderColor: brand[500],
+        },
+        '&:active': {
+          backgroundColor: brand[600],
+          borderColor: brand[600],
+        },
+        '&.Mui-disabled': {
+          backgroundColor: alpha(brand[400], 0.4),
+          color: alpha(brand[50], 0.7),
+          borderColor: alpha(brand[400], 0.4),
+        },
+      },
+      outlinedPrimary: {
+        color: brand[600],
+        borderColor: brand[200],
+        '&:hover': {
+          borderColor: brand[400],
+          backgroundColor: alpha(brand[50], 0.6),
+        },
+        '&:active': {
+          borderColor: brand[600],
+        },
+      },
+      textPrimary: {
+        color: brand[600],
+        '&:hover': {
+          backgroundColor: alpha(brand[50], 0.6),
+        },
+        '&:active': {
+          backgroundColor: alpha(brand[100], 0.6),
+        },
+      },
     },
   },
   MuiIconButton: {

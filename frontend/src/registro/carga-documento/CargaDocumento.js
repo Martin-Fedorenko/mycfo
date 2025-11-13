@@ -38,7 +38,7 @@ export default function CargaDocumento() {
       setError("");
       const usuarioSub = sessionStorage.getItem("sub");
       if (!usuarioSub) {
-        setError("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        setError("No se encontró la sesión del usuario. Volvé a iniciar sesión.");
         return;
       }
       const formData = new FormData();

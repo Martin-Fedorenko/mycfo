@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import API_CONFIG from "../../config/api-config";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v || 0);
 
@@ -15,6 +16,7 @@ export default function LiquidityGapWidget() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [data, setData] = React.useState(null);
+  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
 
   React.useEffect(() => {
     const baseUrl = API_CONFIG.REPORTE;
@@ -80,6 +82,14 @@ export default function LiquidityGapWidget() {
       <CardHeader
         title="Caja vs Devengado (último mes)"
         subheader="Comparativo de ingresos y egresos para detectar gaps"
+        titleTypographyProps={{
+          variant: "h6",
+          sx: { color: primaryTextColor },
+        }}
+        subheaderTypographyProps={{
+          variant: "body2",
+          sx: { color: primaryTextColor },
+        }}
       />
       <CardContent sx={{ flexGrow: 1 }}>
         {loading ? (
@@ -110,20 +120,34 @@ export default function LiquidityGapWidget() {
   );
 }
 
-const ChipLike = ({ label, value }) => (
-  <div
-    style={{
-      padding: '6px 12px',
-      borderRadius: 8,
-      background: 'var(--mui-palette-action-hover, #f5f5f5)'
-    }}
-  >
-    <Typography variant="caption" color="text.secondary">
-      {label}
-    </Typography>
-    <Typography variant="body2" fontWeight={600}>
-      {value}
-    </Typography>
-  </div>
-);
+const ChipLike = ({ label, value }) => {
+  const { primaryTextColor, secondaryTextColor, paletteVars, resolvedMode } =
+    useResolvedColorTokens();
+  const chipBackground =
+    paletteVars.action?.hover ??
+    (resolvedMode === "dark"
+      ? "rgba(255, 255, 255, 0.12)"
+      : "rgba(0, 0, 0, 0.05)");
+
+  return (
+    <div
+      style={{
+        padding: "6px 12px",
+        borderRadius: 8,
+        background: chipBackground,
+      }}
+    >
+      <Typography variant="caption" sx={{ color: primaryTextColor }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        fontWeight={600}
+        sx={{ color: primaryTextColor }}
+      >
+        {value}
+      </Typography>
+    </div>
+  );
+};
 

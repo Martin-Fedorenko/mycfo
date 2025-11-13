@@ -212,7 +212,7 @@ export default function Organizacion() {
       <Typography variant="h4" gutterBottom>
         Gestión de Organización
       </Typography>
-      <Typography variant="subtitle1" sx={{ mb: 4, color: 'text.secondary' }}>
+      <Typography variant="subtitle1" sx={{ mb: 4, color: '#000' }}>
         Visualiza la información de tu empresa y empleados
       </Typography>
 

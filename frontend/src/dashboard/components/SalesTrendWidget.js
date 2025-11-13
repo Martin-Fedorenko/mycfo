@@ -10,6 +10,7 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useTheme, alpha } from "@mui/material/styles";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) {
@@ -77,6 +78,7 @@ const monthLabel = (raw, index) => {
 
 const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage }) => {
   const theme = useTheme();
+  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
   const chartContainerRef = React.useRef(null);
   const [chartWidth, setChartWidth] = React.useState(0);
 
@@ -156,8 +158,15 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
       <CardHeader
         title={data?.title ?? "Ingresos durante el periodo"}
         subheader={data?.subheader ?? "Serie mensual de ingresos registrados en los ultimos 12 meses."}
-        titleTypographyProps={{ variant: "h6", fontWeight: 600 }}
-        subheaderTypographyProps={{ variant: "body2", color: "text.secondary" }}
+        titleTypographyProps={{
+          variant: "h6",
+          fontWeight: 600,
+          sx: { color: primaryTextColor },
+        }}
+        subheaderTypographyProps={{
+          variant: "body2",
+          sx: { color: primaryTextColor },
+        }}
         action={
           <Stack
             direction="row"
@@ -173,13 +182,13 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
             }}
           >
             <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" color="text.secondary">
+              <Typography variant="overline" sx={{ color: primaryTextColor }}>
                 Maximo
               </Typography>
-              <Typography variant="subtitle2" fontWeight={600}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
                 {formatCurrency(data?.max?.value)}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: primaryTextColor }}>
                 {data?.max?.label ?? "--"}
               </Typography>
             </Stack>
@@ -189,13 +198,13 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
               sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
             />
             <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" color="text.secondary">
+              <Typography variant="overline" sx={{ color: primaryTextColor }}>
                 Minimo
               </Typography>
-              <Typography variant="subtitle2" fontWeight={600}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
                 {formatCurrency(data?.min?.value)}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: primaryTextColor }}>
                 {data?.min?.label ?? "--"}
               </Typography>
             </Stack>
@@ -205,13 +214,13 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
               sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
             />
             <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" color="text.secondary">
+              <Typography variant="overline" sx={{ color: primaryTextColor }}>
                 Promedio
               </Typography>
-              <Typography variant="subtitle2" fontWeight={600}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
                 {formatCurrency(data?.average)}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: primaryTextColor }}>
                 Ultimos 12 meses
               </Typography>
             </Stack>
@@ -325,7 +334,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
                 borderRadius: 2,
                 border: "1px dashed",
                 borderColor: "divider",
-                color: "text.secondary",
+                color: secondaryTextColor,
                 typography: "body2",
               }}
             >

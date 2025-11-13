@@ -4,6 +4,7 @@ import {
   IconButton, Divider, Drawer, List, ListItem, ListItemText, TextField, MenuItem, Switch,
   FormControlLabel, Menu, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
@@ -20,6 +21,7 @@ import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 
 // Helper seguro para números
 const safeNumber = (v) =>
@@ -32,6 +34,16 @@ const EGRESO_EST_COLOR = '#ef9a9a';
 const EGRESO_REAL_COLOR = '#f44336';
 const SUPERAVIT_COLOR = '#4caf50';
 const DEFICIT_COLOR = '#f44336';
+const DEFICIT_CHIP_SX = {
+  fontWeight: 500,
+  bgcolor: '#FFDE70',
+  backgroundColor: '#FFDE70',
+  color: '#000',
+  border: '1px solid #F5C16C',
+  '& .MuiChip-label': { color: '#000' },
+  '& .MuiChip-icon': { color: '#000' },
+  '&.MuiChip-filled': { backgroundColor: '#FFDE70' },
+};
 
 const datosBrutosTableSx = (theme) => ({
   borderCollapse: 'collapse',
@@ -109,6 +121,21 @@ async function getRealPorMes(meses, tipo) {
 export default function PresupuestoDetalle() {
   const { nombre: nombreUrl } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === 'light';
+  const paletteVars = theme.vars?.palette ?? theme.palette;
+  const kpiColors = React.useMemo(
+    () => ({
+      ingresos: isLightMode ? 'hsl(120, 44%, 53%)' : paletteVars.success.light,
+      egresos: isLightMode ? 'hsl(0, 90%, 40%)' : paletteVars.error.light,
+      resultadoPos: isLightMode ? 'hsl(210, 98%, 42%)' : paletteVars.info.light,
+      resultadoNeg: isLightMode ? 'hsl(45, 90%, 40%)' : paletteVars.warning.light,
+    }),
+    [isLightMode, paletteVars.error.light, paletteVars.info.light, paletteVars.success.light, paletteVars.warning.light]
+  );
+  const tabsLabelColor = isLightMode
+    ? paletteVars.text?.primary ?? '#000'
+    : paletteVars.common?.white ?? '#fff';
 
   const [presupuesto, setPresupuesto] = React.useState({
     id: null,
@@ -416,18 +443,31 @@ export default function PresupuestoDetalle() {
   return (
     <Box id="presupuesto-detalle-content" sx={{ width: '100%', p: 3 }}>
       {/* Breadcrumbs simples */}
-      <Typography variant="overline" color="text.secondary">Presupuestos</Typography>
       <Typography variant="h4" gutterBottom fontWeight="600">
-        📊 Detalle de {presupuesto.nombre}
+        Detalle de {presupuesto.nombre}
       </Typography>
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+      <Typography variant="subtitle1" gutterBottom sx={{ color: 'text.primary' }}>
         Compará tu planificación con lo real
       </Typography>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 1, gap: 1, flexWrap: 'wrap' }}>
         <Tabs value={tab} onChange={(e, v) => setTab(v)} indicatorColor="primary">
-          <Tab label="Resumen" />
-          <Tab label="Datos brutos" />
+          <Tab
+            label="Resumen"
+            sx={{
+              color: tabsLabelColor,
+              '&.Mui-selected': { color: tabsLabelColor },
+              '& .MuiTab-wrapper': { color: tabsLabelColor },
+            }}
+          />
+          <Tab
+            label="Datos brutos"
+            sx={{
+              color: tabsLabelColor,
+              '&.Mui-selected': { color: tabsLabelColor },
+              '& .MuiTab-wrapper': { color: tabsLabelColor },
+            }}
+          />
         </Tabs>
 
         <Stack direction="row" spacing={1} alignItems="center">
@@ -467,7 +507,7 @@ export default function PresupuestoDetalle() {
           {/* KPIs con acciones rápidas */}
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white', position: 'relative' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white', position: 'relative' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
                 <Typography variant="h4" fontWeight="bold">
@@ -489,7 +529,7 @@ export default function PresupuestoDetalle() {
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white', position: 'relative' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white', position: 'relative' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
                 <Typography variant="h4" fontWeight="bold">
@@ -515,7 +555,7 @@ export default function PresupuestoDetalle() {
                 sx={{
                   p: 3,
                   textAlign: 'center',
-                  bgcolor: resultadoReal >= 0 ? 'info.light' : 'warning.light',
+                  bgcolor: resultadoReal >= 0 ? kpiColors.resultadoPos : kpiColors.resultadoNeg,
                   color: 'white',
                   position: 'relative'
                 }}
@@ -773,7 +813,14 @@ export default function PresupuestoDetalle() {
                     <TableRow key={fila.mes || idx}>
                       <TableCell sx={datosBrutosCellSx}>
                         {fila.mes}
-                        {totalReal < 0 && <Chip size="small" sx={{ ml: 1 }} color="warning" label="⚠ déficit" />}
+                        {totalReal < 0 && (
+                          <Chip
+                            size="small"
+                            icon={<WarningAmberOutlinedIcon fontSize="small" />}
+                            sx={{ ml: 1, ...DEFICIT_CHIP_SX }}
+                            label="Mes con déficit"
+                          />
+                        )}
                       </TableCell>
                       <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoEst)}</TableCell>
                       <TableCell sx={datosBrutosCellSx}>{formatCurrency(ingresoReal)}</TableCell>
@@ -783,7 +830,7 @@ export default function PresupuestoDetalle() {
                         sx={(theme) => ({
                           ...datosBrutosCellSx(theme),
                           fontWeight: 700,
-                          color: totalReal >= 0 ? '#29b6f6' : '#ffa726',
+                          color: pct >= 0 ? '#66bb6a' : '#ef5350',
                         })}
                       >
                         {formatCurrency(totalReal)}{' '}

@@ -37,17 +37,33 @@ const Home = React.memo(function Home(props) {
         <Box
           component="main"
           sx={(theme) => ({
+            position: 'relative',
+            zIndex: 0,
             flexGrow: 1,
             backgroundColor: theme.vars
               ? `rgba(${theme.vars.palette.background.defaultChannel} / 1)`
               : alpha(theme.palette.background.default, 1),
             overflow: 'auto',
             ml: 0, // Ocupar todo el ancho
+            '&::before': {
+              content: '""',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 460,
+              background:
+                'linear-gradient(180deg, rgba(0, 131, 117, 0.95) 0%, rgba(0, 131, 117, 0.6) 45%, rgba(0, 131, 117, 0) 100%)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            },
           })}
         >
           <Stack
             spacing={2}
             sx={{
+              position: 'relative',
+              zIndex: 1,
               alignItems: 'center',
               mx: 3,
               pb: 5,

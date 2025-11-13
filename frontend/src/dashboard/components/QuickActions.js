@@ -5,8 +5,12 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const QuickActions = ({ actions = [], loading = false, onAction }) => {
+  const { resolvedMode, primaryTextColor } = useResolvedColorTokens();
+  const isDarkMode = resolvedMode === "dark";
+
   if (loading) {
     return (
       <Card variant="outlined" sx={{ width: "100%" }}>
@@ -46,7 +50,7 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
           alignItems: "center",
         }}
       >
-        <Typography variant="subtitle2" color="text.secondary">
+        <Typography variant="subtitle2" sx={{ color: primaryTextColor }}>
           Acciones rápidas
         </Typography>
         <Box
@@ -79,6 +83,7 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
                 textTransform: "none",
                 minWidth: { xs: 140, md: 150 },
                 fontWeight: 600,
+                ...(isDarkMode && { color: "#42897f" }),
               }}
             >
               {action.label}

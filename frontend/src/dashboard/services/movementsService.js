@@ -74,7 +74,7 @@ export const fetchRecentMovements = async ({ limit = DEFAULT_LIMIT } = {}) => {
   try {
     payload = await response.json();
   } catch (err) {
-    // Ignoramos errores de parseo; manejamos seg�n status.
+    // Ignoramos errores de parseo; manejamos segun status.
   }
 
   if (!response.ok) {

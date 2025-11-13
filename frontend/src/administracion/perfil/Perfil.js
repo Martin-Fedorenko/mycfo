@@ -79,7 +79,7 @@ export default function Perfil() {
 
   return (
     <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h4" gutterBottom>
         Perfil de Usuario
       </Typography>
       <Typography variant="subtitle1" sx={{ mb: 3 }}>

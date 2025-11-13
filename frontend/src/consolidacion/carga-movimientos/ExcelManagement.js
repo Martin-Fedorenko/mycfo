@@ -27,7 +27,7 @@ export default function ExcelManagement() {
     try {
       const usuarioSub = sessionStorage.getItem("sub");
       if (!usuarioSub) {
-        alert("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        alert("No se encontró la sesión del usuario. Volvé a iniciar sesión.");
         setHistorialLoading(false);
         return;
       }
@@ -66,6 +66,16 @@ export default function ExcelManagement() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", mt: 3, px: 2 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+      >
+        <Typography variant="h4">Carga de movimiento</Typography>
+        <Box sx={{ minWidth: 120 }} />
+      </Stack>
+
       <Paper
         variant="outlined"
         sx={{

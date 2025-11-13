@@ -28,7 +28,7 @@ import MovimientoCard from "./components/MovimientoCard";
 import DocumentoCard from "./components/DocumentoCard";
 import conciliacionApi from "./api/conciliacionApi";
 
-const MOVIMIENTOS_POR_PAGINA = 10;
+const MOVIMIENTOS_POR_PAGINA = 5;
 const DOCUMENTOS_POR_PAGINA = 5;
 
 export default function ConciliacionPanel() {
@@ -246,10 +246,10 @@ export default function ConciliacionPanel() {
     <Box
       sx={{
         p: 3,
-        height: "100vh",
-        overflow: "hidden",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
+        gap: 2,
       }}
     >
       {/* Header */}
@@ -257,18 +257,28 @@ export default function ConciliacionPanel() {
         <Typography
           variant="h4"
           gutterBottom
-          sx={{ fontWeight: 600, color: "#1976d2" }}
+          sx={{ fontWeight: 600, color: 'text.primary' }}
         >
           Conciliación de Movimientos
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.primary' }}>
           Vincula tus movimientos bancarios con documentos comerciales
         </Typography>
       </Box>
 
       {/* Estadísticas */}
       {estadisticas && (
-        <Paper sx={{ p: 2, mb: 3, backgroundColor: "#f5f5f5" }}>
+        <Paper
+          sx={{
+            p: 2,
+            mb: 3,
+            backgroundColor: (theme) =>
+              (theme.vars || theme).palette.background.level1 ??
+              (theme.vars || theme).palette.background.paper,
+            border: (theme) =>
+              `1px solid ${(theme.vars || theme).palette.divider}`,
+          }}
+        >
           <Stack direction="row" spacing={3} alignItems="center">
             <Box sx={{ flex: 1 }}>
               <Typography variant="caption" color="text.secondary">
@@ -285,7 +295,10 @@ export default function ConciliacionPanel() {
               </Typography>
               <Typography
                 variant="h5"
-                sx={{ fontWeight: 600, color: "#ff9800" }}
+                sx={{
+                  fontWeight: 600,
+                  color: (theme) => (theme.vars || theme).palette.warning.main,
+                }}
               >
                 {estadisticas.sinConciliar}
               </Typography>
@@ -297,7 +310,10 @@ export default function ConciliacionPanel() {
               </Typography>
               <Typography
                 variant="h5"
-                sx={{ fontWeight: 600, color: "#4caf50" }}
+                sx={{
+                  fontWeight: 600,
+                  color: (theme) => (theme.vars || theme).palette.success.main,
+                }}
               >
                 {estadisticas.conciliados}
               </Typography>
@@ -417,6 +433,7 @@ export default function ConciliacionPanel() {
               sx={{
                 p: 2,
                 height: "100%",
+                minHeight: { xs: 160, sm: 180, md: 210 },
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -484,6 +501,7 @@ export default function ConciliacionPanel() {
               sx={{
                 p: 2,
                 height: "100%",
+                minHeight: { xs: 160, sm: 180, md: 210 },
                 display: "flex",
                 flexDirection: "column",
               }}

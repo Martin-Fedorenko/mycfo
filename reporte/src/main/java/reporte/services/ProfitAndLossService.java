@@ -29,12 +29,12 @@ public class ProfitAndLossService {
         try {
             documentos = restTemplate.getForObject(url, DocumentoComercialDTO[].class);
         } catch (Exception e) {
-            System.err.println("�?O Error al consultar el servicio Registro: " + e.getMessage());
+            System.err.println("❌ Error al consultar el servicio Registro: " + e.getMessage());
             return new ProfitAndLossDTO(anio, List.of(), new double[12], new double[12], 0.0, new ArrayList<>(), new ArrayList<>());
         }
 
         if (documentos == null) {
-            System.out.println("�s���? No se recibieron documentos desde el servicio Registro");
+            System.out.println("⚠️ No se recibieron documentos desde el servicio Registro");
             return new ProfitAndLossDTO(anio, List.of(), new double[12], new double[12], 0.0, new ArrayList<>(), new ArrayList<>());
         }
 
@@ -51,7 +51,7 @@ public class ProfitAndLossService {
         for (DocumentoComercialDTO doc : filtrados) {
             int mes = doc.getFechaEmision().getMonthValue() - 1;
             double monto = Optional.ofNullable(doc.getMontoTotal()).orElse(0.0);
-            String categoria = Optional.ofNullable(doc.getCategoria()).orElse("Sin Categor��a");
+            String categoria = Optional.ofNullable(doc.getCategoria()).orElse("Sin Categoría");
 
             if ("Ventas".equalsIgnoreCase(categoria)) {
                 ingresosMensuales[mes] += monto;
@@ -79,8 +79,8 @@ public class ProfitAndLossService {
     }
 
     public ProfitAndLossDTO obtenerFacturasPorAnio(int anio, String userSub) {
-        // Para evitar tocar otros m��dulos, basamos P&L en movimientos filtrados por usuario/empresa
-        // y calculamos ingresos/egresos mensuales por categor��a, usando DEVENGADO (fecha del documento comercial)
+        // Para evitar tocar otros módulos, basamos P&L en movimientos filtrados por usuario/empresa
+        // y calculamos ingresos/egresos mensuales por Categoría, usando DEVENGADO (fecha del documento comercial)
         var desde = java.time.LocalDate.of(anio, 1, 1);
         var hasta = java.time.LocalDate.of(anio, 12, 31);
         String url = registroUrl + "/movimientos?fechaDesde=" + desde +
@@ -118,7 +118,7 @@ public class ProfitAndLossService {
                 String categoria = java.util.Optional
                         .ofNullable(mov.getCategoria())
                         .or(() -> java.util.Optional.ofNullable(mov.getDocumentoComercial()).map(reporte.dtos.RegistroDTO.DocumentoDTO::getCategoria))
-                        .orElse("Sin Categor��a");
+                        .orElse("Sin Categoría");
 
                 if ("Ingreso".equalsIgnoreCase(mov.getTipo())) {
                     ingresosMensuales[mes] += monto;

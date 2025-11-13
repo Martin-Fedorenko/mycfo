@@ -145,7 +145,7 @@ export default function MainGrid() {
             <CssBaseline />
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography component="h2" variant="h6">
+                    <Typography component="h2" variant="h4">
                         Estado de Resultados
                     </Typography>
                     <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />

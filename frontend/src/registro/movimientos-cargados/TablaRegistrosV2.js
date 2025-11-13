@@ -675,8 +675,8 @@ export default function TablaRegistrosV2() {
 
   return (
     <Box sx={{ width: "100%", p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, fontWeight: 600, color: "#1976d2" }}>
-        📊 Movimientos Financieros
+      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}>
+        Movimientos Financieros
       </Typography>
 
       <Box sx={{ height: 700, width: "100%" }}>
