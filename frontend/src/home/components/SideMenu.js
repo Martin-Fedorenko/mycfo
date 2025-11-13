@@ -6,43 +6,118 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import SelectContent from '../../template/dashboard/components/SelectContent';
-import MenuContent from '../../template/dashboard/components/MenuContent';
-import CardAlert from '../../template/dashboard/components/CardAlert';
-import OptionsMenu from '../../template/dashboard/components/OptionsMenu';
+import MenuContent from './MenuContent';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import LogoutButton from './LogoutButton';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import ApartmentIcon from '@mui/icons-material/Apartment';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
-const drawerWidth = 360;
+const drawerWidth = 380;
 
 const Drawer = styled(MuiDrawer)({
   width: drawerWidth,
   flexShrink: 0,
   boxSizing: 'border-box',
-  mt: 10,
   [`& .${drawerClasses.paper}`]: {
     width: drawerWidth,
     boxSizing: 'border-box',
   },
 });
 
-export default function SideMenu() {
+// Icono de la marca (funciona)
+const CustomIcon = () => {
+  return (
+    <Box
+      component="img"
+      src={`${process.env.PUBLIC_URL}/logo192.png`}
+      alt="Logo MyCFO"
+      sx={{
+        width: '2rem',
+        height: '2rem',
+        objectFit: 'cover',
+      }}
+      onError={(e) => {
+        console.error('Error al cargar logo:', e.target.src);
+        e.target.style.backgroundColor = 'lightcoral';
+        e.target.style.opacity = 0.5;
+        e.target.style.objectFit = 'unset';
+      }}
+    />
+  );
+};
+
+const SideMenu = React.memo(function SideMenu({
+  open,
+  onClose,
+  onNavigate,
+}) {
+  const navigate = useNavigate();
+
+  // 🔹 Datos de usuario obtenidos del sessionStorage (desde la BD)
+  const [userData, setUserData] = React.useState({
+    nombre: '',
+    email: '',
+  });
+
+React.useEffect(() => {
+  const updateUserData = () => {
+    const storedNombre = sessionStorage.getItem('nombre') || '';
+    const storedEmail = sessionStorage.getItem('email') || '';
+    setUserData({
+      nombre: storedNombre,
+      email: storedEmail,
+    });
+  };
+
+  // Cargar inicial
+  updateUserData();
+
+  // Escuchar cambios
+  window.addEventListener("userDataUpdated", updateUserData);
+
+  return () => {
+    window.removeEventListener("userDataUpdated", updateUserData);
+  };
+}, []);
+
   return (
     <Drawer
-      variant="permanent"
+      variant="temporary"
+      open={open}
+      onClose={onClose}
+      ModalProps={{
+        keepMounted: true, // Better open performance on mobile.
+      }}
       sx={{
-        display: { xs: 'none', md: 'block' },
         [`& .${drawerClasses.paper}`]: {
           backgroundColor: 'background.paper',
         },
       }}
     >
       <Box
+        component={RouterLink}
+        to="/"
+        onClick={onNavigate}
+        aria-label="Ir al inicio"
         sx={{
           display: 'flex',
           mt: 'calc(var(--template-frame-height, 0px) + 4px)',
           p: 1.5,
+          textDecoration: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
         }}
       >
-        <SelectContent />
+        <CustomIcon />
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ color: 'text.primary', marginLeft: 1 }}
+        >
+          MyCFO
+        </Typography>
       </Box>
       <Divider />
       <Box
@@ -53,9 +128,10 @@ export default function SideMenu() {
           flexDirection: 'column',
         }}
       >
-        <MenuContent />
-        <CardAlert />
+        <MenuContent onNavigate={onNavigate} />
       </Box>
+
+      {/* Pie con datos del usuario */}
       <Stack
         direction="row"
         sx={{
@@ -68,20 +144,43 @@ export default function SideMenu() {
       >
         <Avatar
           sizes="small"
-          alt="Riley Carter"
+          alt={userData.nombre}
           src="/static/images/avatar/7.jpg"
           sx={{ width: 36, height: 36 }}
         />
         <Box sx={{ mr: 'auto' }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: '16px' }}>
-            Riley Carter
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 500, lineHeight: '16px' }}
+          >
+            {userData.nombre || 'Nombre Usuario'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            riley@email.com
+            {userData.email || 'correo@ejemplo.com'}
           </Typography>
         </Box>
-        <OptionsMenu />
+        <Tooltip title="Organización">
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => navigate('/organizacion')}
+          >
+            <ApartmentIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Perfil">
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => navigate('/perfil')}
+          >
+            <PersonRoundedIcon />
+          </IconButton>
+        </Tooltip>
+        <LogoutButton />
       </Stack>
     </Drawer>
   );
-}
+});
+
+export default SideMenu;
