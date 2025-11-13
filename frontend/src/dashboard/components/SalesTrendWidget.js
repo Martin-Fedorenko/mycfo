@@ -182,7 +182,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
             }}
           >
             <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" sx={{ color: secondaryTextColor }}>
+              <Typography variant="overline" sx={{ color: primaryTextColor }}>
                 Maximo
               </Typography>
               <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
@@ -198,7 +198,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
               sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
             />
             <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" sx={{ color: secondaryTextColor }}>
+              <Typography variant="overline" sx={{ color: primaryTextColor }}>
                 Minimo
               </Typography>
               <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
@@ -214,7 +214,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
               sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
             />
             <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" sx={{ color: secondaryTextColor }}>
+              <Typography variant="overline" sx={{ color: primaryTextColor }}>
                 Promedio
               </Typography>
               <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>

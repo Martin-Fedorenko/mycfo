@@ -121,17 +121,23 @@ export default function LiquidityGapWidget() {
 }
 
 const ChipLike = ({ label, value }) => {
-  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const { primaryTextColor, secondaryTextColor, paletteVars, resolvedMode } =
+    useResolvedColorTokens();
+  const chipBackground =
+    paletteVars.action?.hover ??
+    (resolvedMode === "dark"
+      ? "rgba(255, 255, 255, 0.12)"
+      : "rgba(0, 0, 0, 0.05)");
 
   return (
     <div
       style={{
         padding: "6px 12px",
         borderRadius: 8,
-        background: "var(--mui-palette-action-hover, #f5f5f5)",
+        background: chipBackground,
       }}
     >
-      <Typography variant="caption" sx={{ color: secondaryTextColor }}>
+      <Typography variant="caption" sx={{ color: primaryTextColor }}>
         {label}
       </Typography>
       <Typography
