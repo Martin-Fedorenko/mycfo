@@ -164,6 +164,14 @@ React.useEffect(() => {
           <IconButton
             size="small"
             color="primary"
+            sx={{
+              transition: 'color 0.2s, background-color 0.2s',
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0,131,117,0.12)',
+                color: '#008375',
+              },
+            }}
             onClick={() => navigate('/organizacion')}
           >
             <ApartmentIcon />
@@ -173,6 +181,14 @@ React.useEffect(() => {
           <IconButton
             size="small"
             color="primary"
+            sx={{
+              transition: 'color 0.2s, background-color 0.2s',
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0,131,117,0.12)',
+                color: '#008375',
+              },
+            }}
             onClick={() => navigate('/perfil')}
           >
             <PersonRoundedIcon />

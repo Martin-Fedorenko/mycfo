@@ -48,7 +48,18 @@ export default function LogoutButton() {
 
   return (
     <Tooltip title="Cerrar sesión">
-      <IconButton size="small" color="primary" onClick={handleLogout}>
+      <IconButton
+        size="small"
+        onClick={handleLogout}
+        sx={{
+          transition: 'color 0.2s, background-color 0.2s',
+          color: '#d32f2f',
+          '&:hover': {
+            backgroundColor: 'rgba(211, 47, 47, 0.12)',
+            color: '#b71c1c',
+          },
+        }}
+      >
         <LogoutRoundedIcon />
       </IconButton>
     </Tooltip>
