@@ -268,7 +268,17 @@ export default function ConciliacionPanel() {
 
       {/* Estadísticas */}
       {estadisticas && (
-        <Paper sx={{ p: 2, mb: 3, backgroundColor: "#f5f5f5" }}>
+        <Paper
+          sx={{
+            p: 2,
+            mb: 3,
+            backgroundColor: (theme) =>
+              (theme.vars || theme).palette.background.level1 ??
+              (theme.vars || theme).palette.background.paper,
+            border: (theme) =>
+              `1px solid ${(theme.vars || theme).palette.divider}`,
+          }}
+        >
           <Stack direction="row" spacing={3} alignItems="center">
             <Box sx={{ flex: 1 }}>
               <Typography variant="caption" color="text.secondary">
@@ -285,7 +295,10 @@ export default function ConciliacionPanel() {
               </Typography>
               <Typography
                 variant="h5"
-                sx={{ fontWeight: 600, color: "#ff9800" }}
+                sx={{
+                  fontWeight: 600,
+                  color: (theme) => (theme.vars || theme).palette.warning.main,
+                }}
               >
                 {estadisticas.sinConciliar}
               </Typography>
@@ -297,7 +310,10 @@ export default function ConciliacionPanel() {
               </Typography>
               <Typography
                 variant="h5"
-                sx={{ fontWeight: 600, color: "#4caf50" }}
+                sx={{
+                  fontWeight: 600,
+                  color: (theme) => (theme.vars || theme).palette.success.main,
+                }}
               >
                 {estadisticas.conciliados}
               </Typography>
