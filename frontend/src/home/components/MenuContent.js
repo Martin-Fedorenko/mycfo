@@ -32,6 +32,7 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
   marginBottom: theme.spacing(0.5),
   borderRadius: theme.shape.borderRadius,
   transition: 'background-color 0.3s, color 0.3s',
+  color: theme.palette.text.primary,
   '& .MuiListItemIcon-root': {
     minWidth: 'auto',
     marginRight: theme.spacing(2),
@@ -43,9 +44,13 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
     fontWeight: 500,
   },
   '&:hover': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: '#008375',
+    color: theme.palette.getContrastText('#008375'),
     '& .MuiListItemIcon-root': {
-      color: theme.palette.primary.main,
+      color: theme.palette.getContrastText('#008375'),
+    },
+    '& .MuiListItemText-primary': {
+      color: theme.palette.getContrastText('#008375'),
     },
   },
   '&.Mui-selected': {
@@ -53,15 +58,20 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
       theme.palette.mode === 'light'
         ? theme.palette.grey[200]
         : theme.palette.grey[800],
+    color:
+      theme.palette.mode === 'light'
+        ? theme.palette.text.primary
+        : theme.palette.common.white,
     '& .MuiListItemText-primary': {
       fontWeight: 'bold',
     },
     // El color del texto y del icono se hereda automáticamente
     '&:hover': {
-      backgroundColor:
-        theme.palette.mode === 'light'
-          ? theme.palette.grey[300]
-          : theme.palette.grey[700],
+      backgroundColor: '#008375',
+      color: theme.palette.getContrastText('#008375'),
+      '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
+        color: theme.palette.getContrastText('#008375'),
+      },
     },
   },
 }));
