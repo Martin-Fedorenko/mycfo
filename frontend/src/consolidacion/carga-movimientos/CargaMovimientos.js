@@ -40,7 +40,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
     try {
       const usuarioSub = obtenerUsuarioSub();
       if (!usuarioSub) {
-        alert("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        alert("No se encontró la sesión del usuario. Volvé a iniciar sesión.");
         setPreviewLoading(false);
         return;
       }
@@ -73,7 +73,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
     try {
       const usuarioSub = obtenerUsuarioSub();
       if (!usuarioSub) {
-        alert("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        alert("No se encontró la sesión del usuario. Volvé a iniciar sesión.");
         return;
       }
       const requestData = {

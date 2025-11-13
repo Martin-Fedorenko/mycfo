@@ -27,7 +27,7 @@ export default function ExcelManagement() {
     try {
       const usuarioSub = sessionStorage.getItem("sub");
       if (!usuarioSub) {
-        alert("No se encontr�� la sesi��n del usuario. Volv�� a iniciar sesi��n.");
+        alert("No se encontró la sesión del usuario. Volvé a iniciar sesión.");
         setHistorialLoading(false);
         return;
       }
