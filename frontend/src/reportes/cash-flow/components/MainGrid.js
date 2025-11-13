@@ -91,7 +91,7 @@ export default function MainGrid() {
         const numMesesVisibles = mesesVisibles.length;
 
         // TÃ­tulo
-        excelData.push([`Cashflow ${selectedYear}`]);
+        excelData.push([`Flujo de caja ${selectedYear}`]);
         excelData.push([]); // Fila vacÃ­a
 
         // Encabezados de la tabla
@@ -138,7 +138,7 @@ export default function MainGrid() {
         // Columnas de moneda (desde la columna C en adelante)
         const currencyColumns = mesesVisibles.map((_, i) => String.fromCharCode(67 + i)); // C, D, E...
 
-        exportToExcel(excelData, `cash-flow-${selectedYear}`, "Cash Flow", colsConfig, mergesConfig, currencyColumns);
+        exportToExcel(excelData, `flujo-caja-${selectedYear}`, "Flujo de caja", colsConfig, mergesConfig, currencyColumns);
     };
 
     const handleExportPdf = () => {
@@ -152,7 +152,7 @@ export default function MainGrid() {
         const doc = new jsPDF();
 
         // Título
-        doc.text(`Cashflow Anual (${selectedYear})`, 14, 22);
+        doc.text(`Flujo de caja anual (${selectedYear})`, 14, 22);
 
         // Insertar gráfico
         const imgProps = doc.getImageProperties(imgData);
@@ -177,7 +177,7 @@ export default function MainGrid() {
             autoTable(doc, { head, body, startY });
         }
 
-        doc.save(`cashflow-${selectedYear}.pdf`);
+        doc.save(`flujo-caja-${selectedYear}.pdf`);
     }).catch(() => alert("No se pudo generar el PDF. Intente nuevamente."));
 };
 
@@ -190,7 +190,7 @@ export default function MainGrid() {
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography component="h2" variant="h6">
-                    Cashflow anual
+                    Flujo de caja anual
                 </Typography>
                 <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
             </Box>

@@ -98,8 +98,8 @@ const routeConfig = [
         element: <ReporteMensual />,
       },
       {
-        label: "Cash Flow",
-        path: "/cash-flow",
+        label: "Flujo de caja",
+        path: "/flujo-de-caja",
         icon: <DescriptionIcon />,
         element: <CashFlow />,
       },
