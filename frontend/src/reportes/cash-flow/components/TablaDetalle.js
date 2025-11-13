@@ -51,7 +51,18 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
         <Box>
             <Typography variant="h6" sx={{ mb: 2 }}>Cashflow {year}</Typography>
             <TableContainer component={Paper}>
-                <Table size="small" stickyHeader>
+                <Table
+                    size="small"
+                    stickyHeader
+                    sx={{
+                        '& .MuiTableCell-root': {
+                            border: '1px solid rgba(224, 224, 224, 1)',
+                        },
+                        '& .MuiTableHead-root .MuiTableCell-root': {
+                            fontWeight: 700,
+                        },
+                    }}
+                >
                     <TableHead>
                         <TableRow>
                             <TableCell>Concepto</TableCell>
