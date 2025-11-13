@@ -104,8 +104,8 @@ const routeConfig = [
         element: <CashFlow />,
       },
       {
-        label: "Profit & Loss",
-        path: "/profit-loss",
+        label: "Estado de Resultados",
+        path: "/estado-de-resultado",
         icon: <DescriptionIcon />,
         element: <ProfitLoss />,
       },
