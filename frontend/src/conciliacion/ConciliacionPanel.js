@@ -257,7 +257,7 @@ export default function ConciliacionPanel() {
         <Typography
           variant="h4"
           gutterBottom
-          sx={{ fontWeight: 600, color: "#1976d2" }}
+          sx={{ fontWeight: 600, color: "#000" }}
         >
           Conciliación de Movimientos
         </Typography>

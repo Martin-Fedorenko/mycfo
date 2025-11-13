@@ -929,7 +929,7 @@ const Dashboard = React.memo(() => {
             <Typography variant="h4" fontWeight={600}>
               Hola, {userDisplayName}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: "#000" }}>
               Este es el resumen financiero de tu empresa. Revisá KPIs,
               vencimientos y tareas clave.
             </Typography>
