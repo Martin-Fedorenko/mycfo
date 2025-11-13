@@ -101,13 +101,14 @@ React.useEffect(() => {
         to="/"
         onClick={onNavigate}
         aria-label="Ir al inicio"
-        sx={{
-          display: 'flex',
-          mt: 'calc(var(--template-frame-height, 0px) + 4px)',
-          p: 1.5,
-          textDecoration: 'none',
-          color: 'inherit',
-          cursor: 'pointer',
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        mt: 'calc(var(--template-frame-height, 0px) + 4px)',
+        p: 1.5,
+        textDecoration: 'none',
+        color: 'inherit',
+        cursor: 'pointer',
         }}
       >
         <CustomIcon />
