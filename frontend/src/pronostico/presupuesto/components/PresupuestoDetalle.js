@@ -122,6 +122,7 @@ export default function PresupuestoDetalle() {
     }),
     [isLightMode, paletteVars.error.light, paletteVars.info.light, paletteVars.success.light, paletteVars.warning.light]
   );
+  const datosBrutosTabColor = isLightMode ? '#000' : '#fff';
 
   const [presupuesto, setPresupuesto] = React.useState({
     id: null,
@@ -439,7 +440,10 @@ export default function PresupuestoDetalle() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 1, gap: 1, flexWrap: 'wrap' }}>
         <Tabs value={tab} onChange={(e, v) => setTab(v)} indicatorColor="primary">
           <Tab label="Resumen" />
-          <Tab label="Datos brutos" />
+          <Tab
+            label="Datos brutos"
+            sx={{ color: datosBrutosTabColor, '&.Mui-selected': { color: datosBrutosTabColor } }}
+          />
         </Tabs>
 
         <Stack direction="row" spacing={1} alignItems="center">

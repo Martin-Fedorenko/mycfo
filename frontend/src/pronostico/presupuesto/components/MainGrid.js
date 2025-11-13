@@ -29,7 +29,7 @@ import {
   CircularProgress,
   Divider,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import http from "../../../api/http";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -114,6 +114,9 @@ const HeaderLabelAligned = ({ label, ghost }) => (
 );
 
 export default function MainGrid() {
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === "light";
+  const borradosTabColor = isLightMode ? "#000" : "#fff";
   const navigate = useNavigate();
   const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
   const retentionDays = React.useMemo(() => parseRetentionDays(), []);
@@ -641,7 +644,11 @@ export default function MainGrid() {
       </Typography>
       <Tabs value={statusFilter} onChange={handleStatusChange} sx={{ mt: 1 }}>
         <Tab value="active" label="Activos" />
-        <Tab value="deleted" label="Borrados" />
+        <Tab
+          value="deleted"
+          label="Borrados"
+          sx={{ color: borradosTabColor, "&.Mui-selected": { color: borradosTabColor } }}
+        />
       </Tabs>
       <Typography
         variant="caption"
