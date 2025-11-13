@@ -45,12 +45,22 @@ export default function TablaDetalle({ year, ingresos, egresos }) {
         Detalle de Ingresos ({year})
       </Typography>
       <TableContainer component={Paper} sx={{ mb: 4, maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
-        <Table stickyHeader>
+        <Table
+          stickyHeader
+          sx={{
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
+            },
+          }}
+        >
           <TableHead>
             <TableRow>
-              <TableCell>Nº</TableCell>
-              <TableCell>Categoría</TableCell>
-              <TableCell align="right">Monto</TableCell>
+              <TableCell scope="col">Nº</TableCell>
+              <TableCell scope="col">Categoría</TableCell>
+              <TableCell scope="col" align="right">Monto</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -73,12 +83,22 @@ export default function TablaDetalle({ year, ingresos, egresos }) {
         Detalle de Egresos ({year})
       </Typography>
       <TableContainer component={Paper} sx={{ maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
-        <Table stickyHeader>
+        <Table
+          stickyHeader
+          sx={{
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
+            },
+          }}
+        >
           <TableHead>
             <TableRow>
-              <TableCell>Nº</TableCell>
-              <TableCell>Categoría</TableCell>
-              <TableCell align="right">Monto</TableCell>
+              <TableCell scope="col">Nº</TableCell>
+              <TableCell scope="col">Categoría</TableCell>
+              <TableCell scope="col" align="right">Monto</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
