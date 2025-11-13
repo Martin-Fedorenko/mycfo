@@ -800,7 +800,7 @@ const Dashboard = React.memo(() => {
       },
       {
         id: "invoice",
-        label: "Emitir factura",
+        label: "Cargar factura",
         icon: <ReceiptLongRoundedIcon />,
         action: () => handleNavigate("/carga", { tipo: "factura" }),
       },
