@@ -116,7 +116,10 @@ const HeaderLabelAligned = ({ label, ghost }) => (
 export default function MainGrid() {
   const theme = useTheme();
   const isLightMode = theme.palette.mode === "light";
-  const borradosTabColor = isLightMode ? "#000" : "#fff";
+  const paletteVars = theme.vars?.palette ?? theme.palette;
+  const tabsLabelColor = isLightMode
+    ? paletteVars.text?.primary ?? "#000"
+    : paletteVars.common?.white ?? "#fff";
   const navigate = useNavigate();
   const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
   const retentionDays = React.useMemo(() => parseRetentionDays(), []);
@@ -643,11 +646,23 @@ export default function MainGrid() {
         Visualiza tus presupuestos creados o genera uno nuevo
       </Typography>
       <Tabs value={statusFilter} onChange={handleStatusChange} sx={{ mt: 1 }}>
-        <Tab value="active" label="Activos" />
+        <Tab
+          value="active"
+          label="Activos"
+          sx={{
+            color: tabsLabelColor,
+            "&.Mui-selected": { color: tabsLabelColor },
+            "& .MuiTab-wrapper": { color: tabsLabelColor },
+          }}
+        />
         <Tab
           value="deleted"
           label="Borrados"
-          sx={{ color: borradosTabColor, "&.Mui-selected": { color: borradosTabColor } }}
+          sx={{
+            color: tabsLabelColor,
+            "&.Mui-selected": { color: tabsLabelColor },
+            "& .MuiTab-wrapper": { color: tabsLabelColor },
+          }}
         />
       </Tabs>
       <Typography

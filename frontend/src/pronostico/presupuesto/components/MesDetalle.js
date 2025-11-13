@@ -159,7 +159,9 @@ export default function MesDetalle() {
     }),
     [isLightMode, paletteVars.error.light, paletteVars.info.light, paletteVars.success.light, paletteVars.warning.light]
   );
-  const datosBrutosTabColor = isLightMode ? '#000' : '#fff';
+  const tabsLabelColor = isLightMode
+    ? paletteVars.text?.primary ?? '#000'
+    : paletteVars.common?.white ?? '#fff';
 
   React.useEffect(() => {
     if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
@@ -999,10 +1001,21 @@ export default function MesDetalle() {
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', mb: 2, mt: 1, gap: 1, flexWrap: 'wrap' }}>
         <Tabs value={tab} onChange={(e, v) => setTab(v)} indicatorColor="primary">
-          <Tab label="Resumen" />
+          <Tab
+            label="Resumen"
+            sx={{
+              color: tabsLabelColor,
+              '&.Mui-selected': { color: tabsLabelColor },
+              '& .MuiTab-wrapper': { color: tabsLabelColor },
+            }}
+          />
           <Tab
             label="Datos brutos (editar)"
-            sx={{ color: datosBrutosTabColor, '&.Mui-selected': { color: datosBrutosTabColor } }}
+            sx={{
+              color: tabsLabelColor,
+              '&.Mui-selected': { color: tabsLabelColor },
+              '& .MuiTab-wrapper': { color: tabsLabelColor },
+            }}
           />
         </Tabs>
       </Box>
