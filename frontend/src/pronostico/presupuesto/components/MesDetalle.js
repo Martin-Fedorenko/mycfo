@@ -960,12 +960,12 @@ export default function MesDetalle() {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
+          gap: 1.5,
           mb: 1.5,
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
         }}
       >
-        <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-start' }}>
           {prevYm && (
             <IconButton
               size="small"
@@ -979,7 +979,13 @@ export default function MesDetalle() {
         <Typography
           variant="h4"
           fontWeight="600"
-          sx={{ flexGrow: 1, textAlign: 'center', minWidth: 0 }}
+          sx={{
+            flexGrow: 0,
+            flexShrink: 0,
+            textAlign: 'left',
+            minWidth: '14ch',
+            whiteSpace: 'nowrap',
+          }}
         >
           {nombreMes}
         </Typography>
