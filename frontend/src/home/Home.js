@@ -4,16 +4,11 @@ import { alpha } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import AppNavbar from './components/AppNavbar';
 import SideMenu from './components/SideMenu';
 import AppTheme from '../shared-theme/AppTheme';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 
-
-
-
-// Memoizar el componente Home para evitar re-renderizados innecesarios
 const Home = React.memo(function Home(props) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -35,11 +30,10 @@ const Home = React.memo(function Home(props) {
       <CssBaseline enableColorScheme />
       <Box sx={{ display: 'flex' }}>
         <SideMenu
-          variant="permanent"
-          onNavigate={() => {}}
+          open={sidebarOpen}
+          onClose={handleCloseSidebar}
+          onNavigate={handleCloseSidebar}
         />
-        <AppNavbar />
-        {/* Main content */}
         <Box
           component="main"
           sx={(theme) => ({
@@ -48,6 +42,7 @@ const Home = React.memo(function Home(props) {
               ? `rgba(${theme.vars.palette.background.defaultChannel} / 1)`
               : alpha(theme.palette.background.default, 1),
             overflow: 'auto',
+            ml: 0, // Ocupar todo el ancho
           })}
         >
           <Stack
@@ -55,12 +50,12 @@ const Home = React.memo(function Home(props) {
             sx={{
               alignItems: 'center',
               mx: 3,
-            pb: 5,
-            mt: { xs: 8, md: 0 },
-          }}
-        >
-          <Header onToggleSidebar={handleToggleSidebar} />
-          <Outlet />
+              pb: 5,
+              mt: { xs: 8, md: 2 }, // Ajuste de margen superior
+            }}
+          >
+            <Header onToggleSidebar={handleToggleSidebar} />
+            <Outlet />
           </Stack>
         </Box>
       </Box>
