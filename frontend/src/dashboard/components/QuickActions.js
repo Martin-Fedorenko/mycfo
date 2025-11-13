@@ -8,7 +8,8 @@ import Box from "@mui/material/Box";
 import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const QuickActions = ({ actions = [], loading = false, onAction }) => {
-  const { primaryTextColor } = useResolvedColorTokens();
+  const { resolvedMode, primaryTextColor } = useResolvedColorTokens();
+  const isDarkMode = resolvedMode === "dark";
 
   if (loading) {
     return (
@@ -82,6 +83,7 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
                 textTransform: "none",
                 minWidth: { xs: 140, md: 150 },
                 fontWeight: 600,
+                ...(isDarkMode && { color: "#42897f" }),
               }}
             >
               {action.label}
