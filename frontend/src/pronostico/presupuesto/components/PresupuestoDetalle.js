@@ -812,7 +812,7 @@ export default function PresupuestoDetalle() {
                         sx={(theme) => ({
                           ...datosBrutosCellSx(theme),
                           fontWeight: 700,
-                          color: totalReal >= 0 ? '#29b6f6' : '#ffa726',
+                          color: pct >= 0 ? '#66bb6a' : '#ef5350',
                         })}
                       >
                         {formatCurrency(totalReal)}{' '}
