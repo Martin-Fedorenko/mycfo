@@ -55,8 +55,11 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
         <Table
           stickyHeader
           sx={{
-            '& .MuiTableRow-root > td, & .MuiTableRow-root > th': {
-              borderBottom: '1px solid var(--mui-palette-divider, rgba(0,0,0,0.12))',
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
             },
           }}
         >
@@ -95,8 +98,11 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
         <Table
           stickyHeader
           sx={{
-            '& .MuiTableRow-root > td, & .MuiTableRow-root > th': {
-              borderBottom: '1px solid var(--mui-palette-divider, rgba(0,0,0,0.12))',
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
             },
           }}
         >
