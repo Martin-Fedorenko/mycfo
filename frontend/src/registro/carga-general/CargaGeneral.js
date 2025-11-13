@@ -233,7 +233,7 @@ export default function CargaGeneral() {
         <Typography
           variant="h4"
           component="h1"
-          sx={{ fontWeight: 600, color: "#000" }}
+          sx={{ fontWeight: 600, color: 'text.primary' }}
         >
           Registro de Documentos y Movimientos
         </Typography>

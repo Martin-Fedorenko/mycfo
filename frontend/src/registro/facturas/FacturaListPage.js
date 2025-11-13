@@ -326,7 +326,7 @@ const FacturaListPage = () => {
         variant="h4"
         component="h1"
         gutterBottom
-        sx={{ mb: 3, fontWeight: 600, color: "#000" }}
+        sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}
       >
         Facturas
       </Typography>

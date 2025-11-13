@@ -31,7 +31,7 @@ export default function CargaSeleccionTipo() {
       <Typography
         variant="h4"
         component="h1"
-        sx={{ mb: 2, fontWeight: 600, color: "#000" }}
+        sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}
       >
         Registro de Documentos y Movimientos
       </Typography>

@@ -416,11 +416,10 @@ export default function PresupuestoDetalle() {
   return (
     <Box id="presupuesto-detalle-content" sx={{ width: '100%', p: 3 }}>
       {/* Breadcrumbs simples */}
-      <Typography variant="overline" color="text.secondary">Presupuestos</Typography>
       <Typography variant="h4" gutterBottom fontWeight="600">
-        📊 Detalle de {presupuesto.nombre}
+        Detalle de {presupuesto.nombre}
       </Typography>
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+      <Typography variant="subtitle1" gutterBottom sx={{ color: '#000' }}>
         Compará tu planificación con lo real
       </Typography>
 
