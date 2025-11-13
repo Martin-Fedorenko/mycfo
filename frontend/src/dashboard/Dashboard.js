@@ -802,7 +802,7 @@ const Dashboard = React.memo(() => {
         id: "invoice",
         label: "Cargar factura",
         icon: <ReceiptLongRoundedIcon />,
-        action: () => handleNavigate("/carga", { tipo: "factura" }),
+        action: () => handleNavigate("/carga/factura"),
       },
       {
         id: "budget",
@@ -1123,7 +1123,7 @@ const Dashboard = React.memo(() => {
               loading={state.billing.loading && !state.billing.data}
               error={state.billing.error}
               onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/carga", { tipo: "factura" })}
+              onNavigate={() => handleNavigate("/carga/factura")}
             />
           </Grid>
           */}
