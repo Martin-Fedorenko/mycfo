@@ -38,6 +38,7 @@ import {
   fetchExpensesByCategory,
   fetchReconciliationSummary,
 } from "./services/analyticsService";
+import useResolvedColorTokens from "./useResolvedColorTokens";
 import { formatCurrencyAR } from "../utils/formatters";
 
 const mockKpis = {
@@ -317,6 +318,8 @@ const getRecentPeriods = (count = 6) =>
 const Dashboard = React.memo(() => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { resolvedMode, paletteVars, primaryTextColor } =
+    useResolvedColorTokens();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [state, setState] = React.useState(initialDashboardState);
   const fetchTimeoutRef = React.useRef();
@@ -929,7 +932,7 @@ const Dashboard = React.memo(() => {
             <Typography variant="h4" fontWeight={600}>
               Hola, {userDisplayName}
             </Typography>
-            <Typography variant="body2" sx={{ color: "#000" }}>
+            <Typography variant="body2" sx={{ color: primaryTextColor }}>
               Este es el resumen financiero de tu empresa. Revisá KPIs,
               vencimientos y tareas clave.
             </Typography>

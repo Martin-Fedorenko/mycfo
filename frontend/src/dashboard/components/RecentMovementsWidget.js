@@ -15,6 +15,7 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const typeStyles = {
   ingreso: { color: "#1b5e20", backgroundColor: "rgba(46, 125, 50, 0.12)" },
@@ -73,10 +74,29 @@ const RecentMovementsWidget = ({
   onRetry,
   onNavigate,
 }) => {
+  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const cardHeaderTypography = React.useMemo(
+    () => ({
+      titleTypographyProps: {
+        variant: "h6",
+        sx: { color: primaryTextColor },
+      },
+      subheaderTypographyProps: {
+        variant: "body2",
+        sx: { color: primaryTextColor },
+      },
+    }),
+    [primaryTextColor]
+  );
+
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Movimientos" subheader="Cargando..." />
+        <CardHeader
+          title="Movimientos"
+          subheader="Cargando..."
+          {...cardHeaderTypography}
+        />
         <CardContent>
           <Skeleton variant="rectangular" height={180} />
         </CardContent>
@@ -87,7 +107,7 @@ const RecentMovementsWidget = ({
   if (error) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Movimientos" />
+        <CardHeader title="Movimientos" {...cardHeaderTypography} />
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error">{error}</Alert>
           {onRetry ? (
@@ -103,12 +123,19 @@ const RecentMovementsWidget = ({
   const movements = Array.isArray(data) ? data : [];
 
   return (
-    <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <CardHeader title="Movimientos" subheader="Ultimos movimientos registrados" />
+    <Card
+      variant="outlined"
+      sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+    >
+      <CardHeader
+        title="Movimientos"
+        subheader="Ultimos movimientos registrados"
+        {...cardHeaderTypography}
+      />
       <CardContent sx={{ flexGrow: 1 }}>
         {movements.length === 0 ? (
           <Stack spacing={2} alignItems="flex-start">
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: secondaryTextColor }}>
               Todavia no hay movimientos para mostrar. Registra un ingreso o egreso para verlos aqui.
             </Typography>
             {onRetry ? (
@@ -156,7 +183,7 @@ const RecentMovementsWidget = ({
                         <Typography variant="body2">{formatDate(movement.fechaEmision)}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ color: secondaryTextColor }}>
                           {categoria}
                         </Typography>
                       </TableCell>

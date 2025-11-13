@@ -10,6 +10,7 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { useTheme, alpha } from "@mui/material/styles";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) {
@@ -35,6 +36,7 @@ const SalesByCategoryWidget = ({
   subtitle = "Distribucion anual por segmento",
 }) => {
   const theme = useTheme();
+  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
   const chartContainerRef = React.useRef(null);
   const [chartWidth, setChartWidth] = React.useState(0);
 
@@ -126,8 +128,15 @@ const SalesByCategoryWidget = ({
       <CardHeader
         title={title}
         subheader={subtitle}
-        titleTypographyProps={{ variant: "h6", fontWeight: 600 }}
-        subheaderTypographyProps={{ variant: "body2", color: "text.secondary" }}
+        titleTypographyProps={{
+          variant: "h6",
+          fontWeight: 600,
+          sx: { color: primaryTextColor },
+        }}
+        subheaderTypographyProps={{
+          variant: "body2",
+          sx: { color: primaryTextColor },
+        }}
         action={
           hasData ? (
             <Stack
@@ -144,13 +153,20 @@ const SalesByCategoryWidget = ({
               }}
             >
               <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-                <Typography variant="overline" color="text.secondary">
+                <Typography
+                  variant="overline"
+                  sx={{ color: primaryTextColor }}
+                >
                   Categoria top
                 </Typography>
-                <Typography variant="subtitle2" fontWeight={600}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={600}
+                  sx={{ color: primaryTextColor }}
+                >
                   {formatCurrency(topCategory?.value)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{ color: primaryTextColor }}>
                   {topCategory?.category ?? "--"}
                 </Typography>
               </Stack>
@@ -160,13 +176,20 @@ const SalesByCategoryWidget = ({
                 sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
               />
               <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-                <Typography variant="overline" color="text.secondary">
+                <Typography
+                  variant="overline"
+                  sx={{ color: primaryTextColor }}
+                >
                   Categoria menor
                 </Typography>
-                <Typography variant="subtitle2" fontWeight={600}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={600}
+                  sx={{ color: primaryTextColor }}
+                >
                   {formatCurrency(bottomCategory?.value)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{ color: primaryTextColor }}>
                   {bottomCategory?.category ?? "--"}
                 </Typography>
               </Stack>
@@ -176,13 +199,20 @@ const SalesByCategoryWidget = ({
                 sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
               />
               <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-                <Typography variant="overline" color="text.secondary">
+                <Typography
+                  variant="overline"
+                  sx={{ color: primaryTextColor }}
+                >
                   Promedio
                 </Typography>
-                <Typography variant="subtitle2" fontWeight={600}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={600}
+                  sx={{ color: primaryTextColor }}
+                >
                   {formatCurrency(average)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{ color: primaryTextColor }}>
                   {values.length} categorias
                 </Typography>
               </Stack>
@@ -288,8 +318,8 @@ const SalesByCategoryWidget = ({
           >
             <Typography
               variant="body2"
-              color="text.secondary"
               textAlign="center"
+              sx={{ color: secondaryTextColor }}
             >
               {emptyMessage}
             </Typography>
