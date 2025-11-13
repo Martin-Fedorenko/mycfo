@@ -89,7 +89,7 @@ export default function MainGrid() {
         ];
         const currencyColumns = ['C']; // Columna C para formato de moneda
 
-        exportToExcel(excelData, `profit-and-loss-${selectedYear}`, "Profit & Loss", colsConfig, mergesConfig, currencyColumns);
+        exportToExcel(excelData, `estado-de-resultados-${selectedYear}`, "Estado de Resultados", colsConfig, mergesConfig, currencyColumns);
     };
 
     const handleExportPdf = () => {
@@ -133,7 +133,7 @@ export default function MainGrid() {
             body.push(["Resultado del Ejercicio", "", resultado.toFixed(2)]);
 
             autoTable(doc, { head: head, body: body, startY: pdfHeight + 40 });
-            doc.save(`profit-and-loss-${selectedYear}.pdf`);
+            doc.save(`estado-de-resultados-${selectedYear}.pdf`);
         });
     };
 
@@ -146,7 +146,7 @@ export default function MainGrid() {
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography component="h2" variant="h6">
-                        Profit & Loss (Estado de Resultados)
+                        Estado de Resultados
                     </Typography>
                     <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
                 </Box>

@@ -49,7 +49,8 @@ const CustomIcon = () => {
 };
 
 const SideMenu = React.memo(function SideMenu({
-  variant = 'permanent',
+  open,
+  onClose,
   onNavigate,
 }) {
   const navigate = useNavigate();
@@ -83,9 +84,13 @@ React.useEffect(() => {
 
   return (
     <Drawer
-      variant={variant}
+      variant="temporary"
+      open={open}
+      onClose={onClose}
+      ModalProps={{
+        keepMounted: true, // Better open performance on mobile.
+      }}
       sx={{
-        display: { xs: 'none', md: 'block' },
         [`& .${drawerClasses.paper}`]: {
           backgroundColor: 'background.paper',
         },
@@ -94,6 +99,7 @@ React.useEffect(() => {
       <Box
         component={RouterLink}
         to="/"
+        onClick={onNavigate}
         aria-label="Ir al inicio"
         sx={{
           display: 'flex',

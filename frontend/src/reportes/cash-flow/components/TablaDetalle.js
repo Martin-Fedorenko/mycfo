@@ -51,18 +51,41 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
         <Box>
             <Typography variant="h6" sx={{ mb: 2 }}>Cashflow {year}</Typography>
             <TableContainer component={Paper}>
-                <Table size="small" stickyHeader>
+                <Table
+                    size="small"
+                    stickyHeader
+                    sx={{
+                        '& .MuiTableCell-root': {
+                            border: '1px solid rgba(224, 224, 224, 1)',
+                        },
+                        '& .MuiTableHead-root .MuiTableCell-root': {
+                            fontWeight: 700,
+                            textAlign: 'center',
+                        },
+                        '& .MuiTableBody-root .MuiTableCell-root:nth-of-type(n + 2)': {
+                            textAlign: 'right',
+                        },
+                        '& .MuiTableHead-root .MuiTableCell-root': {
+                            fontWeight: 700,
+                        },
+                    }}
+                >
                     <TableHead>
                         <TableRow>
-                            <TableCell>Concepto</TableCell>
+                            <TableCell align="left">Concepto</TableCell>
                             {mesesVisibles.map((m) => (
-                                <TableCell key={m} align="right">{m}</TableCell>
+                                <TableCell key={m} align="center">{m}</TableCell>
                             ))}
                         </TableRow>
                     </TableHead>
                     <TableBody>
 
-                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
+                        <TableRow
+                            sx={{
+                                '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' },
+                                backgroundColor: 'rgba(46, 125, 50, 0.08)',
+                            }}
+                        >
                             <TableCell><b>Ingresos</b></TableCell>
                             {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>
@@ -77,7 +100,12 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                             </TableRow>
                         ))}
 
-                        <TableRow sx={{ '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' } }}>
+                        <TableRow
+                            sx={{
+                                '& td, & th': { borderTop: '2px solid rgba(0,0,0,0.25)' },
+                                backgroundColor: 'rgba(198, 40, 40, 0.08)',
+                            }}
+                        >
                             <TableCell><b>Egresos</b></TableCell>
                             {mesesVisibles.map((_, i) => <TableCell key={i} />)}
                         </TableRow>

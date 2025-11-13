@@ -98,14 +98,14 @@ const routeConfig = [
         element: <ReporteMensual />,
       },
       {
-        label: "Cash Flow",
-        path: "/cash-flow",
+        label: "Flujo de caja",
+        path: "/flujo-de-caja",
         icon: <DescriptionIcon />,
         element: <CashFlow />,
       },
       {
-        label: "Profit & Loss",
-        path: "/profit-loss",
+        label: "Estado de Resultados",
+        path: "/estado-de-resultado",
         icon: <DescriptionIcon />,
         element: <ProfitLoss />,
       },

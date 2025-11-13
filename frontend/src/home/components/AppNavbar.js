@@ -95,8 +95,8 @@ export function CustomIcon() {
       src={`${process.env.PUBLIC_URL}/logo192.png`}
       alt="Logo MyCFO"
       sx={{
-        width: '2rem',
-        height: '2rem',
+        width: '2.5rem',
+        height: '2.5rem',
         objectFit: 'cover',
         alignSelf: 'center', // Asegura que la imagen esté centrada verticalmente
       }}
