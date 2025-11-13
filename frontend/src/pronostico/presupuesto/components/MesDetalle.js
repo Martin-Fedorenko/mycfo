@@ -982,7 +982,7 @@ export default function MesDetalle() {
           sx={{
             flexGrow: 0,
             flexShrink: 0,
-            textAlign: 'left',
+            textAlign: 'center',
             minWidth: '14ch',
             whiteSpace: 'nowrap',
           }}
