@@ -60,14 +60,21 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
                         },
                         '& .MuiTableHead-root .MuiTableCell-root': {
                             fontWeight: 700,
+                            textAlign: 'center',
+                        },
+                        '& .MuiTableBody-root .MuiTableCell-root:nth-of-type(n + 2)': {
+                            textAlign: 'right',
+                        },
+                        '& .MuiTableHead-root .MuiTableCell-root': {
+                            fontWeight: 700,
                         },
                     }}
                 >
                     <TableHead>
                         <TableRow>
-                            <TableCell>Concepto</TableCell>
+                            <TableCell align="left">Concepto</TableCell>
                             {mesesVisibles.map((m) => (
-                                <TableCell key={m} align="right">{m}</TableCell>
+                                <TableCell key={m} align="center">{m}</TableCell>
                             ))}
                         </TableRow>
                     </TableHead>
