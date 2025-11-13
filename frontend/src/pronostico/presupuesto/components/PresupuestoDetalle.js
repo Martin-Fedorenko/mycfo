@@ -4,6 +4,7 @@ import {
   IconButton, Divider, Drawer, List, ListItem, ListItemText, TextField, MenuItem, Switch,
   FormControlLabel, Menu, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
@@ -109,6 +110,18 @@ async function getRealPorMes(meses, tipo) {
 export default function PresupuestoDetalle() {
   const { nombre: nombreUrl } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === 'light';
+  const paletteVars = theme.vars?.palette ?? theme.palette;
+  const kpiColors = React.useMemo(
+    () => ({
+      ingresos: isLightMode ? 'hsl(120, 44%, 53%)' : paletteVars.success.light,
+      egresos: isLightMode ? 'hsl(0, 90%, 40%)' : paletteVars.error.light,
+      resultadoPos: isLightMode ? 'hsl(210, 98%, 42%)' : paletteVars.info.light,
+      resultadoNeg: isLightMode ? 'hsl(45, 90%, 40%)' : paletteVars.warning.light,
+    }),
+    [isLightMode, paletteVars.error.light, paletteVars.info.light, paletteVars.success.light, paletteVars.warning.light]
+  );
 
   const [presupuesto, setPresupuesto] = React.useState({
     id: null,
@@ -466,7 +479,7 @@ export default function PresupuestoDetalle() {
           {/* KPIs con acciones rápidas */}
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white', position: 'relative' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white', position: 'relative' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
                 <Typography variant="h4" fontWeight="bold">
@@ -488,7 +501,7 @@ export default function PresupuestoDetalle() {
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white', position: 'relative' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white', position: 'relative' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
                 <Typography variant="h4" fontWeight="bold">
@@ -514,7 +527,7 @@ export default function PresupuestoDetalle() {
                 sx={{
                   p: 3,
                   textAlign: 'center',
-                  bgcolor: resultadoReal >= 0 ? 'info.light' : 'warning.light',
+                  bgcolor: resultadoReal >= 0 ? kpiColors.resultadoPos : kpiColors.resultadoNeg,
                   color: 'white',
                   position: 'relative'
                 }}

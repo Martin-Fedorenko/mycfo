@@ -4,6 +4,7 @@ import {
   IconButton, Divider, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Autocomplete, FormControlLabel, Switch, Select, InputLabel, FormControl, Snackbar, Alert
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import { buildTipoSelectSx } from '../../../shared-components/tipoSelectStyles';
@@ -146,6 +147,18 @@ const normalizeTipo = (value) => {
 export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === 'light';
+  const paletteVars = theme.vars?.palette ?? theme.palette;
+  const kpiColors = React.useMemo(
+    () => ({
+      ingresos: isLightMode ? 'hsl(120, 44%, 53%)' : paletteVars.success.light,
+      egresos: isLightMode ? 'hsl(0, 90%, 40%)' : paletteVars.error.light,
+      resultadoPos: isLightMode ? 'hsl(210, 98%, 42%)' : paletteVars.info.light,
+      resultadoNeg: isLightMode ? 'hsl(45, 90%, 40%)' : paletteVars.warning.light,
+    }),
+    [isLightMode, paletteVars.error.light, paletteVars.info.light, paletteVars.success.light, paletteVars.warning.light]
+  );
 
   React.useEffect(() => {
     if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
@@ -994,21 +1007,21 @@ export default function MesDetalle() {
         <>
           <Grid container spacing={3} mb={2}>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(totalIngresos)}</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(totalEgresos)}</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? 'info.light' : 'warning.light', color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? kpiColors.resultadoPos : kpiColors.resultadoNeg, color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: resultado >= 0 ? 'info.main' : 'warning.main', mx: 'auto', mb: 1 }}>
                   {resultado >= 0 ? '✓' : '⚠'}
                 </Avatar>
