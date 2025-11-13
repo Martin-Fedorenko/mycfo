@@ -177,7 +177,7 @@ export const getDesignTokens = (mode) => {
         lineHeight: 1.2,
       },
       h4: {
-        fontSize: defaultTheme.typography.pxToRem(24),
+        fontSize: defaultTheme.typography.pxToRem(28),
         fontWeight: 600,
         lineHeight: 1.5,
       },
@@ -335,7 +335,7 @@ export const typography = {
     lineHeight: 1.2,
   },
   h4: {
-    fontSize: defaultTheme.typography.pxToRem(24),
+    fontSize: defaultTheme.typography.pxToRem(28),
     fontWeight: 600,
     lineHeight: 1.5,
   },

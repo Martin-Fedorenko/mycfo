@@ -189,7 +189,7 @@ export default function MainGrid() {
     return (
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography component="h2" variant="h6">
+                <Typography component="h2" variant="h4">
                     Flujo de caja anual
                 </Typography>
                 <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
