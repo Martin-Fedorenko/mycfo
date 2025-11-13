@@ -698,17 +698,19 @@ export default function TablaRegistrosV2() {
           }}
           disableRowSelectionOnClick
           autoHeight={false}
-          sx={{
-            "& .MuiDataGrid-cell": {
-              borderBottom: "1px solid #f0f0f0",
-              display: "flex",
-              alignItems: "center", // Centrar verticalmente todo el contenido
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "#f5f5f5",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-            },
+      sx={{
+        "& .MuiDataGrid-cell": {
+          borderBottom: "1px solid #f0f0f0",
+          display: "flex",
+          alignItems: "center", // Centrar verticalmente todo el contenido
+        },
+        "& .MuiDataGrid-columnHeaders": {
+          backgroundColor: "#f5f5f5",
+          fontSize: "0.95rem",
+        },
+        "& .MuiDataGrid-columnHeaderTitle": {
+          fontWeight: 700,
+        },
             "& .MuiDataGrid-row:hover": {
               backgroundColor: "rgba(0, 0, 0, 0.02)",
             },
