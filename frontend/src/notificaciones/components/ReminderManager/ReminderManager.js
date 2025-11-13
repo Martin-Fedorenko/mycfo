@@ -330,7 +330,7 @@ export default function ReminderManager() {
                       <Chip
                         label={getRecurrenceLabel(reminder.recurrencePattern)}
                         size="small"
-                        color="secondary"
+                        color="primary"
                         variant="outlined"
                         sx={{ fontSize: "0.75rem" }}
                       />
@@ -342,7 +342,7 @@ export default function ReminderManager() {
                           reminder.recurrencePattern
                         )}`}
                         size="small"
-                        color="info"
+                        color="primary"
                         variant="outlined"
                         sx={{ fontSize: "0.75rem" }}
                       />
