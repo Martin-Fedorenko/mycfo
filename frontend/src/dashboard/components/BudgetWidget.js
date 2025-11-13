@@ -243,7 +243,8 @@ const BudgetWidget = ({
   onRetry,
 }) => {
   const navigate = useNavigate();
-  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const { resolvedMode, primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const isDarkMode = resolvedMode === "dark";
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [budget, setBudget] = React.useState(null);
@@ -510,7 +511,11 @@ const BudgetWidget = ({
               No hay presupuesto actual.
             </Typography>
             <Stack direction="row" spacing={1}>
-              <Button variant="contained" onClick={goToNew}>
+              <Button
+                variant="contained"
+                onClick={goToNew}
+                sx={isDarkMode ? { color: "#42897f" } : undefined}
+              >
                 Nuevo presupuesto
               </Button>
               <Button variant="text" onClick={goToList}>
@@ -530,7 +535,11 @@ const BudgetWidget = ({
             >
               Ver más
             </Button>
-            <Button variant="outlined" onClick={goToNew}>
+            <Button
+              variant="outlined"
+              onClick={goToNew}
+              sx={isDarkMode ? { color: "#42897f" } : undefined}
+            >
               Nuevo presupuesto
             </Button>
             <Button variant="text" onClick={goToList}>

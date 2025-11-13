@@ -74,7 +74,8 @@ const RecentMovementsWidget = ({
   onRetry,
   onNavigate,
 }) => {
-  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const { resolvedMode, primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const isDarkMode = resolvedMode === "dark";
   const cardHeaderTypography = React.useMemo(
     () => ({
       titleTypographyProps: {
@@ -196,7 +197,12 @@ const RecentMovementsWidget = ({
         )}
       </CardContent>
       <CardActions sx={{ px: 3, pb: 2, gap: 1 }}>
-        <Button variant="outlined" onClick={onNavigate} disabled={!onNavigate}>
+        <Button
+          variant="outlined"
+          onClick={onNavigate}
+          disabled={!onNavigate}
+          sx={isDarkMode ? { color: "#42897f" } : undefined}
+        >
           Ver mas
         </Button>
       </CardActions>
