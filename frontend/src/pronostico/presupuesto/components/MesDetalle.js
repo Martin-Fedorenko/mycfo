@@ -179,6 +179,7 @@ export default function MesDetalle() {
   const [mesesDisponibles, setMesesDisponibles] = React.useState([]);
   const [tab, setTab] = React.useState(0);
   const [totalRealMes, setTotalRealMes] = React.useState(0);
+  const goToDatosBrutos = React.useCallback(() => setTab(1), [setTab]);
 
   // UI
   const [simulacion, setSimulacion] = React.useState(false);
@@ -1067,10 +1068,16 @@ export default function MesDetalle() {
                         <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
                         {sinPronostico && (
                           <Tooltip
-                            title="Este movimiento no tiene un monto estimado."
+                            title="Este movimiento no tiene un monto estimado. Hacé clic para pronosticar."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                            <Chip
+                              icon={<WarningAmberOutlinedIcon />}
+                              size="small"
+                              label="Movimiento sin pronosticar"
+                              sx={{ ...SIN_PRONOSTICO_CHIP_SX, cursor: 'pointer' }}
+                              onClick={goToDatosBrutos}
+                            />
                           </Tooltip>
                         )}
                       </Stack>
@@ -1146,10 +1153,16 @@ export default function MesDetalle() {
                         <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
                         {sinPronostico && (
                           <Tooltip
-                            title="Este movimiento no tiene un monto estimado."
+                            title="Este movimiento no tiene un monto estimado. Hacé clic para pronosticar."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                            <Chip
+                              icon={<WarningAmberOutlinedIcon />}
+                              size="small"
+                              label="Movimiento sin pronosticar"
+                              sx={{ ...SIN_PRONOSTICO_CHIP_SX, cursor: 'pointer' }}
+                              onClick={goToDatosBrutos}
+                            />
                           </Tooltip>
                         )}
                       </Stack>
