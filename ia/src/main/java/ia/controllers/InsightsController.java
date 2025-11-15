@@ -23,9 +23,10 @@ public class InsightsController {
     public ResponseEntity<Map<String, Object>> generarInsights(
             @RequestHeader("X-Usuario-Sub") String userSub,
             @RequestParam(required = false) Integer anio,
-            @RequestParam(required = false) Integer mes
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) String modo
     ) {
-        var resp = insightsService.generarInsights(userSub, anio, mes);
+        var resp = insightsService.generarInsights(userSub, anio, mes, modo);
         return ResponseEntity.ok(resp);
     }
 }
