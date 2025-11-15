@@ -8,12 +8,40 @@ import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import API_CONFIG from "../../config/api-config";
 
 const InsightsWidget = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [data, setData] = React.useState(null);
+  const [useDeepSeek, setUseDeepSeek] = React.useState(false);
+  const summaryLines =
+    data && typeof data.diagnostico_corto === "string"
+      ? data.diagnostico_corto
+          .split(/\n+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : [];
+  const senalesEntries =
+    data && data.senales
+      ? Object.entries(data.senales).filter(([, value]) => Boolean(value))
+      : [];
+  const detalleLines =
+    data && data.detalles
+      ? Object.values(data.detalles).filter(
+          (value) => typeof value === "string" && value.trim().length > 0
+        )
+      : [];
+  const riesgos =
+    Array.isArray(data?.riesgos_clave) && data.riesgos_clave.length > 0
+      ? data.riesgos_clave.filter(Boolean)
+      : [];
+  const tips =
+    Array.isArray(data?.tips) && data.tips.length > 0
+      ? data.tips.filter(Boolean)
+      : [];
 
   const handleRun = async () => {
     setLoading(true);
@@ -30,6 +58,7 @@ const InsightsWidget = () => {
       const token = sessionStorage.getItem('accessToken');
       if (sub) headers['X-Usuario-Sub'] = sub;
       if (token) headers['Authorization'] = `Bearer ${token}`;
+      params.set("modo", useDeepSeek ? "llm" : "basic");
       const res = await fetch(`${baseUrl}/ia/insights?${params.toString()}`, {
         method: 'POST',
         headers,
@@ -54,36 +83,86 @@ const InsightsWidget = () => {
           <Alert severity="error">{error}</Alert>
         ) : data ? (
           <Stack spacing={1}>
-            <Typography variant="subtitle2">{data.diagnostico_corto || 'Análisis generado'}</Typography>
-            {data.senales ? (
-              <>
-                {data.senales.liquidez ? (
-                  <Typography variant="body2"><b>Liquidez:</b> {data.senales.liquidez}</Typography>
-                ) : null}
-                {data.senales.rentabilidad ? (
-                  <Typography variant="body2"><b>Rentabilidad:</b> {data.senales.rentabilidad}</Typography>
-                ) : null}
-                {data.senales.tendencias ? (
-                  <Typography variant="body2"><b>Tendencias:</b> {data.senales.tendencias}</Typography>
-                ) : null}
-              </>
+            {data.alerta ? (
+              <Alert severity="warning" variant="outlined">
+                Indicadores financieros en observacion.
+              </Alert>
             ) : null}
-            {Array.isArray(data.tips) && data.tips.length > 0 ? (
-              <Stack spacing={0.5}>
-                <Typography variant="caption" color="text.secondary">Recomendaciones</Typography>
-                {data.tips.slice(0,4).map((t, i) => (
-                  <Typography key={i} variant="body2">• {t}</Typography>
+            {summaryLines.length > 0 ? (
+              summaryLines.map((line, idx) => (
+                <Typography key={idx} variant="body2">
+                  {line}
+                </Typography>
+              ))
+            ) : (
+              <Typography variant="body2">No hay resumen disponible.</Typography>
+            )}
+            {detalleLines.length > 0 ? (
+              <Stack spacing={0.25}>
+                <Typography variant="caption" color="text.secondary">
+                  Detalle del mes
+                </Typography>
+                {detalleLines.map((line, idx) => (
+                  <Typography key={`det-${idx}`} variant="body2">
+                    - {line}
+                  </Typography>
+                ))}
+              </Stack>
+            ) : null}
+            {senalesEntries.length > 0 ? (
+              <Stack spacing={0.25}>
+                <Typography variant="caption" color="text.secondary">
+                  Señales
+                </Typography>
+                {senalesEntries.map(([key, value]) => (
+                  <Typography key={key} variant="body2">
+                    <b>{key.charAt(0).toUpperCase() + key.slice(1)}:</b> {value}
+                  </Typography>
+                ))}
+              </Stack>
+            ) : null}
+            {riesgos.length > 0 ? (
+              <Stack spacing={0.25}>
+                <Typography variant="caption" color="text.secondary">
+                  Riesgos clave
+                </Typography>
+                {riesgos.map((item, idx) => (
+                  <Typography key={`risk-${idx}`} variant="body2">
+                    - {item}
+                  </Typography>
+                ))}
+              </Stack>
+            ) : null}
+            {tips.length > 0 ? (
+              <Stack spacing={0.25}>
+                <Typography variant="caption" color="text.secondary">
+                  Recomendaciones
+                </Typography>
+                {tips.slice(0, 4).map((item, idx) => (
+                  <Typography key={`tip-${idx}`} variant="body2">
+                    - {item}
+                  </Typography>
                 ))}
               </Stack>
             ) : null}
           </Stack>
         ) : (
           <Typography variant="body2" color="text.secondary">
-            Presiona "Interpretar situación" para obtener un diagnóstico breve y tips.
+            Activa "Usar DeepSeek" para el análisis del modelo o usa el resumen básico.
           </Typography>
         )}
       </CardContent>
-      <CardActions sx={{ px: 2, pb: 2 }}>
+      <CardActions sx={{ px: 2, pb: 2, justifyContent: "space-between", alignItems: "center" }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={useDeepSeek}
+              onChange={(e) => setUseDeepSeek(e.target.checked)}
+              disabled={loading}
+            />
+          }
+          label="Usar DeepSeek"
+        />
         <Button variant="contained" onClick={handleRun} disabled={loading}>
           Interpretar situación
         </Button>
