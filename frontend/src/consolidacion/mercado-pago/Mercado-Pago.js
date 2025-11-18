@@ -84,7 +84,7 @@ export default function MercadoPagoPage() {
         justifyContent="space-between"
         sx={{ mb: 2 }}
       >
-        <Typography variant="h6">Mercado Pago</Typography>
+        <Typography variant="h4">Mercado Pago</Typography>
         {/* espacio reservado para acciones futuras */}
         <Box sx={{ minWidth: 120 }} />
       </Stack>

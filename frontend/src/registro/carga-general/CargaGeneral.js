@@ -230,7 +230,13 @@ export default function CargaGeneral() {
     <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
       {/* Encabezado */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5">Registro de Documentos y Movimientos</Typography>
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ fontWeight: 600, color: 'text.primary' }}
+        >
+          Registro de Documentos y Movimientos
+        </Typography>
         <Typography variant="subtitle1">
           Elegí qué tipo de registro querés cargar
         </Typography>

@@ -1,0 +1,6 @@
+aws_region           = "sa-east-1"
+instance_type        = "t3.micro"
+mycfo1_test_secret   = "TuSecretoDePrueba"
+app_test_env_var     = "TuVariableDeEntorno"
+lambda_forecast_url  = "https://bhhjxxuar5.execute-api.sa-east-1.amazonaws.com/PROD/forecast"
+

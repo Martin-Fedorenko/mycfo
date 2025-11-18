@@ -6,6 +6,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const defaultFormatter = (value) => value;
 
@@ -22,6 +23,8 @@ const KpiCard = ({
   error = null,
   onRetry,
 }) => {
+  const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
@@ -53,7 +56,7 @@ const KpiCard = ({
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: secondaryTextColor }}>
             Sin datos disponibles para este indicador.
           </Typography>
           {onRetry ? (
@@ -71,17 +74,16 @@ const KpiCard = ({
       <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, px: 2.5, py: 2 }}>
         <Typography
           variant="subtitle2"
-          color="text.secondary"
-          sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+          sx={{ flexShrink: 0, whiteSpace: "nowrap", color: primaryTextColor }}
         >
           {title}
         </Typography>
         <Box sx={{ textAlign: "right", flexGrow: 1 }}>
-          <Typography variant="h5" fontWeight={600}>
+          <Typography variant="h5" fontWeight={600} sx={{ color: primaryTextColor }}>
             {formatter(value)}
           </Typography>
           {secondaryLabel ? (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: secondaryTextColor }}>
               {secondaryLabel}:{" "}
               <Box component="span" fontWeight={500}>
                 {secondaryFormatter(secondaryValue)}

@@ -47,7 +47,7 @@ function formatLabel(input) {
   return typeof input === 'string' ? capitalizeFirst(input) : input;
 }
 
-export default function NavbarBreadcrumbs() {
+export default function NavbarBreadcrumbs({ sx }) {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
@@ -55,6 +55,7 @@ export default function NavbarBreadcrumbs() {
     <StyledBreadcrumbs
       aria-label="breadcrumb"
       separator={<NavigateNextRoundedIcon fontSize="small" />}
+      sx={sx}
     >
       {/* Primer breadcrumb fijo */}
       <Link

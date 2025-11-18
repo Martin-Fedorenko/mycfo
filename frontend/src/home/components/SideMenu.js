@@ -49,7 +49,8 @@ const CustomIcon = () => {
 };
 
 const SideMenu = React.memo(function SideMenu({
-  variant = 'permanent',
+  open,
+  onClose,
   onNavigate,
 }) {
   const navigate = useNavigate();
@@ -83,9 +84,13 @@ React.useEffect(() => {
 
   return (
     <Drawer
-      variant={variant}
+      variant="temporary"
+      open={open}
+      onClose={onClose}
+      ModalProps={{
+        keepMounted: true, // Better open performance on mobile.
+      }}
       sx={{
-        display: { xs: 'none', md: 'block' },
         [`& .${drawerClasses.paper}`]: {
           backgroundColor: 'background.paper',
         },
@@ -94,14 +99,16 @@ React.useEffect(() => {
       <Box
         component={RouterLink}
         to="/"
+        onClick={onNavigate}
         aria-label="Ir al inicio"
-        sx={{
-          display: 'flex',
-          mt: 'calc(var(--template-frame-height, 0px) + 4px)',
-          p: 1.5,
-          textDecoration: 'none',
-          color: 'inherit',
-          cursor: 'pointer',
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        mt: 'calc(var(--template-frame-height, 0px) + 4px)',
+        p: 1.5,
+        textDecoration: 'none',
+        color: 'inherit',
+        cursor: 'pointer',
         }}
       >
         <CustomIcon />
@@ -157,6 +164,14 @@ React.useEffect(() => {
           <IconButton
             size="small"
             color="primary"
+            sx={{
+              transition: 'color 0.2s, background-color 0.2s',
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0,131,117,0.12)',
+                color: '#008375',
+              },
+            }}
             onClick={() => navigate('/organizacion')}
           >
             <ApartmentIcon />
@@ -166,6 +181,14 @@ React.useEffect(() => {
           <IconButton
             size="small"
             color="primary"
+            sx={{
+              transition: 'color 0.2s, background-color 0.2s',
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0,131,117,0.12)',
+                color: '#008375',
+              },
+            }}
             onClick={() => navigate('/perfil')}
           >
             <PersonRoundedIcon />

@@ -1,70 +1,121 @@
 import * as React from 'react';
 import {
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography
+  Box, Typography, Grid, Paper,
+  TableContainer, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 
-// Función de utilidad para formatear moneda
+// Utilidad de moneda con separador de miles y símbolo "$"
 const formatCurrency = (value) => {
-    if (typeof value !== 'number') return '-';
-    return `$${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const num = Number(value);
+  if (Number.isNaN(num)) return '-';
+  return num.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
 };
 
 export default function TablaDetalle({ year, ingresos, egresos }) {
-    const totalIngresos = ingresos.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-    const totalEgresos = egresos.reduce((sum, item) => sum + Math.abs(Number(item.total) || 0), 0);
-    const resultado = totalIngresos - totalEgresos;
+  const totalIngresos = ingresos.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+  const totalEgresos = egresos.reduce((sum, item) => sum + Math.abs(Number(item.total) || 0), 0);
+  const balance = totalIngresos - totalEgresos;
 
-    const headerCellStyle = { fontWeight: 'bold', color: 'white' };
+  return (
+    <Box sx={{ width: '100%', p: 2 }}>
+      {/* Totales (igual al reporte mensual) */}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={4}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle1">Ingresos</Typography>
+            <Typography variant="h6" color="green">{formatCurrency(totalIngresos)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle1">Egresos</Typography>
+            <Typography variant="h6" color="red">{formatCurrency(totalEgresos)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle1">Resultado</Typography>
+            <Typography variant="h6" color={balance >= 0 ? 'green' : 'red'}>{formatCurrency(balance)}</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
 
-    return (
-        <Paper sx={{ width: '100%', mt: 2 }}>
-            <TableContainer sx={{ maxHeight: 420, overflowY: 'auto', overflowX: 'auto' }}>
-                <Table aria-label="simple table" stickyHeader>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Estado de Resultados ({year})</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {/* --- INGRESOS --- */}
-                        <TableRow sx={{ backgroundColor: '#4caf50' }}>
-                            <TableCell component="th" scope="row" sx={headerCellStyle}>
-                                Ingresos
-                            </TableCell>
-                            <TableCell align="right" sx={headerCellStyle}>{formatCurrency(totalIngresos)}</TableCell>
-                        </TableRow>
-                        {ingresos.map((item) => (
-                            <TableRow hover key={item.categoria}>
-                                <TableCell sx={{ pl: 4 }}>{(item.categoria && String(item.categoria).trim().length) ? item.categoria : 'Sin categoría'}</TableCell>
-                                <TableCell align="right">{formatCurrency(item.total)}</TableCell>
-                            </TableRow>
-                        ))}
+      {/* Tabla de Ingresos */}
+      <Typography variant="h6" gutterBottom>
+        Detalle de Ingresos ({year})
+      </Typography>
+      <TableContainer component={Paper} sx={{ mb: 4, maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
+        <Table
+          stickyHeader
+          sx={{
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
+            },
+          }}
+        >
+          <TableHead>
+            <TableRow>
+              <TableCell scope="col">Nº</TableCell>
+              <TableCell scope="col">Categoría</TableCell>
+              <TableCell scope="col" align="right">Monto</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {ingresos.map((row, index) => (
+              <TableRow
+                key={index}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)', cursor: 'pointer' } }}
+              >
+                <TableCell>{index + 1}</TableCell>
+                <TableCell>{(row.categoria && String(row.categoria).trim().length) ? row.categoria : 'Sin categoría'}</TableCell>
+                <TableCell align="right">{formatCurrency(Number(row.total) || 0)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-                        {/* --- EGRESOS --- */}
-                        <TableRow sx={{ backgroundColor: '#f44336' }}>
-                            <TableCell component="th" scope="row" sx={headerCellStyle}>
-                                Egresos
-                            </TableCell>
-                            <TableCell align="right" sx={headerCellStyle}>{formatCurrency(totalEgresos)}</TableCell>
-                        </TableRow>
-                        {egresos.map((item) => (
-                            <TableRow hover key={item.categoria}>
-                                <TableCell sx={{ pl: 4 }}>{(item.categoria && String(item.categoria).trim().length) ? item.categoria : 'Sin categoría'}</TableCell>
-                                <TableCell align="right">{formatCurrency(Math.abs(Number(item.total) || 0))}</TableCell>
-                            </TableRow>
-                        ))}
-
-                        {/* --- RESULTADO --- */}
-                        <TableRow sx={{ backgroundColor: resultado >= 0 ? '#4caf50' : '#f44336' }}>
-                            <TableCell component="th" scope="row" sx={headerCellStyle}>
-                                Resultado del Ejercicio
-                            </TableCell>
-                            <TableCell align="right" sx={headerCellStyle}>{formatCurrency(resultado)}</TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Paper>
-    );
+      {/* Tabla de Egresos */}
+      <Typography variant="h6" gutterBottom>
+        Detalle de Egresos ({year})
+      </Typography>
+      <TableContainer component={Paper} sx={{ maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
+        <Table
+          stickyHeader
+          sx={{
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
+            },
+          }}
+        >
+          <TableHead>
+            <TableRow>
+              <TableCell scope="col">Nº</TableCell>
+              <TableCell scope="col">Categoría</TableCell>
+              <TableCell scope="col" align="right">Monto</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {egresos.map((row, index) => (
+              <TableRow
+                key={index}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)', cursor: 'pointer' } }}
+              >
+                <TableCell>{index + 1}</TableCell>
+                <TableCell>{(row.categoria && String(row.categoria).trim().length) ? row.categoria : 'Sin categoría'}</TableCell>
+                <TableCell align="right">{formatCurrency(Math.abs(Number(row.total) || 0))}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
 }
+

@@ -15,6 +15,7 @@ import Box from "@mui/material/Box";
 import { useNavigate } from "react-router-dom";
 import http from "../../api/http";
 import { formatCurrencyAR, formatPercentage } from "../../utils/formatters";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const getStatusColor = (ratio) => {
   if (ratio <= 0.9) {
@@ -242,6 +243,8 @@ const BudgetWidget = ({
   onRetry,
 }) => {
   const navigate = useNavigate();
+  const { resolvedMode, primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const isDarkMode = resolvedMode === "dark";
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [budget, setBudget] = React.useState(null);
@@ -347,7 +350,18 @@ const BudgetWidget = ({
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Presupuesto actual" subheader="Cargando datos..." />
+        <CardHeader
+          title="Presupuesto actual"
+          subheader="Cargando datos..."
+          titleTypographyProps={{
+            variant: "h6",
+            sx: { color: primaryTextColor },
+          }}
+          subheaderTypographyProps={{
+            variant: "body2",
+            sx: { color: secondaryTextColor },
+          }}
+        />
         <CardContent>
           {Array.from({ length: 4 }).map((_, index) => (
             <Stack
@@ -370,7 +384,10 @@ const BudgetWidget = ({
   if (error) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Presupuesto actual" />
+        <CardHeader
+          title="Presupuesto actual"
+          titleTypographyProps={{ variant: "h6", sx: { color: primaryTextColor } }}
+        />
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error">{error}</Alert>
           {handleRetry ? (
@@ -393,7 +410,12 @@ const BudgetWidget = ({
       variant="outlined"
       sx={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
-      <CardHeader title="Presupuesto actual" subheader={subheader} />
+      <CardHeader
+        title="Presupuesto actual"
+        subheader={subheader}
+        titleTypographyProps={{ variant: "h6", sx: { color: primaryTextColor } }}
+        subheaderTypographyProps={{ variant: "body2", sx: { color: primaryTextColor } }}
+      />
       <CardContent sx={{ flexGrow: 1 }}>
         {budget ? (
           <Stack spacing={2}>
@@ -489,7 +511,11 @@ const BudgetWidget = ({
               No hay presupuesto actual.
             </Typography>
             <Stack direction="row" spacing={1}>
-              <Button variant="contained" onClick={goToNew}>
+              <Button
+                variant="contained"
+                onClick={goToNew}
+                sx={isDarkMode ? { color: "#42897f" } : undefined}
+              >
                 Nuevo presupuesto
               </Button>
               <Button variant="text" onClick={goToList}>
@@ -509,7 +535,11 @@ const BudgetWidget = ({
             >
               Ver más
             </Button>
-            <Button variant="outlined" onClick={goToNew}>
+            <Button
+              variant="outlined"
+              onClick={goToNew}
+              sx={isDarkMode ? { color: "#42897f" } : undefined}
+            >
               Nuevo presupuesto
             </Button>
             <Button variant="text" onClick={goToList}>

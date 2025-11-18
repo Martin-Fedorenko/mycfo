@@ -22,6 +22,9 @@ export default function MainGrid() {
     const chartRefIngresos = React.useRef(null);
     const chartRefEgresos = React.useRef(null);
 
+    // Formateo de moneda para tooltips de tortas
+    const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
+
     React.useEffect(() => {
         const baseUrl = API_CONFIG.REPORTE;
         if (!baseUrl || !(selectedYear && selectedMonth !== '')) return;
@@ -184,8 +187,8 @@ export default function MainGrid() {
     return (
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography component="h2" variant="h6">
-                    Resumen mensual de ingresos y egresos
+                <Typography component="h2" variant="h4">
+                    Resumen mensual
                 </Typography>
                 <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
             </Box>
@@ -199,8 +202,8 @@ export default function MainGrid() {
                 onCategoriaChange={handleCategoriaChange}
             />
 
-            <Typography component="h3" variant="h6" sx={{ mb: 2, mt: 2 }}>
-                {getNombreMes(selectedMonth) && selectedYear ? `Resumen - ${getNombreMes(selectedMonth)} ${selectedYear}` : 'Resumen mensual'}
+            <Typography component="h3" variant="h5" sx={{ mb: 2, mt: 2 }}>
+                {getNombreMes(selectedMonth) && selectedYear ? `${getNombreMes(selectedMonth)} ${selectedYear}` : 'Resumen mensual'}
             </Typography>
 
             <TablaDetalle
@@ -242,7 +245,7 @@ export default function MainGrid() {
                                                 <Cell key={`cell-ing-${index}`} fill={totalIngresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                        <Tooltip formatter={(v, n) => [currency(v), n]} />
                                     </PieChart>
                                 </Box>
                             </Box>
@@ -280,7 +283,7 @@ export default function MainGrid() {
                                                 <Cell key={`cell-egr-${index}`} fill={totalEgresosPie > 0 ? COLORS[index % COLORS.length] : 'rgba(160,160,160,0.35)'} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v, n) => [v, n]} />
+                                        <Tooltip formatter={(v, n) => [currency(v), n]} />
                                     </PieChart>
                                 </Box>
                             </Box>

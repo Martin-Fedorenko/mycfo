@@ -66,7 +66,7 @@ const BillingWidget = ({
             </Typography>
             {onNavigate ? (
               <Button variant="contained" onClick={onNavigate}>
-                Emitir factura
+                Cargar factura
               </Button>
             ) : null}
           </Stack>
@@ -102,7 +102,7 @@ const BillingWidget = ({
       </CardContent>
       <CardActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" onClick={onNavigate} disabled={!onNavigate}>
-          Emitir factura
+          Cargar factura
         </Button>
       </CardActions>
     </Card>

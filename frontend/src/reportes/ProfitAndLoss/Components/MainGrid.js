@@ -22,6 +22,9 @@ export default function MainGrid() {
     });
     const chartRef = React.useRef(null);
 
+    // Formateador de moneda para tooltips del gráfico
+    const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
+
     const handleYearChange = (e) => setSelectedYear(Number(e.target.value));
 
     React.useEffect(() => {
@@ -86,7 +89,7 @@ export default function MainGrid() {
         ];
         const currencyColumns = ['C']; // Columna C para formato de moneda
 
-        exportToExcel(excelData, `profit-and-loss-${selectedYear}`, "Profit & Loss", colsConfig, mergesConfig, currencyColumns);
+        exportToExcel(excelData, `estado-de-resultados-${selectedYear}`, "Estado de Resultados", colsConfig, mergesConfig, currencyColumns);
     };
 
     const handleExportPdf = () => {
@@ -130,7 +133,7 @@ export default function MainGrid() {
             body.push(["Resultado del Ejercicio", "", resultado.toFixed(2)]);
 
             autoTable(doc, { head: head, body: body, startY: pdfHeight + 40 });
-            doc.save(`profit-and-loss-${selectedYear}.pdf`);
+            doc.save(`estado-de-resultados-${selectedYear}.pdf`);
         });
     };
 
@@ -142,8 +145,8 @@ export default function MainGrid() {
             <CssBaseline />
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography component="h2" variant="h6">
-                        Profit & Loss (Estado de Resultados)
+                    <Typography component="h2" variant="h4">
+                        Estado de Resultados
                     </Typography>
                     <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
                 </Box>
@@ -159,7 +162,7 @@ export default function MainGrid() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                                 <XAxis dataKey="mes" />
                                 <YAxis />
-                                <Tooltip />
+                                <Tooltip formatter={(v) => currency(v)} />
                                 <Legend />
                                 <Bar dataKey="Ingresos" fill="#2e7d32" />
                                 <Bar dataKey="Egresos" fill="#c62828" />

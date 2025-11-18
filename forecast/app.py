@@ -243,29 +243,48 @@ def forecast_endpoint():
 # ==============================================================
 
 def lambda_handler(event, context):
-    """Entrada estándar AWS Lambda"""
-    body = json.loads(event["body"])
-    data = body.get("data", [])
-    periodos_adelante = body.get("periodos_adelante", PERIODS_ADELANTE)
+    try:
+        # Body puede venir como string, dict o None
+        raw_body = event.get("body")
 
-    df, df_ing, df_egr = limpiar_y_preparar_datos(data)
-    resumen, parametros, f_ing, f_egr, f_bal = entrenar_y_predecir(df, df_ing, df_egr, periodos_adelante)
+        if raw_body is None:
+            raise Exception("No body received")
 
-    response = {
-        "status": "ok",
-        "parametros_usados": parametros,
-        "forecast_mensual": resumen.to_dict(orient="records")
-    }
+        if isinstance(raw_body, str):
+            body = json.loads(raw_body)
+        else:
+            body = raw_body  # ya viene como dict
 
-    if DEFAULT_INCLUIR_GRAFICO:
-        response["grafico_base64"] = generar_grafico(df, f_ing, f_egr, f_bal)
+        data = body.get("data", [])
+        periodos_adelante = body.get("periodos_adelante", PERIODS_ADELANTE)
 
-    response = convertir_tipos(response)
+        df, df_ing, df_egr = limpiar_y_preparar_datos(data)
+        resumen, parametros, f_ing, f_egr, f_bal = entrenar_y_predecir(
+            df, df_ing, df_egr, periodos_adelante
+        )
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps(response)
-    }
+        response = {
+            "status": "ok",
+            "parametros_usados": parametros,
+            "forecast_mensual": resumen.to_dict(orient="records")
+        }
+
+        if DEFAULT_INCLUIR_GRAFICO:
+            response["grafico_base64"] = generar_grafico(df, f_ing, f_egr, f_bal)
+
+        return {
+            "statusCode": 200,
+            "headers": { "Content-Type": "application/json" },
+            "body": json.dumps(convertir_tipos(response))
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": { "Content-Type": "application/json" },
+            "body": json.dumps({ "error": str(e) })
+        }
+
 
 
 # ==============================================================

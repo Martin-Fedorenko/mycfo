@@ -181,7 +181,7 @@ export default function NotificationCenter() {
         <Typography variant="h4" component="h1" gutterBottom>
           Centro de Notificaciones
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: 'text.primary' }}>
           Gestiona todas tus notificaciones y alertas
         </Typography>
       </Box>

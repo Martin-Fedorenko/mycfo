@@ -9,7 +9,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/ia")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(
+        origins = {"http://localhost:3000", "http://localhost:4173", "http://localhost:5173"},
+        allowedHeaders = "*",
+        methods = {RequestMethod.POST, RequestMethod.GET, RequestMethod.OPTIONS}
+)
 @RequiredArgsConstructor
 public class InsightsController {
 
@@ -19,9 +23,10 @@ public class InsightsController {
     public ResponseEntity<Map<String, Object>> generarInsights(
             @RequestHeader("X-Usuario-Sub") String userSub,
             @RequestParam(required = false) Integer anio,
-            @RequestParam(required = false) Integer mes
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) String modo
     ) {
-        var resp = insightsService.generarInsights(userSub, anio, mes);
+        var resp = insightsService.generarInsights(userSub, anio, mes, modo);
         return ResponseEntity.ok(resp);
     }
 }

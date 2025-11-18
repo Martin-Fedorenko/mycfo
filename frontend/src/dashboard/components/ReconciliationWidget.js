@@ -10,6 +10,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const numberFormatter = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
@@ -44,6 +45,9 @@ const ReconciliationWidget = ({
   onRetry,
   onNavigate,
 }) => {
+  const { resolvedMode } = useResolvedColorTokens();
+  const isDarkMode = resolvedMode === "dark";
+
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
@@ -248,7 +252,12 @@ const ReconciliationWidget = ({
         )}
       </CardContent>
       <CardActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="outlined" onClick={() => onNavigate?.()} disabled={!onNavigate}>
+        <Button
+          variant="outlined"
+          onClick={() => onNavigate?.()}
+          disabled={!onNavigate}
+          sx={isDarkMode ? { color: "#42897f" } : undefined}
+        >
           Ir a conciliacion
         </Button>
       </CardActions>

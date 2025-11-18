@@ -1,10 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
 import { AuthProvider } from "react-oidc-context";
+import { brand } from './shared-theme/themePrimitives';
 
 const cognitoAuthConfig = {
   authority: "https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_lTMNrWW7R",
@@ -14,13 +16,26 @@ const cognitoAuthConfig = {
   scope: "phone openid email",
 };
 
+const theme = createTheme({
+  palette: {
+    primary: {
+      light: brand[300],
+      main: brand[400],
+      dark: brand[600],
+      contrastText: '#ffffff',
+    },
+  },
+});
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 // wrap the application with AuthProvider
 root.render(
   <React.StrictMode>
     <AuthProvider {...cognitoAuthConfig}>
-      <App />
+      <ThemeProvider theme={theme}>
+        <App />
+      </ThemeProvider>
     </AuthProvider>
   </React.StrictMode>
 );

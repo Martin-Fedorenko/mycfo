@@ -52,7 +52,17 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
 
       {/* Tabla de ingresos */}
       <TableContainer component={Paper} sx={{ mb: 4, maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
-        <Table stickyHeader>
+        <Table
+          stickyHeader
+          sx={{
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
+            },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell>N°</TableCell>
@@ -85,7 +95,17 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
         Detalle de Egresos
       </Typography>
       <TableContainer component={Paper} sx={{ maxHeight: 360, overflowY: 'auto', overflowX: 'auto' }}>
-        <Table stickyHeader>
+        <Table
+          stickyHeader
+          sx={{
+            '& .MuiTableCell-root': {
+              border: '1px solid rgba(224, 224, 224, 1)',
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              fontWeight: 700,
+            },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell>N°</TableCell>

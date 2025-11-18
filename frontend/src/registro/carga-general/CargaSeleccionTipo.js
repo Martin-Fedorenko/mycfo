@@ -28,7 +28,11 @@ export default function CargaSeleccionTipo() {
         alignItems: "center",
       }}
     >
-      <Typography variant="h5" sx={{ mb: 2 }}>
+      <Typography
+        variant="h4"
+        component="h1"
+        sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}
+      >
         Registro de Documentos y Movimientos
       </Typography>
       <Typography variant="subtitle1" sx={{ mb: 4 }}>

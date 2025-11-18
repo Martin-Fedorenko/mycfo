@@ -12,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
-import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import PublishedWithChangesRoundedIcon from "@mui/icons-material/PublishedWithChangesRounded";
@@ -29,6 +28,7 @@ import RecentMovementsWidget from "./components/RecentMovementsWidget";
 import ReconciliationWidget from "./components/ReconciliationWidget";
 import SalesTrendWidget from "./components/SalesTrendWidget";
 import SalesByCategoryWidget from "./components/SalesByCategoryWidget";
+import InsightsWidget from "./components/InsightsWidget";
 // import BillingWidget from "./components/BillingWidget";
 import { fetchRecentMovements } from "./services/movementsService";
 import { fetchMonthlySummary } from "./services/kpisService";
@@ -39,6 +39,7 @@ import {
   fetchExpensesByCategory,
   fetchReconciliationSummary,
 } from "./services/analyticsService";
+import useResolvedColorTokens from "./useResolvedColorTokens";
 import { formatCurrencyAR } from "../utils/formatters";
 
 const mockKpis = {
@@ -318,6 +319,8 @@ const getRecentPeriods = (count = 6) =>
 const Dashboard = React.memo(() => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { resolvedMode, paletteVars, primaryTextColor } =
+    useResolvedColorTokens();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [state, setState] = React.useState(initialDashboardState);
   const fetchTimeoutRef = React.useRef();
@@ -769,16 +772,10 @@ const Dashboard = React.memo(() => {
   const quickActions = React.useMemo(
     () => [
       {
-        id: "income",
-        label: "+ Ingreso",
+        id: "movement",
+        label: "Cargar movimiento",
         icon: <AddCircleOutlineRoundedIcon />,
-        action: () => handleNavigate("/carga", { tipo: "ingreso" }),
-      },
-      {
-        id: "expense",
-        label: "+ Egreso",
-        icon: <RemoveCircleOutlineRoundedIcon />,
-        action: () => handleNavigate("/carga", { tipo: "egreso" }),
+        action: () => handleNavigate("/carga"),
       },
       {
         id: "excel",
@@ -800,9 +797,9 @@ const Dashboard = React.memo(() => {
       },
       {
         id: "invoice",
-        label: "Emitir factura",
+        label: "Cargar factura",
         icon: <ReceiptLongRoundedIcon />,
-        action: () => handleNavigate("/carga", { tipo: "factura" }),
+        action: () => handleNavigate("/carga/factura"),
       },
       {
         id: "budget",
@@ -936,7 +933,7 @@ const Dashboard = React.memo(() => {
             <Typography variant="h4" fontWeight={600}>
               Hola, {userDisplayName}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: primaryTextColor }}>
               Este es el resumen financiero de tu empresa. Revisá KPIs,
               vencimientos y tareas clave.
             </Typography>
@@ -1116,6 +1113,9 @@ const Dashboard = React.memo(() => {
               }
             />
           </Grid>
+          <Grid item xs={12} md={6} xl={4}>
+            <InsightsWidget />
+          </Grid>
           {/*
           <Grid item xs={12} md={6} xl={4}>
             <BillingWidget
@@ -1123,7 +1123,7 @@ const Dashboard = React.memo(() => {
               loading={state.billing.loading && !state.billing.data}
               error={state.billing.error}
               onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/carga", { tipo: "factura" })}
+              onNavigate={() => handleNavigate("/carga/factura")}
             />
           </Grid>
           */}

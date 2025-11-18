@@ -4,6 +4,7 @@ import {
   IconButton, Divider, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Autocomplete, FormControlLabel, Switch, Select, InputLabel, FormControl, Snackbar, Alert
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import { buildTipoSelectSx } from '../../../shared-components/tipoSelectStyles';
@@ -146,6 +147,21 @@ const normalizeTipo = (value) => {
 export default function MesDetalle() {
   const { nombre: nombreUrl, mesNombre: mesNombreUrl } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === 'light';
+  const paletteVars = theme.vars?.palette ?? theme.palette;
+  const kpiColors = React.useMemo(
+    () => ({
+      ingresos: isLightMode ? 'hsl(120, 44%, 53%)' : paletteVars.success.light,
+      egresos: isLightMode ? 'hsl(0, 90%, 40%)' : paletteVars.error.light,
+      resultadoPos: isLightMode ? 'hsl(210, 98%, 42%)' : paletteVars.info.light,
+      resultadoNeg: isLightMode ? 'hsl(45, 90%, 40%)' : paletteVars.warning.light,
+    }),
+    [isLightMode, paletteVars.error.light, paletteVars.info.light, paletteVars.success.light, paletteVars.warning.light]
+  );
+  const tabsLabelColor = isLightMode
+    ? paletteVars.text?.primary ?? '#000'
+    : paletteVars.common?.white ?? '#fff';
 
   React.useEffect(() => {
     if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
@@ -166,6 +182,7 @@ export default function MesDetalle() {
   const [mesesDisponibles, setMesesDisponibles] = React.useState([]);
   const [tab, setTab] = React.useState(0);
   const [totalRealMes, setTotalRealMes] = React.useState(0);
+  const goToDatosBrutos = React.useCallback(() => setTab(1), [setTab]);
 
   // UI
   const [simulacion, setSimulacion] = React.useState(false);
@@ -939,31 +956,58 @@ export default function MesDetalle() {
   // ===== Render =====
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
-      <Typography variant="overline" color="text.secondary">Presupuestos → {presupuestoNombre}</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        {prevYm && (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          mb: 1.5,
+          justifyContent: 'flex-start',
+        }}
+      >
+        <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-start' }}>
           <IconButton
             size="small"
-            onClick={() => handleCambiarMes(prevYm)}
+            onClick={() => prevYm && handleCambiarMes(prevYm)}
             aria-label="Mes anterior"
+            disabled={!prevYm}
+            sx={{
+              color: '#04564c',
+              '&.Mui-disabled': { color: '#04564c', opacity: 0.5 },
+            }}
           >
             <ChevronLeftIcon fontSize="small" />
           </IconButton>
-        )}
-        <Typography variant="h4" fontWeight="600">
+        </Box>
+        <Typography
+          variant="h4"
+          fontWeight="600"
+          sx={{
+            flexGrow: 0,
+            flexShrink: 0,
+            textAlign: 'center',
+            minWidth: '14ch',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {nombreMes}
         </Typography>
-        {nextYm && (
+        <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-start' }}>
           <IconButton
             size="small"
-            onClick={() => handleCambiarMes(nextYm)}
+            onClick={() => nextYm && handleCambiarMes(nextYm)}
             aria-label="Mes siguiente"
+            disabled={!nextYm}
+            sx={{
+              color: '#04564c',
+              '&.Mui-disabled': { color: '#04564c', opacity: 0.5 },
+            }}
           >
             <ChevronRightIcon fontSize="small" />
           </IconButton>
-        )}
+        </Box>
       </Box>
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>Detalle de {presupuestoNombre}</Typography>
+      <Typography variant="subtitle1" sx={{ color: 'text.primary' }} gutterBottom>Detalle de {presupuestoNombre}</Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
@@ -985,8 +1029,22 @@ export default function MesDetalle() {
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', mb: 2, mt: 1, gap: 1, flexWrap: 'wrap' }}>
         <Tabs value={tab} onChange={(e, v) => setTab(v)} indicatorColor="primary">
-          <Tab label="Resumen" />
-          <Tab label="Datos brutos (editar)" />
+          <Tab
+            label="Resumen"
+            sx={{
+              color: tabsLabelColor,
+              '&.Mui-selected': { color: tabsLabelColor },
+              '& .MuiTab-wrapper': { color: tabsLabelColor },
+            }}
+          />
+          <Tab
+            label="Datos brutos (editar)"
+            sx={{
+              color: tabsLabelColor,
+              '&.Mui-selected': { color: tabsLabelColor },
+              '& .MuiTab-wrapper': { color: tabsLabelColor },
+            }}
+          />
         </Tabs>
       </Box>
 
@@ -995,21 +1053,21 @@ export default function MesDetalle() {
         <>
           <Grid container spacing={3} mb={2}>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(totalIngresos)}</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(totalEgresos)}</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? 'info.light' : 'warning.light', color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? kpiColors.resultadoPos : kpiColors.resultadoNeg, color: 'white' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: resultado >= 0 ? 'info.main' : 'warning.main', mx: 'auto', mb: 1 }}>
                   {resultado >= 0 ? '✓' : '⚠'}
                 </Avatar>
@@ -1055,10 +1113,16 @@ export default function MesDetalle() {
                         <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
                         {sinPronostico && (
                           <Tooltip
-                            title="Este movimiento no tiene un monto estimado."
+                            title="Este movimiento no tiene un monto estimado. Hacé clic para pronosticar."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                            <Chip
+                              icon={<WarningAmberOutlinedIcon />}
+                              size="small"
+                              label="Movimiento sin pronosticar"
+                              sx={{ ...SIN_PRONOSTICO_CHIP_SX, cursor: 'pointer' }}
+                              onClick={goToDatosBrutos}
+                            />
                           </Tooltip>
                         )}
                       </Stack>
@@ -1134,10 +1198,16 @@ export default function MesDetalle() {
                         <Typography variant="subtitle1" fontWeight="600">{item.name}</Typography>
                         {sinPronostico && (
                           <Tooltip
-                            title="Este movimiento no tiene un monto estimado."
+                            title="Este movimiento no tiene un monto estimado. Hacé clic para pronosticar."
                             disableHoverListener={!sinPronostico}
                           >
-                            <Chip icon={<WarningAmberOutlinedIcon />} size="small" label="Movimiento sin pronosticar" sx={SIN_PRONOSTICO_CHIP_SX} />
+                            <Chip
+                              icon={<WarningAmberOutlinedIcon />}
+                              size="small"
+                              label="Movimiento sin pronosticar"
+                              sx={{ ...SIN_PRONOSTICO_CHIP_SX, cursor: 'pointer' }}
+                              onClick={goToDatosBrutos}
+                            />
                           </Tooltip>
                         )}
                       </Stack>

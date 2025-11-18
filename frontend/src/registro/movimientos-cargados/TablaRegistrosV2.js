@@ -675,8 +675,8 @@ export default function TablaRegistrosV2() {
 
   return (
     <Box sx={{ width: "100%", p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, fontWeight: 600, color: "#1976d2" }}>
-        📊 Movimientos Financieros
+      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}>
+        Movimientos Financieros
       </Typography>
 
       <Box sx={{ height: 700, width: "100%" }}>
@@ -698,17 +698,41 @@ export default function TablaRegistrosV2() {
           }}
           disableRowSelectionOnClick
           autoHeight={false}
-          sx={{
-            "& .MuiDataGrid-cell": {
-              borderBottom: "1px solid #f0f0f0",
-              display: "flex",
-              alignItems: "center", // Centrar verticalmente todo el contenido
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "#f5f5f5",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-            },
+      sx={{
+        "& .MuiDataGrid-cell": {
+          borderBottom: "1px solid #e0e0e0",
+          borderRight: "1px solid #e0e0e0",
+          display: "flex",
+          alignItems: "center", // Centrar verticalmente todo el contenido
+        },
+        "& .MuiDataGrid-cell:last-of-type": {
+          borderRight: "none", // evita doble borde al final
+        },
+        "& .MuiDataGrid-columnHeaders": {
+          backgroundColor: "#f5f5f5",
+          fontSize: "0.95rem",
+          borderTop: "1px solid #e0e0e0",
+          borderBottom: "1px solid #e0e0e0",
+        },
+        "& .MuiDataGrid-columnHeader": {
+          borderRight: "1px solid #d5d5d5",
+          borderLeft: "1px solid #d5d5d5",
+          boxSizing: "border-box",
+        },
+        "& .MuiDataGrid-columnHeader:first-of-type": {
+          borderLeft: "none",
+        },
+        "& .MuiDataGrid-columnHeader:last-of-type": {
+          borderRight: "none",
+        },
+        "& .MuiDataGrid-columnHeaderTitle": {
+          fontWeight: 700,
+        },
+        "& .MuiDataGrid-columnSeparator": {
+          opacity: 1,
+          visibility: "visible",
+          color: "#d5d5d5",
+        },
             "& .MuiDataGrid-row:hover": {
               backgroundColor: "rgba(0, 0, 0, 0.02)",
             },

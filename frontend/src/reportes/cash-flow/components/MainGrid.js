@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
 import Filtros from './Filtros';
 import TablaDetalle from './TablaDetalle';
@@ -17,6 +17,9 @@ export default function MainGrid() {
     const [registros, setRegistros] = React.useState([]);
     const chartRef = React.useRef(null);
 
+    // Formateo de moneda para tooltips y ejes
+    const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
+
     const handleYearChange = (e) => setSelectedYear(e.target.value);
 
     React.useEffect(() => {
@@ -33,7 +36,7 @@ export default function MainGrid() {
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const json = await r.json();
-                // El backend ya filtra por año, tipos y medios válidos
+                // El backend ya filtra por aÃ±o, tipos y medios vÃ¡lidos
                 setRegistros(Array.isArray(json) ? json : []);
             })
             .catch((error) => {
@@ -42,7 +45,7 @@ export default function MainGrid() {
             });
     }, [selectedYear]);
 
-    // --- Lógica para el Gráfico y la Tabla (recalculada para exportación) ---
+    // --- LÃ³gica para el GrÃ¡fico y la Tabla (recalculada para exportaciÃ³n) ---
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const ahora = new Date();
     const ultimoMes = (selectedYear === ahora.getFullYear()) ? ahora.getMonth() : 11;
@@ -78,7 +81,7 @@ export default function MainGrid() {
     egresosFiltrados.forEach((tx) => totalEgresosMensual[new Date(tx.fechaEmision).getMonth()] += tx.montoTotal);
 
     const netosMensual = totalIngresosMensual.map((v, i) => v - totalEgresosMensual[i]);
-    const saldoInicial = 2000; // Mismo valor que en la tabla
+    const saldoInicial = 0;
     const saldoFinalMensual = [];
     saldoFinalMensual[0] = saldoInicial + netosMensual[0];
     for (let i = 1; i < 12; i++) saldoFinalMensual[i] = saldoFinalMensual[i - 1] + netosMensual[i];
@@ -87,9 +90,9 @@ export default function MainGrid() {
         const excelData = [];
         const numMesesVisibles = mesesVisibles.length;
 
-        // Título
-        excelData.push([`Cashflow ${selectedYear}`]);
-        excelData.push([]); // Fila vacía
+        // TÃ­tulo
+        excelData.push([`Flujo de caja ${selectedYear}`]);
+        excelData.push([]); // Fila vacÃ­a
 
         // Encabezados de la tabla
         const headerRow = ["Concepto", ...mesesVisibles];
@@ -119,15 +122,15 @@ export default function MainGrid() {
         excelData.push(["Net Cash Flow", ...mesesVisibles.map((_, i) => netosMensual[i] || "")]);
         excelData.push(["Cash on hand (Fin)", ...mesesVisibles.map((_, i) => saldoFinalMensual[i] || "")]);
 
-        // Configuración de columnas y merges
+        // ConfiguraciÃ³n de columnas y merges
         const colsConfig = [
             { wch: 20 }, // Concepto
-            { wch: 20 }, // Categoría (si aplica)
+            { wch: 20 }, // CategorÃ­a (si aplica)
             ...Array(numMesesVisibles).fill({ wch: 12, z: '$ #,##0.00' }) // Meses
         ];
 
         const mergesConfig = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: numMesesVisibles + 1 } }, // Título principal
+            { s: { r: 0, c: 0 }, e: { r: 0, c: numMesesVisibles + 1 } }, // TÃ­tulo principal
             { s: { r: 3, c: 0 }, e: { r: 3, c: numMesesVisibles + 1 } }, // Ingresos
             { s: { r: 3 + ingresosPorCategoria.length + 1, c: 0 }, e: { r: 3 + ingresosPorCategoria.length + 1, c: numMesesVisibles + 1 } }, // Egresos
         ];
@@ -135,23 +138,23 @@ export default function MainGrid() {
         // Columnas de moneda (desde la columna C en adelante)
         const currencyColumns = mesesVisibles.map((_, i) => String.fromCharCode(67 + i)); // C, D, E...
 
-        exportToExcel(excelData, `cash-flow-${selectedYear}`, "Cash Flow", colsConfig, mergesConfig, currencyColumns);
+        exportToExcel(excelData, `flujo-caja-${selectedYear}`, "Flujo de caja", colsConfig, mergesConfig, currencyColumns);
     };
 
     const handleExportPdf = () => {
     const chartElement = chartRef.current;
     if (!chartElement) {
-        alert("No se encontr� el gr�fico para exportar.");
+        alert("No se encontró el gráfico para exportar.");
         return;
     }
     html2canvas(chartElement).then((canvas) => {
         const imgData = canvas.toDataURL('image/png');
         const doc = new jsPDF();
 
-        // T�tulo
-        doc.text(`Cashflow Anual (${selectedYear})`, 14, 22);
+        // Título
+        doc.text(`Flujo de caja anual (${selectedYear})`, 14, 22);
 
-        // Insertar gr�fico
+        // Insertar gráfico
         const imgProps = doc.getImageProperties(imgData);
         const pdfWidth = doc.internal.pageSize.getWidth();
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
@@ -174,7 +177,7 @@ export default function MainGrid() {
             autoTable(doc, { head, body, startY });
         }
 
-        doc.save(`cashflow-${selectedYear}.pdf`);
+        doc.save(`flujo-caja-${selectedYear}.pdf`);
     }).catch(() => alert("No se pudo generar el PDF. Intente nuevamente."));
 };
 
@@ -186,8 +189,8 @@ export default function MainGrid() {
     return (
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography component="h2" variant="h6">
-                    Cashflow anual
+                <Typography component="h2" variant="h4">
+                    Flujo de caja anual
                 </Typography>
                 <ExportadorSimple onExportExcel={handleExportExcel} onExportPdf={handleExportPdf} />
             </Box>
@@ -205,11 +208,11 @@ export default function MainGrid() {
             <Paper variant="outlined" sx={{ mt: 4, p: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>Comparativo mensual de Flujo de Caja</Typography>
                 <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={dataGrafico}>
+                    <BarChart data={dataGrafico} margin={{ top: 8, right: 16, bottom: 8, left: 56 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                         <XAxis dataKey="mes" />
-                        <YAxis />
-                        <Tooltip />
+                        <YAxis tickFormatter={(v) => currency(v)} width={80} />
+                        <Tooltip formatter={(v) => currency(v)} />
                         <Legend />
                         <Bar dataKey="Ingresos" fill="#2e7d32" />
                         <Bar dataKey="Egresos" fill="#c62828" />
