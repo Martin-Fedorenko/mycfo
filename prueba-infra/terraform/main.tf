@@ -28,70 +28,45 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-# VPC
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+# Data source para obtener la VPC existente
+data "aws_vpc" "main" {
+  id = var.vpc_id
+}
 
-  tags = {
-    Name = "mycfo-vpc"
+# Data source para obtener todas las subnets de la VPC
+data "aws_subnets" "vpc_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.main.id]
   }
 }
 
-# Internet Gateway
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "mycfo-igw"
-  }
+# Data source para obtener información de cada subnet y determinar si es pública
+data "aws_subnet" "subnet_details" {
+  for_each = toset(length(var.subnet_ids) > 0 ? var.subnet_ids : tolist(data.aws_subnets.vpc_subnets.ids))
+  id       = each.value
 }
 
-# Subnets públicas
-resource "aws_subnet" "public_1" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "${var.aws_region}a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "mycfo-public-subnet-1"
-  }
-}
-
-resource "aws_subnet" "public_2" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "${var.aws_region}b"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "mycfo-public-subnet-2"
-  }
-}
-
-# Route Table
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = {
-    Name = "mycfo-public-rt"
-  }
-}
-
-resource "aws_route_table_association" "public_1" {
-  subnet_id      = aws_subnet.public_1.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table_association" "public_2" {
-  subnet_id      = aws_subnet.public_2.id
-  route_table_id = aws_route_table.public.id
+# Filtrar subnets públicas
+locals {
+  # Si se especifican subnet_ids explícitamente, usarlas directamente (RECOMENDADO)
+  # Si no, intentar buscar subnets con map_public_ip_on_launch = true
+  available_subnets = length(var.subnet_ids) > 0 ? var.subnet_ids : [
+    for subnet_id, subnet_data in data.aws_subnet.subnet_details : subnet_id
+    if subnet_data.map_public_ip_on_launch == true
+  ]
+  
+  # Usar las subnets especificadas o las detectadas
+  # IMPORTANTE: Si no se especifican subnet_ids, asegúrate de que las subnets detectadas sean públicas
+  subnet_1_id = length(local.available_subnets) > 0 ? local.available_subnets[0] : (
+    length(tolist(data.aws_subnets.vpc_subnets.ids)) > 0 ? tolist(data.aws_subnets.vpc_subnets.ids)[0] : ""
+  )
+  
+  subnet_2_id = length(local.available_subnets) > 1 ? local.available_subnets[1] : (
+    length(tolist(data.aws_subnets.vpc_subnets.ids)) > 1 ? tolist(data.aws_subnets.vpc_subnets.ids)[1] : local.subnet_1_id
+  )
+  
+  # Obtener el CIDR block de la VPC para los security groups
+  vpc_cidr_block = data.aws_vpc.main.cidr_block
 }
 

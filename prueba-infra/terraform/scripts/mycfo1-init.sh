@@ -8,13 +8,13 @@ AWS_REGION="${aws_region}"
 SECRET_NAME="${secret_name}"
 
 # Actualizar sistema
-yum update -y
+dnf update -y
 
 # Instalar Java 17 (requerido para Spring Boot)
-amazon-linux-extras install java-openjdk17 -y
+dnf install -y java-17-amazon-corretto
 
-# Instalar AWS CLI (ya viene en Amazon Linux, pero lo actualizamos)
-yum install -y aws-cli
+# Instalar AWS CLI v2 (ya viene en Amazon Linux 2023)
+# No es necesario instalarlo, pero actualizamos si es necesario
 
 # Crear directorio para la aplicación
 mkdir -p /opt/mycfo1

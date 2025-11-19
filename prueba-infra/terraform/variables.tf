@@ -29,3 +29,26 @@ variable "lambda_forecast_url" {
   default     = "https://bhhjxxuar5.execute-api.sa-east-1.amazonaws.com/PROD/forecast"
 }
 
+variable "vpc_id" {
+  description = "ID de la VPC existente a utilizar"
+  type        = string
+  default     = "vpc-08d98de61342ca027"
+}
+
+variable "subnet_ids" {
+  description = "IDs de las subnets públicas de la VPC (mínimo 2 subnets en diferentes AZs). REQUERIDO para garantizar que las instancias estén en subnets públicas."
+  type        = list(string)
+  default     = []
+  
+  validation {
+    condition     = length(var.subnet_ids) == 0 || length(var.subnet_ids) >= 2
+    error_message = "Si se especifican subnet_ids, debe haber al menos 2 subnets (en diferentes zonas de disponibilidad)."
+  }
+}
+
+variable "key_name" {
+  description = "Nombre del Key Pair de AWS para acceder a las instancias EC2"
+  type        = string
+  default     = "mycfo-key"
+}
+

@@ -2,7 +2,7 @@
 resource "aws_security_group" "mycfo1_sg" {
   name        = "mycfo1-sg"
   description = "Security group for MyCFO1 EC2"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.main.id
 
   ingress {
     from_port   = 8080
@@ -37,13 +37,13 @@ resource "aws_security_group" "mycfo1_sg" {
 resource "aws_security_group" "mycfo2_sg" {
   name        = "mycfo2-sg"
   description = "Security group for MyCFO2 EC2"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.main.id
 
   ingress {
     from_port   = 8081
     to_port     = 8081
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
+    cidr_blocks = [local.vpc_cidr_block]
     description = "HTTP from VPC"
   }
 

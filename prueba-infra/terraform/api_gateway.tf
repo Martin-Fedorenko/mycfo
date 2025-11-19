@@ -67,7 +67,7 @@ resource "aws_lb" "mycfo_nlb" {
   name               = "mycfo-nlb"
   internal           = false
   load_balancer_type = "network"
-  subnets            = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+  subnets            = [local.subnet_1_id, local.subnet_2_id]
 
   enable_deletion_protection = false
 
@@ -81,7 +81,7 @@ resource "aws_lb_target_group" "mycfo1_tg" {
   name     = "mycfo1-tg"
   port     = 8080
   protocol = "TCP"
-  vpc_id   = aws_vpc.main.id
+  vpc_id   = data.aws_vpc.main.id
 
   health_check {
     enabled             = true
@@ -100,7 +100,7 @@ resource "aws_lb_target_group" "mycfo2_tg" {
   name     = "mycfo2-tg"
   port     = 8081
   protocol = "TCP"
-  vpc_id   = aws_vpc.main.id
+  vpc_id   = data.aws_vpc.main.id
 
   health_check {
     enabled             = true
@@ -232,8 +232,20 @@ resource "aws_api_gateway_deployment" "mycfo_api_deployment" {
       aws_api_gateway_method.mycfo1_forecast_get.id,
       aws_api_gateway_method.mycfo1_secret_get.id,
       aws_api_gateway_method.mycfo1_env_get.id,
+      aws_api_gateway_integration.mycfo1_forecast_integration.id,
+      aws_api_gateway_integration.mycfo1_secret_integration.id,
+      aws_api_gateway_integration.mycfo1_env_integration.id,
     ]))
   }
+
+  depends_on = [
+    aws_api_gateway_integration.mycfo1_forecast_integration,
+    aws_api_gateway_integration.mycfo1_secret_integration,
+    aws_api_gateway_integration.mycfo1_env_integration,
+    aws_api_gateway_method_response.mycfo1_forecast_response,
+    aws_api_gateway_method_response.mycfo1_secret_response,
+    aws_api_gateway_method_response.mycfo1_env_response,
+  ]
 
   lifecycle {
     create_before_destroy = true

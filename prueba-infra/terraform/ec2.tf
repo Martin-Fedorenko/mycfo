@@ -8,9 +8,11 @@
 resource "aws_instance" "mycfo1" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public_1.id
+  key_name               = var.key_name
+  subnet_id              = local.subnet_1_id
   vpc_security_group_ids = [aws_security_group.mycfo1_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.mycfo1_profile.name
+  associate_public_ip_address = true
 
   user_data = templatefile("${path.module}/scripts/mycfo1-init.sh", {
     mycfo2_url       = aws_instance.mycfo2.private_ip
@@ -27,7 +29,7 @@ resource "aws_instance" "mycfo1" {
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 20
+    volume_size = 30
     encrypted   = true
   }
 }
@@ -36,9 +38,11 @@ resource "aws_instance" "mycfo1" {
 resource "aws_instance" "mycfo2" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public_2.id
+  key_name               = var.key_name
+  subnet_id              = local.subnet_2_id
   vpc_security_group_ids = [aws_security_group.mycfo2_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.mycfo2_profile.name
+  associate_public_ip_address = true
 
   user_data = templatefile("${path.module}/scripts/mycfo2-init.sh", {
     aws_region  = var.aws_region
@@ -51,7 +55,7 @@ resource "aws_instance" "mycfo2" {
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 20
+    volume_size = 30
     encrypted   = true
   }
 }
