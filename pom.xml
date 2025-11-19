@@ -16,6 +16,7 @@
 		<module>pronostico</module>
 		<module>registro</module>
 		<module>reporte</module>
+		<module>gateway</module>
 	</modules>
 	<groupId>mycfo</groupId>
 	<artifactId>mycfo</artifactId>
