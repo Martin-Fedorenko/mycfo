@@ -11,7 +11,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users/{userId}/notification-preferences")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class NotificationPreferencesController {
 
     private final NotificationPreferencesService preferencesService;

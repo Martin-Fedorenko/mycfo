@@ -9,11 +9,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/ia")
-@CrossOrigin(
-        origins = {"http://localhost:3000", "http://localhost:4173", "http://localhost:5173"},
-        allowedHeaders = "*",
-        methods = {RequestMethod.POST, RequestMethod.GET, RequestMethod.OPTIONS}
-)
 @RequiredArgsConstructor
 public class InsightsController {
 

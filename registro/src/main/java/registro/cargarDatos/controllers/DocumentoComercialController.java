@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/documentos-comerciales")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
 public class DocumentoComercialController {
 
     private final FacturaRepository facturaRepository;

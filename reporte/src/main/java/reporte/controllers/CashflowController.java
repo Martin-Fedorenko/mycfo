@@ -9,7 +9,6 @@ import reporte.services.CashflowService;
 
 @RestController
 @RequestMapping("/cashflow")
-@CrossOrigin(origins = "http://localhost:3000")
 public class CashflowController {
 
     private final CashflowService cashflowService;

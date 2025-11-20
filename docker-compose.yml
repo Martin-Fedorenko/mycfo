@@ -31,29 +31,6 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
-  consolidacion:
-    container_name: consolidacion
-    build: ./consolidacion
-    ports:
-      - "8082:8082"
-    depends_on:
-      - mysql
-    networks:
-      - mycfo_network
-    environment:
-      - SERVER_PORT=8082
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/consolidacion_db
-      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
-
-      - ADMINISTRACION_URL=http://administracion:8081
-      - CONSOLIDACION_URL=http://consolidacion:8082
-      - IA_URL=http://ia:8083
-      - NOTIFICACION_URL=http://notificacion:8084
-      - PRONOSTICO_URL=http://pronostico:8085
-      - REGISTRO_URL=http://registro:8086
-      - REPORTE_URL=http://reporte:8087
-
   ia:
     container_name: ia
     build: ./ia

@@ -10,7 +10,6 @@
 	</parent>
 	<modules>
 		<module>administracion</module>
-		<module>consolidacion</module>
 		<module>ia</module>
 		<module>notificacion</module>
 		<module>pronostico</module>

@@ -1,4 +1,4 @@
-package registro.cargarDatos.config;
+package ia.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

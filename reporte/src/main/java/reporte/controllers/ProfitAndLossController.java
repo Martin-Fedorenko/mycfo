@@ -6,7 +6,6 @@ import reporte.services.ProfitAndLossService;
 
 @RestController
 @RequestMapping("/pyl")
-@CrossOrigin(origins = "http://localhost:3000")
 public class ProfitAndLossController {
 
     private final ProfitAndLossService profitAndLossService;

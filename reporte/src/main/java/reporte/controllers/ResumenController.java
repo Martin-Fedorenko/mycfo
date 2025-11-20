@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/resumen")
-@CrossOrigin(origins = "http://localhost:3000")
 public class ResumenController {
 
     private final ResumenService resumenService;

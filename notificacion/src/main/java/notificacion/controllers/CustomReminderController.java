@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users/{userId}/reminders")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class CustomReminderController {
 
     private final CustomReminderService reminderService;

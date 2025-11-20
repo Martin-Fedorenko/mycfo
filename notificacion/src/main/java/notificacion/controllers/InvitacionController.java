@@ -9,7 +9,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/invitaciones")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class InvitacionController {
 
     private final notificacion.services.InvitacionEmailService invitacionEmailService;
