@@ -18,6 +18,7 @@ import VerIngreso from "../movimientos-cargados/components/VerIngreso";
 import VerEgreso from "../movimientos-cargados/components/VerEgreso";
 import VerDeuda from "../movimientos-cargados/components/VerDeuda";
 import VerAcreencia from "../movimientos-cargados/components/VerAcreencia";
+import API_CONFIG from "../../config/api-config";
 
 export default function CargaGeneral() {
   const [tipoDoc, setTipoDoc] = useState(""); // Factura, Movimiento...
@@ -65,7 +66,7 @@ export default function CargaGeneral() {
     return null;
   };
 
-  const API_BASE = process.env.REACT_APP_URL_REGISTRO;
+  const API_BASE = API_CONFIG.REGISTRO;
 
   const endpointMap = {
     Factura: {

@@ -18,6 +18,7 @@ import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_CONFIG from "../config/api-config";
 
 import {
   CognitoUserPool,
@@ -78,6 +79,8 @@ export default function SignIn(props) {
   const [globalMsg, setGlobalMsg] = React.useState("");
   const [open, setOpen] = React.useState(false);
 
+  const URL_ADMINISTRACION = API_CONFIG.ADMINISTRACION;
+
   const poolData = {
     UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID,
     ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,
@@ -128,12 +131,12 @@ export default function SignIn(props) {
         sessionStorage.setItem("refreshToken", refreshToken);
 
         try {
-          // Obtener datos del usuario desde la BD
-          const perfilResponse = await axios.get("http://localhost:8081/api/usuarios/perfil", {
+          const perfilResponse = await axios.get(`${URL_ADMINISTRACION}/api/usuarios/perfil`, {
             headers: {
               "X-Usuario-Sub": sub
             }
           });
+
 
           // Guardar datos del usuario desde la BD
           const userData = perfilResponse.data;

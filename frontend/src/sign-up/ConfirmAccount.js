@@ -22,6 +22,7 @@ import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { SitemarkIcon } from "./components/CustomIcons";
 import axios from "axios";
+import API_CONFIG from "../config/api-config";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -72,7 +73,7 @@ export default function ConfirmAccount(props) {
 
     try {
       // Confirmar código con el backend
-      await axios.post("http://localhost:8081/api/auth/confirmar", {
+      await axios.post(`${API_CONFIG.ADMINISTRACION}/api/auth/confirmar`, {
         email: email,
         codigo: code,
       });
@@ -100,7 +101,7 @@ export default function ConfirmAccount(props) {
     setSuccessMsg("");
 
     try {
-      await axios.post("http://localhost:8081/api/auth/reenviar-codigo", {
+      await axios.post(`${API_CONFIG.ADMINISTRACION}/api/auth/reenviar-codigo`, {
         email: email,
       });
 

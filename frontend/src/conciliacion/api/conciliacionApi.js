@@ -1,6 +1,7 @@
 import axios from "axios";
+import API_CONFIG from "../../config/api-config";
 
-const API_BASE_URL = "http://localhost:8086/api/conciliacion";
+const API_BASE_URL = `${API_CONFIG.REGISTRO}/api/conciliacion`;
 
 /**
  * API client para el módulo de conciliación

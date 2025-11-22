@@ -5,8 +5,9 @@ import TablaDinamica from './components/TablaDinamica';
 import axios from 'axios';
 import ExportadorSimple from '../../shared-components/ExportadorSimple';
 import GraficoPorCategoria from './components/GraficoPorCategoria';
+import API_CONFIG from '../../config/api-config';
 
-const URL_REGISTRO = process.env.REACT_APP_URL_REGISTRO;
+const URL_REGISTRO = API_CONFIG.REGISTRO;
 
 export default function MovimientosCargados() {
   const [data, setData] = useState([]);

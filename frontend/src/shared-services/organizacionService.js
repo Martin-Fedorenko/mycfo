@@ -1,7 +1,8 @@
 // Servicio para manejar datos de organización y empleados
 import axios from 'axios';
+import API_CONFIG from '../config/api-config';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8081';
+const API_BASE_URL = API_CONFIG.ADMINISTRACION;
 
 export const organizacionService = {
   // Obtener datos de la organización del usuario actual

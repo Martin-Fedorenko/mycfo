@@ -6,6 +6,7 @@ import VerIngreso from "../movimientos-cargados/components/VerIngreso";
 import VerEgreso from "../movimientos-cargados/components/VerEgreso";
 import VerDeuda from "../movimientos-cargados/components/VerDeuda";
 import VerAcreencia from "../movimientos-cargados/components/VerAcreencia";
+import API_CONFIG from "../../config/api-config";
 
 // Lazy loading para componentes pesados
 const CargaFormulario = React.lazy(() => import("./components/CargaFormulario"));
@@ -21,7 +22,7 @@ export default function CargaVistaFinal() {
   const [dialogData, setDialogData] = useState(null);
   const [dialogEndpoint, setDialogEndpoint] = useState("");
 
-  const API_BASE = process.env.REACT_APP_URL_REGISTRO;
+  const API_BASE = API_CONFIG.REGISTRO;
 
   const endpointMap = {
     factura: {

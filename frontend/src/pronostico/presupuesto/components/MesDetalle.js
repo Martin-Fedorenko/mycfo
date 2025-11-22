@@ -30,12 +30,13 @@ import EditOffOutlinedIcon from '@mui/icons-material/EditOffOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
+import API_CONFIG from '../../../config/api-config';
 
 // ===== Helpers =====
 const safeNumber = (v) =>
   typeof v === 'number' ? v : v != null && !isNaN(Number(v)) ? Number(v) : 0;
 
-const baseURL = process.env.REACT_APP_URL_PRONOSTICO;
+const baseURL = API_CONFIG.PRONOSTICO;
 
 const GUARD_MESSAGES = {
   categoria: {
@@ -246,7 +247,7 @@ export default function MesDetalle() {
     let activo = true;
     const cargarCategorias = async () => {
       try {
-        const response = await http.get(`${process.env.REACT_APP_URL_REGISTRO}/api/categorias`);
+        const response = await http.get(`${API_CONFIG.REGISTRO}/api/categorias`);
         if (!activo) return;
         if (Array.isArray(response?.data) && response.data.length > 0) {
           setCategoriasOptions(response.data);

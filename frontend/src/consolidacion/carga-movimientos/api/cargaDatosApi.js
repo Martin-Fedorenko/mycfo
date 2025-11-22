@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_CONFIG } from '../../config/apiConfig';
 
-const API_BASE_URL = process.env.REACT_APP_REGISTRO_API_URL || 'http://localhost:8082';
+const API_BASE_URL = API_CONFIG.REGISTRO;
 
 /**
  * API unificada para la carga de datos

@@ -15,6 +15,7 @@ import CalculateIcon from '@mui/icons-material/Calculate';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import http from '../../../api/http';
 import { formatCurrency, formatCurrencyInput, parseCurrency } from '../../../utils/currency';
+import API_CONFIG from '../../../config/api-config';
 
 const tableRowStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -137,7 +138,7 @@ export default function PresupuestoNuevo() {
   React.useEffect(() => {
     const fetchCategorias = async () => {
       try {
-        const response = await http.get(`${process.env.REACT_APP_URL_REGISTRO}/api/categorias`);
+        const response = await http.get(`${API_CONFIG.REGISTRO}/api/categorias`);
         if (response.data && response.data.length > 0) {
           setCategoriasOptions(response.data);
         }
@@ -566,7 +567,7 @@ export default function PresupuestoNuevo() {
       };
 
       const res = await http.post(
-        `${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`,
+        `${API_CONFIG.PRONOSTICO}/api/presupuestos`,
         payload
       );
 

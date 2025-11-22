@@ -8,8 +8,9 @@ import {
 import CustomMultiLine from "../../shared-components/CustomMultiLine";
 import CustomButton from "../../shared-components/CustomButton";
 import axios from "axios";
+import API_CONFIG from "../../config/api-config";
 
-const API_URL_NOTIFICACIONES = "http://localhost:8084";
+const API_URL_NOTIFICACIONES = API_CONFIG.NOTIFICACION;
 
 export default function InvitarColaboradores({ empresaNombre, esAdministrador }) {
   const [emailsInvitacion, setEmailsInvitacion] = useState([]);

@@ -13,6 +13,7 @@ import ExcelPreviewDialog from "./components/ExcelPreviewDialog";
 import DropzoneUploader from "./../../shared-components/DropzoneUploader";
 import CustomButton from "./../../shared-components/CustomButton";
 import axios from "axios";
+import API_CONFIG from "../../config/api-config";
 
 export default function CargaMovimientos({ onCargaCompletada }) {
   const [resumen, setResumen] = React.useState(null);
@@ -49,7 +50,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
       formData.append("tipoOrigen", tipoOrigen);
 
       const response = await axios.post(
-        `${process.env.REACT_APP_URL_REGISTRO}/api/preview-excel`,
+        `${API_CONFIG.REGISTRO}/api/preview-excel`,
         formData,
         {
           headers: {
@@ -83,7 +84,7 @@ export default function CargaMovimientos({ onCargaCompletada }) {
       };
 
       const response = await axios.post(
-        `${process.env.REACT_APP_URL_REGISTRO}/api/guardar-seleccionados`,
+        `${API_CONFIG.REGISTRO}/api/guardar-seleccionados`,
         requestData,
         {
           headers: {

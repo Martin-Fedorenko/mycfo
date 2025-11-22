@@ -5,9 +5,10 @@ import {
   CognitoRefreshToken,
 } from "amazon-cognito-identity-js";
 import { sessionService } from "../shared-services/sessionService";
+import URL_CONFIG from "../config/api-config";
 
 const http = axios.create();
-const PRONOSTICO_BASE_URL = process.env.REACT_APP_URL_PRONOSTICO || "";
+const PRONOSTICO_BASE_URL = URL_CONFIG.PRONOSTICO;
 const cognitoPoolConfig = {
   UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID,
   ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,

@@ -35,6 +35,10 @@ import http from "../../../api/http";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import API_CONFIG from "../../../config/api-config";
+
+
+
 const tableRowStyle = {
   backgroundColor: "rgba(255, 255, 255, 0.02)",
   "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.05)" },
@@ -122,7 +126,7 @@ export default function MainGrid() {
     : paletteVars.common?.white ?? "#fff";
   const darkActionButtonSx = isLightMode ? undefined : { color: "#42897f" };
   const navigate = useNavigate();
-  const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
+  const baseURL = API_CONFIG.PRONOSTICO;
   const retentionDays = React.useMemo(() => parseRetentionDays(), []);
   const [statusFilter, setStatusFilter] = React.useState("active");
   const [pageIndex, setPageIndex] = React.useState(0);

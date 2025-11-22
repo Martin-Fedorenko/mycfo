@@ -1,7 +1,7 @@
 import axios from 'axios';
 import API_CONFIG from '../config/api-config';
 
-const URL_REGISTRO = API_CONFIG.REGISTRO; // ej: http://localhost:8086
+const URL_REGISTRO = API_CONFIG.REGISTRO; 
 
 function getUsuarioHeaders() {
   const headers = {};

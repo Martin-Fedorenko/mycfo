@@ -1,5 +1,6 @@
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
+import API_CONFIG from "../../config/api-config";
 
 class WebSocketService {
   constructor() {
@@ -19,7 +20,7 @@ class WebSocketService {
     return new Promise((resolve, reject) => {
       try {
         // Crear conexión SockJS
-        const socket = new SockJS("http://localhost:8084/ws/notifications");
+        const socket = new SockJS(`${API_CONFIG.NOTIFICACION}/ws/notifications`); 
 
         // Crear cliente STOMP
         this.stompClient = new Client({

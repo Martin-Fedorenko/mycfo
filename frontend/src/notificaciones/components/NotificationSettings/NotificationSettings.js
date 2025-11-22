@@ -25,6 +25,7 @@ import {
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import CustomTimePicker from "../../../shared-components/CustomTimePicker";
+import API_CONFIG from "../../../config/api-config";
 
 const FieldBox = ({ label, children }) => (
   <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -68,7 +69,7 @@ export default function NotificationSettings() {
           return;
         }
         const response = await fetch(
-          `http://localhost:8084/api/users/1/notification-preferences`,
+          `${API_CONFIG.NOTIFICACION}/api/users/1/notification-preferences`,
           {
             headers: {
               "X-Usuario-Sub": usuarioSub,
@@ -154,7 +155,7 @@ export default function NotificationSettings() {
 
       // Enviar preferencias al backend
       const response = await fetch(
-        `http://localhost:8084/api/users/1/notification-preferences`,
+        `${API_CONFIG.NOTIFICACION}/api/users/1/notification-preferences`,
         {
           method: "PUT",
           headers: {

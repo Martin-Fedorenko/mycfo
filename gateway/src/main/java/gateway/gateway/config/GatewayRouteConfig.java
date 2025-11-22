@@ -31,73 +31,60 @@ public class GatewayRouteConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                // Ruta para Administración
+
+                // Administración
                 .route("administracion-route", r -> r
                         .path("/administracion/**")
                         .filters(f -> f
                                 .stripPrefix(1)
-                                // Eliminar duplicados de headers CORS del backend
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "RETAIN_FIRST"))
+                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(administracionUrl))
-                
-                // Ruta para Registro
+
+                // Registro
                 .route("registro-route", r -> r
                         .path("/registro/**")
                         .filters(f -> f
                                 .stripPrefix(1)
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "RETAIN_FIRST"))
+                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(registroUrl))
-                
-                // Ruta para Reporte
+
+                // Reporte
                 .route("reporte-route", r -> r
                         .path("/reporte/**")
                         .filters(f -> f
                                 .stripPrefix(1)
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "RETAIN_FIRST"))
+                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(reporteUrl))
-                
-                // Ruta para Pronóstico
+
+                // Pronóstico
                 .route("pronostico-route", r -> r
                         .path("/pronostico/**")
                         .filters(f -> f
                                 .stripPrefix(1)
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "RETAIN_FIRST"))
+                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(pronosticoUrl))
-                
-                // Ruta para IA
+
+                // IA
                 .route("ia-route", r -> r
                         .path("/ia/**")
                         .filters(f -> f
                                 .stripPrefix(1)
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "RETAIN_FIRST"))
+                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(iaUrl))
-                
-                // Ruta para Notificación
+
+                // HTTP Notificación
                 .route("notificacion-route", r -> r
                         .path("/notificacion/**")
                         .filters(f -> f
                                 .stripPrefix(1)
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "RETAIN_FIRST")
-                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "RETAIN_FIRST"))
+                                .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(notificacionUrl))
-                
+
+                // WebSockets Notificación
+                .route("ws-notificacion-route", r -> r
+                        .path("/notificacion/ws/**")
+                        .uri(notificacionUrl))
+
                 .build();
     }
 }

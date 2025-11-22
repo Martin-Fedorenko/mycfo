@@ -10,6 +10,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CustomSingleAutoComplete from "../../shared-components/CustomSingleAutoComplete";
 import CustomDatePicker from "../../shared-components/CustomDatePicker";
 import dayjs from "dayjs";
+import { API_CONFIG } from "../../config/apiConfig";
 
 export default function TablaRegistros() {
   const [registros, setRegistros] = useState([]);
@@ -31,7 +32,7 @@ export default function TablaRegistros() {
   const mediosPago = ["Efectivo", "Tarjeta", "Transferencia"];
 
   useEffect(() => {
-    fetch("http://localhost:8086/registros")
+    fetch(`${API_CONFIG.registro}/registros`) 
       .then((res) => res.json())
       .then((data) => setRegistros(data))
       .catch((err) => console.error("Error cargando registros:", err));
@@ -50,7 +51,7 @@ export default function TablaRegistros() {
   const handleSave = async () => {
     try {
       // PUT o PATCH al backend
-      const resp = await fetch(`http://localhost:8086/registros/${valoresEditados.id}`, {
+      const resp = await fetch(`${API_CONFIG.registro}/registros/${valoresEditados.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(valoresEditados),

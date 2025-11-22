@@ -14,6 +14,7 @@ import UploadIcon from "@mui/icons-material/Upload";
 import CargaMovimientos from "./CargaMovimientos";
 import ExcelHistoryTable from "./components/ExcelHistoryTable";
 import axios from "axios";
+import API_CONFIG from "../../config/api-config";
 
 export default function ExcelManagement() {
   const [activeTab, setActiveTab] = React.useState(0);
@@ -32,7 +33,7 @@ export default function ExcelManagement() {
         return;
       }
       const response = await axios.get(
-        `${process.env.REACT_APP_URL_REGISTRO}/api/historial-cargas`,
+        `${API_CONFIG.REGISTRO}/api/historial-cargas`,
         {
           headers: {
             "X-Usuario-Sub": usuarioSub,

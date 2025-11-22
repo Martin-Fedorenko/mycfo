@@ -3,6 +3,7 @@ import { Box, Typography, CircularProgress } from "@mui/material";
 import CampoEditable from "../../shared-components/CampoEditable";
 import BotonConsolidar from "../../shared-components/CustomButton";
 import { sessionService } from "../../shared-services/sessionService";
+import API_CONFIG from "../../config/api-config";
 import axios from "axios";
 
 export default function Perfil() {
@@ -43,7 +44,7 @@ export default function Perfil() {
       const sub = sessionStorage.getItem("sub");
       
       // 🔹 Actualizar datos del usuario en BD y Cognito mediante el backend
-      await axios.put("http://localhost:8081/api/usuarios/perfil", {
+      await axios.put(`${API_CONFIG.ADMINISTRACION}/api/usuarios/perfil`, {
         nombre: perfil.nombre,
         email: perfil.email,
         telefono: perfil.telefono,

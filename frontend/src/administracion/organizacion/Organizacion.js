@@ -24,8 +24,9 @@ import CampoEditable from "../../shared-components/CustomButton";
 import { sessionService } from "../../shared-services/sessionService";
 import { organizacionService } from "../../shared-services/organizacionService";
 import InvitarColaboradores from "../invitaciones/InvitarColaboradores";
+import API_CONFIG from "../../config/api-config";
 
-const API_URL = "http://localhost:8081";
+const API_URL = API_CONFIG.ADMINISTRACION;
 
 export default function Organizacion() {
   const [empresa, setEmpresa] = useState(null);

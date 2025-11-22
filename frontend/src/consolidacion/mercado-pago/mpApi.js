@@ -1,6 +1,7 @@
 // /mercado-pago/mpApi.js
-const BASE_URL =
-  import.meta?.env?.VITE_API_URL || process.env.REACT_APP_URL_REGISTRO || "";
+import API_CONFIG from "../../config/api-config";
+
+const BASE_URL = API_CONFIG.REGISTRO;
 
 const USER_HEADER = "X-Usuario-Sub";
 

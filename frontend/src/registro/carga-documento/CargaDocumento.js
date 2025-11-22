@@ -12,6 +12,7 @@ import CustomButton from "./../../shared-components/CustomButton";
 import CamposRequeridos from "./components/CamposRequeridos";
 import ResumenCarga from "./components/ResumenCarga";
 import TablaErrores from "./components/TablaErrores";
+import API_CONFIG from "../../config/api-config";
 
 export default function CargaDocumento() {
   const [file, setFile] = React.useState(null);
@@ -46,7 +47,7 @@ export default function CargaDocumento() {
       formData.append("tipoOrigen", tipoOrigen);
 
       const { data } = await axios.post(
-        `${process.env.REACT_APP_URL_REGISTRO}/api/importar-excel`,
+        `${API_CONFIG.REGISTRO}/api/importar-excel`,
         formData,
         {
           headers: {

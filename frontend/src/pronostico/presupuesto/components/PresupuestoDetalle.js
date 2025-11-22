@@ -22,6 +22,7 @@ import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import API_CONFIG from '../../../config/api-config';
 
 // Helper seguro para números
 const safeNumber = (v) =>
@@ -164,7 +165,7 @@ export default function PresupuestoDetalle() {
         setError(null);
 
         // 1) Buscar presupuesto por nombre
-        const res = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos`);
+        const res = await http.get(`${API_CONFIG.PRONOSTICO}/api/presupuestos`);
         const listaPayload = res?.data;
         let lista = [];
         if (Array.isArray(listaPayload)) {
@@ -191,12 +192,12 @@ export default function PresupuestoDetalle() {
         // 2) (opcional) obtener nombre "oficial" desde header
         let nombreOficial = encontrado.nombre;
         try {
-          const resHeader = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}`);
+          const resHeader = await http.get(`${API_CONFIG.PRONOSTICO}/api/presupuestos/${encontrado.id}`);
           if (resHeader?.data?.nombre) nombreOficial = resHeader.data.nombre;
         } catch { /* no crítico */ }
 
         // 3) Traer TOTALES mensuales del backend nuevo
-        const resTot = await http.get(`${process.env.REACT_APP_URL_PRONOSTICO}/api/presupuestos/${encontrado.id}/totales`);
+        const resTot = await http.get(`${API_CONFIG.PRONOSTICO}/api/presupuestos/${encontrado.id}/totales`);
         const totales = Array.isArray(resTot.data) ? resTot.data : [];
 
         // 4) Mapear a la forma que usa el front

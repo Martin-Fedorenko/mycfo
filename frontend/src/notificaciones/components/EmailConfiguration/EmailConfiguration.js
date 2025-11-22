@@ -32,6 +32,7 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material";
 import axios from "axios";
+import API_CONFIG from "../../../config/api-config";
 
 export default function EmailConfiguration() {
   const [emailStatus, setEmailStatus] = useState(null);
@@ -45,7 +46,7 @@ export default function EmailConfiguration() {
     try {
       setLoading(true);
       const response = await axios.get(
-        "http://localhost:8084/api/email-config/status"
+        `${API_CONFIG.NOTIFICACION}/api/email-config/status`
       );
       setEmailStatus(response.data);
       setError(null);
@@ -62,7 +63,7 @@ export default function EmailConfiguration() {
       setTesting(true);
       setTestResult(null);
       const response = await axios.post(
-        "http://localhost:8084/api/email-config/test",
+        `${API_CONFIG.NOTIFICACION}/api/email-config/test`,
         null,
         {
           params: { userId: 1 },

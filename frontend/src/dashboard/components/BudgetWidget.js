@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import http from "../../api/http";
 import { formatCurrencyAR, formatPercentage } from "../../utils/formatters";
 import useResolvedColorTokens from "../useResolvedColorTokens";
+import API_CONFIG from "../../config/api-config";
 
 const getStatusColor = (ratio) => {
   if (ratio <= 0.9) {
@@ -249,7 +250,7 @@ const BudgetWidget = ({
   const [error, setError] = React.useState(null);
   const [budget, setBudget] = React.useState(null);
   const useMocks = process.env.REACT_APP_USE_MOCKS === "true";
-  const baseURL = process.env.REACT_APP_URL_PRONOSTICO || "";
+  const baseURL = API_CONFIG.PRONOSTICO;
   const referenceDate = React.useMemo(
     () => periodToDate(period) ?? new Date(),
     [period],
