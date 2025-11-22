@@ -14,12 +14,8 @@ import { styled } from "@mui/material/styles";
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { useNavigate, useSearchParams } from "react-router-dom";
-<<<<<<< Updated upstream
-=======
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
 import API_CONFIG from "../config/api-config";
-
->>>>>>> Stashed changes
 import axios from "axios";
 
 const Card = styled(MuiCard)(({ theme }) => ({
