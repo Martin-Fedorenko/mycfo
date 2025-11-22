@@ -1,4 +1,3 @@
-import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import API_CONFIG from "../../config/api-config";
 
@@ -19,12 +18,9 @@ class WebSocketService {
 
     return new Promise((resolve, reject) => {
       try {
-        // Crear conexión SockJS
-        const socket = new SockJS(`${API_CONFIG.NOTIFICACION}/ws/notifications`); 
-
-        // Crear cliente STOMP
+        // Crear cliente STOMP con WebSocket nativo
         this.stompClient = new Client({
-          webSocketFactory: () => socket,
+          brokerURL: API_CONFIG.WEBSOCKET + '/notifications',
           debug: (str) => {
             console.log("STOMP Debug:", str);
           },

@@ -21,8 +21,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // No configuramos CORS aquí - el Gateway se encarga de eso
         // Permitimos todos los orígenes porque las peticiones vienen del Gateway
+        // Usamos WebSocket nativo (sin SockJS) para mejor compatibilidad con TunnelMole
         registry.addEndpoint("/ws/notifications")
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .setAllowedOriginPatterns("*");
     }
 }

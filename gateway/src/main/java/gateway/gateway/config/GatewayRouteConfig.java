@@ -72,17 +72,19 @@ public class GatewayRouteConfig {
                                 .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(iaUrl))
 
-                // HTTP Notificación
+                // WebSockets Notificación (MÁS ESPECÍFICO - DEBE IR PRIMERO)
+                .route("ws-notificacion-route", r -> r
+                        .path("/notificacion/ws/**")
+                        .filters(f -> f
+                                .stripPrefix(1))
+                        .uri(notificacionUrl))
+
+                // HTTP Notificación (GENÉRICO - DEBE IR DESPUÉS)
                 .route("notificacion-route", r -> r
                         .path("/notificacion/**")
                         .filters(f -> f
                                 .stripPrefix(1)
                                 .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
-                        .uri(notificacionUrl))
-
-                // WebSockets Notificación
-                .route("ws-notificacion-route", r -> r
-                        .path("/notificacion/ws/**")
                         .uri(notificacionUrl))
 
                 .build();
