@@ -10,6 +10,7 @@ import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import PieChartRoundedIcon from "@mui/icons-material/PieChartRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
 import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
 import TrendingFlatRoundedIcon from "@mui/icons-material/TrendingFlatRounded";
@@ -18,6 +19,10 @@ import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneR
 import AlarmRoundedIcon from "@mui/icons-material/AlarmRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import DescriptionIcon from "@mui/icons-material/Description";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import CameraAltRoundedIcon from "@mui/icons-material/CameraAltRounded";
+import MicRoundedIcon from "@mui/icons-material/MicRounded";
+import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
 
 // Lazy loading para componentes pesados
 const ReporteMensual = React.lazy(() => import("../reportes/reporte-mensual/ReporteMensual"));
@@ -50,6 +55,24 @@ const CargaSeleccionTipo = React.lazy(() => import("../registro/carga-general/Ca
 const CargaSeleccionMetodo = React.lazy(() => import("../registro/carga-general/CargaSeleccionMetodo"));
 const CargaVistaFinal = React.lazy(() => import("../registro/carga-general/CargaVistaFinal"));
 
+const formatCap = (text = "") => text.charAt(0).toUpperCase() + text.slice(1);
+
+const cargaTipoMeta = {
+  ingreso: { label: "Ingreso", icon: <TrendingUpRoundedIcon /> },
+  egreso: { label: "Egreso", icon: <TrendingDownRoundedIcon /> },
+  deuda: { label: "Deuda", icon: <AccountBalanceRoundedIcon /> },
+  acreencia: { label: "Acreencia", icon: <SavingsRoundedIcon /> },
+  factura: { label: "Factura", icon: <DescriptionIcon /> },
+  movimientos: { label: "Movimientos bancarios", icon: <CompareArrowsRoundedIcon /> },
+};
+
+const cargaModoMeta = {
+  formulario: { label: "Formulario", icon: <EditRoundedIcon /> },
+  documento: { label: "Documento", icon: <DescriptionIcon /> },
+  foto: { label: "Foto", icon: <CameraAltRoundedIcon /> },
+  audio: { label: "Audio", icon: <MicRoundedIcon /> },
+};
+
 const routeConfig = [
   {
     label: "Carga de datos",
@@ -61,11 +84,19 @@ const routeConfig = [
     path: "/carga/:tipo",
     element: <CargaSeleccionMetodo />,
     hidden: true,
+    breadcrumb: ({ tipo }) => ({
+      label: cargaTipoMeta[tipo]?.label ?? formatCap(tipo),
+      icon: cargaTipoMeta[tipo]?.icon,
+    }),
   },
   {
     path: "/carga/:tipo/:modo",
     element: <CargaVistaFinal />,
     hidden: true,
+    breadcrumb: ({ tipo, modo }) => ({
+      label: cargaModoMeta[modo]?.label ?? formatCap(modo),
+      icon: cargaModoMeta[modo]?.icon,
+    }),
   },
   {
     label: "Ver movimientos",
@@ -140,11 +171,13 @@ const routeConfig = [
           {
             label: "Nuevo",
             path: "/presupuestos/nuevo",
+            icon: <AddCircleOutlineRoundedIcon />,
             element: <PresupuestoNuevo />,
           },
           {
             label: "Detalle",
             path: "/presupuestos/:nombre",
+            icon: <DescriptionIcon />,
             element: <PresupuestoDetalle />,
           },
           {
