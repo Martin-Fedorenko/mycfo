@@ -30,6 +30,7 @@ public class CorsConfig {
                 "http://*.ngrok-free.app",
                 "https://*.tunnelmole.net",
                 "http://*.tunnelmole.net",
+                "https://*.trycloudflare.com",
                 "https://martin-fedorenko.github.io",
                 "https://martin-fedorenko.github.io/#",
                 "https://martin-fedorenko.github.io/mycfo/",

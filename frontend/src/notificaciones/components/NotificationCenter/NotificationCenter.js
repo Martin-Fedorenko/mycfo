@@ -34,6 +34,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../../hooks/useNotifications";
 import { deleteNotification } from "../../services/notificationsApi";
+import { useAuth } from "../../../hooks/useAuth";
 import {
   formatDate,
   formatNumber,
@@ -49,10 +50,12 @@ export default function NotificationCenter() {
   const [selectedNotifications, setSelectedNotifications] = React.useState([]);
   const navigate = useNavigate();
 
-  // TODO: Obtener el userId del contexto de autenticación
-  const userId = 1;
+  // Obtener userId del estado de autenticación
+  const { userId, isAuthenticated } = useAuth();
+  
+  // Solo usar notificaciones si está autenticado
   const { items, unread, loading, error, reload, markOneRead } =
-    useNotifications(userId);
+    useNotifications(isAuthenticated ? userId : null);
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);

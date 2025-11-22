@@ -32,7 +32,19 @@ public class GatewayRouteConfig {
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
 
-                // Administración
+                // ============================
+                //   WebSockets NOTIFICACIÓN
+                //   (RUTA MÁS ESPECÍFICA)
+                // ============================
+                .route("ws-notificacion-route", r -> r
+                        .path("/notificacion/ws/**")
+                        .filters(f -> f.stripPrefix(1))
+                        // IMPORTANTE: WS debe usar ws://
+                        .uri("ws://localhost:8084"))
+
+                // ============================
+                //    Administración
+                // ============================
                 .route("administracion-route", r -> r
                         .path("/administracion/**")
                         .filters(f -> f
@@ -40,7 +52,9 @@ public class GatewayRouteConfig {
                                 .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(administracionUrl))
 
-                // Registro
+                // ============================
+                //    Registro
+                // ============================
                 .route("registro-route", r -> r
                         .path("/registro/**")
                         .filters(f -> f
@@ -48,7 +62,9 @@ public class GatewayRouteConfig {
                                 .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(registroUrl))
 
-                // Reporte
+                // ============================
+                //    Reporte
+                // ============================
                 .route("reporte-route", r -> r
                         .path("/reporte/**")
                         .filters(f -> f
@@ -56,7 +72,9 @@ public class GatewayRouteConfig {
                                 .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(reporteUrl))
 
-                // Pronóstico
+                // ============================
+                //    Pronóstico
+                // ============================
                 .route("pronostico-route", r -> r
                         .path("/pronostico/**")
                         .filters(f -> f
@@ -64,7 +82,9 @@ public class GatewayRouteConfig {
                                 .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(pronosticoUrl))
 
-                // IA
+                // ============================
+                //    IA
+                // ============================
                 .route("ia-route", r -> r
                         .path("/ia/**")
                         .filters(f -> f
@@ -72,14 +92,10 @@ public class GatewayRouteConfig {
                                 .dedupeResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "RETAIN_FIRST"))
                         .uri(iaUrl))
 
-                // WebSockets Notificación (MÁS ESPECÍFICO - DEBE IR PRIMERO)
-                .route("ws-notificacion-route", r -> r
-                        .path("/notificacion/ws/**")
-                        .filters(f -> f
-                                .stripPrefix(1))
-                        .uri(notificacionUrl))
-
-                // HTTP Notificación (GENÉRICO - DEBE IR DESPUÉS)
+                // ============================
+                //    HTTP Notificación
+                //    (GENÉRICO, VA AL FINAL)
+                // ============================
                 .route("notificacion-route", r -> r
                         .path("/notificacion/**")
                         .filters(f -> f

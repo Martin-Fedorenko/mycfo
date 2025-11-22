@@ -19,10 +19,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // No configuramos CORS aquí - el Gateway se encarga de eso
-        // Permitimos todos los orígenes porque las peticiones vienen del Gateway
-        // Usamos WebSocket nativo (sin SockJS) para mejor compatibilidad con TunnelMole
         registry.addEndpoint("/ws/notifications")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(
+                        "http://localhost:3000",
+                        "https://*.ngrok-free.app",
+                        "http://*.ngrok-free.app",
+                        "https://*.tunnelmole.net",
+                        "http://*.tunnelmole.net",
+                        "https://*.trycloudflare.com",
+                        "https://martin-fedorenko.github.io",
+                        "https://martin-fedorenko.github.io/mycfo",
+                        "https://martin-fedorenko.github.io/mycfo/"
+                );
     }
+
 }

@@ -8,14 +8,17 @@ import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import NotificationDrawer from "../notification-drawer/NotificationDrawer";
 import Box from "@mui/material/Box";
 import { useNotifications } from "../hooks/useNotifications";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function NotificationButton(props) {
   const [openDrawer, setOpenDrawer] = React.useState(false);
 
-  // TODO: Obtener el userId del contexto de autenticación
-  const userId = 1; // Por ahora hardcodeado
+  // Obtener userId del estado de autenticación
+  const { userId, isAuthenticated } = useAuth();
+  
+  // Solo usar notificaciones si está autenticado
   const { items, unread, loading, error, markAllAsRead, isWebSocketConnected } =
-    useNotifications(userId);
+    useNotifications(isAuthenticated ? userId : null);
 
   const handleOpenDrawer = () => {
     setOpenDrawer(true);
