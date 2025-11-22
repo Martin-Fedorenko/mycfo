@@ -568,6 +568,7 @@ export default function TablaRegistrosV2() {
       headerName: "Estado",
       flex: 0.8,
       minWidth: 120,
+      hide: true,
       renderCell: (params) => {
         if (!params.value) return <Typography variant="body2" sx={{ lineHeight: "24px" }}>-</Typography>;
         const estado = params.value;
@@ -688,6 +689,11 @@ export default function TablaRegistrosV2() {
           initialState={{
             pagination: { paginationModel: { pageSize: 25 } },
             sorting: { sortModel: [{ field: "fechaEmision", sort: "desc" }] },
+            columns: {
+              columnVisibilityModel: {
+                estado: false,
+              },
+            },
           }}
           slots={{ toolbar: GridToolbar }}
           slotProps={{

@@ -241,6 +241,7 @@ const FacturaListPage = () => {
         headerName: "Estado de pago",
         flex: 0.8,
         minWidth: 140,
+        hide: true,
         renderCell: (params) => (
           <Chip
             label={params.value ?? "NO_PAGADO"}
@@ -343,6 +344,11 @@ const FacturaListPage = () => {
           initialState={{
             pagination: { paginationModel: { pageSize: 25 } },
             sorting: { sortModel: [{ field: "fechaEmision", sort: "desc" }] },
+            columns: {
+              columnVisibilityModel: {
+                estadoPago: false,
+              },
+            },
           }}
           slots={{ toolbar: GridToolbar }}
           slotProps={{

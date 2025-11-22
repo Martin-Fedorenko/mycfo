@@ -50,9 +50,6 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
           alignItems: "center",
         }}
       >
-        <Typography variant="subtitle2" sx={{ color: primaryTextColor }}>
-          Acciones rápidas
-        </Typography>
         <Box
           sx={{
             display: "flex",

@@ -3,7 +3,6 @@ import * as React from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
-import Divider from "@mui/material/Divider";
 import FormLabel from "@mui/material/FormLabel";
 import FormControl from "@mui/material/FormControl";
 import Link from "@mui/material/Link";
@@ -15,8 +14,6 @@ import { styled } from "@mui/material/styles";
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
-
 import axios from "axios";
 
 const Card = styled(MuiCard)(({ theme }) => ({
@@ -84,19 +81,19 @@ export default function SignUp(props) {
   const validateInputs = () => {
     let errs = {};
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errs.email = "Please enter a valid email address.";
+      errs.email = "Ingresa un correo electrónico válido.";
     }
     if (!formData.password || formData.password.length < 6) {
-      errs.password = "Password must be at least 6 characters long.";
+      errs.password = "La contraseña debe tener al menos 6 caracteres.";
     }
     if (!formData.nombre || formData.nombre.trim() === "") {
-      errs.nombre = "Name is required.";
+      errs.nombre = "El nombre es obligatorio.";
     }
     if (!formData.apellido || formData.apellido.trim() === "") {
-      errs.apellido = "Last name is required.";
+      errs.apellido = "El apellido es obligatorio.";
     }
     if (!formData.nombreEmpresa || formData.nombreEmpresa.trim() === "") {
-      errs.nombreEmpresa = "Company name is required.";
+      errs.nombreEmpresa = "El nombre de la empresa es obligatorio.";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -125,11 +122,11 @@ export default function SignUp(props) {
       // Guardar email temporalmente para la confirmación
       sessionStorage.setItem("tempEmail", formData.email);
       
-      setSuccessMsg(response.data.mensaje || "Account created successfully!");
+      setSuccessMsg(response.data.mensaje || "Cuenta creada correctamente.");
       setTimeout(() => navigate("/confirm-account"), 1500);
     } catch (err) {
       console.error("SignUp Error", err);
-      setErrors({ global: err.response?.data?.error || "Error creating account" });
+      setErrors({ global: err.response?.data?.error || "Error al crear la cuenta." });
     } finally {
       setLoading(false);
     }
@@ -141,13 +138,12 @@ export default function SignUp(props) {
       <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
       <SignUpContainer direction="column" justifyContent="space-between">
         <Card variant="outlined">
-          <SitemarkIcon />
           <Typography
             component="h1"
             variant="h4"
             sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
           >
-            {esInvitacion ? "Unirse a la Empresa" : "Sign up"}
+            {esInvitacion ? "Unirse a la empresa" : "Crear cuenta"}
           </Typography>
           
           {esInvitacion && (
@@ -188,7 +184,7 @@ export default function SignUp(props) {
             </Box>
 
             <FormControl>
-              <FormLabel>Nombre de Empresa</FormLabel>
+              <FormLabel>Nombre de la empresa</FormLabel>
               <TextField
                 required
                 fullWidth
@@ -203,13 +199,13 @@ export default function SignUp(props) {
               />
               {esInvitacion && (
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Empresa predefinida por invitación
+                  Empresa predefinida por invitación.
                 </Typography>
               )}
             </FormControl>
 
             <FormControl>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Correo electrónico</FormLabel>
               <TextField
                 required
                 fullWidth
@@ -222,7 +218,7 @@ export default function SignUp(props) {
             </FormControl>
 
             <FormControl>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Contraseña</FormLabel>
               <TextField
                 required
                 fullWidth
@@ -238,39 +234,37 @@ export default function SignUp(props) {
             {successMsg && <Typography color="primary">{successMsg}</Typography>}
 
             <Button type="submit" fullWidth variant="contained" disabled={loading}>
-              {loading ? "Creating account..." : "Sign up"}
+              {loading ? "Creando cuenta..." : "Crear cuenta"}
             </Button>
           </Box>
 
-          <Divider>
-            <Typography sx={{ color: "text.secondary" }}>or</Typography>
-          </Divider>
-
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {/*
             <Button
               fullWidth
               variant="outlined"
               onClick={() =>
-                alert("Sign up with Google (configure Cognito Hosted UI)")
+                alert("Registrar con Google (configurar Cognito Hosted UI)")
               }
               startIcon={<GoogleIcon />}
             >
-              Sign up with Google
+              Registrarse con Google
             </Button>
             <Button
               fullWidth
               variant="outlined"
               onClick={() =>
-                alert("Sign up with Facebook (configure Cognito Hosted UI)")
+                alert("Registrar con Facebook (configurar Cognito Hosted UI)")
               }
               startIcon={<FacebookIcon />}
             >
-              Sign up with Facebook
+              Registrarse con Facebook
             </Button>
+            */}
             <Typography sx={{ textAlign: "center" }}>
-              Already have an account?{" "}
+              ¿Ya tienes una cuenta?{" "}
               <Link href="/#/signin" variant="body2" sx={{ alignSelf: "center" }}>
-                Sign in
+                Inicia sesión
               </Link>
             </Typography>
           </Box>

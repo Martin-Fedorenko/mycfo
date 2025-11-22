@@ -5,7 +5,6 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import CssBaseline from "@mui/material/CssBaseline";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Divider from "@mui/material/Divider";
 import FormLabel from "@mui/material/FormLabel";
 import FormControl from "@mui/material/FormControl";
 import Link from "@mui/material/Link";
@@ -17,7 +16,6 @@ import { styled } from "@mui/material/styles";
 import ForgotPassword from "./components/ForgotPassword";
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -89,10 +87,10 @@ export default function SignIn(props) {
   const validateInputs = () => {
     let errs = {};
     if (!/\S+@\S+\.\S+/.test(formValues.email)) {
-      errs.email = "Please enter a valid email address.";
+      errs.email = "Ingresa un correo electrónico válido.";
     }
     if (!formValues.password || formValues.password.length < 6) {
-      errs.password = "Password must be at least 6 characters long.";
+      errs.password = "La contraseña debe tener al menos 6 caracteres.";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -154,7 +152,7 @@ export default function SignIn(props) {
 
           window.dispatchEvent(new Event("userDataUpdated"));
 
-          setGlobalMsg("Login successful!");
+          setGlobalMsg("Inicio de sesión correcto.");
           setLoading(false);
 
           // Redirigir al home
@@ -162,7 +160,7 @@ export default function SignIn(props) {
         } catch (err) {
           setLoading(false);
           console.error("Error loading user profile:", err);
-          setGlobalMsg("Error loading user profile. Please contact support.");
+          setGlobalMsg("Error al cargar el perfil. Por favor, contacta a soporte.");
         }
       },
       onFailure: (err) => {
@@ -186,13 +184,12 @@ export default function SignIn(props) {
       <SignInContainer direction="column" justifyContent="space-between">
         <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
         <Card variant="outlined">
-          <SitemarkIcon />
           <Typography
             component="h1"
             variant="h4"
             sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
           >
-            Sign in
+            Iniciar sesión
           </Typography>
 
           <Box
@@ -201,12 +198,12 @@ export default function SignIn(props) {
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
             <FormControl>
-              <FormLabel htmlFor="email">Email</FormLabel>
+              <FormLabel htmlFor="email">Correo electrónico</FormLabel>
               <TextField
                 id="email"
                 name="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder="tu@email.com"
                 required
                 fullWidth
                 value={formValues.email}
@@ -217,12 +214,12 @@ export default function SignIn(props) {
             </FormControl>
 
             <FormControl>
-              <FormLabel htmlFor="password">Password</FormLabel>
+              <FormLabel htmlFor="password">Contraseña</FormLabel>
               <TextField
                 id="password"
                 name="password"
                 type="password"
-                placeholder="••••••"
+                placeholder="******"
                 required
                 fullWidth
                 value={formValues.password}
@@ -234,7 +231,7 @@ export default function SignIn(props) {
 
             <FormControlLabel
               control={<Checkbox value="remember" color="primary" />}
-              label="Remember me"
+              label="Recordarme"
             />
 
             {globalMsg && (
@@ -249,7 +246,7 @@ export default function SignIn(props) {
             <ForgotPassword open={open} handleClose={handleClose} />
 
             <Button type="submit" fullWidth variant="contained" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Ingresando..." : "Iniciar sesión"}
             </Button>
 
             <Link
@@ -259,32 +256,33 @@ export default function SignIn(props) {
               variant="body2"
               sx={{ alignSelf: "center" }}
             >
-              Forgot your password?
+              ¿Olvidaste tu contraseña?
             </Link>
           </Box>
 
-          <Divider>or</Divider>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {/*
             <Button
               fullWidth
               variant="outlined"
-              onClick={() => alert("Sign in with Google")}
+              onClick={() => alert("Iniciar sesión con Google")}
               startIcon={<GoogleIcon />}
             >
-              Sign in with Google
+              Iniciar sesión con Google
             </Button>
             <Button
               fullWidth
               variant="outlined"
-              onClick={() => alert("Sign in with Facebook")}
+              onClick={() => alert("Iniciar sesión con Facebook")}
               startIcon={<FacebookIcon />}
             >
-              Sign in with Facebook
+              Iniciar sesión con Facebook
             </Button>
+            */}
             <Typography sx={{ textAlign: "center" }}>
-              Don&apos;t have an account?{" "}
+              ¿No tienes una cuenta?{" "}
               <Link href="/#/signup/" variant="body2" sx={{ alignSelf: "center" }}>
-                Sign up
+                Regístrate
               </Link>
             </Typography>
           </Box>

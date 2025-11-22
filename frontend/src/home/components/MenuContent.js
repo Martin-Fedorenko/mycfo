@@ -12,7 +12,7 @@ import {
 import { listItemTextClasses } from '@mui/material/ListItemText';
 import { typographyClasses } from '@mui/material/Typography';
 import { svgIconClasses } from '@mui/material/SvgIcon';
-import { styled, keyframes } from '@mui/material/styles';
+import { styled, keyframes, useTheme } from '@mui/material/styles';
 import Stack from '@mui/material/Stack';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
@@ -48,6 +48,7 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
   [`& .${listItemTextClasses.primary}`]: {
     fontSize: '0.95rem',
     fontWeight: 500,
+    fontFamily: theme.typography.fontFamily,
     color: 'inherit !important',
   },
   [`& .${typographyClasses.root}`]: {
@@ -97,9 +98,31 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
 }));
 
 export default function MenuContent({ onNavigate }) {
+  const theme = useTheme();
   const [openMenus, setOpenMenus] = React.useState({});
   const navigate = useNavigate();
   const location = useLocation();
+  const getMenuTextSx = React.useCallback(
+    (label) => {
+      const base = {
+        color: 'inherit',
+        fontSize: '0.95rem',
+        fontWeight: 500,
+        fontFamily: theme.typography.fontFamily,
+      };
+
+      if (label === 'Notificaciones') {
+        return {
+          ...base,
+          fontSize: theme.typography.h4.fontSize,
+          fontWeight: theme.typography.h4.fontWeight,
+        };
+      }
+
+      return base;
+    },
+    [theme.typography.fontFamily, theme.typography.h4.fontSize, theme.typography.h4.fontWeight],
+  );
 
   const handleNavigate = (path) => {
     navigate(path);
@@ -142,7 +165,7 @@ export default function MenuContent({ onNavigate }) {
                       <ListItemIcon>{item.icon}</ListItemIcon>
                       <ListItemText
                         primary={item.label}
-                        primaryTypographyProps={{ sx: { color: 'inherit' } }}
+                        primaryTypographyProps={{ sx: getMenuTextSx(item.label) }}
                       />
                       {item.children ? (
                         openMenus[item.label] ? (
@@ -175,7 +198,7 @@ export default function MenuContent({ onNavigate }) {
                               <ListItemIcon>{child.icon}</ListItemIcon>
                               <ListItemText
                                 primary={child.label}
-                                primaryTypographyProps={{ sx: { color: 'inherit' } }}
+                                primaryTypographyProps={{ sx: getMenuTextSx(child.label) }}
                               />
                             </StyledListItemButton>
                           </ListItem>

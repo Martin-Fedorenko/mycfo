@@ -130,14 +130,14 @@ const RecentMovementsWidget = ({
     >
       <CardHeader
         title="Movimientos"
-        subheader="Ultimos movimientos registrados"
+        subheader="Últimos movimientos registrados"
         {...cardHeaderTypography}
       />
       <CardContent sx={{ flexGrow: 1 }}>
         {movements.length === 0 ? (
           <Stack spacing={2} alignItems="flex-start">
             <Typography variant="body2" sx={{ color: secondaryTextColor }}>
-              Todavia no hay movimientos para mostrar. Registra un ingreso o egreso para verlos aqui.
+              Todavía no hay movimientos para mostrar. Registra un ingreso o egreso para verlos aquí.
             </Typography>
             {onRetry ? (
               <Button variant="outlined" onClick={onRetry}>
@@ -153,14 +153,14 @@ const RecentMovementsWidget = ({
                   <TableCell>Tipo</TableCell>
                   <TableCell align="right">Monto</TableCell>
                   <TableCell>Fecha</TableCell>
-                  <TableCell>Categoria</TableCell>
+                  <TableCell>Categoría</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {movements.map((movement, index) => {
                   const key = movement.id ?? `movement-${index}`;
                   const tipo = movement.tipo ?? "Movimiento";
-                  const categoria = movement.categoria || "Sin categoria";
+                  const categoria = movement.categoria || "Sin categoría";
                   const amountColor = (movement.montoTotal ?? 0) < 0 ? "error.main" : "success.main";
                   const typeStyle = getTypeStyle(tipo);
                   return (
@@ -203,7 +203,7 @@ const RecentMovementsWidget = ({
           disabled={!onNavigate}
           sx={isDarkMode ? { color: "#42897f" } : undefined}
         >
-          Ver mas
+          Ver más
         </Button>
       </CardActions>
     </Card>

@@ -51,7 +51,7 @@ const ReconciliationWidget = ({
   if (loading) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title="Conciliacion bancaria" subheader="Sincronizando movimientos..." />
+        <CardHeader title="Conciliación bancaria" subheader="Sincronizando movimientos..." />
         <CardContent>
           {Array.from({ length: 3 }).map((_, index) => (
             <Skeleton key={index} variant="rectangular" height={48} sx={{ mb: 1.5 }} />
@@ -64,7 +64,7 @@ const ReconciliationWidget = ({
   if (error) {
     return (
       <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-        <CardHeader title="Conciliacion bancaria" />
+        <CardHeader title="Conciliación bancaria" />
         <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error">{error}</Alert>
           {onRetry ? (
@@ -121,9 +121,9 @@ const ReconciliationWidget = ({
   return (
     <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <CardHeader
-        title="Conciliacion bancaria"
+        title="Conciliación bancaria"
         subheader={
-          summary?.periodLabel ? `Periodo ${summary.periodLabel}` : "Resumen del ultimo periodo"
+          summary?.periodLabel ? `Período ${summary.periodLabel}` : "Resumen del último período"
         }
       />
       <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -137,7 +137,7 @@ const ReconciliationWidget = ({
               {renderMetric(
                 "Movimientos",
                 numberFormatter.format(summary.totalMovimientos ?? 0),
-                "Total del periodo"
+                "Total del período"
               )}
               {renderMetric(
               "Conciliados",
@@ -178,12 +178,12 @@ const ReconciliationWidget = ({
             </Box>
 
             <Stack spacing={0.5}>
-              <Typography variant="subtitle2">Ultimas referencias</Typography>
+              <Typography variant="subtitle2">Últimas referencias</Typography>
               <Typography variant="caption" color="text.secondary">
-                Ultima conciliacion: {formatDate(summary.ultimaConciliacion)}
+                Última conciliación: {formatDate(summary.ultimaConciliacion)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Ultimo movimiento pendiente: {formatDate(summary.ultimoPendiente)}
+                Último movimiento pendiente: {formatDate(summary.ultimoPendiente)}
               </Typography>
             </Stack>
 
@@ -232,7 +232,7 @@ const ReconciliationWidget = ({
                 })
               ) : (
                 <Typography variant="caption" color="text.secondary">
-                  No hay movimientos clasificados por tipo en este periodo.
+                  No hay movimientos clasificados por tipo en este período.
                 </Typography>
               )}
             </Stack>
@@ -240,7 +240,7 @@ const ReconciliationWidget = ({
         ) : (
           <Stack spacing={2} alignItems="flex-start">
             <Typography variant="body2" color="text.secondary">
-              Todavia no hay movimientos que analizar en este periodo. Carga o importa operaciones
+              Todavía no hay movimientos que analizar en este período. Carga o importa operaciones
               para comenzar a conciliarlas.
             </Typography>
             {onRetry ? (
@@ -258,7 +258,7 @@ const ReconciliationWidget = ({
           disabled={!onNavigate}
           sx={isDarkMode ? { color: "#42897f" } : undefined}
         >
-          Ir a conciliacion
+          Ir a conciliación
         </Button>
       </CardActions>
     </Card>

@@ -182,7 +182,13 @@ export default function NotificationSettings() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box
+      sx={{
+        p: 3,
+        maxWidth: 1400,
+        mx: "auto",
+      }}
+    >
       {/* Header con título y botón alineados */}
       <Box
         sx={{
@@ -198,7 +204,7 @@ export default function NotificationSettings() {
           <Typography variant="h4" component="h1" gutterBottom>
             Configuración de Notificaciones
           </Typography>
-          <Typography variant="body1" sx={{ color: 'text.primary' }}>
+          <Typography variant="body1" sx={{ color: "text.primary" }}>
             Personaliza cómo y cuándo recibir notificaciones
           </Typography>
         </Box>
@@ -223,277 +229,284 @@ export default function NotificationSettings() {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Box
+        sx={{
+          display: "grid",
+          gap: 3,
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(280px, 1fr))",
+            md: "repeat(3, minmax(300px, 1fr))",
+          },
+          alignItems: "stretch",
+          mb: 3,
+        }}
+      >
         {/* Configuración General */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: "100%" }}>
-            <CardHeader
-              avatar={<SettingsIcon />}
-              title="Configuración General"
-              subheader="Preferencias básicas"
-            />
-            <CardContent>
-              <FormControl component="fieldset" fullWidth>
-                <FormGroup>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={preferences.emailEnabled}
-                        onChange={(e) =>
-                          handlePreferenceChange(
-                            "emailEnabled",
-                            e.target.checked
-                          )
-                        }
-                      />
-                    }
-                    label="Notificaciones por Email"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={preferences.inAppEnabled}
-                        onChange={(e) =>
-                          handlePreferenceChange(
-                            "inAppEnabled",
-                            e.target.checked
-                          )
-                        }
-                      />
-                    }
-                    label="Notificaciones en la Aplicación"
-                  />
-                  {/*<FormControlLabel
-                    control={
-                      <Switch
-                        checked={preferences.pushEnabled}
-                        onChange={(e) =>
-                          handlePreferenceChange(
-                            "pushEnabled",
-                            e.target.checked
-                          )
-                        }
-                      />
-                    }
-                    label="Notificaciones Push"
-                  />*/}
-                </FormGroup>
-
-                {/* Espaciado adicional */}
-                <Box sx={{ mt: 2 }} />
-
-                {/* Campo de Email del Usuario */}
-                <TextField
-                  fullWidth
-                  label="Email para Notificaciones"
-                  type="email"
-                  value={preferences.userEmail || ""}
-                  onChange={(e) =>
-                    handlePreferenceChange("userEmail", e.target.value)
+        <Card sx={{ height: "100%" }}>
+          <CardHeader
+            avatar={<SettingsIcon />}
+            title="Configuración General"
+            subheader="Preferencias básicas"
+          />
+          <CardContent>
+            <FormControl component="fieldset" fullWidth>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={preferences.emailEnabled}
+                      onChange={(e) =>
+                        handlePreferenceChange("emailEnabled", e.target.checked)
+                      }
+                    />
                   }
-                  placeholder="tu-email@ejemplo.com"
-                  InputProps={{
-                    startAdornment: (
-                      <EmailIcon sx={{ mr: 1, color: "action.active" }} />
-                    ),
-                  }}
+                  label="Notificaciones por Email"
                 />
-              </FormControl>
-            </CardContent>
-          </Card>
-        </Grid>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={preferences.inAppEnabled}
+                      onChange={(e) =>
+                        handlePreferenceChange("inAppEnabled", e.target.checked)
+                      }
+                    />
+                  }
+                  label="Notificaciones en la Aplicación"
+                />
+                {/*<FormControlLabel
+                  control={
+                    <Switch
+                      checked={preferences.pushEnabled}
+                      onChange={(e) =>
+                        handlePreferenceChange("pushEnabled", e.target.checked)
+                      }
+                    />
+                  }
+                  label="Notificaciones Push"
+                />*/}
+              </FormGroup>
+
+              {/* Espaciado adicional */}
+              <Box sx={{ mt: 2 }} />
+
+              {/* Campo de Email del Usuario */}
+              <TextField
+                fullWidth
+                label="Email para Notificaciones"
+                type="email"
+                value={preferences.userEmail || ""}
+                onChange={(e) =>
+                  handlePreferenceChange("userEmail", e.target.value)
+                }
+                placeholder="tu-email@ejemplo.com"
+                InputProps={{
+                  startAdornment: (
+                    <EmailIcon sx={{ mr: 1, color: "action.active" }} />
+                  ),
+                }}
+              />
+            </FormControl>
+          </CardContent>
+        </Card>
 
         {/* Configuración de Digest */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: "100%" }}>
-            <CardHeader
-              avatar={<EmailIcon />}
-              title="Resúmenes por Email"
-              subheader="Digest diario y semanal"
-            />
-            <CardContent>
-              <Stack spacing={2}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={preferences.dailyDigestEnabled}
-                      onChange={(e) =>
-                        handlePreferenceChange(
-                          "dailyDigestEnabled",
-                          e.target.checked
-                        )
-                      }
-                    />
-                  }
-                  label="Resumen Diario"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={preferences.weeklyDigestEnabled}
-                      onChange={(e) =>
-                        handlePreferenceChange(
-                          "weeklyDigestEnabled",
-                          e.target.checked
-                        )
-                      }
-                    />
-                  }
-                  label="Resumen Semanal"
-                />
-                <FieldBox label="Hora del resumen">
-                  <CustomTimePicker
-                    value={timeStringToDayjs(preferences.digestTime)}
-                    onChange={(value) => handleTimeFieldChange("digestTime", value)}
+        <Card sx={{ height: "100%" }}>
+          <CardHeader
+            avatar={<EmailIcon />}
+            title="Resúmenes por Email"
+            subheader="Digest diario y semanal"
+          />
+          <CardContent>
+            <Stack spacing={2}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={preferences.dailyDigestEnabled}
+                    onChange={(e) =>
+                      handlePreferenceChange(
+                        "dailyDigestEnabled",
+                        e.target.checked
+                      )
+                    }
                   />
-                </FieldBox>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
+                }
+                label="Resumen Diario"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={preferences.weeklyDigestEnabled}
+                    onChange={(e) =>
+                      handlePreferenceChange(
+                        "weeklyDigestEnabled",
+                        e.target.checked
+                      )
+                    }
+                  />
+                }
+                label="Resumen Semanal"
+              />
+              <FieldBox label="Hora del resumen">
+                <CustomTimePicker
+                  value={timeStringToDayjs(preferences.digestTime)}
+                  onChange={(value) => handleTimeFieldChange("digestTime", value)}
+                />
+              </FieldBox>
+            </Stack>
+          </CardContent>
+        </Card>
 
         {/* Horarios de Silencio */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: "100%" }}>
-            <CardHeader
-              avatar={<ScheduleIcon />}
-              title="Horarios de Silencio"
-              subheader="Cuándo no recibir notificaciones"
-            />
-            <CardContent>
-              <Stack spacing={2}>
-                {/* Espaciado adicional después del título */}
-                <Box sx={{ mt: 1 }} />
+        <Card sx={{ height: "100%" }}>
+          <CardHeader
+            avatar={<ScheduleIcon />}
+            title="Horarios de Silencio"
+            subheader="Cuándo no recibir notificaciones"
+          />
+          <CardContent>
+            <Stack spacing={2}>
+              {/* Espaciado adicional después del título */}
+              <Box sx={{ mt: 1 }} />
 
-                <FieldBox label="Inicio del silencio">
-                  <CustomTimePicker
-                    value={timeStringToDayjs(preferences.quietStart)}
-                    onChange={(value) => handleTimeFieldChange("quietStart", value)}
+              <FieldBox label="Inicio del silencio">
+                <CustomTimePicker
+                  value={timeStringToDayjs(preferences.quietStart)}
+                  onChange={(value) => handleTimeFieldChange("quietStart", value)}
+                />
+              </FieldBox>
+              <FieldBox label="Fin del silencio">
+                <CustomTimePicker
+                  value={timeStringToDayjs(preferences.quietEnd)}
+                  onChange={(value) => handleTimeFieldChange("quietEnd", value)}
+                />
+              </FieldBox>
+              {/* <Divider />
+              <Typography variant="subtitle2" gutterBottom>
+                Días de Silencio
+              </Typography>
+              <FormGroup>
+                {daysOfWeek.map((day) => (
+                  <FormControlLabel
+                    key={day.value}
+                    control={
+                      <Switch
+                        checked={preferences.quietDays.includes(day.value)}
+                        onChange={() => handleQuietDayToggle(day.value)}
+                        size="small"
+                      />
+                    }
+                    label={day.label}
                   />
-                </FieldBox>
-                <FieldBox label="Fin del silencio">
-                  <CustomTimePicker
-                    value={timeStringToDayjs(preferences.quietEnd)}
-                    onChange={(value) => handleTimeFieldChange("quietEnd", value)}
-                  />
-                </FieldBox>
-                {/* <Divider />
-                <Typography variant="subtitle2" gutterBottom>
-                  Días de Silencio
-                </Typography>
-                <FormGroup>
-                  {daysOfWeek.map((day) => (
+                ))}
+              </FormGroup> */}
+            </Stack>
+          </CardContent>
+        </Card>
+      </Box>
+
+      <Card>
+        <CardHeader
+          avatar={<NotificationsIcon />}
+          title="Configuración por Tipo"
+          subheader="Personaliza cada tipo de notificación"
+        />
+        <CardContent>
+          <Box
+            sx={{
+              columnCount: { xs: 1, sm: 2, md: 3, lg: 4 },
+              columnGap: { xs: 2, sm: 2.5 },
+            }}
+          >
+            {notificationTypes.map((type) => (
+              <Box
+                key={type.value}
+                sx={{
+                  breakInside: "avoid",
+                  display: "inline-block",
+                  width: "100%",
+                  mb: 2,
+                }}
+              >
+                <Paper sx={{ p: 2, height: "100%" }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    {type.label}
+                  </Typography>
+                  <FormGroup>
                     <FormControlLabel
-                      key={day.value}
                       control={
                         <Switch
-                          checked={preferences.quietDays.includes(day.value)}
-                          onChange={() => handleQuietDayToggle(day.value)}
+                          checked={
+                            preferences.typeConfigs[type.value]?.enabled ??
+                            true
+                          }
+                          onChange={(e) =>
+                            handleTypeConfigChange(
+                              type.value,
+                              "enabled",
+                              e.target.checked
+                            )
+                          }
                           size="small"
+                          disabled={
+                            !preferences.emailEnabled &&
+                            !preferences.inAppEnabled
+                          }
                         />
                       }
-                      label={day.label}
+                      label="Habilitado"
                     />
-                  ))}
-                </FormGroup> */}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Configuración por Tipo */}
-        <Grid item xs={12}>
-          <Card>
-            <CardHeader
-              avatar={<NotificationsIcon />}
-              title="Configuración por Tipo"
-              subheader="Personaliza cada tipo de notificación"
-            />
-            <CardContent>
-              <Grid container spacing={2}>
-                {notificationTypes.map((type) => (
-                  <Grid item xs={12} sm={6} md={4} key={type.value}>
-                    <Paper sx={{ p: 2, height: "100%" }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        {type.label}
-                      </Typography>
-                      <FormGroup>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={
-                                preferences.typeConfigs[type.value]?.enabled ??
-                                true
-                              }
-                              onChange={(e) =>
-                                handleTypeConfigChange(
-                                  type.value,
-                                  "enabled",
-                                  e.target.checked
-                                )
-                              }
-                              size="small"
-                              disabled={
-                                !preferences.emailEnabled &&
-                                !preferences.inAppEnabled
-                              }
-                            />
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={
+                            (preferences.emailEnabled &&
+                              preferences.typeConfigs[type.value]
+                                ?.emailEnabled) ??
+                            true
                           }
-                          label="Habilitado"
-                        />
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={
-                                (preferences.emailEnabled &&
-                                  preferences.typeConfigs[type.value]
-                                    ?.emailEnabled) ??
-                                true
-                              }
-                              onChange={(e) =>
-                                handleTypeConfigChange(
-                                  type.value,
-                                  "emailEnabled",
-                                  e.target.checked
-                                )
-                              }
-                              size="small"
-                              disabled={!preferences.emailEnabled}
-                            />
+                          onChange={(e) =>
+                            handleTypeConfigChange(
+                              type.value,
+                              "emailEnabled",
+                              e.target.checked
+                            )
                           }
-                          label="Email"
+                          size="small"
+                          disabled={!preferences.emailEnabled}
                         />
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={
-                                (preferences.inAppEnabled &&
-                                  preferences.typeConfigs[type.value]
-                                    ?.inAppEnabled) ??
-                                true
-                              }
-                              onChange={(e) =>
-                                handleTypeConfigChange(
-                                  type.value,
-                                  "inAppEnabled",
-                                  e.target.checked
-                                )
-                              }
-                              size="small"
-                              disabled={!preferences.inAppEnabled}
-                            />
+                      }
+                      label="Email"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={
+                            (preferences.inAppEnabled &&
+                              preferences.typeConfigs[type.value]
+                                ?.inAppEnabled) ??
+                            true
                           }
-                          label="En App"
+                          onChange={(e) =>
+                            handleTypeConfigChange(
+                              type.value,
+                              "inAppEnabled",
+                              e.target.checked
+                            )
+                          }
+                          size="small"
+                          disabled={!preferences.inAppEnabled}
                         />
-                      </FormGroup>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                      }
+                      label="En App"
+                    />
+                  </FormGroup>
+                </Paper>
+              </Box>
+            ))}
+          </Box>
+        </CardContent>
+      </Card>
     </Box>
   );
 }

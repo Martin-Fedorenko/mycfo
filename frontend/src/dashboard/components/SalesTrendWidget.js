@@ -116,7 +116,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
         <CardHeader
-          title={data?.title ?? "Ingresos durante el periodo"}
+          title={data?.title ?? "Ingresos durante el período"}
           subheader="Generando serie..."
         />
         <CardContent>
@@ -131,7 +131,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
   if (error) {
     return (
       <Card variant="outlined" sx={{ height: "100%" }}>
-        <CardHeader title={data?.title ?? "Ingresos durante el periodo"} />
+        <CardHeader title={data?.title ?? "Ingresos durante el período"} />
         <CardContent>
           <Alert severity="error">{error}</Alert>
         </CardContent>
@@ -142,7 +142,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
   const points = data?.points ?? [];
   const xAxis = points.map((item) => monthLabel(item.month, item.monthIndex));
   const seriesValues = points.map((item) => item.value);
-  const noDataMessage = emptyMessage ?? data?.emptyMessage ?? "No hay ingresos registrados en este periodo.";
+  const noDataMessage = emptyMessage ?? data?.emptyMessage ?? "No hay ingresos registrados en este período.";
   const hasData = seriesValues.length > 0;
 
   return (
@@ -155,9 +155,9 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
         flexDirection: "column",
       }}
     >
-      <CardHeader
-        title={data?.title ?? "Ingresos durante el periodo"}
-        subheader={data?.subheader ?? "Serie mensual de ingresos registrados en los ultimos 12 meses."}
+        <CardHeader
+          title={data?.title ?? "Ingresos durante el período"}
+          subheader={data?.subheader ?? "Serie mensual de ingresos registrados en los últimos 12 meses."}
         titleTypographyProps={{
           variant: "h6",
           fontWeight: 600,
@@ -220,9 +220,9 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
               <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
                 {formatCurrency(data?.average)}
               </Typography>
-              <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                Ultimos 12 meses
-              </Typography>
+                <Typography variant="caption" sx={{ color: primaryTextColor }}>
+                  Últimos 12 meses
+                </Typography>
             </Stack>
           </Stack>
         }

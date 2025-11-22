@@ -130,26 +130,21 @@ export default function CargaMovimientos({ onCargaCompletada }) {
           {/*<MenuItem value="santander">Banco Santander</MenuItem>*/}
         </Select>
       </FormControl>
-      {/* Área Drag and Drop solo si hay tipo seleccionado */}
-      {tipoOrigen && (
-        <>
-          <DropzoneUploader
-            onFileSelected={handleFileSelected}
-            width="100%"
-            height={120}
-            sx={{ mb: 3 }}
-          />
+      <DropzoneUploader
+        onFileSelected={handleFileSelected}
+        width="100%"
+        height={120}
+        sx={{ mb: 3 }}
+      />
 
-          <CustomButton
-            width="100%"
-            onClick={procesarArchivo}
-            sx={{ mt: 1, mb: 4 }}
-            disabled={previewLoading}
-          >
-            {previewLoading ? "Procesando..." : "Vista Previa"}
-          </CustomButton>
-        </>
-      )}
+      <CustomButton
+        width="100%"
+        onClick={procesarArchivo}
+        sx={{ mt: 1, mb: 4 }}
+        disabled={previewLoading || !tipoOrigen || !file}
+      >
+        {previewLoading ? "Procesando..." : "Vista Previa"}
+      </CustomButton>
       {resumen && (
         <Box mt={4} mb={4}>
           {" "}

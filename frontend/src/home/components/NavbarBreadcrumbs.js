@@ -5,6 +5,8 @@ import Breadcrumbs, { breadcrumbsClasses } from '@mui/material/Breadcrumbs';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import { useLocation, Link as RouterLink, matchPath } from 'react-router-dom';
 import Link from '@mui/material/Link';
+import Box from '@mui/material/Box';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 
 import routeConfig from '../../config/routes';
 
@@ -51,6 +53,20 @@ export default function NavbarBreadcrumbs({ sx }) {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
+  const renderCrumbContent = (label, icon) => (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+      {icon
+        ? React.cloneElement(icon, {
+            fontSize: 'small',
+            sx: { color: 'text.secondary' },
+          })
+        : null}
+      <Typography component="span" variant="body1" sx={{ fontWeight: 600 }}>
+        {label}
+      </Typography>
+    </Box>
+  );
+
   return (
     <StyledBreadcrumbs
       aria-label="breadcrumb"
@@ -70,7 +86,12 @@ export default function NavbarBreadcrumbs({ sx }) {
           '&:active': { textDecoration: 'none', color: 'text.primary' },
         }}
       >
-        MyCFO
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+          <HomeRoundedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+          <Typography component="span" variant="body1" sx={{ fontWeight: 600 }}>
+            MyCFO
+          </Typography>
+        </Box>
       </Link>
 
       {/* Resto de los breadcrumbs dinámicos */}
@@ -80,17 +101,25 @@ export default function NavbarBreadcrumbs({ sx }) {
 
         const matchResult = findMatchingRoute(to);
         let label;
+        let icon = null;
 
         if (matchResult) {
           const { route, params } = matchResult;
           if (route.breadcrumb) {
-            label = route.breadcrumb(params);
+            const bc = route.breadcrumb(params);
+            if (bc && typeof bc === 'object') {
+              label = bc.label;
+              icon = bc.icon ?? route.icon ?? null;
+            } else {
+              label = bc;
+            }
           } else if (typeof route.label === 'function') {
             // Support dynamic labels defined as functions in route config
             label = route.label(params);
           } else {
             label = formatLabel(route.label ?? value);
           }
+          icon = icon || route.icon || null;
         } else {
           label = formatLabel(value);
         }
@@ -100,13 +129,9 @@ export default function NavbarBreadcrumbs({ sx }) {
         }
 
         return isLast ? (
-          <Typography
-            variant="body1"
-            sx={{ color: 'text.primary', fontWeight: 600 }}
-            key={to}
-          >
-            {label}
-          </Typography>
+          <Box key={to} sx={{ color: 'text.primary' }}>
+            {renderCrumbContent(label, icon)}
+          </Box>
         ) : (
           <Link
             component={RouterLink}
@@ -121,7 +146,7 @@ export default function NavbarBreadcrumbs({ sx }) {
             }}
             key={to}
           >
-            {label}
+            {renderCrumbContent(label, icon)}
           </Link>
         );
       })}

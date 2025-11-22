@@ -100,7 +100,7 @@ export default function MainGrid({
               disablePadding
               sx={{
                 opacity: notification.is_read ? 0.7 : 1,
-                borderLeft: notification.is_read ? "none" : "3px solid #2196F3",
+                borderLeft: notification.is_read ? "none" : "3px solid #2e7d67",
               }}
             >
               <ListItemButton

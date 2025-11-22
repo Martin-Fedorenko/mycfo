@@ -239,11 +239,22 @@ const mockReconciliation = {
   ultimaConciliacion: "2025-10-28",
   ultimoPendiente: "2025-10-30",
   porTipo: [
-    { tipo: "Ingreso", total: 68, conciliados: 55, pendientes: 13, porcentaje: 80.9 },
-    { tipo: "Egreso", total: 56, conciliados: 41, pendientes: 15, porcentaje: 73.2 },
+    {
+      tipo: "Ingreso",
+      total: 68,
+      conciliados: 55,
+      pendientes: 13,
+      porcentaje: 80.9,
+    },
+    {
+      tipo: "Egreso",
+      total: 56,
+      conciliados: 41,
+      pendientes: 15,
+      porcentaje: 73.2,
+    },
   ],
 };
-
 
 const mockBilling = {
   invoices: [
@@ -339,9 +350,17 @@ const Dashboard = React.memo(() => {
       reconciliation: { loading: false, error: null, data: mockReconciliation },
       billing: { loading: false, error: null, data: mockBilling },
       salesTrend: { loading: false, error: null, data: mockSalesTrend },
-      salesByCategory: { loading: false, error: null, data: mockCategoryPerformance },
+      salesByCategory: {
+        loading: false,
+        error: null,
+        data: mockCategoryPerformance,
+      },
       expensesTrend: { loading: false, error: null, data: mockExpensesTrend },
-      expensesByCategory: { loading: false, error: null, data: mockExpensesByCategory },
+      expensesByCategory: {
+        loading: false,
+        error: null,
+        data: mockExpensesByCategory,
+      },
     }),
     []
   );
@@ -355,6 +374,10 @@ const Dashboard = React.memo(() => {
       return "Usuario";
     }
     try {
+      const storedFullName = sessionStorage.getItem("nombre");
+      if (storedFullName && storedFullName.trim()) {
+        return storedFullName.trim();
+      }
       const storedName = sessionStorage.getItem("name");
       if (storedName && storedName.trim()) {
         return storedName.trim();
@@ -451,9 +474,14 @@ const Dashboard = React.memo(() => {
     const mapTrendResponse = (response, { title, emptyMessage, subheader }) => {
       const datos = Array.isArray(response?.datos) ? response.datos : [];
       const monthShort = new Intl.DateTimeFormat("es-AR", { month: "short" });
-      const monthLong = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" });
+      const monthLong = new Intl.DateTimeFormat("es-AR", {
+        month: "long",
+        year: "numeric",
+      });
 
-      const periodoBase = String(response?.periodoBase ?? response?.periodo ?? "");
+      const periodoBase = String(
+        response?.periodoBase ?? response?.periodo ?? ""
+      );
       const [baseYearStr] = periodoBase.split("-");
       const targetYear = Number(baseYearStr) || new Date().getFullYear();
 
@@ -481,7 +509,10 @@ const Dashboard = React.memo(() => {
 
       const pointsDetailed = Array.from({ length: 12 }, (_, index) => {
         const date = new Date(targetYear, index, 1);
-        const key = `${date.getFullYear()}-${String(index + 1).padStart(2, "0")}`;
+        const key = `${date.getFullYear()}-${String(index + 1).padStart(
+          2,
+          "0"
+        )}`;
         let value = totalsByPeriod.get(key);
         if (typeof value === "undefined") {
           value = fallbackByMonth.get(index + 1) ?? 0;
@@ -495,7 +526,9 @@ const Dashboard = React.memo(() => {
 
       const values = pointsDetailed.map((point) => point.value);
       const average =
-        values.length > 0 ? values.reduce((acc, val) => acc + val, 0) / values.length : 0;
+        values.length > 0
+          ? values.reduce((acc, val) => acc + val, 0) / values.length
+          : 0;
       const maxValue = values.length > 0 ? Math.max(...values) : 0;
       const minValue = values.length > 0 ? Math.min(...values) : 0;
       const maxPoint = pointsDetailed.find((point) => point.value === maxValue);
@@ -519,7 +552,9 @@ const Dashboard = React.memo(() => {
     };
 
     const mapCategoryResponse = (response) => {
-      const categorias = Array.isArray(response?.categorias) ? response.categorias : [];
+      const categorias = Array.isArray(response?.categorias)
+        ? response.categorias
+        : [];
       return categorias.map((item) => ({
         category: item?.categoria ?? "Sin categoria",
         value: Number(item?.total ?? 0),
@@ -538,7 +573,8 @@ const Dashboard = React.memo(() => {
           ? Number(response.pendientes ?? 0)
           : Math.max(total - conciliados, 0);
       const porcentaje =
-        response.porcentajeConciliados !== undefined && response.porcentajeConciliados !== null
+        response.porcentajeConciliados !== undefined &&
+        response.porcentajeConciliados !== null
           ? Number(response.porcentajeConciliados)
           : total > 0
           ? (conciliados * 100) / total
@@ -563,11 +599,17 @@ const Dashboard = React.memo(() => {
         "noviembre",
         "diciembre",
       ];
-      if (monthIndex >= 0 && monthIndex < monthNames.length && Number.isFinite(yearNum)) {
+      if (
+        monthIndex >= 0 &&
+        monthIndex < monthNames.length &&
+        Number.isFinite(yearNum)
+      ) {
         periodLabel = `${monthNames[monthIndex]} ${yearNum}`;
       }
 
-      const porTipoRaw = Array.isArray(response.porTipo) ? response.porTipo : [];
+      const porTipoRaw = Array.isArray(response.porTipo)
+        ? response.porTipo
+        : [];
       const porTipo = porTipoRaw.map((item) => {
         const totalTipo = Number(item?.total ?? 0);
         const conciliadosTipo = Number(item?.conciliados ?? 0);
@@ -575,7 +617,8 @@ const Dashboard = React.memo(() => {
           item?.pendientes !== undefined
             ? Number(item.pendientes ?? 0)
             : Math.max(totalTipo - conciliadosTipo, 0);
-        const porcentajeTipo = totalTipo > 0 ? (conciliadosTipo * 100) / totalTipo : 0;
+        const porcentajeTipo =
+          totalTipo > 0 ? (conciliadosTipo * 100) / totalTipo : 0;
         return {
           tipo: item?.tipo ?? "Sin tipo",
           total: totalTipo,
@@ -658,7 +701,12 @@ const Dashboard = React.memo(() => {
           ? {
               loading: false,
               error: null,
-              data: mapTrendResponse(incomesTrendResult.value, { title: "Ingresos durante el periodo", emptyMessage: "No hay ingresos registrados en este periodo.", subheader: "Serie mensual de ingresos registrados en los ultimos 12 meses." }),
+              data: mapTrendResponse(incomesTrendResult.value, {
+                title: "Ingresos durante el periodo",
+                emptyMessage: "No hay ingresos registrados en este periodo.",
+                subheader:
+                  "Serie mensual de ingresos registrados en los ultimos 12 meses.",
+              }),
             }
           : {
               loading: false,
@@ -690,7 +738,12 @@ const Dashboard = React.memo(() => {
           ? {
               loading: false,
               error: null,
-              data: mapTrendResponse(expensesTrendResult.value, { title: "Egresos durante el periodo", emptyMessage: "No hay egresos registrados en este periodo.", subheader: "Serie mensual de egresos registrados en los ultimos 12 meses." }),
+              data: mapTrendResponse(expensesTrendResult.value, {
+                title: "Egresos durante el periodo",
+                emptyMessage: "No hay egresos registrados en este periodo.",
+                subheader:
+                  "Serie mensual de egresos registrados en los ultimos 12 meses.",
+              }),
             }
           : {
               loading: false,
@@ -934,8 +987,7 @@ const Dashboard = React.memo(() => {
               Hola, {userDisplayName}
             </Typography>
             <Typography variant="body2" sx={{ color: primaryTextColor }}>
-              Este es el resumen financiero de tu empresa. Revisá KPIs,
-              vencimientos y tareas clave.
+              Todo lo importante de tu cuenta, en un solo lugar.
             </Typography>
           </Box>
           {/* <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ width: { xs: "100%", sm: "auto" } }}>
@@ -1031,7 +1083,9 @@ const Dashboard = React.memo(() => {
             <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesByCategoryWidget
                 data={state.salesByCategory.data ?? []}
-                loading={state.salesByCategory.loading && !state.salesByCategory.data}
+                loading={
+                  state.salesByCategory.loading && !state.salesByCategory.data
+                }
                 error={state.salesByCategory.error}
               />
             </Box>
@@ -1056,7 +1110,9 @@ const Dashboard = React.memo(() => {
                     min: { value: 0, label: "--" },
                   }
                 }
-                loading={state.expensesTrend.loading && !state.expensesTrend.data}
+                loading={
+                  state.expensesTrend.loading && !state.expensesTrend.data
+                }
                 error={state.expensesTrend.error}
                 emptyMessage="No hay egresos registrados en este periodo."
               />
@@ -1066,7 +1122,10 @@ const Dashboard = React.memo(() => {
             <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesByCategoryWidget
                 data={state.expensesByCategory.data ?? []}
-                loading={state.expensesByCategory.loading && !state.expensesByCategory.data}
+                loading={
+                  state.expensesByCategory.loading &&
+                  !state.expensesByCategory.data
+                }
                 error={state.expensesByCategory.error}
                 emptyMessage="No hay egresos por categoria en este periodo."
                 title="Egresos por categorias"
@@ -1105,11 +1164,16 @@ const Dashboard = React.memo(() => {
           <Grid item xs={12} md={6} xl={4}>
             <ReconciliationWidget
               data={state.reconciliation.data}
-              loading={state.reconciliation.loading && !state.reconciliation.data}
+              loading={
+                state.reconciliation.loading && !state.reconciliation.data
+              }
               error={state.reconciliation.error}
               onRetry={loadDashboardData}
               onNavigate={(account) =>
-                handleNavigate("/conciliacion", account ? { cuenta: account } : undefined)
+                handleNavigate(
+                  "/conciliacion",
+                  account ? { cuenta: account } : undefined
+                )
               }
             />
           </Grid>
@@ -1161,20 +1225,3 @@ const Dashboard = React.memo(() => {
 });
 
 export default Dashboard;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

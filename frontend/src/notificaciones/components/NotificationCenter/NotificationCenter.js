@@ -343,7 +343,7 @@ export default function NotificationCenter() {
                   opacity: notification.is_read ? 0.7 : 1,
                   borderLeft: notification.is_read
                     ? "none"
-                    : "4px solid #2196F3",
+                    : "4px solid #2e7d67",
                   backgroundColor: selectedNotifications.includes(
                     notification.id
                   )
