@@ -26,14 +26,12 @@ import {
   FilterList as FilterIcon,
   MoreVert as MoreVertIcon,
   MarkEmailRead as MarkReadIcon,
-  Delete as DeleteIcon,
   Settings as SettingsIcon,
   CheckBox as CheckBoxIcon,
   CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../../hooks/useNotifications";
-import { deleteNotification } from "../../services/notificationsApi";
 import { useAuth } from "../../../hooks/useAuth";
 import {
   formatDate,
@@ -95,27 +93,6 @@ export default function NotificationCenter() {
       setSelectedNotifications([]);
     } catch (error) {
       console.error("Error marcando como leídas:", error);
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    try {
-      for (const notificationId of selectedNotifications) {
-        await deleteNotification(notificationId, userId);
-      }
-      setSelectedNotifications([]);
-      reload(); // Recargar las notificaciones
-    } catch (error) {
-      console.error("Error eliminando notificaciones:", error);
-    }
-  };
-
-  const handleDeleteSingle = async (notificationId) => {
-    try {
-      await deleteNotification(notificationId, userId);
-      reload(); // Recargar las notificaciones
-    } catch (error) {
-      console.error("Error eliminando notificación:", error);
     }
   };
 
@@ -254,16 +231,10 @@ export default function NotificationCenter() {
               : "Seleccionar todo"}
           </MenuItem>
           {selectedNotifications.length > 0 && (
-            <>
-              <MenuItem onClick={handleMarkSelectedAsRead}>
-                <MarkReadIcon sx={{ mr: 1 }} />
-                Marcar como leídas
-              </MenuItem>
-              <MenuItem onClick={handleDeleteSelected}>
-                <DeleteIcon sx={{ mr: 1 }} />
-                Eliminar
-              </MenuItem>
-            </>
+            <MenuItem onClick={handleMarkSelectedAsRead}>
+              <MarkReadIcon sx={{ mr: 1 }} />
+              Marcar como leídas
+            </MenuItem>
           )}
         </Menu>
       </Paper>
@@ -434,15 +405,6 @@ export default function NotificationCenter() {
                       Marcar como leída
                     </Button>
                   )}
-                  <Button
-                    size="small"
-                    startIcon={<DeleteIcon />}
-                    color="error"
-                    variant="outlined"
-                    onClick={() => handleDeleteSingle(notification.id)}
-                  >
-                    Eliminar
-                  </Button>
                 </CardActions>
               </Card>
             ))}

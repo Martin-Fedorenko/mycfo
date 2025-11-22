@@ -28,10 +28,11 @@ public class NotificationController {
             @RequestHeader("X-Usuario-Sub") String usuarioSub,
             @RequestParam(defaultValue = "all") String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String since
     ) {
         Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
-        return ResponseEntity.ok(service.getNotifications(empresaId, usuarioSub, status, page, size));
+        return ResponseEntity.ok(service.getNotifications(empresaId, usuarioSub, status, page, size, since));
     }
 
     @GetMapping("/unreadCount")
@@ -55,7 +56,7 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(":markAllRead")
+    @PostMapping("/markAllRead")
     public ResponseEntity<?> markAllRead(
             @PathVariable String userId,
             @RequestHeader("X-Usuario-Sub") String usuarioSub

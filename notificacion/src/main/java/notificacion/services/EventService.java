@@ -269,6 +269,13 @@ public class EventService {
         return notification;
     }
 
+    private TenantContext resolveTenant(String userIdFromEvent) {
+        String usuarioId = userIdFromEvent != null ? userIdFromEvent : defaultUsuarioId;
+        Long organizacionId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioId);
+        return new TenantContext(organizacionId, usuarioId);
+    }
+
+    // Método sobrecargado para compatibilidad con eventos que usan Long userId
     private TenantContext resolveTenant(Long userIdFromEvent) {
         String usuarioId = userIdFromEvent != null ? userIdFromEvent.toString() : defaultUsuarioId;
         Long organizacionId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioId);

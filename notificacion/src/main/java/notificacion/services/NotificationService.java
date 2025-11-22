@@ -18,14 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private final NotificationRepository repo;
-    private final WebSocketNotificationService webSocketService;
     private final EmailNotificationService emailService;
 
     public NotificationService(NotificationRepository repo,
-                               WebSocketNotificationService webSocketService,
                                EmailNotificationService emailService) {
         this.repo = repo;
-        this.webSocketService = webSocketService;
         this.emailService = emailService;
     }
 
@@ -35,10 +32,36 @@ public class NotificationService {
                                                      String status,
                                                      int page,
                                                      int size) {
+        return getNotifications(organizacionId, usuarioId, status, page, size, null);
+    }
+
+    @Transactional(readOnly = true)
+    public NotificationListResponse getNotifications(Long organizacionId,
+                                                     String usuarioId,
+                                                     String status,
+                                                     int page,
+                                                     int size,
+                                                     String since) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Notification> pageData = ("unread".equalsIgnoreCase(status))
-                ? repo.findByOrganizacionIdAndUsuarioIdAndIsReadFalseOrderByCreatedAtDesc(organizacionId, usuarioId, pageable)
-                : repo.findByOrganizacionIdAndUsuarioIdOrderByCreatedAtDesc(organizacionId, usuarioId, pageable);
+        Page<Notification> pageData;
+        
+        if ("unread".equalsIgnoreCase(status)) {
+            if (since != null && !since.isEmpty()) {
+                pageData = repo.findByOrganizacionIdAndUsuarioIdAndIsReadFalseAndCreatedAtAfterOrderByCreatedAtDesc(
+                    organizacionId, usuarioId, java.time.Instant.parse(since), pageable);
+            } else {
+                pageData = repo.findByOrganizacionIdAndUsuarioIdAndIsReadFalseOrderByCreatedAtDesc(
+                    organizacionId, usuarioId, pageable);
+            }
+        } else {
+            if (since != null && !since.isEmpty()) {
+                pageData = repo.findByOrganizacionIdAndUsuarioIdAndCreatedAtAfterOrderByCreatedAtDesc(
+                    organizacionId, usuarioId, java.time.Instant.parse(since), pageable);
+            } else {
+                pageData = repo.findByOrganizacionIdAndUsuarioIdOrderByCreatedAtDesc(
+                    organizacionId, usuarioId, pageable);
+            }
+        }
 
         return buildListResponse(organizacionId, usuarioId, pageData);
     }
@@ -77,8 +100,6 @@ public class NotificationService {
         }
 
         Notification saved = repo.save(notification);
-
-        webSocketService.sendNotificationToUser(notification.getUsuarioId(), saved);
 
         try {
             emailService.sendNotificationEmail(notification.getOrganizacionId(), notification.getUsuarioId(), saved);
@@ -164,7 +185,9 @@ public class NotificationService {
     }
 
     private void publishUnreadCount(Long organizacionId, String usuarioId) {
-        int unreadCount = repo.countByOrganizacionIdAndUsuarioIdAndIsReadFalse(organizacionId, usuarioId);
-        webSocketService.sendUnreadCountUpdate(usuarioId, unreadCount);
+        // WebSocket eliminado - solo email notifications
+        // El contador de no leídas ya no se necesita sin WebSocket
+        // int unreadCount = repo.countByOrganizacionIdAndUsuarioIdAndIsReadFalse(organizacionId, usuarioId);
+        // webSocketService.sendUnreadCountUpdate(usuarioId, unreadCount); // Eliminado
     }
 }

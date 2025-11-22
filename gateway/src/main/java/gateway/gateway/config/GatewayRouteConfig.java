@@ -33,16 +33,6 @@ public class GatewayRouteConfig {
         return builder.routes()
 
                 // ============================
-                //   WebSockets NOTIFICACIÓN
-                //   (RUTA MÁS ESPECÍFICA)
-                // ============================
-                .route("ws-notificacion-route", r -> r
-                        .path("/notificacion/ws/**")
-                        .filters(f -> f.stripPrefix(1))
-                        // IMPORTANTE: WS debe usar ws://
-                        .uri("ws://localhost:8084"))
-
-                // ============================
                 //    Administración
                 // ============================
                 .route("administracion-route", r -> r
@@ -93,8 +83,7 @@ public class GatewayRouteConfig {
                         .uri(iaUrl))
 
                 // ============================
-                //    HTTP Notificación
-                //    (GENÉRICO, VA AL FINAL)
+                //    NOTIFICACIONES
                 // ============================
                 .route("notificacion-route", r -> r
                         .path("/notificacion/**")

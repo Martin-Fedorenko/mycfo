@@ -12,7 +12,6 @@ import {
   Stack,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { markAsRead } from "../../services/notificationsApi";
 import {
   formatDate,
   formatNumber,
@@ -24,15 +23,22 @@ export default function MainGrid({
   onClose,
   unreadCount = 0,
   onMarkAllRead,
+  onMarkOneRead,
+  userId,
 }) {
   const [loading, setLoading] = React.useState(false);
   const navigate = useNavigate();
 
   const handleMarkAsRead = async (notificationId) => {
+    if (!userId) return;
+    
     try {
       setLoading(true);
-      await markAsRead({ userId: 1, notifId: notificationId });
-      // TODO: Actualizar el estado local o recargar
+      
+      // Llamar al callback que maneja la API y refresco del badge
+      if (onMarkOneRead) {
+        onMarkOneRead(notificationId);
+      }
     } catch (error) {
       console.error("Error marcando como leída:", error);
     } finally {

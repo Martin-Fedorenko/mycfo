@@ -2,7 +2,7 @@
 // Este archivo proporciona valores por defecto si no existen variables de entorno
 
 // URL base del gateway (puede ser localhost o TunnelMole)
-const BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:8090';
+const BASE_URL = process.env.REACT_APP_BASE_URL //|| 'http://localhost:8090';
 
 const API_CONFIG = {
   // URLs construidas a partir de la base

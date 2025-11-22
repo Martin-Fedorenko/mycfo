@@ -1,12 +1,13 @@
-// src/config/api.js
+// API centralizada que siempre usa el gateway - IGNORA VARIABLES DE ENTORNO
 import axios from "axios";
-import API_CONFIG from "../../../config/api-config";
+import API_CONFIG from "../../config/api-config";
 
-// Usar gateway en lugar de URL directa del servicio de notificaciones
-const BASE_URL = API_CONFIG.NOTIFICACION; // Ya apunta al gateway: BASE_URL/notificacion
+
+// Forzar uso del gateway - ignorar cualquier variable de entorno
+const GATEWAY_URL = API_CONFIG.NOTIFICACION
 
 const api = axios.create({
-  baseURL: BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`
+  baseURL: GATEWAY_URL.endsWith("/api") ? GATEWAY_URL : `${GATEWAY_URL}/api`
 });
 
 api.interceptors.request.use((config) => {

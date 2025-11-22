@@ -7,11 +7,10 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import registro.cargarDatos.models.Movimiento;
+import registro.cargarDatos.dtos.MovementCreatedEvent;
 
 import java.math.BigDecimal;
 import java.time.ZoneOffset;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 public class MovimientoEventService {
@@ -27,19 +26,29 @@ public class MovimientoEventService {
 
     public void sendMovementCreatedEvent(Movimiento movimiento) {
         try {
-            // Crear el evento
-            Map<String, Object> event = new HashMap<>();
-            event.put("userId", movimiento.getUsuarioId());
-            event.put("refId", movimiento.getId().toString());
-            event.put("date", movimiento.getFechaEmision().atStartOfDay().toInstant(ZoneOffset.UTC));
-            event.put("amount", BigDecimal.valueOf(movimiento.getMontoTotal()));
-            event.put("description", movimiento.getDescripcion());
+            // Usar directamente el String UUID del usuario (sin conversión a Long)
+            String userId = movimiento.getUsuarioId();
+            if (userId == null || userId.isEmpty()) {
+                System.err.println("Error: userId es nulo o vacío, no se puede enviar evento");
+                return;
+            }
+
+            // Crear el evento con DTO correcto (String userId)
+            MovementCreatedEvent event = new MovementCreatedEvent(
+                userId,
+                movimiento.getId().toString(),
+                movimiento.getFechaEmision() != null 
+                    ? movimiento.getFechaEmision().atStartOfDay().toInstant(ZoneOffset.UTC)
+                    : java.time.Instant.now(),
+                BigDecimal.valueOf(movimiento.getMontoTotal()),
+                movimiento.getDescripcion() != null ? movimiento.getDescripcion() : ""
+            );
 
             // Enviar al servicio de notificaciones
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(event, headers);
+            HttpEntity<MovementCreatedEvent> request = new HttpEntity<>(event, headers);
             
             restTemplate.postForObject(
                 notificacionServiceUrl + "/api/events/movements",
@@ -50,6 +59,7 @@ public class MovimientoEventService {
         } catch (Exception e) {
             // Log error pero no fallar la operación principal
             System.err.println("Error enviando evento de movimiento: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

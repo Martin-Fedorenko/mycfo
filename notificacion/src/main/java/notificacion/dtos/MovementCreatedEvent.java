@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public record MovementCreatedEvent(
-        Long userId,          // opcional x ahora
+        String userId,        // UUID string del usuario autenticado
         String refId,         // obligatorio para idempotencia
         Instant date,
         BigDecimal amount,    // >0 ingreso; <0 egreso

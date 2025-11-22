@@ -1,4 +1,4 @@
-import api from "../listado-notificaciones/components/Api.js";
+import api from "./gatewayApi.js";
 
 export async function getReminders(userId) {
   const { data } = await api.get(`/users/${userId}/reminders`);

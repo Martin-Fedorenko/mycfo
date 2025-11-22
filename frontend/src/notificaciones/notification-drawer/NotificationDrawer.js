@@ -13,6 +13,8 @@ export default function NotificationDrawer({
   loading = false,
   error = null,
   onMarkAllRead,
+  onMarkOneRead,
+  userId,
 }) {
   return (
     <Drawer
@@ -65,6 +67,8 @@ export default function NotificationDrawer({
             onClose={onClose}
             unreadCount={unreadCount}
             onMarkAllRead={onMarkAllRead}
+            onMarkOneRead={onMarkOneRead}
+            userId={userId}
           />
         )}
       </Box>

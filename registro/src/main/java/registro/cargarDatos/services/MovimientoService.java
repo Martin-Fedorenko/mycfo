@@ -10,6 +10,7 @@ import registro.cargarDatos.models.EstadoMovimiento;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.repositories.MovimientoRepository;
+import registro.cargarDatos.services.MovimientoEventService;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -35,6 +36,7 @@ public class MovimientoService {
 
     private final MovimientoRepository movimientoRepository;
     private final EmpresaDataService empresaDataService;
+    private final MovimientoEventService movimientoEventService;
     /**
      * Guarda un nuevo movimiento estableciendo el estado según el tipo
      */
@@ -54,7 +56,18 @@ public class MovimientoService {
             establecerEstadoPorDefecto(movimiento);
         }
         
-        return movimientoRepository.save(movimiento);
+        // Guardar el movimiento
+        Movimiento savedMovimiento = movimientoRepository.save(movimiento);
+        
+        // Enviar evento de notificación (asíncrono, no falla si el servicio está caído)
+        try {
+            movimientoEventService.sendMovementCreatedEvent(savedMovimiento);
+        } catch (Exception e) {
+            // Log error pero no fallar la operación principal
+            System.err.println("Error enviando evento de movimiento: " + e.getMessage());
+        }
+        
+        return savedMovimiento;
     }
     
     /**

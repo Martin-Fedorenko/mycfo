@@ -1,13 +1,14 @@
-import api from "../listado-notificaciones/components/Api.js";
+import api from "./gatewayApi.js";
 
 export async function getNotifications({
   userId,
   status = "all",
   limit = 50,
   page = 0,
+  since,
 }) {
   const { data } = await api.get(`/users/${userId}/notifications`, {
-    params: { status, size: limit, page },
+    params: { status, size: limit, page, since },
   });
   return data; // { unread, items: [...] }
 }
@@ -24,7 +25,7 @@ export async function markAsRead({ userId, notifId }) {
 }
 
 export async function markAllRead(userId) {
-  await api.post(`/users/${userId}/notifications:markAllRead`);
+  await api.post(`/users/${userId}/notifications/markAllRead`);
 }
 
 export async function deleteNotification(notificationId, userId) {

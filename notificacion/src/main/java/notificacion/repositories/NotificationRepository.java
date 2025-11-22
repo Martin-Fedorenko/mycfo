@@ -26,6 +26,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Page<Notification> findByOrganizacionIdAndUsuarioIdAndIsReadFalseOrderByCreatedAtDesc(Long organizacionId, String usuarioId, Pageable pageable);
 
+    Page<Notification> findByOrganizacionIdAndUsuarioIdAndIsReadFalseAndCreatedAtAfterOrderByCreatedAtDesc(Long organizacionId, String usuarioId, Instant createdAt, Pageable pageable);
+
+    Page<Notification> findByOrganizacionIdAndUsuarioIdAndCreatedAtAfterOrderByCreatedAtDesc(Long organizacionId, String usuarioId, Instant createdAt, Pageable pageable);
+
     int countByOrganizacionIdAndUsuarioIdAndIsReadFalse(Long organizacionId, String usuarioId);
 
     boolean existsByOrganizacionIdAndUsuarioIdAndTypeAndResourceIdAndCreatedAtBetween(

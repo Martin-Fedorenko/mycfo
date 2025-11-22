@@ -7,8 +7,12 @@ import Tooltip from "@mui/material/Tooltip";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import NotificationDrawer from "../notification-drawer/NotificationDrawer";
 import Box from "@mui/material/Box";
-import { useNotifications } from "../hooks/useNotifications";
 import { useAuth } from "../../hooks/useAuth";
+import {
+  getNotifications,
+  markAsRead,
+  markAllRead,
+} from "../services/notificationsApi";
 
 export default function NotificationButton(props) {
   const [openDrawer, setOpenDrawer] = React.useState(false);
@@ -16,16 +20,130 @@ export default function NotificationButton(props) {
   // Obtener userId del estado de autenticación
   const { userId, isAuthenticated } = useAuth();
   
-  // Solo usar notificaciones si está autenticado
-  const { items, unread, loading, error, markAllAsRead, isWebSocketConnected } =
-    useNotifications(isAuthenticated ? userId : null);
+  // Estado compartido para badge y drawer
+  const [unread, setUnread] = React.useState(0);
+  const [loading, setLoading] = React.useState(false);
+  const [drawerItems, setDrawerItems] = React.useState([]);
+  const [drawerLoading, setDrawerLoading] = React.useState(false);
+  const [drawerError, setDrawerError] = React.useState(null);
+
+  // Polling cada 10s de las notificaciones NO leídas
+  React.useEffect(() => {
+    if (!isAuthenticated || !userId) {
+      setUnread(0);
+      setDrawerItems([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        const data = await getNotifications({
+          userId,
+          status: "unread",
+          limit: 50,
+        });
+
+        if (cancelled) return;
+
+        const items = data.items || [];
+
+        // La lista de la solapa refleja SIEMPRE el estado del backend (solo no leídas)
+        setDrawerItems(items);
+
+        // Actualizar contador para el badge
+        const unreadCount =
+          typeof data.unread === "number" ? data.unread : items.length;
+        setUnread(unreadCount);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error en polling de notificaciones:", err);
+          setDrawerError(err);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Primera carga inmediata
+    fetchNotifications();
+
+    const intervalId = setInterval(fetchNotifications, 10000); // 10 segundos
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [isAuthenticated, userId]);
+
+  // Sincronizar cuando el centro marque como leída (evento global)
+  React.useEffect(() => {
+    const handleExternalMarkRead = (event) => {
+      const id = event.detail?.id;
+      if (!id) return;
+      setDrawerItems((prev) => prev.filter((n) => n.id !== id));
+      setUnread((prev) => Math.max(0, prev - 1));
+    };
+
+    const handleExternalMarkAll = () => {
+      setDrawerItems([]);
+      setUnread(0);
+    };
+
+    window.addEventListener("notification-mark-read", handleExternalMarkRead);
+    window.addEventListener("notification-mark-all-read", handleExternalMarkAll);
+
+    return () => {
+      window.removeEventListener("notification-mark-read", handleExternalMarkRead);
+      window.removeEventListener("notification-mark-all-read", handleExternalMarkAll);
+    };
+  }, []);
 
   const handleOpenDrawer = () => {
+    if (!isAuthenticated || !userId) return;
     setOpenDrawer(true);
   };
 
   const handleCloseDrawer = () => {
     setOpenDrawer(false);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!isAuthenticated || !userId) return;
+    
+    try {
+      await markAllRead(userId);
+      
+      // Eliminar todas las notificaciones del drawer (están leídas)
+      setDrawerItems([]);
+      setUnread(0);
+
+      // Notificar a otros componentes (centro) que todas fueron leídas
+      window.dispatchEvent(new CustomEvent("notification-mark-all-read"));
+    } catch (error) {
+      console.error("Error marcando todas como leídas:", error);
+    }
+  };
+
+  const handleMarkOneAsRead = async (notifId) => {
+    if (!isAuthenticated || !userId) return;
+    
+    try {
+      await markAsRead({ userId, notifId });
+      
+      // Eliminar la notificación del drawer (está leída)
+      setDrawerItems(prev => prev.filter(n => n.id !== notifId));
+      setUnread(prev => Math.max(0, prev - 1));
+
+      // Notificar a otros componentes (centro) que esta notificación fue leída
+      window.dispatchEvent(new CustomEvent("notification-mark-read", { detail: { id: notifId } }));
+    } catch (error) {
+      console.error("Error marcando notificación como leída:", error);
+    }
   };
 
   return (
@@ -44,11 +162,7 @@ export default function NotificationButton(props) {
         })}
       >
         <Tooltip
-          title={
-            isWebSocketConnected
-              ? `Notificaciones (${unread} sin leer)`
-              : `Notificaciones (${unread} sin leer)`
-          }
+          title={`Notificaciones (${unread} sin leer)`}
         >
           <IconButton
             onClick={handleOpenDrawer}
@@ -73,11 +187,13 @@ export default function NotificationButton(props) {
       <NotificationDrawer
         open={openDrawer}
         onClose={handleCloseDrawer}
-        notifications={items}
+        notifications={drawerItems}
         unreadCount={unread}
-        loading={loading}
-        error={error}
-        onMarkAllRead={markAllAsRead}
+        loading={drawerLoading}
+        error={drawerError}
+        onMarkAllRead={handleMarkAllAsRead}
+        onMarkOneRead={handleMarkOneAsRead}
+        userId={userId}
       />
     </React.Fragment>
   );

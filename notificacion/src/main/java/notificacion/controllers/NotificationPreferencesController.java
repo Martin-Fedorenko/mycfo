@@ -27,9 +27,9 @@ public class NotificationPreferencesController {
             @PathVariable String userId,
             @RequestHeader("X-Usuario-Sub") String usuarioSub) {
         Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
-        return preferencesService.getPreferences(empresaId, usuarioSub)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+        // Siempre devolver preferencias: si no existen, se crean con valores por defecto
+        NotificationPreferences prefs = preferencesService.getOrCreatePreferences(empresaId, usuarioSub);
+        return ResponseEntity.ok(prefs);
     }
 
     @PutMapping
