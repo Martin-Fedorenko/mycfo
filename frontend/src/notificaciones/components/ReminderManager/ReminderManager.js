@@ -227,189 +227,198 @@ export default function ReminderManager() {
       </Box>
 
       {/* Lista de recordatorios */}
-      <Grid container spacing={2}>
+      <Box sx={{ maxWidth: 1400, mx: "auto" }}>
         {remindersLoading ? (
-          <Grid item xs={12}>
-            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-              <Typography variant="body1" color="text.secondary">
-                Cargando recordatorios...
-              </Typography>
-            </Box>
-          </Grid>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <Typography variant="body1" color="text.secondary">
+              Cargando recordatorios...
+            </Typography>
+          </Box>
         ) : error ? (
-          <Grid item xs={12}>
-            <Alert severity="error">
-              Error al cargar los recordatorios: {error.message}
-            </Alert>
-          </Grid>
+          <Alert severity="error">
+            Error al cargar los recordatorios: {error.message}
+          </Alert>
         ) : reminders.length === 0 ? (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 4, textAlign: "center" }}>
-              <NotificationsIcon
-                sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
-              />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No tienes recordatorios configurados
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Crea tu primer recordatorio para no perderte nada importante
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => handleOpenDialog()}
-              >
-                Crear Recordatorio
-              </Button>
-            </Paper>
-          </Grid>
+          <Paper sx={{ p: 4, textAlign: "center" }}>
+            <NotificationsIcon
+              sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
+            />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No tienes recordatorios configurados
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Crea tu primer recordatorio para no perderte nada importante
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+            >
+              Crear Recordatorio
+            </Button>
+          </Paper>
         ) : (
-          reminders.map((reminder) => (
-            <Grid item xs={12} sm={6} lg={4} key={reminder.id}>
-              <Card
+          <Box
+            sx={{
+              columnCount: { xs: 1, sm: 2, lg: 3, xl: 4 },
+              columnGap: { xs: 2, sm: 2.5 },
+            }}
+          >
+            {reminders.map((reminder) => (
+              <Box
+                key={reminder.id}
                 sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    transform: "translateY(-2px)",
-                    boxShadow: (theme) => theme.shadows[8],
-                  },
+                  breakInside: "avoid",
+                  display: "inline-block",
+                  width: "100%",
+                  mb: 2,
                 }}
               >
-                <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                  {/* Título del recordatorio */}
-                  <Typography
-                    variant="h6"
-                    component="h3"
-                    sx={{
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      overflow: "hidden",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      mb: 2,
-                    }}
-                  >
-                    {reminder.title}
-                  </Typography>
-
-                  {/* Mensaje del recordatorio */}
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      mb: 2,
-                      lineHeight: 1.5,
-                      overflow: "hidden",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      minHeight: "4.5em", // 3 líneas * 1.5 line-height
-                    }}
-                  >
-                    {reminder.message}
-                  </Typography>
-
-                  {/* Chips de tipo y recurrencia */}
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}
-                  >
-                    {/* <Chip
-                      label={getReminderTypeLabel(reminder.reminderType)}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                      sx={{ fontSize: "0.75rem" }}
-                    /> */}
-                    {reminder.isRecurring && (
-                      <Chip
-                        label={getRecurrenceLabel(reminder.recurrencePattern)}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        sx={{ fontSize: "0.75rem" }}
-                      />
-                    )}
-                    {/* Debug: Mostrar siempre el patrón de recurrencia si existe */}
-                    {reminder.recurrencePattern && !reminder.isRecurring && (
-                      <Chip
-                        label={`Tipo: ${getRecurrenceLabel(
-                          reminder.recurrencePattern
-                        )}`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        sx={{ fontSize: "0.75rem" }}
-                      />
-                    )}
-                  </Stack>
-
-                  {/* Fecha y hora */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      mt: "auto",
-                      pt: 1,
-                      borderTop: 1,
-                      borderColor: "divider",
-                    }}
-                  >
-                    <ScheduleIcon fontSize="small" color="action" />
+                <Card
+                  sx={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: (theme) => theme.shadows[8],
+                    },
+                  }}
+                >
+                  <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+                    {/* Título del recordatorio */}
                     <Typography
-                      variant="caption"
-                      color="text.secondary"
+                      variant="h6"
+                      component="h3"
                       sx={{
-                        fontWeight: 500,
-                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        mb: 2,
                       }}
                     >
-                      {formatDate(reminder.scheduledFor)}
+                      {reminder.title}
                     </Typography>
-                  </Box>
-                </CardContent>
 
-                {/* Acciones en la parte inferior */}
-                <CardActions sx={{ pt: 0, px: 2, pb: 2, gap: 1 }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<EditIcon />}
-                    onClick={() => handleOpenDialog(reminder)}
-                    sx={{
-                      flex: 1,
-                      textTransform: "none",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(reminder.id)}
-                    sx={{
-                      flex: 1,
-                      textTransform: "none",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Eliminar
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))
+                    {/* Mensaje del recordatorio */}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        mb: 2,
+                        lineHeight: 1.5,
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        minHeight: "4.5em", // 3 líneas * 1.5 line-height
+                      }}
+                    >
+                      {reminder.message}
+                    </Typography>
+
+                    {/* Chips de tipo y recurrencia */}
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}
+                    >
+                      {/* <Chip
+                        label={getReminderTypeLabel(reminder.reminderType)}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        sx={{ fontSize: "0.75rem" }}
+                      /> */}
+                      {reminder.isRecurring && (
+                        <Chip
+                          label={getRecurrenceLabel(reminder.recurrencePattern)}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ fontSize: "0.75rem" }}
+                        />
+                      )}
+                      {/* Debug: Mostrar siempre el patrón de recurrencia si existe */}
+                      {reminder.recurrencePattern && !reminder.isRecurring && (
+                        <Chip
+                          label={`Tipo: ${getRecurrenceLabel(
+                            reminder.recurrencePattern
+                          )}`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ fontSize: "0.75rem" }}
+                        />
+                      )}
+                    </Stack>
+
+                    {/* Fecha y hora */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mt: "auto",
+                        pt: 1,
+                        borderTop: 1,
+                        borderColor: "divider",
+                      }}
+                    >
+                      <ScheduleIcon fontSize="small" color="action" />
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        {formatDate(reminder.scheduledFor)}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+
+                  {/* Acciones en la parte inferior */}
+                  <CardActions sx={{ pt: 0, px: 2, pb: 2, gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<EditIcon />}
+                      onClick={() => handleOpenDialog(reminder)}
+                      sx={{
+                        flex: 1,
+                        textTransform: "none",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => handleDelete(reminder.id)}
+                      sx={{
+                        flex: 1,
+                        textTransform: "none",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Eliminar
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Box>
+            ))}
+          </Box>
         )}
-      </Grid>
+      </Box>
 
       {/* Dialog para crear/editar recordatorio */}
       <Dialog

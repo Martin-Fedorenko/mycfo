@@ -31,9 +31,9 @@ const SalesByCategoryWidget = ({
   data = [],
   loading = false,
   error = null,
-  emptyMessage = "No hay datos para mostrar por categoria en este periodo.",
-  title = "Ingresos por categorias",
-  subtitle = "Distribucion anual por segmento",
+  emptyMessage = "No hay datos para mostrar por categoría en este período.",
+  title = "Ingresos por categorías",
+  subtitle = "Distribución anual por segmento",
 }) => {
   const theme = useTheme();
   const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
@@ -98,7 +98,7 @@ const SalesByCategoryWidget = ({
 
   const hasData = Array.isArray(data) && data.length > 0;
   const safeData = hasData ? data : [];
-  const categories = safeData.map((item) => item.category ?? "Sin categoria");
+  const categories = safeData.map((item) => item.category ?? "Sin categoría");
   const values = safeData.map((item) => Number(item.value) || 0);
 
   let topCategory = null;
@@ -157,7 +157,7 @@ const SalesByCategoryWidget = ({
                   variant="overline"
                   sx={{ color: primaryTextColor }}
                 >
-                  Categoria top
+                  Categoría superior
                 </Typography>
                 <Typography
                   variant="subtitle2"
@@ -180,7 +180,7 @@ const SalesByCategoryWidget = ({
                   variant="overline"
                   sx={{ color: primaryTextColor }}
                 >
-                  Categoria menor
+                  Categoría menor
                 </Typography>
                 <Typography
                   variant="subtitle2"
@@ -213,7 +213,7 @@ const SalesByCategoryWidget = ({
                   {formatCurrency(average)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                  {values.length} categorias
+                  {values.length} categorías
                 </Typography>
               </Stack>
             </Stack>

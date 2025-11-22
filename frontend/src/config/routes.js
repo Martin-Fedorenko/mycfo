@@ -1,7 +1,23 @@
 import React from "react";
-import StorageIcon from "@mui/icons-material/Storage";
+import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
+import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
+import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
+import ListAltRoundedIcon from "@mui/icons-material/ListAltRounded";
+import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
+import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
+import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import PieChartRoundedIcon from "@mui/icons-material/PieChartRounded";
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
+import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
+import TrendingFlatRoundedIcon from "@mui/icons-material/TrendingFlatRounded";
+import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
+import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
+import AlarmRoundedIcon from "@mui/icons-material/AlarmRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import DescriptionIcon from "@mui/icons-material/Description";
-import LinkIcon from "@mui/icons-material/Link";
 
 // Lazy loading para componentes pesados
 const ReporteMensual = React.lazy(() => import("../reportes/reporte-mensual/ReporteMensual"));
@@ -38,7 +54,7 @@ const routeConfig = [
   {
     label: "Carga de datos",
     path: "/carga",
-    icon: <DescriptionIcon />,
+    icon: <CloudUploadRoundedIcon />,
     element: <CargaSeleccionTipo />,
   },
   {
@@ -54,29 +70,29 @@ const routeConfig = [
   {
     label: "Ver movimientos",
     path: "/ver-movimientos",
-    icon: <DescriptionIcon />,
+    icon: <ListAltRoundedIcon />,
     element: <TablaRegistrosV2 />,
   },
   {
     label: "Ver facturas",
     path: "/ver-facturas",
-    icon: <DescriptionIcon />,
+    icon: <RequestQuoteRoundedIcon />,
     element: <FacturaListPage />,
   },
   {
     label: "Conciliación",
     path: "/conciliacion",
-    icon: <LinkIcon />,
+    icon: <CompareArrowsRoundedIcon />,
     element: <ConciliacionPanel />,
   },
   {
     label: "Vinculación Bancaria",
-    icon: <StorageIcon />,
+    icon: <AccountBalanceRoundedIcon />,
     children: [
       {
         label: "Carga de movimientos",
         path: "/carga-movimientos",
-        icon: <DescriptionIcon />,
+        icon: <UploadFileRoundedIcon />,
         element: <ExcelManagement />,
       },
       {
@@ -89,36 +105,36 @@ const routeConfig = [
   },
   {
     label: "Reportes",
-    icon: <StorageIcon />,
+    icon: <AssessmentRoundedIcon />,
     children: [
       {
         label: "Reporte mensual",
         path: "/reporte-mensual",
-        icon: <DescriptionIcon />,
+        icon: <CalendarMonthRoundedIcon />,
         element: <ReporteMensual />,
       },
       {
         label: "Flujo de caja",
         path: "/flujo-de-caja",
-        icon: <DescriptionIcon />,
+        icon: <TimelineRoundedIcon />,
         element: <CashFlow />,
       },
       {
         label: "Estado de Resultados",
         path: "/estado-de-resultado",
-        icon: <DescriptionIcon />,
+        icon: <PieChartRoundedIcon />,
         element: <ProfitLoss />,
       },
     ],
   },
   {
     label: "Pronóstico",
-    icon: <StorageIcon />,
+    icon: <TrendingUpRoundedIcon />,
     children: [
       {
         label: "Presupuestos",
         path: "/presupuestos",
-        icon: <DescriptionIcon />,
+        icon: <SavingsRoundedIcon />,
         element: <Presupuesto />,
         children: [
           {
@@ -147,13 +163,13 @@ const routeConfig = [
       {
         label: "Pronóstico Continuo",
         path: "/pronostico-continuo",
-        icon: <DescriptionIcon />,
+        icon: <AutoGraphRoundedIcon />,
         element: <PronosticoContinuo />,
       },
       {
         label: "Pronóstico Fijo",
         path: "/pronostico-fijo",
-        icon: <DescriptionIcon />,
+        icon: <TrendingFlatRoundedIcon />,
         element: <PronosticoFijo />,
         children: [
           {
@@ -180,24 +196,24 @@ const routeConfig = [
   },
   {
     label: "Notificaciones",
-    icon: <StorageIcon />,
+    icon: <NotificationsActiveRoundedIcon />,
     children: [
       {
         label: "Centro de Notificaciones",
         path: "/listado-notificaciones",
-        icon: <DescriptionIcon />,
+        icon: <NotificationsNoneRoundedIcon />,
         element: <Notificaciones />,
       },
       {
         label: "Recordatorios",
         path: "/recordatorios",
-        icon: <DescriptionIcon />,
+        icon: <AlarmRoundedIcon />,
         element: <ReminderManager />,
       },
       {
         label: "Configuración",
         path: "/configuracion-notificaciones",
-        icon: <DescriptionIcon />,
+        icon: <SettingsRoundedIcon />,
         element: <NotificationSettings />,
       },
       // {
