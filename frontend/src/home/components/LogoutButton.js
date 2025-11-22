@@ -4,8 +4,11 @@ import { Tooltip, IconButton } from "@mui/material";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import { CognitoUserPool } from "amazon-cognito-identity-js";
 import { sessionService } from "../../shared-services/sessionService";
+import { useNavigate } from "react-router-dom";
 
 export default function LogoutButton() {
+  const navigate = useNavigate();
+  
   const poolData = {
     UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID,
     ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,
@@ -31,7 +34,7 @@ export default function LogoutButton() {
     // 🚀 Si querés logout global en Cognito Hosted UI
     const cognitoDomain = process.env.REACT_APP_COGNITO_DOMAIN; 
     const clientId = process.env.REACT_APP_COGNITO_CLIENT_ID;
-    const logoutRedirectUri = `${window.location.origin}/#/signin`; // vuelve a la página de login
+    const logoutRedirectUri = `${window.location.origin}${process.env.PUBLIC_URL}/#/signin`;
 
     if (cognitoDomain) {
       const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(
@@ -40,9 +43,9 @@ export default function LogoutButton() {
       console.log("🌐 Redirigiendo a Cognito Hosted UI logout:", logoutUrl);
       window.location.href = logoutUrl;
     } else {
-      // Si no usás Hosted UI
-      console.log("➡️ Redirigiendo a /#/signin");
-      window.location.href = "/#/signin";
+      // Si no usás Hosted UI, usar navigate
+      console.log("➡️ Redirigiendo a /signin");
+      navigate("/signin");
     }
   };
 

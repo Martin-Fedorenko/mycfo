@@ -29,7 +29,11 @@ public class CorsConfig {
                 "https://*.ngrok-free.app",
                 "http://*.ngrok-free.app",
                 "https://*.tunnelmole.net",
-                "http://*.tunnelmole.net"
+                "http://*.tunnelmole.net",
+                "https://martin-fedorenko.github.io",
+                "https://martin-fedorenko.github.io/#",
+                "https://martin-fedorenko.github.io/mycfo/",
+                "https://martin-fedorenko.github.io/mycfo/#"
         ));
 
         config.setAllowedMethods(Arrays.asList(

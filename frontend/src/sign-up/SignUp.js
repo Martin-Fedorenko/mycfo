@@ -6,6 +6,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import FormLabel from "@mui/material/FormLabel";
 import FormControl from "@mui/material/FormControl";
 import Link from "@mui/material/Link";
+import { Link as RouterLink } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
@@ -265,7 +266,7 @@ export default function SignUp(props) {
             */}
             <Typography sx={{ textAlign: "center" }}>
               ¿Ya tienes una cuenta?{" "}
-              <Link href="/#/signin" variant="body2" sx={{ alignSelf: "center" }}>
+              <Link component={RouterLink} to="/signin" variant="body2" sx={{ alignSelf: "center" }}>
                 Inicia sesión
               </Link>
             </Typography>

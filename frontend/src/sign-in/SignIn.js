@@ -8,6 +8,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
 import FormControl from "@mui/material/FormControl";
 import Link from "@mui/material/Link";
+import { Link as RouterLink } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
@@ -158,8 +159,8 @@ export default function SignIn(props) {
           setGlobalMsg("Inicio de sesión correcto.");
           setLoading(false);
 
-          // Redirigir al home
-          window.location.href = "http://localhost:3000/#";
+          // Redirigir al home usando navigate
+          navigate("/");
         } catch (err) {
           setLoading(false);
           console.error("Error loading user profile:", err);
@@ -284,7 +285,7 @@ export default function SignIn(props) {
             */}
             <Typography sx={{ textAlign: "center" }}>
               ¿No tienes una cuenta?{" "}
-              <Link href="/#/signup/" variant="body2" sx={{ alignSelf: "center" }}>
+              <Link component={RouterLink} to="/signup" variant="body2" sx={{ alignSelf: "center" }}>
                 Regístrate
               </Link>
             </Typography>
