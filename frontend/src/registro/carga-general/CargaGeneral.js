@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { Box, Typography, Grid, ButtonBase, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Grid,
+  ButtonBase,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import {
   Edit,
   Description,
@@ -112,12 +122,20 @@ export default function CargaGeneral() {
     { key: "Ingreso", label: "Ingreso", icon: <SwapHoriz fontSize="large" /> },
     { key: "Egreso", label: "Egreso", icon: <SwapHoriz fontSize="large" /> },
     { key: "Deuda", label: "Deuda", icon: <SwapHoriz fontSize="large" /> },
-    { key: "Acreencia", label: "Acreencia", icon: <SwapHoriz fontSize="large" /> },
+    {
+      key: "Acreencia",
+      label: "Acreencia",
+      icon: <SwapHoriz fontSize="large" />,
+    },
   ];
 
   const modos = [
     { key: "formulario", label: "Formulario", icon: <Edit fontSize="large" /> },
-    { key: "documento", label: "Documento", icon: <Description fontSize="large" /> },
+    {
+      key: "documento",
+      label: "Documento",
+      icon: <Description fontSize="large" />,
+    },
     { key: "foto", label: "Foto", icon: <CameraAlt fontSize="large" /> },
     { key: "audio", label: "Audio", icon: <Mic fontSize="large" /> },
   ];
@@ -172,8 +190,12 @@ export default function CargaGeneral() {
         }))
       );
     } else {
-      console.warn("Autocompletado por audio: no se detectaron campos para completar.");
-      alert("No se detectaron datos válidos en el audio. Por favor, grabalo nuevamente.");
+      console.warn(
+        "Autocompletado por audio: no se detectaron campos para completar."
+      );
+      alert(
+        "No se detectaron datos válidos en el audio. Por favor, grabalo nuevamente."
+      );
       setDialogData(null);
       setFormDialogOpen(false);
       console.groupEnd();
@@ -191,7 +213,9 @@ export default function CargaGeneral() {
 
   const renderContenido = () => {
     if (!tipoDoc || !modoCarga)
-      return <Typography sx={{ mt: 3 }}>Seleccioná un tipo y un método</Typography>;
+      return (
+        <Typography sx={{ mt: 3 }}>Seleccioná un tipo y un método</Typography>
+      );
 
     const endpoint = endpointMap[tipoDoc]?.[modoCarga];
     const tipoDocLower = (tipoDoc || "").toLowerCase();
@@ -228,76 +252,35 @@ export default function CargaGeneral() {
 
   return (
     <>
-    <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", mt: 4, p: 3 }}>
-      {/* Encabezado */}
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          variant="h4"
-          component="h1"
-          sx={{ fontWeight: 600, color: 'text.primary' }}
-        >
-          Registro de Documentos y Movimientos
-        </Typography>
-        <Typography variant="subtitle1">
-          Elegí qué tipo de registro querés cargar
-        </Typography>
-      </Box>
-
-      {/* Botones de selección de tipo */}
-      {!tipoDoc && (
-        <Grid container spacing={3} justifyContent="center">
-          {tipos.map((t) => (
-            <Grid item key={t.key}>
-              <ButtonBase
-                onClick={() => {
-                  setTipoDoc(t.key);
-                  setModoCarga(""); // resetear modo al elegir tipo
-                  setFormData({});
-                  setErrors({});
-                  setFormDialogOpen(false);
-                  setDialogTipoDoc("");
-                  setDialogEndpoint("");
-                }}
-                sx={{
-                  flexDirection: "column",
-                  p: 3,
-                  borderRadius: 3,
-                  border: "2px solid",
-                  borderColor: "divider",
-                  width: 150,
-                  height: 150,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  bgcolor: "background.paper",
-                  "&:hover": {
-                    bgcolor: "action.hover",
-                  },
-                }}
-              >
-                {t.icon}
-                <Typography sx={{ mt: 1 }} variant="subtitle1">
-                  {t.label}
-                </Typography>
-              </ButtonBase>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* Botones de métodos de carga */}
-      {tipoDoc && !modoCarga && (
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Elegí el método de carga para {tipoDoc}
+      <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto", p: 3 }}>
+        {/* Encabezado */}
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontWeight: 600, color: "text.primary" }}
+          >
+            Registro de Documentos y Movimientos
           </Typography>
+          <Typography variant="subtitle1">
+            Elegí qué tipo de registro querés cargar
+          </Typography>
+        </Box>
+
+        {/* Botones de selección de tipo */}
+        {!tipoDoc && (
           <Grid container spacing={3} justifyContent="center">
-            {modos.map((m) => (
-              <Grid item key={m.key}>
+            {tipos.map((t) => (
+              <Grid item key={t.key}>
                 <ButtonBase
                   onClick={() => {
-                    setModoCarga(m.key);
+                    setTipoDoc(t.key);
+                    setModoCarga(""); // resetear modo al elegir tipo
+                    setFormData({});
                     setErrors({});
                     setFormDialogOpen(false);
+                    setDialogTipoDoc("");
+                    setDialogEndpoint("");
                   }}
                   sx={{
                     flexDirection: "column",
@@ -315,103 +298,144 @@ export default function CargaGeneral() {
                     },
                   }}
                 >
-                  {m.icon}
+                  {t.icon}
                   <Typography sx={{ mt: 1 }} variant="subtitle1">
-                    {m.label}
+                    {t.label}
                   </Typography>
                 </ButtonBase>
               </Grid>
             ))}
           </Grid>
-        </Box>
-      )}
+        )}
 
-      {/* Vista final de carga */}
-      {tipoDoc && modoCarga && (
-        <Box sx={{ mt: 4 }}>
-          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-            <ButtonBase
-              onClick={() => {
-                setModoCarga("");
-                setFormData({});
-                setErrors({});
-                setFormDialogOpen(false);
-              }}
-              sx={{
-                p: 1,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Typography variant="body2">← Cambiar método</Typography>
-            </ButtonBase>
-            <ButtonBase
-              onClick={() => {
-                setTipoDoc("");
-                setModoCarga("");
-                setFormData({});
-                setErrors({});
-                setFormDialogOpen(false);
-                setDialogTipoDoc("");
-                setDialogEndpoint("");
-              }}
-              sx={{
-                p: 1,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Typography variant="body2">← Cambiar tipo</Typography>
-            </ButtonBase>
-          </Box>
-          {renderContenido()}
-        </Box>
-      )}
-    </Box>
-    <Dialog
-      open={formDialogOpen && !!dialogData}
-      onClose={() => {
-        setFormDialogOpen(false);
-        setDialogData(null);
-      }}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle sx={{ fontWeight: 600 }}>
-        Revisá y completá la información detectada
-      </DialogTitle>
-      <DialogContent dividers sx={{ p: 3 }}>
-        {dialogData && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {renderVistaPrevia()}
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Podés editar los datos antes de guardar
+        {/* Botones de métodos de carga */}
+        {tipoDoc && !modoCarga && (
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Elegí el método de carga para {tipoDoc}
             </Typography>
-            <CargaFormulario
-              tipoDoc={dialogTipoDoc || (tipoDoc || "").toLowerCase()}
-              endpoint={dialogEndpoint || endpointMap[tipoDoc]?.formulario}
-              formData={formData}
-              setFormData={setFormData}
-              errors={errors}
-              setErrors={setErrors}
-            />
+            <Grid container spacing={3} justifyContent="center">
+              {modos.map((m) => (
+                <Grid item key={m.key}>
+                  <ButtonBase
+                    onClick={() => {
+                      setModoCarga(m.key);
+                      setErrors({});
+                      setFormDialogOpen(false);
+                    }}
+                    sx={{
+                      flexDirection: "column",
+                      p: 3,
+                      borderRadius: 3,
+                      border: "2px solid",
+                      borderColor: "divider",
+                      width: 150,
+                      height: 150,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      bgcolor: "background.paper",
+                      "&:hover": {
+                        bgcolor: "action.hover",
+                      },
+                    }}
+                  >
+                    {m.icon}
+                    <Typography sx={{ mt: 1 }} variant="subtitle1">
+                      {m.label}
+                    </Typography>
+                  </ButtonBase>
+                </Grid>
+              ))}
+            </Grid>
           </Box>
         )}
-      </DialogContent>
-      <DialogActions sx={{ p: 3 }}>
-        <Button
-          onClick={() => {
-            setFormDialogOpen(false);
-            setDialogData(null);
-          }}
-          variant="outlined"
-        >
-          Cerrar
-        </Button>
-      </DialogActions>
-    </Dialog>
+
+        {/* Vista final de carga */}
+        {tipoDoc && modoCarga && (
+          <Box sx={{ mt: 4 }}>
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              <ButtonBase
+                onClick={() => {
+                  setModoCarga("");
+                  setFormData({});
+                  setErrors({});
+                  setFormDialogOpen(false);
+                }}
+                sx={{
+                  p: 1,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="body2">← Cambiar método</Typography>
+              </ButtonBase>
+              <ButtonBase
+                onClick={() => {
+                  setTipoDoc("");
+                  setModoCarga("");
+                  setFormData({});
+                  setErrors({});
+                  setFormDialogOpen(false);
+                  setDialogTipoDoc("");
+                  setDialogEndpoint("");
+                }}
+                sx={{
+                  p: 1,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="body2">← Cambiar tipo</Typography>
+              </ButtonBase>
+            </Box>
+            {renderContenido()}
+          </Box>
+        )}
+      </Box>
+      <Dialog
+        open={formDialogOpen && !!dialogData}
+        onClose={() => {
+          setFormDialogOpen(false);
+          setDialogData(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          Revisá y completá la información detectada
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          {dialogData && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {renderVistaPrevia()}
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Podés editar los datos antes de guardar
+              </Typography>
+              <CargaFormulario
+                tipoDoc={dialogTipoDoc || (tipoDoc || "").toLowerCase()}
+                endpoint={dialogEndpoint || endpointMap[tipoDoc]?.formulario}
+                formData={formData}
+                setFormData={setFormData}
+                errors={errors}
+                setErrors={setErrors}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setFormDialogOpen(false);
+              setDialogData(null);
+            }}
+            variant="outlined"
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

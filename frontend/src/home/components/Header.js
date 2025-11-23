@@ -1,6 +1,5 @@
 import * as React from 'react';
 import Stack from '@mui/material/Stack';
-import Box from '@mui/material/Box';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import NavbarBreadcrumbs from './NavbarBreadcrumbs';
@@ -12,20 +11,19 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
-import LogoutButton from './LogoutButton';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { CustomIcon as AppLogoIcon } from './AppNavbar';
 
 const Header = React.memo(function Header({ onToggleSidebar }) {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
   return (
     <Stack
       direction="row"
       sx={{
-        display: 'flex', // Visible en todos los tamaños
+        display: 'flex',
         width: '100%',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -46,7 +44,7 @@ const Header = React.memo(function Header({ onToggleSidebar }) {
             color: 'inherit',
             minWidth: 0,
             lineHeight: 0,
-            ml: 1, // un poco más a la derecha en móvil
+            ml: 1,
           }}
           aria-label="Ir al inicio"
         >
@@ -59,7 +57,7 @@ const Header = React.memo(function Header({ onToggleSidebar }) {
       {/* Columna derecha */}
       <Stack direction="row" sx={{ gap: 1, alignItems: 'center' }}>
         {isMobile ? (
-          // Modo móvil: theme, notificaciones, menú
+          // Modo móvil: theme, notificaciones, menú lateral
           <>
             <ColorModeIconDropdown />
             <NotificationButton />

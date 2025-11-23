@@ -9,7 +9,11 @@ export default function CargaSeleccionMetodo() {
 
   const modos = [
     { key: "formulario", label: "Formulario", icon: <Edit fontSize="large" /> },
-    { key: "documento", label: "Documento", icon: <Description fontSize="large" /> },
+    {
+      key: "documento",
+      label: "Documento",
+      icon: <Description fontSize="large" />,
+    },
     { key: "foto", label: "Foto", icon: <CameraAlt fontSize="large" /> },
     { key: "audio", label: "Audio", icon: <Mic fontSize="large" /> },
   ];
@@ -20,7 +24,7 @@ export default function CargaSeleccionMetodo() {
         width: "100%",
         maxWidth: 1000,
         mx: "auto",
-        mt: 8,
+        mt: 1,
         p: 3,
         display: "flex",
         flexDirection: "column",

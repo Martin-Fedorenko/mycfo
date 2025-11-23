@@ -1,5 +1,14 @@
 import React, { useState, Suspense } from "react";
-import { Box, Typography, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import { useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import VerIngreso from "../movimientos-cargados/components/VerIngreso";
@@ -9,7 +18,9 @@ import VerAcreencia from "../movimientos-cargados/components/VerAcreencia";
 import API_CONFIG from "../../config/api-config";
 
 // Lazy loading para componentes pesados
-const CargaFormulario = React.lazy(() => import("./components/CargaFormulario"));
+const CargaFormulario = React.lazy(() =>
+  import("./components/CargaFormulario")
+);
 const CargaDocumento = React.lazy(() => import("./components/CargaDocumento"));
 const CargaImagen = React.lazy(() => import("./components/CargaImagen"));
 const CargaAudio = React.lazy(() => import("./components/CargaAudio"));
@@ -143,8 +154,12 @@ export default function CargaVistaFinal() {
       });
 
     if (!camposDetectados) {
-      console.warn("Autocompletado por audio: no se detectaron campos para completar.");
-      alert("No se detectaron datos válidos en el audio. Grabá un nuevo audio con más detalle.");
+      console.warn(
+        "Autocompletado por audio: no se detectaron campos para completar."
+      );
+      alert(
+        "No se detectaron datos válidos en el audio. Grabá un nuevo audio con más detalle."
+      );
       setDialogData(null);
       setFormDialogOpen(false);
       console.groupEnd();
@@ -167,7 +182,14 @@ export default function CargaVistaFinal() {
 
   const renderContenido = () => {
     const LoadingFallback = () => (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: 200,
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -219,18 +241,17 @@ export default function CargaVistaFinal() {
         width: "100%",
         maxWidth: 1000,
         mx: "auto",
-        mt: 8,
+        mt: 1,
         p: 3,
-
       }}
     >
-    <Typography variant="h5" sx={{ mb: 2, textAlign: "center" }}>
+      <Typography variant="h5" sx={{ mb: 2, textAlign: "center" }}>
         Carga de {tipo} por {modo}
-    </Typography>
+      </Typography>
 
-    <Typography variant="subtitle1" sx={{ mb: 4, textAlign: "center" }}>
+      <Typography variant="subtitle1" sx={{ mb: 4, textAlign: "center" }}>
         Elegí cómo querés cargar tu {tipo}
-    </Typography>
+      </Typography>
 
       {renderContenido()}
       <Dialog
@@ -247,7 +268,13 @@ export default function CargaVistaFinal() {
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           {dialogData && (
-            <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress /></Box>}>
+            <Suspense
+              fallback={
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              }
+            >
               <CargaFormulario
                 tipoDoc={tipo}
                 endpoint={dialogEndpoint}

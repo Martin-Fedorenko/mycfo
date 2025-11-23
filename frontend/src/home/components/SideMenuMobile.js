@@ -48,6 +48,7 @@ function SideMenuMobile({ open, toggleDrawer }) {
       open={open}
       onClose={toggleDrawer(false)}
       sx={{
+        display: { xs: 'block', lg: 'none' },
         zIndex: (theme) => theme.zIndex.drawer + 1,
         [`& .${drawerClasses.paper}`]: {
           backgroundImage: 'none',

@@ -1,6 +1,13 @@
 import React from "react";
 import { Box, Typography, Grid, ButtonBase } from "@mui/material";
-import { Receipt, TrendingUp, TrendingDown, AccountBalance, Wallet, Handshake } from "@mui/icons-material";
+import {
+  Receipt,
+  TrendingUp,
+  TrendingDown,
+  AccountBalance,
+  Wallet,
+  Handshake,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
 export default function CargaSeleccionTipo() {
@@ -12,7 +19,11 @@ export default function CargaSeleccionTipo() {
     { key: "Deuda", label: "Deuda", icon: <AccountBalance fontSize="large" /> },
     { key: "Acreencia", label: "Acreencia", icon: <Wallet fontSize="large" /> },
     { key: "Factura", label: "Factura", icon: <Receipt fontSize="large" /> },
-    { key: "Movimientos", label: "Movimientos bancarios", icon: <Handshake fontSize="large" /> },
+    {
+      key: "Movimientos",
+      label: "Movimientos bancarios",
+      icon: <Handshake fontSize="large" />,
+    },
   ];
 
   return (
@@ -21,7 +32,7 @@ export default function CargaSeleccionTipo() {
         width: "100%",
         maxWidth: 1000,
         mx: "auto",
-        mt: 8,
+        mt: 1,
         p: 3,
         display: "flex",
         flexDirection: "column",
@@ -31,7 +42,7 @@ export default function CargaSeleccionTipo() {
       <Typography
         variant="h4"
         component="h1"
-        sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}
+        sx={{ mb: 2, fontWeight: 600, color: "text.primary" }}
       >
         Registro de Documentos y Movimientos
       </Typography>
