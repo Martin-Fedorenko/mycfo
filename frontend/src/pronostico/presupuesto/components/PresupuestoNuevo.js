@@ -123,15 +123,15 @@ export default function PresupuestoNuevo() {
   const [creating, setCreating] = React.useState(false);
 
   // Paso 1
-  const [nombre, setNombre] = React.useState('');
-  const [fechaDesde, setFechaDesde] = React.useState('');
-  const [fechaHasta, setFechaHasta] = React.useState('');
+  const [nombre, setNombre] = React.useState('Presupuesto Demo');
+  const [fechaDesde, setFechaDesde] = React.useState('2025-01');
+  const [fechaHasta, setFechaHasta] = React.useState('2025-06');
 
   // Paso 2: categorías + reglas
   const [categorias, setCategorias] = React.useState([
-    { categoria: '', tipo: '', regla: { modo: 'FIJO', importe: 0 } },
-    { categoria: '', tipo: '', regla: { modo: 'AJUSTE', importe: 0, porcentaje: 0 } },
-    { categoria: '', tipo: '', regla: { modo: 'FIJO', importe: 0 } },
+    { categoria: 'Ventas', tipo: 'Ingreso', regla: { modo: 'FIJO', importe: 500000 } },
+    { categoria: 'Marketing', tipo: 'Egreso', regla: { modo: 'AJUSTE', importe: 80000, porcentaje: 5 } },
+    { categoria: 'Operaciones', tipo: 'Egreso', regla: { modo: 'FIJO', importe: 120000 } },
   ]);
   const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
 
