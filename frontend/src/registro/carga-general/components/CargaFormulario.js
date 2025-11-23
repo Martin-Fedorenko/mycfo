@@ -77,10 +77,14 @@ export default function CargaFormulario({
       const resultado = {};
       Object.entries(datos || {}).forEach(([clave, valor]) => {
         if (dayjs.isDayjs(valor)) {
-          resultado[clave] = valor.format("YYYY-MM-DD");
+          // Para fechaEmision y cualquier campo de fecha/hora, conservar también la hora
+          const formato = clave === "fechaEmision" ? "YYYY-MM-DDTHH:mm:ss" : "YYYY-MM-DD";
+          resultado[clave] = valor.format(formato);
         } else if (Array.isArray(valor)) {
           resultado[clave] = valor.map((item) =>
-            dayjs.isDayjs(item) ? item.format("YYYY-MM-DD") : item ?? ""
+            dayjs.isDayjs(item)
+              ? item.format("YYYY-MM-DD")
+              : item ?? ""
           );
         } else if (valor && typeof valor === "object") {
           resultado[clave] = valor;

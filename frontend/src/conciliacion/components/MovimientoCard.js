@@ -34,7 +34,32 @@ export default function MovimientoCard({
 
   const formatFecha = (fecha) => {
     if (!fecha) return "-";
-    return new Date(fecha).toLocaleDateString("es-AR");
+
+    try {
+      // Caso LocalDate como array [yyyy, mm, dd]
+      if (Array.isArray(fecha) && fecha.length >= 3) {
+        const [year, month, day] = fecha;
+        const dd = String(day).padStart(2, "0");
+        const mm = String(month).padStart(2, "0");
+        return `${dd}/${mm}/${year}`;
+      }
+
+      // Caso string "YYYY-MM-DD" (LocalDate plano)
+      if (typeof fecha === "string") {
+        const match = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (match) {
+          const [, year, month, day] = match;
+          return `${day}/${month}/${year}`;
+        }
+      }
+
+      // Fallback genérico para Date/ISO (mantiene compatibilidad)
+      const d = new Date(fecha);
+      if (Number.isNaN(d.getTime())) return "-";
+      return d.toLocaleDateString("es-AR");
+    } catch {
+      return "-";
+    }
   };
 
   const getTipoColor = (tipo) => {

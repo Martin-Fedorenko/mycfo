@@ -34,7 +34,7 @@ public class DocumentoComercialController {
                     d.getTipoDocumento(),
                     d.getCategoria(),
                     d.getMontoTotal(),
-                    d.getFechaEmision()
+                    d.getFechaEmision() != null ? d.getFechaEmision().toLocalDate() : null
             ));
         }
         return respuesta;

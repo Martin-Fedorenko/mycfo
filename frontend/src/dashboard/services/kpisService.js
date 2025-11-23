@@ -85,3 +85,40 @@ export const fetchMonthlySummary = async ({ period } = {}) => {
     movementsCount: Number(payload?.totalMovimientos ?? 0) || 0,
   };
 };
+
+export const fetchTotalBalance = async () => {
+  const usuarioSub = getSessionUserSub();
+  if (!usuarioSub) {
+    throw new Error("No encontramos el usuario en la sesión.");
+  }
+
+  const url = `${API_CONFIG.REGISTRO}/movimientos/resumen/saldo-total`;
+
+  const response = await fetch(url, {
+    headers: {
+      "X-Usuario-Sub": usuarioSub,
+    },
+    credentials: "include",
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (err) {
+    // ignoramos errores de parseo si la respuesta no es JSON
+  }
+
+  if (!response.ok) {
+    const message =
+      (payload && (payload.mensaje || payload.error || payload.message)) ||
+      `No pudimos obtener el saldo total (código ${response.status}).`;
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+
+  return {
+    organizationId: payload?.organizacionId ?? null,
+    totalBalance: toNumber(payload?.saldoTotal),
+  };
+};

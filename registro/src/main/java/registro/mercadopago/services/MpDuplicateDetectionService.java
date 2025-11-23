@@ -94,10 +94,11 @@ public class MpDuplicateDetectionService {
      * Busca duplicados en la base de datos usando una consulta optimizada
      */
     private List<Movimiento> buscarDuplicadosEnBD(Set<PagoKey> pagosParaVerificar, Long organizacionId) {
-        // Obtener todas las fechas únicas para optimizar la consulta
-        Set<LocalDate> fechasUnicas = pagosParaVerificar.stream()
+        // Obtener todas las fechas únicas (solo día) y convertir a LocalDateTime al inicio del día
+        Set<java.time.LocalDateTime> fechasUnicas = pagosParaVerificar.stream()
             .map(PagoKey::getFechaEmision)
             .filter(fecha -> fecha != null)
+            .map(fecha -> fecha.atStartOfDay())
             .collect(Collectors.toSet());
         
         if (fechasUnicas.isEmpty()) {
@@ -133,7 +134,7 @@ public class MpDuplicateDetectionService {
      */
     private PagoKey crearPagoKey(Movimiento movimiento) {
         return new PagoKey(
-                movimiento.getFechaEmision(),
+                movimiento.getFechaEmision() != null ? movimiento.getFechaEmision().toLocalDate() : null,
                 movimiento.getMontoTotal(),
                 movimiento.getDescripcion(),
                 movimiento.getOrigenNombre()

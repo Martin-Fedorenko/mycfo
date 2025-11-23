@@ -33,7 +33,7 @@ public class CashflowService {
 
         return Arrays.stream(registros)
                 .filter(r -> r.getFechaEmision() != null
-                        && r.getFechaEmision().getYear() == anio
+                        && r.getFechaEmision().toLocalDate().getYear() == anio
                         && r.getTipo() != null
                         && ("Ingreso".equalsIgnoreCase(r.getTipo()) || "Egreso".equalsIgnoreCase(r.getTipo()))
                         && r.getMedioPago() != null
@@ -65,7 +65,7 @@ public class CashflowService {
 
         return lista.stream()
                 .filter(r -> r.getFechaEmision() != null
-                        && r.getFechaEmision().getYear() == anio
+                        && r.getFechaEmision().toLocalDate().getYear() == anio
                         && r.getTipo() != null
                         && ("Ingreso".equalsIgnoreCase(r.getTipo()) || "Egreso".equalsIgnoreCase(r.getTipo()))
                         && r.getMedioPago() != null

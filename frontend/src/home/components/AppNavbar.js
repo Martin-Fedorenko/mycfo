@@ -7,8 +7,8 @@ import MuiToolbar from '@mui/material/Toolbar';
 import { tabsClasses } from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import SideMenuMobile from '../../template/dashboard/components/SideMenuMobile';
-import MenuButton from '../../template/dashboard/components/MenuButton';
+import SideMenuMobile from './SideMenuMobile';
+import MenuButton from './MenuButton';
 import ColorModeIconDropdown from '../../shared-theme/ColorModeIconDropdown';
 
 const Toolbar = styled(MuiToolbar)({
@@ -38,7 +38,7 @@ export default function AppNavbar() {
     <AppBar
       position="fixed"
       sx={{
-        display: { xs: 'auto', md: 'none' },
+        display: 'none', // desactivado: ahora el header principal maneja el menú móvil
         boxShadow: 0,
         bgcolor: 'background.paper',
         backgroundImage: 'none',

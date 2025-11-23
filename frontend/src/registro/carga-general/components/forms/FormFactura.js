@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import CustomSelect from "../../../../shared-components/CustomSelect";
-import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
+import CustomDateTimePicker from "../../../../shared-components/CustomDateTimePicker";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
 import { sessionService } from "../../../../shared-services/sessionService";
@@ -147,7 +147,7 @@ export default function FormFactura({ formData, setFormData, errors = {}, modoEd
         </Box>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Fecha emisión *</FormLabel>
-          <CustomDatePicker
+          <CustomDateTimePicker
             value={formData.fechaEmision ? dayjs(formData.fechaEmision) : null}
             onChange={(fecha) => {
               if (!modoEdicion) return;

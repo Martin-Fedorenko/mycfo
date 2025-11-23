@@ -13,6 +13,7 @@ import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.cargarDatos.services.MovimientoEventService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -41,7 +42,7 @@ public class MovimientoService {
      * Guarda un nuevo movimiento estableciendo el estado según el tipo
      */
     public Movimiento guardarMovimiento(Movimiento movimiento) {
-        movimiento.setFechaCreacion(LocalDate.now());
+        movimiento.setFechaCreacion(LocalDateTime.now());
         
         // Normalizar monto según el tipo de movimiento
         normalizarMonto(movimiento);
@@ -194,7 +195,7 @@ public class MovimientoService {
         // Normalizar monto según el tipo de movimiento
         normalizarMonto(movimiento);
 
-        movimiento.setFechaActualizacion(LocalDate.now());
+        movimiento.setFechaActualizacion(LocalDateTime.now());
 
         return movimientoRepository.save(movimiento);
     }
@@ -260,8 +261,10 @@ public class MovimientoService {
         if (desde == null && hasta == null) return true;
         if (r.getFechaEmision() == null) return false;
 
-        if (desde != null && r.getFechaEmision().isBefore(desde)) return false;
-        if (hasta != null && r.getFechaEmision().isAfter(hasta)) return false;
+        LocalDate emisionDate = r.getFechaEmision().toLocalDate();
+
+        if (desde != null && emisionDate.isBefore(desde)) return false;
+        if (hasta != null && emisionDate.isAfter(hasta)) return false;
 
         return true;
     }
@@ -377,7 +380,8 @@ public class MovimientoService {
                 .periodoFin(fin)
                 .ingresosTotales(result.ingresos)
                 .egresosTotales(result.egresos)
-                .resultadoNeto(result.ingresos - result.egresos)
+                // Como los egresos ya son negativos, el resultado neto debe ser la suma algebraica
+                .resultadoNeto(result.ingresos + result.egresos)
                 .totalMovimientos(result.totalMovimientos)
                 .build();
     }
@@ -425,8 +429,8 @@ public class MovimientoService {
                     organizacionId,
                     usuarioId,
                     tipo,
-                    inicio,
-                    fin
+                    inicio.atStartOfDay(),
+                    fin.plusDays(1).atStartOfDay()
             );
 
             puntos.add(PuntoMontoMensual.builder()
@@ -480,8 +484,8 @@ public class MovimientoService {
                         organizacionId,
                         usuarioId,
                         tipo,
-                        inicio,
-                        fin
+                        inicio.atStartOfDay(),
+                        fin.plusDays(1).atStartOfDay()
                 );
 
         Map<String, Double> acumulado = registros.stream()
@@ -527,45 +531,53 @@ public class MovimientoService {
         long total = movimientoRepository.countByOrganizacionOrUsuarioAndFechaEmisionBetween(
                 organizacionId,
                 usuarioId,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
         long conciliados = movimientoRepository.countConciliadosByOrganizacionOrUsuarioAndFechaEmisionBetween(
                 organizacionId,
                 usuarioId,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
         long pendientes = movimientoRepository.countPendientesByOrganizacionOrUsuarioAndFechaEmisionBetween(
                 organizacionId,
                 usuarioId,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
         double porcentaje = total > 0 ? (conciliados * 100d) / total : 0d;
 
-        LocalDate ultimaConciliacion = movimientoRepository.findUltimaConciliacion(
+        LocalDateTime ultimaConciliacionDateTime = movimientoRepository.findUltimaConciliacion(
                 organizacionId,
                 usuarioId,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
-        LocalDate ultimoPendiente = movimientoRepository.findUltimoMovimientoPendiente(
+        LocalDate ultimaConciliacion = ultimaConciliacionDateTime != null
+                ? ultimaConciliacionDateTime.toLocalDate()
+                : null;
+
+        LocalDateTime ultimoPendienteDateTime = movimientoRepository.findUltimoMovimientoPendiente(
                 organizacionId,
                 usuarioId,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
+
+        LocalDate ultimoPendiente = ultimoPendienteDateTime != null
+                ? ultimoPendienteDateTime.toLocalDate()
+                : null;
 
         List<Object[]> porTipoRaw = movimientoRepository.obtenerResumenConciliacionPorTipo(
                 organizacionId,
                 usuarioId,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
         List<ConciliacionTipoResumen> porTipo = porTipoRaw.stream()
@@ -602,23 +614,23 @@ public class MovimientoService {
                 organizacionId,
                 usuarioId,
                 TipoMovimiento.Ingreso,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
         Double egresos = movimientoRepository.sumMontoByOrganizacionOrUsuarioAndTipoAndFechaBetween(
                 organizacionId,
                 usuarioId,
                 TipoMovimiento.Egreso,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
         long totalMovimientos = movimientoRepository.countByOrganizacionOrUsuarioAndFechaEmisionBetween(
                 organizacionId,
                 usuarioId,
-                inicio,
-                fin
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
         );
 
         return new QueryResult(
@@ -629,6 +641,41 @@ public class MovimientoService {
     }
 
     private record QueryResult(double ingresos, double egresos, long totalMovimientos) {}
+
+    public Double obtenerSaldoTotalEmpresa(Long organizacionId) {
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("Se requiere organizacionId para calcular el saldo total");
+        }
+
+        // Rango amplio: desde 1970 hasta hoy inclusive
+        LocalDate inicioFecha = LocalDate.of(1970, 1, 1);
+        LocalDate finFecha = LocalDate.now().plusDays(1); // inclusivo hasta fin de hoy
+
+        LocalDateTime inicio = inicioFecha.atStartOfDay();
+        LocalDateTime fin = finFecha.atStartOfDay();
+
+        Double ingresos = movimientoRepository.sumMontoByOrganizacionOrUsuarioAndTipoAndFechaBetween(
+                organizacionId,
+                null,
+                TipoMovimiento.Ingreso,
+                inicio,
+                fin
+        );
+
+        Double egresos = movimientoRepository.sumMontoByOrganizacionOrUsuarioAndTipoAndFechaBetween(
+                organizacionId,
+                null,
+                TipoMovimiento.Egreso,
+                inicio,
+                fin
+        );
+
+        double totalIngresos = ingresos != null ? ingresos : 0d;
+        double totalEgresos = egresos != null ? egresos : 0d;
+
+        // Egresos ya son negativos, devolvemos la suma algebraica
+        return totalIngresos + totalEgresos;
+    }
 }
 
 

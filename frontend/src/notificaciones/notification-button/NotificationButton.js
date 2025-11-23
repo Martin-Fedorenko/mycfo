@@ -59,6 +59,13 @@ export default function NotificationButton(props) {
         setUnread(unreadCount);
       } catch (err) {
         if (!cancelled) {
+          // Si el backend responde 304 (Not Modified), lo tomamos como "sin cambios"
+          // y mantenemos la lista actual sin marcar error.
+          const status = err?.response?.status;
+          if (status === 304) {
+            return;
+          }
+
           console.error("Error en polling de notificaciones:", err);
           setDrawerError(err);
         }

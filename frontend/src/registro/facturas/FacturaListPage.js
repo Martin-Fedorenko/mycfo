@@ -28,6 +28,7 @@ import {
 } from "./api/facturasService";
 import { formatCurrencyAR } from "../../utils/formatters";
 import SuccessSnackbar from "../../shared-components/SuccessSnackbar";
+import API_CONFIG from "../../config/api-config";
 
 const FACTURA_PAGE_SIZE = 250;
 
@@ -44,6 +45,7 @@ const FacturaListPage = () => {
   const [facturaToDelete, setFacturaToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const [successSnackbar, setSuccessSnackbar] = useState({ open: false, message: "" });
+  const [usuarioRol, setUsuarioRol] = useState(null);
 
   const loadFacturas = useCallback(async () => {
     setLoading(true);
@@ -68,9 +70,21 @@ const FacturaListPage = () => {
     }
   }, [filters]);
 
+  const cargarRolUsuario = useCallback(() => {
+    const sub = sessionStorage.getItem("sub");
+    if (!sub) return;
+    fetch(`${API_CONFIG.ADMINISTRACION}/api/usuarios/perfil`, {
+      headers: { "X-Usuario-Sub": sub },
+    })
+      .then((res) => res.json())
+      .then((data) => setUsuarioRol(data.rol))
+      .catch((err) => console.error("Error cargando rol:", err));
+  }, []);
+
   useEffect(() => {
     loadFacturas();
-  }, [loadFacturas]);
+    cargarRolUsuario();
+  }, [loadFacturas, cargarRolUsuario]);
 
   const requiredFields = useMemo(
     () => [
@@ -83,6 +97,14 @@ const FacturaListPage = () => {
       "vendedorNombre",
       "compradorNombre",
     ],
+    []
+  );
+
+  const initialState = useMemo(
+    () => ({
+      pagination: { paginationModel: { pageSize: FACTURA_PAGE_SIZE } },
+      sorting: { sortModel: [{ field: "fechaEmision", sort: "desc" }] },
+    }),
     []
   );
 
@@ -216,9 +238,9 @@ const FacturaListPage = () => {
         field: "fechaEmision",
         headerName: "Fecha emisión",
         flex: 0.7,
-        minWidth: 130,
-        valueGetter: (params) =>
-          params.value ? dayjs(params.value).format("YYYY-MM-DD") : "-",
+        minWidth: 160,
+        valueFormatter: (params) =>
+          params.value ? dayjs(params.value).format("DD/MM/YYYY HH:mm") : "-",
       },
       {
         field: "montoTotal",
@@ -285,40 +307,47 @@ const FacturaListPage = () => {
         minWidth: 140,
         sortable: false,
         filterable: false,
-        renderCell: (params) => (
-          <Box sx={{ display: "flex", gap: 0.5 }}>
-            <IconButton
-              size="small"
-              color="info"
-              onClick={() => handleVerFactura(params.row)}
-              title="Ver detalles"
-            >
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={() => handleEditarFactura(params.row)}
-              title="Editar"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => {
-                setFacturaToDelete(params.row);
-                setDeleteConfirmOpen(true);
-              }}
-              title="Eliminar"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        ),
+        renderCell: (params) => {
+          const isAdmin = (usuarioRol || "").toUpperCase().includes("ADMIN");
+          return (
+            <Box sx={{ display: "flex", gap: 0.5 }}>
+              <IconButton
+                size="small"
+                color="info"
+                onClick={() => handleVerFactura(params.row)}
+                title="Ver detalles"
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+              {isAdmin && (
+                <>
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => handleEditarFactura(params.row)}
+                    title="Editar"
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => {
+                      setFacturaToDelete(params.row);
+                      setDeleteConfirmOpen(true);
+                    }}
+                    title="Eliminar"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </>
+              )}
+            </Box>
+          );
+        },
       },
     ],
-    []
+    [usuarioRol]
   );
 
   return (
@@ -359,6 +388,7 @@ const FacturaListPage = () => {
           }}
           disableRowSelectionOnClick
           sx={{
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
             "& .MuiDataGrid-cell": {
               borderBottom: "1px solid #e0e0e0",
               borderRight: "1px solid #e0e0e0",

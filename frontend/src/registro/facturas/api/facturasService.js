@@ -12,6 +12,7 @@ const withUserHeaders = () => {
     headers: {
       "X-Usuario-Sub": usuarioSub,
     },
+    withCredentials: true,
   };
 };
 
@@ -52,7 +53,8 @@ export const deleteFactura = async (id) => {
 const serializeFactura = (payload) => {
   const data = { ...payload };
   if (data.fechaEmision && typeof data.fechaEmision?.format === "function") {
-    data.fechaEmision = data.fechaEmision.format("YYYY-MM-DD");
+    // Incluir fecha y hora completas tal como se eligieron en el formulario
+    data.fechaEmision = data.fechaEmision.format("YYYY-MM-DDTHH:mm:ss");
   }
   return data;
 };

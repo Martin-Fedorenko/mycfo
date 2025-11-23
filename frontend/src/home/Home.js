@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import SideMenu from './components/SideMenu';
+import SideMenuMobile from './components/SideMenuMobile';
 import AppTheme from '../shared-theme/AppTheme';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './components/Header';
@@ -29,6 +30,11 @@ const Home = React.memo(function Home(props) {
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <Box sx={{ display: 'flex' }}>
+        {/* Drawer móvil que baja desde arriba, controlado por el Header en pantallas chicas */}
+        <SideMenuMobile
+          open={sidebarOpen}
+          toggleDrawer={(newOpen) => () => setSidebarOpen(newOpen)}
+        />
         <SideMenu
           open={sidebarOpen}
           onClose={handleCloseSidebar}

@@ -16,6 +16,7 @@ import registro.services.AdministracionService;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -161,7 +162,8 @@ public class ExcelImportService {
                     Movimiento reg = new Movimiento();
                     reg.setTipo(determinarTipoMovimiento(montoValor));
                     reg.setMontoTotal(montoValor);
-                    reg.setFechaEmision(fechaLocal);
+                    // Fecha de Excel solo tiene día: usar inicio de día como hora por defecto
+                    reg.setFechaEmision(fechaLocal.atStartOfDay());
                     reg.setDescripcion(descripcionStr);
                     reg.setMedioPago(parseMedioPago(medioPagoStr));
                     reg.setMoneda(TipoMoneda.ARS);
@@ -241,7 +243,8 @@ public class ExcelImportService {
                     Movimiento mov = new Movimiento();
                     mov.setTipo(determinarTipoMovimiento(montoValor));
                     mov.setMontoTotal(montoValor);
-                    mov.setFechaEmision(fechaLocal);
+                    // Fecha de MP solo tiene día: usar inicio de día como hora por defecto
+                    mov.setFechaEmision(fechaLocal.atStartOfDay());
                     mov.setDescripcion(rawTipo);
                     mov.setMedioPago(parseMedioPago("Mercado Pago"));
                     mov.setMoneda(TipoMoneda.ARS);
@@ -318,8 +321,8 @@ public class ExcelImportService {
     private void enriquecerConContexto(Movimiento movimiento, String usuarioSub, Long organizacionId) {
         movimiento.setUsuarioId(usuarioSub);
         movimiento.setOrganizacionId(organizacionId);
-        movimiento.setFechaCreacion(LocalDate.now());
-        movimiento.setFechaActualizacion(LocalDate.now());
+        movimiento.setFechaCreacion(LocalDateTime.now());
+        movimiento.setFechaActualizacion(LocalDateTime.now());
     }
 
     private ResumenCargaDTO procesarSantander(MultipartFile file, String usuarioSub, Long organizacionId) {
@@ -331,7 +334,8 @@ public class ExcelImportService {
         Movimiento mov = new Movimiento();
         mov.setTipo(preview.getTipo());
         mov.setMontoTotal(preview.getMontoTotal());
-        mov.setFechaEmision(preview.getFechaEmision());
+        // Preview usa LocalDate, convertir a inicio de día
+        mov.setFechaEmision(preview.getFechaEmision() != null ? preview.getFechaEmision().atStartOfDay() : null);
         mov.setDescripcion(preview.getDescripcion());
         mov.setOrigenNombre(preview.getOrigen()); // DTO usa 'origen' pero mapea a origenNombre
         mov.setMedioPago(preview.getMedioPago());

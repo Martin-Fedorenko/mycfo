@@ -123,14 +123,8 @@ public class ResumenService {
 
         List<RegistroDTO> filtrados = lista.stream()
                 .filter(r -> r.getFechaEmision() != null
-                        && r.getFechaEmision().getYear() == anio
-                        && r.getFechaEmision().getMonthValue() == mes)
-                .toList();
-
-        // Criterio percibido (caja): mismos medios válidos que CashflowService
-        List<String> mediosValidos = java.util.List.of("Efectivo", "Transferencia", "MercadoPago");
-        filtrados = filtrados.stream()
-                .filter(r -> r.getMedioPago() != null && mediosValidos.contains(r.getMedioPago()))
+                        && r.getFechaEmision().toLocalDate().getYear() == anio
+                        && r.getFechaEmision().toLocalDate().getMonthValue() == mes)
                 .toList();
 
         if (categoriasFiltro != null && !categoriasFiltro.isEmpty()) {

@@ -38,7 +38,7 @@ export default function CargaGeneral() {
       return Number.isNaN(numero) ? valor : numero;
     };
     const fecha = datos.fechaEmision
-      ? dayjs(datos.fechaEmision).format("YYYY-MM-DD")
+      ? dayjs(datos.fechaEmision).format("YYYY-MM-DDTHH:mm:ss")
       : "";
     return {
       ...datos,

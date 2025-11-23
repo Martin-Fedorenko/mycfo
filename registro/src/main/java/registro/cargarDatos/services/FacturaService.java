@@ -9,6 +9,7 @@ import registro.cargarDatos.models.Factura;
 import registro.cargarDatos.repositories.FacturaRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,8 +28,8 @@ public class FacturaService {
     @Transactional
     public Factura guardarFactura(Factura factura) {
         // Establecer fecha de creación
-        factura.setFechaCreacion(LocalDate.now());
-        factura.setFechaActualizacion(LocalDate.now());
+        factura.setFechaCreacion(LocalDateTime.now());
+        factura.setFechaActualizacion(LocalDateTime.now());
         
         // Cargar datos de la empresa automáticamente si hay usuarioId
         if (factura.getUsuarioId() != null && !factura.getUsuarioId().isEmpty()) {
@@ -121,7 +122,7 @@ public class FacturaService {
         factura.setCompradorDomicilio(datosActualizados.getCompradorDomicilio());
         factura.setEstadoPago(datosActualizados.getEstadoPago());
 
-        factura.setFechaActualizacion(LocalDate.now());
+        factura.setFechaActualizacion(LocalDateTime.now());
 
         return facturaRepository.save(factura);
     }

@@ -272,7 +272,7 @@ public class ConciliacionService {
         dto.setId(registro.getId());
         dto.setTipo(registro.getTipo());
         dto.setMontoTotal(registro.getMontoTotal());
-        dto.setFechaEmision(registro.getFechaEmision());
+        dto.setFechaEmision(registro.getFechaEmision() != null ? registro.getFechaEmision().toLocalDate() : null);
         dto.setCategoria(registro.getCategoria());
         dto.setOrigen(registro.getOrigenNombre()); // Mapeo a origenNombre
         dto.setDestino(registro.getDestinoNombre()); // Mapeo a destinoNombre
@@ -322,7 +322,7 @@ public class ConciliacionService {
         dto.setIdDocumento(factura.getIdDocumento());
         dto.setTipoDocumento("FACTURA");
         dto.setNumeroDocumento(factura.getNumeroDocumento());
-        dto.setFechaEmision(factura.getFechaEmision());
+        dto.setFechaEmision(factura.getFechaEmision() != null ? factura.getFechaEmision().toLocalDate() : null);
         dto.setMontoTotal(factura.getMontoTotal());
         dto.setMoneda(factura.getMoneda());
         dto.setCategoria(factura.getCategoria());
@@ -343,7 +343,7 @@ public class ConciliacionService {
         dto.setIdDocumento(pagare.getIdDocumento());
         dto.setTipoDocumento("PAGARE");
         dto.setNumeroDocumento(pagare.getNumeroDocumento());
-        dto.setFechaEmision(pagare.getFechaEmision());
+        dto.setFechaEmision(pagare.getFechaEmision() != null ? pagare.getFechaEmision().toLocalDate() : null);
         dto.setMontoTotal(pagare.getMontoTotal());
         dto.setMoneda(pagare.getMoneda());
         dto.setCategoria(pagare.getCategoria());
@@ -364,7 +364,7 @@ public class ConciliacionService {
         dto.setIdDocumento(recibo.getIdDocumento());
         dto.setTipoDocumento("RECIBO");
         dto.setNumeroDocumento(recibo.getNumeroDocumento());
-        dto.setFechaEmision(recibo.getFechaEmision());
+        dto.setFechaEmision(recibo.getFechaEmision() != null ? recibo.getFechaEmision().toLocalDate() : null);
         dto.setMontoTotal(recibo.getMontoTotal());
         dto.setMoneda(recibo.getMoneda());
         dto.setCategoria(recibo.getCategoria());

@@ -62,9 +62,11 @@ public class DuplicateDetectionService {
      * Busca duplicados en la base de datos usando una consulta optimizada
      */
     private List<Movimiento> buscarDuplicadosEnBD(Set<RegistroKey> registrosParaVerificar, Long organizacionId) {
-        // Obtener todas las fechas únicas para optimizar la consulta
-        Set<LocalDate> fechasUnicas = registrosParaVerificar.stream()
+        // Obtener todas las fechas únicas (solo día) y convertir a LocalDateTime al inicio del día
+        Set<java.time.LocalDateTime> fechasUnicas = registrosParaVerificar.stream()
             .map(RegistroKey::getFechaEmision)
+            .filter(fecha -> fecha != null)
+            .map(fecha -> fecha.atStartOfDay())
             .collect(Collectors.toSet());
         
         // Buscar registros que coincidan en fecha (primer filtro)
@@ -96,7 +98,7 @@ public class DuplicateDetectionService {
      */
     private RegistroKey crearMovimientoKey(Movimiento movimiento) {
         return new RegistroKey(
-            movimiento.getFechaEmision(),
+            movimiento.getFechaEmision() != null ? movimiento.getFechaEmision().toLocalDate() : null,
             movimiento.getMontoTotal(),
             movimiento.getDescripcion(),
             movimiento.getOrigenNombre()

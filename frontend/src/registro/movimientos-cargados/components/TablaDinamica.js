@@ -104,6 +104,78 @@ export default function TablaDinamica({
       pageSizeOptions={[10, 20, 50]}
       disableColumnResize
       density="compact"
+      sx={{
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        '& .MuiDataGrid-cell': {
+          borderBottom: '1px solid #e0e0e0',
+          borderRight: '1px solid #e0e0e0',
+          display: 'flex',
+          alignItems: 'center',
+        },
+        '& .MuiDataGrid-cell:last-of-type': {
+          borderRight: 'none',
+        },
+        '& .MuiDataGrid-columnHeaders': {
+          backgroundColor: '#f5f5f5',
+          fontSize: '0.95rem',
+          borderTop: '1px solid #e0e0e0',
+          borderBottom: '1px solid #e0e0e0',
+        },
+        '& .MuiDataGrid-columnHeader': {
+          borderLeft: '1px solid #e0e0e0',
+          borderRight: '1px solid #e0e0e0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxSizing: 'border-box',
+        },
+        '& .MuiDataGrid-columnHeader:first-of-type': {
+          borderLeft: 'none',
+        },
+        '& .MuiDataGrid-columnHeader:last-of-type': {
+          borderRight: 'none',
+        },
+        '& .MuiDataGrid-columnHeaderTitle': {
+          fontWeight: 700,
+        },
+        '& .MuiDataGrid-columnSeparator': {
+          opacity: 1,
+          visibility: 'visible',
+          color: '#d5d5d5',
+        },
+        '& .MuiDataGrid-row:hover': {
+          backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        },
+        '& .MuiDataGrid-sortIcon': {
+          display: 'none',
+        },
+        '& .MuiDataGrid-columnHeaderTitleContainer': {
+          paddingRight: '8px',
+          display: 'flex',
+          alignItems: 'center',
+        },
+        '& .MuiDataGrid-columnHeader .MuiDataGrid-iconButtonContainer': {
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        '& .MuiDataGrid-columnHeader .MuiIconButton-root': {
+          padding: '4px',
+          fontSize: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        '& .MuiDataGrid-menuIcon': {
+          fontSize: '16px',
+          display: 'block !important',
+        },
+        '& .MuiDataGrid-columnHeader .MuiDataGrid-iconButtonContainer .MuiIconButton-root:not([aria-label*="menu"])': {
+          display: 'none',
+        },
+      }}
     />
   );
 }

@@ -56,10 +56,10 @@ export default function LogoutButton() {
         onClick={handleLogout}
         sx={{
           transition: 'color 0.2s, background-color 0.2s',
-          color: '#d32f2f',
+          color: 'text.secondary',
           '&:hover': {
-            backgroundColor: 'rgba(211, 47, 47, 0.12)',
-            color: '#b71c1c',
+            backgroundColor: 'rgba(0,131,117,0.12)',
+            color: '#008375',
           },
         }}
       >

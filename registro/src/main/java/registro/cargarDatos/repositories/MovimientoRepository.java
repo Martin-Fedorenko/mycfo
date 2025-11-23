@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMovimiento;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -23,23 +23,23 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
     // Buscar por tipo y organización
     List<Movimiento> findByTipoAndOrganizacionId(TipoMovimiento tipo, Long organizacionId);
 
-    // Buscar por rango de fechas
-    List<Movimiento> findByFechaEmisionBetween(LocalDate inicio, LocalDate fin);
+    // Buscar por rango de fechas (fechaEmision con fecha y hora)
+    List<Movimiento> findByFechaEmisionBetween(LocalDateTime inicio, LocalDateTime fin);
 
     // Buscar por fecha emision
-    List<Movimiento> findByFechaEmisionIn(java.util.Set<LocalDate> fechas);
+    List<Movimiento> findByFechaEmisionIn(java.util.Set<LocalDateTime> fechas);
 
-    List<Movimiento> findByOrganizacionIdAndFechaEmisionIn(Long organizacionId, java.util.Set<LocalDate> fechas);
+    List<Movimiento> findByOrganizacionIdAndFechaEmisionIn(Long organizacionId, java.util.Set<LocalDateTime> fechas);
 
     // Buscar por organización y rango de fechas
-    List<Movimiento> findByOrganizacionIdAndFechaEmisionBetween(Long organizacionId, LocalDate inicio, LocalDate fin);
+    List<Movimiento> findByOrganizacionIdAndFechaEmisionBetween(Long organizacionId, LocalDateTime inicio, LocalDateTime fin);
 
     List<Movimiento> findByOrganizacionIdAndUsuarioIdAndTipoAndFechaEmisionBetween(
             Long organizacionId,
             String usuarioId,
             TipoMovimiento tipo,
-            LocalDate inicio,
-            LocalDate fin
+            LocalDateTime inicio,
+            LocalDateTime fin
     );
 
     @Query("SELECT COALESCE(SUM(m.montoTotal), 0) FROM Movimiento m " +
@@ -51,8 +51,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") String usuarioId,
             @Param("tipo") TipoMovimiento tipo,
-            @Param("inicio") LocalDate inicio,
-            @Param("fin") LocalDate fin
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
     );
 
     @Query("SELECT COUNT(m) FROM Movimiento m " +
@@ -62,8 +62,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
     long countByOrganizacionOrUsuarioAndFechaEmisionBetween(
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") String usuarioId,
-            @Param("inicio") LocalDate inicio,
-            @Param("fin") LocalDate fin
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
     );
 
     @Query("SELECT COUNT(m) FROM Movimiento m " +
@@ -74,8 +74,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
     long countConciliadosByOrganizacionOrUsuarioAndFechaEmisionBetween(
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") String usuarioId,
-            @Param("inicio") LocalDate inicio,
-            @Param("fin") LocalDate fin
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
     );
 
     @Query("SELECT COUNT(m) FROM Movimiento m " +
@@ -86,8 +86,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
     long countPendientesByOrganizacionOrUsuarioAndFechaEmisionBetween(
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") String usuarioId,
-            @Param("inicio") LocalDate inicio,
-            @Param("fin") LocalDate fin
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
     );
 
     @Query("SELECT MAX(COALESCE(m.fechaActualizacion, m.fechaEmision)) FROM Movimiento m " +
@@ -95,11 +95,11 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
             "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
             "AND m.fechaEmision BETWEEN :inicio AND :fin " +
             "AND m.documentoComercial IS NOT NULL")
-    LocalDate findUltimaConciliacion(
+    LocalDateTime findUltimaConciliacion(
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") String usuarioId,
-            @Param("inicio") LocalDate inicio,
-            @Param("fin") LocalDate fin
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
     );
 
     @Query("SELECT MAX(m.fechaEmision) FROM Movimiento m " +
@@ -107,11 +107,11 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
             "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
             "AND m.fechaEmision BETWEEN :inicio AND :fin " +
             "AND m.documentoComercial IS NULL")
-    LocalDate findUltimoMovimientoPendiente(
+    LocalDateTime findUltimoMovimientoPendiente(
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") String usuarioId,
-            @Param("inicio") LocalDate inicio,
-            @Param("fin") LocalDate fin
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
     );
 
     @Query("SELECT m.tipo, COUNT(m), SUM(CASE WHEN m.documentoComercial IS NOT NULL THEN 1 ELSE 0 END) " +
@@ -123,7 +123,7 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
     List<Object[]> obtenerResumenConciliacionPorTipo(
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") String usuarioId,
-            @Param("inicio") LocalDate inicio,
-            @Param("fin") LocalDate fin
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
     );
 }

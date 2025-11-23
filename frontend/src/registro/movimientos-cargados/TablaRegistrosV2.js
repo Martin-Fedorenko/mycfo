@@ -249,7 +249,10 @@ export default function TablaRegistrosV2() {
       const datosParaBackend = {
         ...formDataSinTipo,
         tipo: selectedMovimiento.tipo, // ✅ Usar el tipo original del movimiento
-        fechaEmision: formData.fechaEmision ? formData.fechaEmision.format('YYYY-MM-DD') : null,
+        // Preservar fecha y hora tal como se eligieron en el formulario
+        fechaEmision: formData.fechaEmision
+          ? formData.fechaEmision.format('YYYY-MM-DDTHH:mm:ss')
+          : null,
         // Limpiar campos vacíos que pueden causar problemas con enums
         medioPago: formData.medioPago && formData.medioPago.trim() !== "" ? formData.medioPago : null,
         categoria: formData.categoria && formData.categoria.trim() !== "" ? formData.categoria : null,
@@ -453,21 +456,20 @@ export default function TablaRegistrosV2() {
     return "#757575";
   };
 
-  // Formatear fecha
+  // Formatear fecha (incluyendo hora cuando esté disponible)
   const formatearFecha = (fecha) => {
     if (!fecha) return "-";
     try {
+      // Formato [YYYY, MM, DD] que puede venir del backend
       if (Array.isArray(fecha)) {
         const [year, month, day] = fecha;
         return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
       }
-      const date = new Date(`${fecha}T00:00:00`);
-      return new Intl.DateTimeFormat("es-AR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
+
+      const d = dayjs(fecha);
+      if (!d.isValid()) return "-";
+      // Mostrar fecha y hora local
+      return d.format("DD/MM/YYYY HH:mm");
     } catch (e) {
       return "-";
     }
@@ -552,7 +554,7 @@ export default function TablaRegistrosV2() {
     },
     {
       field: "fechaEmision",
-      headerName: "Fecha",
+      headerName: "Fecha / hora",
       flex: 0.7,
       minWidth: 110,
       renderCell: (params) => {
@@ -642,32 +644,37 @@ export default function TablaRegistrosV2() {
       sortable: false,
       filterable: false,
       renderCell: (params) => {
+        const isAdmin = (usuarioRol || "").toUpperCase().includes("ADMIN");
         return (
           <Box sx={{ display: "flex", gap: 0.5 }}>
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               color="info"
               onClick={() => handleVerMovimiento(params.row)}
               title="Ver detalles"
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
-            <IconButton 
-              size="small" 
-              color="primary"
-              onClick={() => handleEditarMovimiento(params.row)}
-              title="Editar"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
-              color="error"
-              onClick={() => handleEliminarClick(params.row)}
-              title="Eliminar"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+            {isAdmin && (
+              <>
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => handleEditarMovimiento(params.row)}
+                  title="Editar"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleEliminarClick(params.row)}
+                  title="Eliminar"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </>
+            )}
           </Box>
         );
       },
@@ -704,81 +711,74 @@ export default function TablaRegistrosV2() {
           }}
           disableRowSelectionOnClick
           autoHeight={false}
-      sx={{
-        "& .MuiDataGrid-cell": {
-          borderBottom: "1px solid #e0e0e0",
-          borderRight: "1px solid #e0e0e0",
-          display: "flex",
-          alignItems: "center", // Centrar verticalmente todo el contenido
-        },
-        "& .MuiDataGrid-cell:last-of-type": {
-          borderRight: "none", // evita doble borde al final
-        },
-        "& .MuiDataGrid-columnHeaders": {
-          backgroundColor: "#f5f5f5",
-          fontSize: "0.95rem",
-          borderTop: "1px solid #e0e0e0",
-          borderBottom: "1px solid #e0e0e0",
-        },
-        "& .MuiDataGrid-columnHeader": {
-          borderRight: "1px solid #d5d5d5",
-          borderLeft: "1px solid #d5d5d5",
-          boxSizing: "border-box",
-        },
-        "& .MuiDataGrid-columnHeader:first-of-type": {
-          borderLeft: "none",
-        },
-        "& .MuiDataGrid-columnHeader:last-of-type": {
-          borderRight: "none",
-        },
-        "& .MuiDataGrid-columnHeaderTitle": {
-          fontWeight: 700,
-        },
-        "& .MuiDataGrid-columnSeparator": {
-          opacity: 1,
-          visibility: "visible",
-          color: "#d5d5d5",
-        },
+          sx={{
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            "& .MuiDataGrid-cell": {
+              borderBottom: "1px solid #e0e0e0",
+              borderRight: "1px solid #e0e0e0",
+              display: "flex",
+              alignItems: "center",
+            },
+            "& .MuiDataGrid-cell:last-of-type": {
+              borderRight: "none",
+            },
+            "& .MuiDataGrid-columnHeaders": {
+              backgroundColor: "#f5f5f5",
+              fontSize: "0.95rem",
+              borderTop: "1px solid #e0e0e0",
+              borderBottom: "1px solid #e0e0e0",
+            },
+            "& .MuiDataGrid-columnHeader": {
+              borderLeft: "1px solid #e0e0e0",
+              borderRight: "1px solid #e0e0e0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              boxSizing: "border-box",
+            },
+            "& .MuiDataGrid-columnHeader:first-of-type": {
+              borderLeft: "none",
+            },
+            "& .MuiDataGrid-columnHeader:last-of-type": {
+              borderRight: "none",
+            },
+            "& .MuiDataGrid-columnHeaderTitle": {
+              fontWeight: 700,
+            },
+            "& .MuiDataGrid-columnSeparator": {
+              opacity: 1,
+              visibility: "visible",
+              color: "#d5d5d5",
+            },
             "& .MuiDataGrid-row:hover": {
               backgroundColor: "rgba(0, 0, 0, 0.02)",
             },
-            // Quitar completamente el botón de ordenar
             "& .MuiDataGrid-sortIcon": {
               display: "none",
             },
             "& .MuiDataGrid-columnHeaderTitleContainer": {
               paddingRight: "8px",
               display: "flex",
-              alignItems: "center", // Alinear título con el botón de menú
+              alignItems: "center",
             },
-            "& .MuiDataGrid-columnHeader": {
+            "& .MuiDataGrid-columnHeader .MuiDataGrid-iconButtonContainer": {
+              width: "24px",
+              height: "24px",
               display: "flex",
-              alignItems: "center", // Centrar todo el contenido del header
-              justifyContent: "space-between", // Distribuir título y botón
-              "& .MuiDataGrid-iconButtonContainer": {
-                width: "24px",
-                height: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center", // Centrar el botón dentro de su contenedor
-              },
-              "& .MuiIconButton-root": {
-                padding: "4px",
-                fontSize: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center", // Centrar el ícono dentro del botón
-              },
+              alignItems: "center",
+              justifyContent: "center",
             },
-            // Mostrar solo el botón de menú (3 puntitos), ocultar flecha de ordenar
+            "& .MuiDataGrid-columnHeader .MuiIconButton-root": {
+              padding: "4px",
+              fontSize: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            },
             "& .MuiDataGrid-menuIcon": {
               fontSize: "16px",
-              display: "block !important", // Forzar mostrar el botón de menú
+              display: "block !important",
             },
-            "& .MuiDataGrid-sortIcon": {
-              display: "none !important", // Ocultar solo la flecha de ordenar
-            },
-            // Ocultar el ícono de ordenar pero mantener el contenedor del menú
             "& .MuiDataGrid-columnHeader .MuiDataGrid-iconButtonContainer .MuiIconButton-root:not([aria-label*='menu'])": {
               display: "none",
             },

@@ -241,10 +241,10 @@ public class MpController {
             }
 
             if (from != null) {
-                ands.add(cb.greaterThanOrEqualTo(root.get("fechaEmision"), from));
+                ands.add(cb.greaterThanOrEqualTo(root.get("fechaEmision"), from.atStartOfDay()));
             }
             if (to != null) {
-                ands.add(cb.lessThan(root.get("fechaEmision"), to.plusDays(1)));
+                ands.add(cb.lessThan(root.get("fechaEmision"), to.plusDays(1).atStartOfDay()));
             }
             if (q != null && !q.isBlank()) {
                 String ql = "%" + q.toLowerCase().trim() + "%";
@@ -267,7 +267,7 @@ public class MpController {
             // Campos principales para la tabla
             dto.setCategoria(r.getCategoria());
             dto.setDescripcion(r.getDescripcion());
-            dto.setFecha(r.getFechaEmision());
+            dto.setFecha(r.getFechaEmision() != null ? r.getFechaEmision().toLocalDate() : null);
             dto.setOrigen(r.getOrigenNombre()); // DTO usa 'origen' pero mapea desde origenNombre
             dto.setMontoTotal(BigDecimal.valueOf(r.getMontoTotal()));
             dto.setTipo(r.getTipo() != null ? r.getTipo().toString() : "UNKNOWN");

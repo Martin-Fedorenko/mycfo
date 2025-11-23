@@ -120,7 +120,6 @@ export default function ConfirmAccount(props) {
       <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
       <ConfirmContainer direction="column" justifyContent="center">
         <Card variant="outlined">
-          <SitemarkIcon />
           <Typography
             component="h1"
             variant="h4"

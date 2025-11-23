@@ -84,13 +84,9 @@ React.useEffect(() => {
 
   return (
     <Drawer
-      variant="temporary"
-      open={open}
-      onClose={onClose}
-      ModalProps={{
-        keepMounted: true, // Better open performance on mobile.
-      }}
+      variant="permanent"
       sx={{
+        display: { xs: 'none', md: 'block' },
         [`& .${drawerClasses.paper}`]: {
           backgroundColor: 'background.paper',
         },
@@ -139,6 +135,7 @@ React.useEffect(() => {
           p: 2,
           gap: 1,
           alignItems: 'center',
+          justifyContent: 'space-between',
           borderTop: '1px solid',
           borderColor: 'divider',
         }}
@@ -149,7 +146,7 @@ React.useEffect(() => {
           src="/static/images/avatar/7.jpg"
           sx={{ width: 36, height: 36 }}
         />
-        <Box sx={{ mr: 'auto' }}>
+        <Box sx={{ flexGrow: 1, minWidth: 0, mr: 2 }}>
           <Typography
             variant="body2"
             sx={{ fontWeight: 500, lineHeight: '16px' }}
@@ -160,40 +157,6 @@ React.useEffect(() => {
             {userData.email || 'correo@ejemplo.com'}
           </Typography>
         </Box>
-        <Tooltip title="Organización">
-          <IconButton
-            size="small"
-            color="primary"
-            sx={{
-              transition: 'color 0.2s, background-color 0.2s',
-              color: 'text.secondary',
-              '&:hover': {
-                backgroundColor: 'rgba(0,131,117,0.12)',
-                color: '#008375',
-              },
-            }}
-            onClick={() => navigate('/organizacion')}
-          >
-            <ApartmentIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Perfil">
-          <IconButton
-            size="small"
-            color="primary"
-            sx={{
-              transition: 'color 0.2s, background-color 0.2s',
-              color: 'text.secondary',
-              '&:hover': {
-                backgroundColor: 'rgba(0,131,117,0.12)',
-                color: '#008375',
-              },
-            }}
-            onClick={() => navigate('/perfil')}
-          >
-            <PersonRoundedIcon />
-          </IconButton>
-        </Tooltip>
         <LogoutButton />
       </Stack>
     </Drawer>

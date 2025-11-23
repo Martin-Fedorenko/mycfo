@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -165,10 +166,12 @@ public class FacturaArchivoService {
 
         factura.setNumeroDocumento(obtenerCampoObligatorio(valores, lineNumber, "numero_documento", "numero", "nro"));
         factura.setTipoFactura(obtenerCampoObligatorio(valores, lineNumber, "tipo_factura", "tipo"));
-        factura.setFechaEmision(parseFechaObligatoria(
+        LocalDate fechaEmisionLocal = parseFechaObligatoria(
                 firstNonBlank(valores, "fecha_emision", "fecha"),
                 lineNumber,
-                "fecha_emision"));
+                "fecha_emision");
+        // Factura.fechaEmision ahora es LocalDateTime: usar inicio de día al guardar desde archivo
+        factura.setFechaEmision(fechaEmisionLocal != null ? fechaEmisionLocal.atStartOfDay() : null);
         factura.setMontoTotal(parseMontoObligatorio(
                 firstNonBlank(valores, "monto_total", "monto", "importe"),
                 lineNumber));

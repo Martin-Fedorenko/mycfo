@@ -194,9 +194,11 @@ public class MovimientoArchivoService {
         movimiento.setDestinoCuit(firstNonBlank(valores, "destino_cuit", "cuit_destino"));
         movimiento.setPeriodicidad(firstNonBlank(valores, "periodicidad", "frecuencia"));
 
-        movimiento.setFechaEmision(parseFechaObligatoria(
+        LocalDate fechaEmisionLocal = parseFechaObligatoria(
                 firstNonBlank(valores, "fecha_emision", "fecha", "fecha_movimiento"),
-                lineNumber, "fecha_emision"));
+                lineNumber, "fecha_emision");
+        // Movimiento.fechaEmision ahora es LocalDateTime: usar inicio de día al importar desde archivo
+        movimiento.setFechaEmision(fechaEmisionLocal != null ? fechaEmisionLocal.atStartOfDay() : null);
 
         movimiento.setMontoTotal(parseMontoObligatorio(
                 firstNonBlank(valores, "monto_total", "monto", "importe"),

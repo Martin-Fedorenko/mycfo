@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "registro") // Mantener nombre de tabla para compatibilidad con BD existente
@@ -22,7 +23,7 @@ public class Movimiento {
 
     private Double montoTotal; //obligatorio
 
-    private LocalDate fechaEmision; //obligatorio
+    private LocalDateTime fechaEmision; //obligatorio
 
     private String categoria;
     
@@ -35,8 +36,8 @@ public class Movimiento {
     private String descripcion;  // Detalle libre
 
     // historial
-    private LocalDate fechaCreacion;
-    private LocalDate fechaActualizacion;
+    private LocalDateTime fechaCreacion;
+    private LocalDateTime fechaActualizacion;
 
     // Usuario que creó el movimiento (sub de Cognito)
     private String usuarioId;

@@ -109,8 +109,8 @@ public class ProfitAndLossService {
                 if (mov.getMontoTotal() == null || mov.getTipo() == null) continue;
 
                 java.time.LocalDate fechaDevengado = (mov.getDocumentoComercial() != null && mov.getDocumentoComercial().getFechaEmision() != null)
-                        ? mov.getDocumentoComercial().getFechaEmision()
-                        : mov.getFechaEmision();
+                        ? mov.getDocumentoComercial().getFechaEmision().toLocalDate()
+                        : (mov.getFechaEmision() != null ? mov.getFechaEmision().toLocalDate() : null);
                 if (fechaDevengado == null) continue;
 
                 int mes = fechaDevengado.getMonthValue() - 1;

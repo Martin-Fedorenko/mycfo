@@ -1,12 +1,12 @@
 package reporte.dtos;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class RegistroDTO {
     private Long id;
     private String tipo; // Ingreso, Egreso, Deuda, Acreencia
     private Double montoTotal;
-    private LocalDate fechaEmision;
+    private LocalDateTime fechaEmision;
     private String categoria;
     private String medioPago;
     private DocumentoDTO documentoComercial;
@@ -20,8 +20,8 @@ public class RegistroDTO {
     public Double getMontoTotal() { return montoTotal; }
     public void setMontoTotal(Double montoTotal) { this.montoTotal = montoTotal; }
 
-    public LocalDate getFechaEmision() { return fechaEmision; }
-    public void setFechaEmision(LocalDate fechaEmision) { this.fechaEmision = fechaEmision; }
+    public LocalDateTime getFechaEmision() { return fechaEmision; }
+    public void setFechaEmision(LocalDateTime fechaEmision) { this.fechaEmision = fechaEmision; }
 
     public String getCategoria() { return categoria; }
     public void setCategoria(String categoria) { this.categoria = categoria; }
@@ -37,7 +37,7 @@ public class RegistroDTO {
         private Long idDocumento;
         private String tipoDocumento;
         private String categoria;
-        private LocalDate fechaEmision;
+        private LocalDateTime fechaEmision;
 
         public Long getIdDocumento() { return idDocumento; }
         public void setIdDocumento(Long idDocumento) { this.idDocumento = idDocumento; }
@@ -48,7 +48,7 @@ public class RegistroDTO {
         public String getCategoria() { return categoria; }
         public void setCategoria(String categoria) { this.categoria = categoria; }
 
-        public LocalDate getFechaEmision() { return fechaEmision; }
-        public void setFechaEmision(LocalDate fechaEmision) { this.fechaEmision = fechaEmision; }
+        public LocalDateTime getFechaEmision() { return fechaEmision; }
+        public void setFechaEmision(LocalDateTime fechaEmision) { this.fechaEmision = fechaEmision; }
     }
 }

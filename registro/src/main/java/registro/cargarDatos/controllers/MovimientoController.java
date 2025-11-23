@@ -13,6 +13,7 @@ import registro.cargarDatos.dtos.ConciliacionResumenResponse;
 import registro.cargarDatos.dtos.MontosMensualesResponse;
 import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
 import registro.cargarDatos.dtos.ResumenMensualResponse;
+import registro.cargarDatos.dtos.SaldoTotalResponse;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.services.MovimientoService;
@@ -290,7 +291,9 @@ public class MovimientoController {
     ) {
         try {
             Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
-            ResumenMensualResponse resumen = movimientoService.obtenerResumenMensual(empresaId, usuarioSub, fecha);
+            // Para reportes/ dashboard queremos siempre el resumen a nivel empresa,
+            // no por usuario individual, por eso pasamos usuarioId = null
+            ResumenMensualResponse resumen = movimientoService.obtenerResumenMensual(empresaId, null, fecha);
             return ResponseEntity.ok(resumen);
         } catch (RuntimeException e) {
             log.error("Error al obtener resumen mensual: {}", e.getMessage());
@@ -393,6 +396,24 @@ public class MovimientoController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error al obtener resumen de conciliacion: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/saldo-total")
+    public ResponseEntity<SaldoTotalResponse> obtenerSaldoTotalEmpresa(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            Double saldoTotal = movimientoService.obtenerSaldoTotalEmpresa(empresaId);
+            SaldoTotalResponse response = SaldoTotalResponse.builder()
+                    .organizacionId(empresaId)
+                    .saldoTotal(saldoTotal)
+                    .build();
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener saldo total de la empresa: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

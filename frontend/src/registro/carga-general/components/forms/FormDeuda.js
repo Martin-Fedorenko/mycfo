@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Box, FormLabel, FormHelperText } from "@mui/material";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import CustomSingleAutoComplete from "../../../../shared-components/CustomSingleAutoComplete";
+import CustomDateTimePicker from "../../../../shared-components/CustomDateTimePicker";
 import CustomDatePicker from "../../../../shared-components/CustomDatePicker";
 import CustomSelect from "../../../../shared-components/CustomSelect";
 import { TODAS_LAS_CATEGORIAS } from "../../../../shared-components/categorias";
@@ -52,11 +53,11 @@ export default function FormDeuda({
         </Box>
       </Box>
 
-      {/* 2️⃣ Fecha emisión + Fecha vencimiento */}
+      {/* 2️⃣ Fecha emisión (con hora) + Fecha vencimiento */}
       <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
         <Box sx={{ flex: 1 }}>
           <FormLabel>Fecha emisión *</FormLabel>
-          <CustomDatePicker
+          <CustomDateTimePicker
             value={formData.fechaEmision ? dayjs(formData.fechaEmision) : null}
             onChange={(fecha) =>
               setFormData((p) => ({ ...p, fechaEmision: fecha }))

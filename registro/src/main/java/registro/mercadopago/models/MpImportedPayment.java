@@ -109,7 +109,7 @@ public class MpImportedPayment {
         this.mpPaymentId = mpPaymentId;
         this.tipo = movimiento.getTipo();
         this.montoTotal = BigDecimal.valueOf(movimiento.getMontoTotal());
-        this.fechaEmision = movimiento.getFechaEmision();
+        this.fechaEmision = movimiento.getFechaEmision() != null ? movimiento.getFechaEmision().toLocalDate() : null;
         this.descripcion = movimiento.getDescripcion();
         this.medioPago = movimiento.getMedioPago();
         this.moneda = movimiento.getMoneda();

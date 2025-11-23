@@ -283,21 +283,21 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
     private void upsertRegistro(Map<String, Object> body, MpAccountLink link, TenantContext tenant) {
         // === 1) Parseos base ===
 
-        // fechas: fechaEmision = date_created (LocalDate)
+        // fechas: fechaEmision = date_created (LocalDateTime)
         Instant dateCreated = parseInstant(body.get("date_created"));   // p.ej. "2025-07-05T14:12:33.000-03:00"
-        LocalDate fechaEmision = (dateCreated != null)
-                ? dateCreated.atZone(ZoneId.systemDefault()).toLocalDate()
-                : LocalDate.now();
+        LocalDateTime fechaEmision = (dateCreated != null)
+                ? dateCreated.atZone(ZoneId.systemDefault()).toLocalDateTime()
+                : LocalDateTime.now();
 
         // historial
         // fechaCreacion = date_created ; fechaActualizacion = imported_at (si viene), si no = hoy
         Instant importedAt = parseInstant(body.get("imported_at")); // puede no estar en el payload
-        LocalDate fechaCreacion = (dateCreated != null)
-                ? dateCreated.atZone(ZoneId.systemDefault()).toLocalDate()
-                : LocalDate.now();
-        LocalDate fechaActualizacion = (importedAt != null)
-                ? importedAt.atZone(ZoneId.systemDefault()).toLocalDate()
-                : LocalDate.now();
+        LocalDateTime fechaCreacion = (dateCreated != null)
+                ? dateCreated.atZone(ZoneId.systemDefault()).toLocalDateTime()
+                : LocalDateTime.now();
+        LocalDateTime fechaActualizacion = (importedAt != null)
+                ? importedAt.atZone(ZoneId.systemDefault()).toLocalDateTime()
+                : LocalDateTime.now();
 
         // monto/moneda
         BigDecimal transactionAmount = asBigDecimal(body.get("transaction_amount"));
@@ -795,7 +795,7 @@ public class MpPaymentImportServiceImpl implements MpPaymentImportService {
         
         // Actualizar la categoría en la tabla Registro
         registro.setCategoria(newCategory);
-        registro.setFechaActualizacion(LocalDate.now());
+        registro.setFechaActualizacion(LocalDateTime.now());
         movimientoRepo.save(registro);
         
         // Actualizar la categoría en la tabla MpImportedPayment

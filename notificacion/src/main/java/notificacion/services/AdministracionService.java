@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -55,6 +58,21 @@ public class AdministracionService {
         } catch (Exception e) {
             log.error("Error obteniendo email para {}: {}", usuarioSub, e.getMessage());
             throw new RuntimeException("Error al comunicarse con administración", e);
+        }
+    }
+
+    public List<UsuarioAdministracionDTO> obtenerUsuariosPorEmpresaId(Long empresaId) {
+        try {
+            String url = administracionUrl + "/api/usuarios/empresa/" + empresaId;
+            log.info("Consultando administracion para obtener usuarios de la empresa {}", empresaId);
+            UsuarioAdministracionDTO[] response = restTemplate.getForObject(url, UsuarioAdministracionDTO[].class);
+            if (response == null) {
+                return List.of();
+            }
+            return Arrays.asList(response);
+        } catch (Exception e) {
+            log.error("Error obteniendo usuarios para empresa {}: {}", empresaId, e.getMessage());
+            throw new RuntimeException("Error al comunicarse con administracion para obtener usuarios de empresa", e);
         }
     }
 }

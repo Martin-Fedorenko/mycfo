@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -22,7 +22,7 @@ public abstract class DocumentoComercial {
     @Column(nullable = false, unique = true)
     private String numeroDocumento; //obligatorio
 
-    private LocalDate fechaEmision; //obligatorio
+    private LocalDateTime fechaEmision; //obligatorio
 
     private Double montoTotal; //obligatorio
 
@@ -38,8 +38,8 @@ public abstract class DocumentoComercial {
     private VersionDocumento versionDocumento; //obligatorio
 
     // historial
-    private LocalDate fechaCreacion; //interno
-    private LocalDate fechaActualizacion; //interno
+    private LocalDateTime fechaCreacion; //interno
+    private LocalDateTime fechaActualizacion; //interno
     
     // Usuario que creó el documento (sub de Cognito)
     private String usuarioId; //interno

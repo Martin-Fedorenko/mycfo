@@ -10,6 +10,7 @@ import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.dtos.MovementCreatedEvent;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 @Service
@@ -38,7 +39,7 @@ public class MovimientoEventService {
                 userId,
                 movimiento.getId().toString(),
                 movimiento.getFechaEmision() != null 
-                    ? movimiento.getFechaEmision().atStartOfDay().toInstant(ZoneOffset.UTC)
+                    ? movimiento.getFechaEmision().atZone(ZoneId.systemDefault()).toInstant()
                     : java.time.Instant.now(),
                 BigDecimal.valueOf(movimiento.getMontoTotal()),
                 movimiento.getDescripcion() != null ? movimiento.getDescripcion() : ""

@@ -54,16 +54,12 @@ public class NotificationsEventPublisher {
         }
     }
 
-    /**
-     * Convierte la fecha de emisión del registro en Instant, tomando inicio del día
-     * en la zona horaria local.
-     */
     private Instant toInstant(Movimiento movimiento) {
         if (movimiento.getFechaEmision() == null) {
             return Instant.now(); // fallback en caso de no tener fecha
         }
         return movimiento.getFechaEmision()
-                .atStartOfDay(ZoneId.systemDefault())
+                .atZone(ZoneId.systemDefault())
                 .toInstant();
     }
 }
