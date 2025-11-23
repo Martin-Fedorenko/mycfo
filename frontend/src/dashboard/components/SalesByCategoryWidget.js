@@ -101,6 +101,36 @@ const SalesByCategoryWidget = ({
   const categories = safeData.map((item) => item.category ?? "Sin categoría");
   const values = safeData.map((item) => Number(item.value) || 0);
 
+  // Ajustamos el eje Y para permitir valores negativos y dar margen vertical
+  // con un rango que tenga sentido visualmente.
+  const hasNegativeValues = values.some((v) => v < 0);
+  const hasPositiveValues = values.some((v) => v > 0);
+  const rawMin = hasData ? Math.min(...values) : 0;
+  const rawMax = hasData ? Math.max(...values) : 0;
+
+  let yMin = 0;
+  let yMax = 0;
+
+  if (hasPositiveValues && !hasNegativeValues) {
+    // Solo positivos: de 0 a un poco más del máximo
+    yMin = 0;
+    yMax = rawMax * 1.25 || 1;
+  } else if (!hasPositiveValues && hasNegativeValues) {
+    // Solo negativos: de un poco menos del mínimo a 0
+    yMin = rawMin * 1.25 || -1;
+    yMax = 0;
+  } else if (hasPositiveValues && hasNegativeValues) {
+    // Valores mixtos: rango simétrico alrededor de 0
+    const absMax = Math.max(Math.abs(rawMin), Math.abs(rawMax)) || 1;
+    const limit = absMax * 1.25;
+    yMin = -limit;
+    yMax = limit;
+  } else {
+    // Todo 0 o sin datos
+    yMin = -1;
+    yMax = 1;
+  }
+
   let topCategory = null;
   let bottomCategory = null;
   let average = null;
@@ -268,10 +298,13 @@ const SalesByCategoryWidget = ({
               ]}
               yAxis={[
                 {
-                  tickInterval: "auto",
-                  min: 0,
-                  valueFormatter: () => "",
-                  tickLabelStyle: { display: "none" },
+                  min: yMin,
+                  max: yMax,
+                  tickNumber: 5,
+                  valueFormatter: (value) => formatCurrency(value),
+                  tickLabelStyle: {
+                    fontSize: 11,
+                  },
                 },
               ]}
               series={[

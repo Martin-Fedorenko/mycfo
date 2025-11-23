@@ -392,7 +392,9 @@ public class MovimientoService {
             LocalDate fechaReferencia,
             int meses
     ) {
-        return obtenerMontosMensuales(organizacionId, usuarioId, fechaReferencia, meses, TipoMovimiento.Ingreso);
+        // Para el dashboard queremos la serie a nivel empresa, no por usuario individual
+        // Por eso ignoramos usuarioId y agregamos solo por organizacionId
+        return obtenerMontosMensuales(organizacionId, null, fechaReferencia, meses, TipoMovimiento.Ingreso);
     }
 
     public MontosMensualesResponse obtenerEgresosMensuales(
@@ -401,7 +403,8 @@ public class MovimientoService {
             LocalDate fechaReferencia,
             int meses
     ) {
-        return obtenerMontosMensuales(organizacionId, usuarioId, fechaReferencia, meses, TipoMovimiento.Egreso);
+        // Igual que en ingresos, agregamos egresos solo a nivel empresa
+        return obtenerMontosMensuales(organizacionId, null, fechaReferencia, meses, TipoMovimiento.Egreso);
     }
 
     private MontosMensualesResponse obtenerMontosMensuales(
@@ -411,8 +414,10 @@ public class MovimientoService {
             int meses,
             TipoMovimiento tipo
     ) {
-        if (organizacionId == null || usuarioId == null || usuarioId.isBlank()) {
-            throw new IllegalArgumentException("Organizacion y usuario son obligatorios para el resumen mensual por periodo");
+        // Para las series usadas en el dashboard solo requerimos la organización.
+        // usuarioId puede ser null para que el query agregue todos los usuarios de esa empresa.
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("Organizacion es obligatoria para el resumen mensual por periodo");
         }
 
         int mesesSeguros = Math.max(1, Math.min(meses, 24));
@@ -453,7 +458,8 @@ public class MovimientoService {
             String usuarioId,
             LocalDate fechaReferencia
     ) {
-        return obtenerMontosPorCategoria(organizacionId, usuarioId, fechaReferencia, TipoMovimiento.Ingreso);
+        // Para el dashboard, los montos por categoría se calculan a nivel empresa
+        return obtenerMontosPorCategoria(organizacionId, null, fechaReferencia, TipoMovimiento.Ingreso);
     }
 
     public MontosPorCategoriaResponse obtenerEgresosPorCategoria(
@@ -461,7 +467,8 @@ public class MovimientoService {
             String usuarioId,
             LocalDate fechaReferencia
     ) {
-        return obtenerMontosPorCategoria(organizacionId, usuarioId, fechaReferencia, TipoMovimiento.Egreso);
+        // Igual que ingresos, egresos por categoría se agregan a nivel empresa
+        return obtenerMontosPorCategoria(organizacionId, null, fechaReferencia, TipoMovimiento.Egreso);
     }
 
     private MontosPorCategoriaResponse obtenerMontosPorCategoria(
@@ -470,8 +477,9 @@ public class MovimientoService {
             LocalDate fechaReferencia,
             TipoMovimiento tipo
     ) {
-        if (organizacionId == null || usuarioId == null || usuarioId.isBlank()) {
-            throw new IllegalArgumentException("Organizacion y usuario son obligatorios para el resumen por categoria");
+        // Para los gráficos del dashboard, calculamos por categoría a nivel empresa.
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("Organizacion es obligatoria para el resumen por categoria");
         }
 
         LocalDate fechaBase = fechaReferencia != null ? fechaReferencia : LocalDate.now();
@@ -479,14 +487,16 @@ public class MovimientoService {
         LocalDate inicio = LocalDate.of(targetYear, 1, 1);
         LocalDate fin = LocalDate.of(targetYear, 12, 31);
 
+        // Obtenemos todos los movimientos de la empresa y filtramos por tipo en memoria
         List<Movimiento> registros = movimientoRepository
-                .findByOrganizacionIdAndUsuarioIdAndTipoAndFechaEmisionBetween(
+                .findByOrganizacionIdAndFechaEmisionBetween(
                         organizacionId,
-                        usuarioId,
-                        tipo,
                         inicio.atStartOfDay(),
                         fin.plusDays(1).atStartOfDay()
-                );
+                )
+                .stream()
+                .filter(mov -> mov.getTipo() == tipo)
+                .toList();
 
         Map<String, Double> acumulado = registros.stream()
                 .collect(Collectors.groupingBy(

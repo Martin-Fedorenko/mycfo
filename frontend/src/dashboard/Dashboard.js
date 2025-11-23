@@ -519,9 +519,13 @@ const Dashboard = React.memo(() => {
       });
 
       const values = pointsDetailed.map((point) => point.value);
+
+      // Promedio solo sobre los meses con movimiento distinto de cero,
+      // para que no se "licúe" cuando solo hubo pocos meses con actividad.
+      const nonZeroValues = values.filter((val) => val !== 0);
       const average =
-        values.length > 0
-          ? values.reduce((acc, val) => acc + val, 0) / values.length
+        nonZeroValues.length > 0
+          ? nonZeroValues.reduce((acc, val) => acc + val, 0) / nonZeroValues.length
           : 0;
       const maxValue = values.length > 0 ? Math.max(...values) : 0;
       const minValue = values.length > 0 ? Math.min(...values) : 0;
@@ -1101,25 +1105,6 @@ const Dashboard = React.memo(() => {
           </Grid>
           <Grid item xs={12} md={6}>
             <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
-              <SalesByCategoryWidget
-                data={state.salesByCategory.data ?? []}
-                loading={
-                  state.salesByCategory.loading && !state.salesByCategory.data
-                }
-                error={state.salesByCategory.error}
-              />
-            </Box>
-          </Grid>
-        </Grid>
-
-        <Grid
-          container
-          spacing={3}
-          justifyContent="center"
-          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
-        >
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
               <SalesTrendWidget
                 data={
                   state.expensesTrend.data ?? {
@@ -1135,6 +1120,25 @@ const Dashboard = React.memo(() => {
                 }
                 error={state.expensesTrend.error}
                 emptyMessage="No hay egresos registrados en este periodo."
+              />
+            </Box>
+          </Grid>
+        </Grid>
+
+        <Grid
+          container
+          spacing={3}
+          justifyContent="center"
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto", mt: 1 }}
+        >
+          <Grid item xs={12} md={6}>
+            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+              <SalesByCategoryWidget
+                data={state.salesByCategory.data ?? []}
+                loading={
+                  state.salesByCategory.loading && !state.salesByCategory.data
+                }
+                error={state.salesByCategory.error}
               />
             </Box>
           </Grid>
@@ -1155,7 +1159,6 @@ const Dashboard = React.memo(() => {
           </Grid>
         </Grid>
 
-        {/* Presupuesto + Devengado + Conciliación en una misma fila */}
         <Grid
           container
           spacing={2}

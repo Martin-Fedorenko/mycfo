@@ -20,7 +20,6 @@ import { styled } from "@mui/material/styles";
 
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeSelect from "../shared-theme/ColorModeSelect";
-import { SitemarkIcon } from "./components/CustomIcons";
 import axios from "axios";
 import API_CONFIG from "../config/api-config";
 
