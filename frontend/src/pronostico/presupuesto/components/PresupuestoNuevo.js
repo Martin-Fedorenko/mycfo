@@ -265,12 +265,7 @@ export default function PresupuestoNuevo() {
 
   // Paso entre secciones
   const next = () => {
-    const v = step === 0 ? validarPaso1() : step === 1 ? validarPaso2() : null;
-    if (v) {
-      setErrors(v);
-      return;
-    }
-    setErrors(null);
+    setErrors(null); // navegación libre entre pasos
     setStep(s => Math.min(2, s + 1));
   };
   const back = () => {
