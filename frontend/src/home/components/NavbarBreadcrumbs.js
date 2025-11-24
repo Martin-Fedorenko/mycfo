@@ -6,7 +6,7 @@ import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import { useLocation, Link as RouterLink, matchPath } from 'react-router-dom';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import Logo from '../../shared-components/Logo';
 
 import routeConfig from '../../config/routes';
 
@@ -87,7 +87,7 @@ export default function NavbarBreadcrumbs({ sx }) {
         }}
       >
         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-          <HomeRoundedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+          <Logo size={48} />
           <Typography component="span" variant="body1" sx={{ fontWeight: 600 }}>
             MyCFO
           </Typography>
