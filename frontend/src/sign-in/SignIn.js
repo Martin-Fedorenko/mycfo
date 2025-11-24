@@ -20,6 +20,7 @@ import ColorModeSelect from "../shared-theme/ColorModeSelect";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import API_CONFIG from "../config/api-config";
+import Logo from "../shared-components/Logo";
 
 import {
   CognitoUserPool,
@@ -188,13 +189,18 @@ export default function SignIn(props) {
       <SignInContainer direction="column" justifyContent="space-between">
         <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
         <Card variant="outlined">
-          <Typography
-            component="h1"
-            variant="h4"
-            sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="center"
+            spacing={1.25}
+            sx={{ mb: 1 }}
           >
-            Iniciar sesión
-          </Typography>
+            <Logo size={80} />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              MyCFO
+            </Typography>
+          </Stack>
 
           <Box
             component="form"
