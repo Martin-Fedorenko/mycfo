@@ -4,7 +4,7 @@ import { alpha, useTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import SideMenu from "./components/SideMenu";
+import SideMenu, { collapsedWidth as sideMenuCollapsedWidth } from "./components/SideMenu";
 import SideMenuMobile from "./components/SideMenuMobile";
 import AppTheme from "../shared-theme/AppTheme";
 import { Outlet, useLocation } from "react-router-dom";
@@ -17,35 +17,18 @@ const Home = React.memo(function Home(props) {
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
 
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [desktopMenuOpen, setDesktopMenuOpen] = React.useState(false);
-  const desktopMenuCloseTimer = React.useRef(null);
-
-  const clearDesktopMenuCloseTimer = React.useCallback(() => {
-    if (desktopMenuCloseTimer.current) {
-      clearTimeout(desktopMenuCloseTimer.current);
-      desktopMenuCloseTimer.current = null;
-    }
-  }, []);
+  const [desktopMenuExpanded, setDesktopMenuExpanded] = React.useState(false);
 
   React.useEffect(() => {
     setMobileMenuOpen(false);
-    setDesktopMenuOpen(false);
-    clearDesktopMenuCloseTimer();
-  }, [location.pathname, clearDesktopMenuCloseTimer]);
+    setDesktopMenuExpanded(false);
+  }, [location.pathname]);
 
   React.useEffect(() => {
     if (!isDesktop) {
-      setDesktopMenuOpen(false);
-      clearDesktopMenuCloseTimer();
+      setDesktopMenuExpanded(false);
     }
-  }, [isDesktop, clearDesktopMenuCloseTimer]);
-
-  React.useEffect(
-    () => () => {
-      clearDesktopMenuCloseTimer();
-    },
-    [clearDesktopMenuCloseTimer]
-  );
+  }, [isDesktop]);
 
   const handleToggleMobileMenu = React.useCallback(() => {
     setMobileMenuOpen((prev) => !prev);
@@ -55,53 +38,29 @@ const Home = React.memo(function Home(props) {
     setMobileMenuOpen(false);
   }, []);
 
-  const handleOpenDesktopMenu = React.useCallback(() => {
-    if (!isDesktop) return;
-    clearDesktopMenuCloseTimer();
-    setDesktopMenuOpen(true);
-  }, [clearDesktopMenuCloseTimer, isDesktop]);
+  const handleToggleDesktopMenu = React.useCallback(() => {
+    setDesktopMenuExpanded((prev) => !prev);
+  }, []);
 
-  const scheduleCloseDesktopMenu = React.useCallback(() => {
-    if (!isDesktop) return;
-    clearDesktopMenuCloseTimer();
-    desktopMenuCloseTimer.current = setTimeout(() => {
-      setDesktopMenuOpen(false);
-    }, 200);
-  }, [clearDesktopMenuCloseTimer, isDesktop]);
+  const handleExpandDesktopMenu = React.useCallback(() => {
+    setDesktopMenuExpanded(true);
+  }, []);
 
-  const handleCloseDesktopMenu = React.useCallback(() => {
-    clearDesktopMenuCloseTimer();
-    setDesktopMenuOpen(false);
-  }, [clearDesktopMenuCloseTimer]);
+  const handleCollapseDesktopMenu = React.useCallback(() => {
+    setDesktopMenuExpanded(false);
+  }, []);
 
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <Box sx={{ display: "flex" }}>
-        {/* Menú lateral desktop: aparece al hacer hover en el borde izquierdo */}
+        {/* Menú lateral desktop fijo y colapsable */}
         {isDesktop && (
-          <>
-            <Box
-              aria-label="zona de activación menú lateral"
-              onMouseEnter={handleOpenDesktopMenu}
-              onMouseLeave={scheduleCloseDesktopMenu}
-              sx={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: 12,
-                zIndex: (theme) => theme.zIndex.drawer - 1,
-              }}
-            />
-            <SideMenu
-              open={desktopMenuOpen}
-              onClose={handleCloseDesktopMenu}
-              onNavigate={handleCloseDesktopMenu}
-              onHoverStart={handleOpenDesktopMenu}
-              onHoverEnd={scheduleCloseDesktopMenu}
-            />
-          </>
+          <SideMenu
+            expanded={desktopMenuExpanded}
+            onToggleExpand={handleToggleDesktopMenu}
+            onNavigate={handleCollapseDesktopMenu}
+          />
         )}
 
         {/* Menú móvil que baja desde arriba (controlado por el Header en pantallas chicas) */}
@@ -120,12 +79,12 @@ const Home = React.memo(function Home(props) {
               ? `rgba(${theme.vars.palette.background.defaultChannel} / 1)`
               : alpha(theme.palette.background.default, 1),
             overflow: "auto",
-            ml: 0,
+            ml: { xs: 0, lg: `${sideMenuCollapsedWidth}px` },
             "&::before": {
               content: '""',
               position: "fixed",
               top: 0,
-              left: 0,
+              left: { xs: 0, lg: sideMenuCollapsedWidth },
               right: 0,
               height: 460,
               background:

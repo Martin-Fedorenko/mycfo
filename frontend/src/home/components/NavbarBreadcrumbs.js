@@ -6,7 +6,6 @@ import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import { useLocation, Link as RouterLink, matchPath } from 'react-router-dom';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
-import Logo from '../../shared-components/Logo';
 
 import routeConfig from '../../config/routes';
 
@@ -102,12 +101,9 @@ export default function NavbarBreadcrumbs({ sx }) {
           '&:active': { textDecoration: 'none', color: 'text.primary' },
         }}
       >
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2 }}>
-          <Logo size={48} />
-          <Typography component="span" variant="body1" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-            MyCFO
-          </Typography>
-        </Box>
+        <Typography component="span" variant="body1" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+          MyCFO
+        </Typography>
       </Link>
 
       {/* Resto de los breadcrumbs dinámicos */}

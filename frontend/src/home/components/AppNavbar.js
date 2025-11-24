@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { styled } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import MuiToolbar from '@mui/material/Toolbar';
 import { tabsClasses } from '@mui/material/Tabs';
@@ -62,7 +61,6 @@ export default function AppNavbar() {
             spacing={1}
             sx={{ justifyContent: 'center', mr: 'auto' }}
           >
-            <CustomIcon />
             <Typography variant="h4" component="h1" sx={{ color: 'text.primary' }}>
               Dashboard
             </Typography>
@@ -75,26 +73,5 @@ export default function AppNavbar() {
         </Stack>
       </Toolbar>
     </AppBar>
-  );
-}
-
-export function CustomIcon() {
-  return (
-    <Box
-      component="img"
-      src={`${process.env.PUBLIC_URL}/logo512.png`}
-      alt="Logo MyCFO"
-      sx={{
-        width: '2.25rem',
-        height: '2.25rem',
-        objectFit: 'contain',
-      }}
-      onError={(e) => {
-        console.error('Error al cargar logo:', e.target.src);
-        e.target.style.backgroundColor = 'lightcoral';
-        e.target.style.opacity = 0.5;
-        e.target.style.objectFit = 'unset';
-      }}
-    />
   );
 }
