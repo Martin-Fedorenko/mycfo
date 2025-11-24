@@ -20,12 +20,12 @@ import API_CONFIG from "../../config/api-config";
 
 const getStatusColor = (ratio) => {
   if (ratio <= 0.9) {
-    return { color: "success", label: "En verde" };
+    return { color: "primary", label: "En verde" };
   }
   if (ratio <= 1.1) {
-    return { color: "warning", label: "Cerca del objetivo" };
+    return { color: "primary", label: "Cerca del objetivo" };
   }
-  return { color: "error", label: "Sobre el plan" };
+  return { color: "primary", label: "Sobre el plan" };
 };
 
 const monthLabels = [
