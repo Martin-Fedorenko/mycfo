@@ -456,7 +456,7 @@ export default function TablaRegistrosV2() {
     return "#757575";
   };
 
-  // Formatear fecha (incluyendo hora cuando esté disponible)
+  // Formatear fecha (solo día/mes/año)
   const formatearFecha = (fecha) => {
     if (!fecha) return "-";
     try {
@@ -468,8 +468,7 @@ export default function TablaRegistrosV2() {
 
       const d = dayjs(fecha);
       if (!d.isValid()) return "-";
-      // Mostrar fecha y hora local
-      return d.format("DD/MM/YYYY HH:mm");
+      return d.format("DD/MM/YYYY");
     } catch (e) {
       return "-";
     }
@@ -554,7 +553,7 @@ export default function TablaRegistrosV2() {
     },
     {
       field: "fechaEmision",
-      headerName: "Fecha / hora",
+      headerName: "Fecha",
       flex: 0.7,
       minWidth: 110,
       renderCell: (params) => {
