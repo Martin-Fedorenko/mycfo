@@ -66,14 +66,22 @@ export default function ExcelManagement() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", mt: 3, px: 2 }}>
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: { sm: "100%", md: "1700px" },
+        mx: "auto",
+        mt: 3,
+        p: 3,
+      }}
+    >
       <Stack
         direction="row"
         alignItems="center"
         justifyContent="space-between"
         sx={{ mb: 2 }}
       >
-        <Typography variant="h4">Carga de movimiento</Typography>
+        <Typography variant="h4">Carga de movimientos</Typography>
         <Box sx={{ minWidth: 120 }} />
       </Stack>
 
