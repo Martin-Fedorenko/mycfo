@@ -66,7 +66,7 @@ export default function NavbarBreadcrumbs({ sx }) {
       {icon
         ? React.cloneElement(icon, {
             fontSize: 'small',
-            sx: { color: 'text.secondary' },
+            sx: { color: 'text.primary' },
           })
         : null}
       <Typography
