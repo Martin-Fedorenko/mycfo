@@ -1,4 +1,4 @@
-import { Container, Typography, Alert } from "@mui/material";
+import { Container, Typography, Alert, Grid } from "@mui/material";
 import NotificationCard from "./NotificationCard";
 import { useNotifications } from "../../hooks/useNotifications";
 
@@ -24,21 +24,39 @@ export default function ListaNotificaciones({ userId = 1 }) {
     );
 
   return (
-    <Container sx={{ mt: 2 }}>
+    <Container sx={{ mt: 2 }} maxWidth={false}>
       <Typography variant="h5" gutterBottom>
         Notificaciones {unread > 0 ? `(${unread} sin leer)` : ""}
       </Typography>
 
-      {items.map((n) => (
-        <NotificationCard
-          key={n.id}
-          titulo={n.title}
-          fecha={new Date(n.date).toLocaleDateString()}
-          tipo={n.badge} // "Movimiento", "Recordatorio", etc.
-          isRead={n.is_read}
-          onClick={() => markOneRead(n.id)}
-        />
-      ))}
+      <Grid
+        container
+        spacing={2}
+        sx={{
+          alignItems: "stretch",
+          gridAutoRows: "1fr",
+        }}
+      >
+        {items.map((n) => (
+          <Grid
+            item
+            key={n.id}
+            xs={12}
+            sm={6}
+            md={6}
+            sx={{ display: "flex", minWidth: 0 }}
+          >
+            <NotificationCard
+              titulo={n.title}
+              mensaje={n.body}
+              fecha={new Date(n.date).toLocaleDateString()}
+              tipo={n.badge} // "Movimiento", "Recordatorio", etc.
+              isRead={n.is_read}
+              onClick={() => markOneRead(n.id)}
+            />
+          </Grid>
+        ))}
+      </Grid>
     </Container>
   );
 }
