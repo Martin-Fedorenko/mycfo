@@ -281,7 +281,7 @@ export default function ConciliacionPanel() {
         >
           <Stack direction="row" spacing={3} alignItems="center">
             <Box sx={{ flex: 1 }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.primary">
                 Total de movimientos
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -290,7 +290,7 @@ export default function ConciliacionPanel() {
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.primary">
                 Sin conciliar
               </Typography>
               <Typography
@@ -305,7 +305,7 @@ export default function ConciliacionPanel() {
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.primary">
                 Conciliados
               </Typography>
               <Typography
@@ -320,7 +320,7 @@ export default function ConciliacionPanel() {
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.primary">
                 Progreso
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -409,11 +409,11 @@ export default function ConciliacionPanel() {
 
         {/* Contador de resultados */}
         <Box sx={{ mt: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              Mostrando {movimientosPaginados.length} de{" "}
-              {movimientosFiltrados.length} movimientos filtrados (pagina{" "}
-              {paginaMovimientosActiva}/{totalPaginasMovimientos})
-            </Typography>
+          <Typography variant="caption" color="text.primary">
+            Mostrando {movimientosPaginados.length} de{" "}
+            {movimientosFiltrados.length} movimientos filtrados (pagina{" "}
+            {paginaMovimientosActiva}/{totalPaginasMovimientos})
+          </Typography>
         </Box>
       </Paper>
 
@@ -513,7 +513,7 @@ export default function ConciliacionPanel() {
 
               {!movimientoSeleccionado ? (
                 <Box sx={{ textAlign: "center", py: 4 }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.primary">
                     Selecciona un movimiento de la izquierda para ver
                     sugerencias de documentos
                   </Typography>
