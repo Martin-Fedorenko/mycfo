@@ -155,7 +155,14 @@ export default function NotificationCenter() {
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: { sm: "100%", md: "1700px" },
+        mx: "auto",
+        p: 3,
+      }}
+    >
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
@@ -290,7 +297,7 @@ export default function NotificationCenter() {
       </Grid>
 
       {/* Lista de notificaciones */}
-      <Paper>
+      <Box>
         {loading ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography>Cargando notificaciones...</Typography>
@@ -309,105 +316,104 @@ export default function NotificationCenter() {
           </Box>
         ) : (
           <>
-            {paginatedNotifications.map((notification) => (
-              <Card
-                key={notification.id}
-                sx={{
-                  mb: 1,
-                  opacity: notification.is_read ? 0.7 : 1,
-                  borderLeft: notification.is_read
-                    ? "none"
-                    : "4px solid #2e7d67",
-                  backgroundColor: selectedNotifications.includes(
-                    notification.id
-                  )
-                    ? "action.selected"
-                    : "background.paper",
-                }}
-              >
-                <CardContent>
-                  <Box
-                    sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1,
-                          mb: 1,
-                        }}
-                      >
-                        <Typography
-                          variant="h6"
-                          sx={{
-                            fontWeight: notification.is_read
-                              ? "normal"
-                              : "bold",
-                            flex: 1,
-                          }}
-                        >
-                          {notification.title}
-                        </Typography>
-                        {/* Se oculta el badge de tipo por pedido de UX */}
-                        {/* <Chip
-                          label={notification.badge}
-                          size="small"
-                          color={getSeverityColor(notification.badge)}
-                          variant="outlined"
-                        /> */}
-                      </Box>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mb: 1 }}
-                      >
-                        {formatNumber(notification.body)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(notification.date)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-                <CardActions>
-                  <Button
-                    size="small"
-                    startIcon={
-                      selectedNotifications.includes(notification.id) ? (
-                        <CheckBoxIcon />
-                      ) : (
-                        <CheckBoxOutlineBlankIcon />
+            <Grid container spacing={2} sx={{ p: 2 }}>
+              {paginatedNotifications.map((notification) => (
+                <Grid item xs={12} md={6} key={notification.id}>
+                  <Card
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      opacity: notification.is_read ? 0.7 : 1,
+                      borderLeft: notification.is_read
+                        ? "none"
+                        : "4px solid #2e7d67",
+                      backgroundColor: selectedNotifications.includes(
+                        notification.id
                       )
-                    }
-                    onClick={() => handleSelectNotification(notification.id)}
-                    color={
-                      selectedNotifications.includes(notification.id)
-                        ? "primary"
-                        : "default"
-                    }
-                    variant={
-                      selectedNotifications.includes(notification.id)
-                        ? "contained"
-                        : "outlined"
-                    }
+                        ? "action.selected"
+                        : "background.paper",
+                    }}
                   >
-                    Seleccionar
-                  </Button>
-                  {!notification.is_read && (
-                    <Button
-                      size="small"
-                      startIcon={<MarkReadIcon />}
-                      onClick={() => markOneRead(notification.id)}
-                      color="success"
-                      variant="outlined"
-                    >
-                      Marcar como leída
-                    </Button>
-                  )}
-                </CardActions>
-              </Card>
-            ))}
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              mb: 1,
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: notification.is_read
+                                  ? "normal"
+                                  : "bold",
+                                flex: 1,
+                              }}
+                            >
+                              {notification.title}
+                            </Typography>
+                            {/* Badge oculto por UX */}
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 1 }}
+                          >
+                            {formatNumber(notification.body)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDate(notification.date)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                    <CardActions>
+                      <Button
+                        size="small"
+                        startIcon={
+                          selectedNotifications.includes(notification.id) ? (
+                            <CheckBoxIcon />
+                          ) : (
+                            <CheckBoxOutlineBlankIcon />
+                          )
+                        }
+                        onClick={() => handleSelectNotification(notification.id)}
+                        color={
+                          selectedNotifications.includes(notification.id)
+                            ? "primary"
+                            : "default"
+                        }
+                        variant={
+                          selectedNotifications.includes(notification.id)
+                            ? "contained"
+                            : "outlined"
+                        }
+                      >
+                        Seleccionar
+                      </Button>
+                      {!notification.is_read && (
+                        <Button
+                          size="small"
+                          startIcon={<MarkReadIcon />}
+                          onClick={() => markOneRead(notification.id)}
+                          color="success"
+                          variant="outlined"
+                        >
+                          Marcar como leída
+                        </Button>
+                      )}
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
 
             {/* Paginación */}
             {totalPages > 1 && (
@@ -422,7 +428,7 @@ export default function NotificationCenter() {
             )}
           </>
         )}
-      </Paper>
+      </Box>
     </Box>
   );
 }
