@@ -47,6 +47,78 @@ const FacturaListPage = () => {
   const [successSnackbar, setSuccessSnackbar] = useState({ open: false, message: "" });
   const [usuarioRol, setUsuarioRol] = useState(null);
 
+  // Normaliza la fecha de emisión sin importar el formato que devuelva el backend
+  const parseFechaEmision = useCallback((fecha) => {
+    const monthTextToNumber = {
+      JANUARY: 1,
+      FEBRUARY: 2,
+      MARCH: 3,
+      APRIL: 4,
+      MAY: 5,
+      JUNE: 6,
+      JULY: 7,
+      AUGUST: 8,
+      SEPTEMBER: 9,
+      OCTOBER: 10,
+      NOVEMBER: 11,
+      DECEMBER: 12,
+    };
+    const normalizeMonth = (month) => {
+      if (month == null) return null;
+      if (typeof month === "string") {
+        const upper = month.toUpperCase();
+        if (monthTextToNumber[upper]) return monthTextToNumber[upper];
+        const parsed = parseInt(month, 10);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+      return month;
+    };
+
+    if (!fecha) return null;
+    if (dayjs.isDayjs(fecha)) return fecha;
+
+    if (Array.isArray(fecha)) {
+      const [year, month = 1, day = 1, hour = 0, minute = 0, second = 0] = fecha;
+      const normalizedMonth = normalizeMonth(month) ?? 1;
+      const parsedFromArray = dayjs({
+        year,
+        month: normalizedMonth - 1,
+        day,
+        hour,
+        minute,
+        second,
+      });
+      if (parsedFromArray.isValid()) return parsedFromArray;
+    }
+
+    if (typeof fecha === "object") {
+      const { date, time, year, month, monthValue, day, dayOfMonth, dayOfYear, hour, minute, second } = fecha;
+      const dateObj = date || {};
+      const timeObj = time || {};
+      const finalMonth = normalizeMonth(month ?? monthValue ?? dateObj.month ?? dateObj.monthValue) ?? 1;
+      const parsedFromObject = dayjs({
+        year: year ?? dateObj.year,
+        month: finalMonth - 1,
+        day: day ?? dayOfMonth ?? dayOfYear ?? dateObj.day ?? dateObj.dayOfMonth ?? dateObj.dayOfYear,
+        hour: hour ?? timeObj.hour ?? 0,
+        minute: minute ?? timeObj.minute ?? 0,
+        second: second ?? timeObj.second ?? 0,
+      });
+      if (parsedFromObject.isValid()) return parsedFromObject;
+    }
+
+    const parsed = dayjs(fecha);
+    return parsed.isValid() ? parsed : null;
+  }, []);
+
+  const formatFechaEmision = useCallback(
+    (fecha) => {
+      const parsed = parseFechaEmision(fecha);
+      return parsed ? parsed.format("DD/MM/YYYY") : "-";
+    },
+    [parseFechaEmision]
+  );
+
   const loadFacturas = useCallback(async () => {
     setLoading(true);
     try {
@@ -57,7 +129,12 @@ const FacturaListPage = () => {
         ...filters,
       });
       console.debug("[FacturaListPage] Respuesta facturas:", data);
-      setFacturas(data.content ?? []);
+      setFacturas(
+        (data.content ?? []).map((f) => ({
+          ...f,
+          fechaEmision: parseFechaEmision(f.fechaEmision),
+        }))
+      );
     } catch (error) {
       console.error("Error cargando facturas", error);
       setSnackbar({
@@ -68,7 +145,7 @@ const FacturaListPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, parseFechaEmision]);
 
   const cargarRolUsuario = useCallback(() => {
     const sub = sessionStorage.getItem("sub");
@@ -129,7 +206,7 @@ const FacturaListPage = () => {
     setSelectedFactura(factura);
     setFormData({
       ...factura,
-      fechaEmision: factura.fechaEmision ? dayjs(factura.fechaEmision) : null,
+      fechaEmision: parseFechaEmision(factura.fechaEmision),
     });
     setDialogMode("view");
     setDialogOpen(true);
@@ -139,7 +216,7 @@ const FacturaListPage = () => {
     setSelectedFactura(factura);
     setFormData({
       ...factura,
-      fechaEmision: factura.fechaEmision ? dayjs(factura.fechaEmision) : null,
+      fechaEmision: parseFechaEmision(factura.fechaEmision),
     });
     setDialogMode("edit");
     setDialogOpen(true);
@@ -239,8 +316,18 @@ const FacturaListPage = () => {
         headerName: "Fecha emisión",
         flex: 0.7,
         minWidth: 160,
-        valueFormatter: (params) =>
-          params.value ? dayjs(params.value).format("DD/MM/YYYY HH:mm") : "-",
+        renderCell: (params) => (
+          <Typography variant="body2">
+            {formatFechaEmision(params?.row?.fechaEmision)}
+          </Typography>
+        ),
+        sortComparator: (a, b, cellParamsA, cellParamsB) => {
+          const aDate = parseFechaEmision(cellParamsA?.row?.fechaEmision);
+          const bDate = parseFechaEmision(cellParamsB?.row?.fechaEmision);
+          const aValue = aDate ? aDate.valueOf() : -Infinity;
+          const bValue = bDate ? bDate.valueOf() : -Infinity;
+          return aValue - bValue;
+        },
       },
       {
         field: "montoTotal",
@@ -347,7 +434,7 @@ const FacturaListPage = () => {
         },
       },
     ],
-    [usuarioRol]
+    [usuarioRol, formatFechaEmision, parseFechaEmision]
   );
 
   return (
