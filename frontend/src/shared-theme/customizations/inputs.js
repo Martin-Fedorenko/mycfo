@@ -9,6 +9,12 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import { gray, brand } from '../themePrimitives';
 
+const primaryGradient = `linear-gradient(135deg, ${brand[400]}, ${brand[500]})`;
+const primaryGradientHover = `linear-gradient(135deg, ${brand[500]}, ${brand[600]})`;
+const primaryGradientActive = `linear-gradient(135deg, ${brand[600]}, ${brand[700]})`;
+const primaryGlow = (opacity) => `0 0 0 6px ${alpha(brand[400], opacity)}`;
+const radialHighlight = `radial-gradient(circle at 28% 28%, ${alpha(brand[50], 0.35)} 0%, transparent 36%)`;
+
 /* eslint-disable import/prefer-default-export */
 export const inputsCustomizations = {
   MuiButtonBase: {
@@ -59,30 +65,46 @@ export const inputsCustomizations = {
             style: {
               color: brand[50],
               backgroundColor: brand[400],
+              backgroundImage: `${radialHighlight}, ${primaryGradient}`,
+              backgroundSize: '220% 220%',
+              backgroundPosition: '0% 50%',
               border: `1px solid ${brand[400]}`,
-              transition: 'background-color 120ms ease-in, border-color 120ms ease-in',
+              boxShadow: `0 10px 24px ${alpha(brand[400], 0.2)}`,
+              transition:
+                'background-position 220ms ease, box-shadow 200ms ease, transform 150ms ease, border-color 150ms ease-in',
               '&:hover': {
-                backgroundColor: brand[500],
+                backgroundImage: `${radialHighlight}, ${primaryGradientHover}`,
+                backgroundPosition: '100% 50%',
                 borderColor: brand[500],
+                boxShadow: `0 12px 28px ${alpha(brand[500], 0.24)}, ${primaryGlow(0.12)}`,
+                transform: 'translateY(-1px) scale(1.01)',
               },
               '&:active': {
+                backgroundImage: `${radialHighlight}, ${primaryGradientActive}`,
+                backgroundPosition: '50% 50%',
                 backgroundColor: brand[600],
                 borderColor: brand[600],
+                boxShadow: `0 8px 18px ${alpha(brand[600], 0.25)}, ${primaryGlow(0.1)}`,
+                transform: 'translateY(0) scale(0.995)',
               },
               '&.Mui-disabled': {
                 backgroundColor: alpha(brand[400], 0.4),
+                backgroundImage: 'none',
                 color: alpha(brand[50], 0.7),
                 borderColor: alpha(brand[400], 0.4),
               },
               ...theme.applyStyles('dark', {
                 color: brand[50],
                 backgroundColor: brand[400],
+                backgroundImage: `${radialHighlight}, ${primaryGradient}`,
                 border: `1px solid ${brand[400]}`,
+                boxShadow: `0 10px 24px ${alpha(brand[900], 0.35)}`,
                 '&:hover': {
-                  backgroundColor: brand[500],
+                  backgroundImage: `${radialHighlight}, ${primaryGradientHover}`,
                   borderColor: brand[500],
                 },
                 '&:active': {
+                  backgroundImage: `${radialHighlight}, ${primaryGradientActive}`,
                   backgroundColor: brand[600],
                   borderColor: brand[600],
                 },
@@ -222,19 +244,31 @@ export const inputsCustomizations = {
       }),
       containedPrimary: {
         backgroundColor: brand[400],
+        backgroundImage: `${radialHighlight}, ${primaryGradient}`,
+        backgroundSize: '220% 220%',
+        backgroundPosition: '0% 50%',
         border: `1px solid ${brand[400]}`,
         color: brand[50],
-        transition: 'background-color 120ms ease-in, border-color 120ms ease-in',
+        boxShadow: `0 10px 24px ${alpha(brand[400], 0.2)}`,
+        transition:
+          'background-position 220ms ease, box-shadow 200ms ease, transform 150ms ease, border-color 150ms ease-in',
         '&:hover': {
-          backgroundColor: brand[500],
+          backgroundImage: `${radialHighlight}, ${primaryGradientHover}`,
+          backgroundPosition: '100% 50%',
           borderColor: brand[500],
+          boxShadow: `0 12px 28px ${alpha(brand[500], 0.24)}, ${primaryGlow(0.12)}`,
+          transform: 'translateY(-1px) scale(1.01)',
         },
         '&:active': {
+          backgroundImage: `${radialHighlight}, ${primaryGradientActive}`,
           backgroundColor: brand[600],
           borderColor: brand[600],
+          boxShadow: `0 8px 18px ${alpha(brand[600], 0.25)}, ${primaryGlow(0.1)}`,
+          transform: 'translateY(0) scale(0.995)',
         },
         '&.Mui-disabled': {
           backgroundColor: alpha(brand[400], 0.4),
+          backgroundImage: 'none',
           color: alpha(brand[50], 0.7),
           borderColor: alpha(brand[400], 0.4),
         },
