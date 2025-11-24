@@ -316,104 +316,169 @@ export default function NotificationCenter() {
           </Box>
         ) : (
           <>
-            <Grid container spacing={2} sx={{ p: 2 }}>
-              {paginatedNotifications.map((notification) => (
-                <Grid item xs={12} md={6} key={notification.id}>
-                  <Card
+            <Box sx={{ position: "relative", p: 2 }}>
+              <Grid
+                container
+                columnSpacing={{ xs: 0, md: 3 }}
+                rowSpacing={2}
+                sx={{ alignItems: "stretch" }}
+              >
+                {paginatedNotifications.map((notification, idx) => (
+                  <Grid
+                    item
+                    xs={12}
+                    md={6}
+                    key={notification.id}
                     sx={{
-                      height: "100%",
                       display: "flex",
-                      flexDirection: "column",
-                      opacity: notification.is_read ? 0.7 : 1,
-                      borderLeft: notification.is_read
-                        ? "none"
-                        : "4px solid #2e7d67",
-                      backgroundColor: selectedNotifications.includes(
-                        notification.id
-                      )
-                        ? "action.selected"
-                        : "background.paper",
+                      minWidth: 0,
+                      pr: { md: idx % 2 === 0 ? 1.5 : 0 },
+                      pl: { md: idx % 2 === 0 ? 0 : 1.5 },
+                      flexBasis: { md: "calc(50% - 12px)" },
+                      maxWidth: { md: "calc(50% - 12px)" },
                     }}
                   >
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
+                    <Card
+                      sx={{
+                        height: "100%",
+                        width: "100%",
+                        minWidth: 0,
+                        boxSizing: "border-box",
+                        display: "flex",
+                        flexDirection: "column",
+                        opacity: notification.is_read ? 0.7 : 1,
+                        borderLeft: notification.is_read
+                          ? "none"
+                          : "4px solid #008375",
+                        backgroundColor: selectedNotifications.includes(
+                          notification.id
+                        )
+                          ? "action.selected"
+                          : "background.paper",
+                      }}
+                    >
+                      <CardContent
+                        sx={{
+                          flexGrow: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1,
+                          minWidth: 0,
+                        }}
                       >
-                        <Box sx={{ flex: 1 }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              mb: 1,
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 2,
+                            minWidth: 0,
+                          }}
+                        >
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Box
                               sx={{
-                                fontWeight: notification.is_read
-                                  ? "normal"
-                                  : "bold",
-                                flex: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                mb: 1,
+                                minWidth: 0,
                               }}
                             >
-                              {notification.title}
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: notification.is_read
+                                    ? "normal"
+                                    : "bold",
+                                  flex: 1,
+                                  minWidth: 0,
+                                  wordBreak: "break-word",
+                                  overflowWrap: "anywhere",
+                                }}
+                              >
+                                {notification.title}
+                              </Typography>
+                              {/* Badge oculto por UX */}
+                            </Box>
+                            <Typography
+                              variant="body2"
+                              color="text.primary"
+                              sx={{
+                                mb: 1,
+                                wordBreak: "break-word",
+                                overflowWrap: "anywhere",
+                              }}
+                            >
+                              {formatNumber(notification.body)}
                             </Typography>
-                            {/* Badge oculto por UX */}
+                            <Typography variant="caption" color="text.primary">
+                              {formatDate(notification.date)}
+                            </Typography>
                           </Box>
-                          <Typography
-                            variant="body2"
-                            color="text.primary"
-                            sx={{ mb: 1 }}
-                          >
-                            {formatNumber(notification.body)}
-                          </Typography>
-                          <Typography variant="caption" color="text.primary">
-                            {formatDate(notification.date)}
-                          </Typography>
                         </Box>
-                      </Box>
-                    </CardContent>
-                    <CardActions>
-                      <Button
-                        size="small"
-                        startIcon={
-                          selectedNotifications.includes(notification.id) ? (
-                            <CheckBoxIcon />
-                          ) : (
-                            <CheckBoxOutlineBlankIcon />
-                          )
-                        }
-                        onClick={() => handleSelectNotification(notification.id)}
-                        color={
-                          selectedNotifications.includes(notification.id)
-                            ? "primary"
-                            : "default"
-                        }
-                        variant={
-                          selectedNotifications.includes(notification.id)
-                            ? "contained"
-                            : "outlined"
-                        }
+                      </CardContent>
+                      <CardActions
+                        sx={{
+                          flexWrap: "wrap",
+                          gap: 1,
+                          rowGap: 1,
+                          pt: 0,
+                        }}
                       >
-                        Seleccionar
-                      </Button>
-                      {!notification.is_read && (
                         <Button
                           size="small"
-                          startIcon={<MarkReadIcon />}
-                          onClick={() => markOneRead(notification.id)}
-                          color="success"
-                          variant="outlined"
+                          startIcon={
+                            selectedNotifications.includes(notification.id)
+                              ? (
+                                <CheckBoxIcon />
+                              ) : (
+                                <CheckBoxOutlineBlankIcon />
+                              )
+                          }
+                          onClick={() => handleSelectNotification(notification.id)}
+                          color={
+                            selectedNotifications.includes(notification.id)
+                              ? "primary"
+                              : "default"
+                          }
+                          variant={
+                            selectedNotifications.includes(notification.id)
+                              ? "contained"
+                              : "outlined"
+                          }
                         >
-                          Marcar como leída
+                          Seleccionar
                         </Button>
-                      )}
-                    </CardActions>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+                        {!notification.is_read && (
+                          <Button
+                            size="small"
+                            startIcon={<MarkReadIcon />}
+                            onClick={() => markOneRead(notification.id)}
+                            color="success"
+                            variant="outlined"
+                          >
+                            Marcar como leída
+                          </Button>
+                        )}
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  left: "50%",
+                  width: "1px",
+                  bgcolor: "divider",
+                  display: { xs: "none", md: "block" },
+                  pointerEvents: "none",
+                  transform: "translateX(-0.5px)",
+                }}
+              />
+            </Box>
 
             {/* Paginación */}
             {totalPages > 1 && (

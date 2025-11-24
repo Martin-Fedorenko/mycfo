@@ -276,7 +276,14 @@ export default function PronosticoFijo() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: { sm: "100%", md: "1700px" },
+        mx: "auto",
+        p: 3,
+      }}
+    >
       <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
         Pronósticos Fijos
       </Typography>

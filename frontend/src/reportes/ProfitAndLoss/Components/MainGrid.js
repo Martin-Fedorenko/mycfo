@@ -143,7 +143,14 @@ export default function MainGrid() {
     return (
         <React.Fragment>
             <CssBaseline />
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            <Box
+                sx={{
+                    width: '100%',
+                    maxWidth: { sm: '100%', md: '1700px' },
+                    mx: 'auto',
+                    p: 3,
+                }}
+            >
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography component="h2" variant="h4">
                         Estado de Resultados
@@ -171,7 +178,7 @@ export default function MainGrid() {
                     </Paper>
                 </div>
 
-            </Container>
+            </Box>
         </React.Fragment>
     );
 }
