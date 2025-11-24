@@ -248,11 +248,6 @@ export default function CargaVistaFinal() {
       <Typography variant="h5" sx={{ mb: 2, textAlign: "center" }}>
         Carga de {tipo} por {modo}
       </Typography>
-
-      <Typography variant="subtitle1" sx={{ mb: 4, textAlign: "center" }}>
-        Elegí cómo querés cargar tu {tipo}
-      </Typography>
-
       {renderContenido()}
       <Dialog
         open={formDialogOpen && !!dialogData}
