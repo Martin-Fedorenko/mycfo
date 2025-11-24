@@ -10,7 +10,7 @@ const TablaDetalle = ({ ingresos, egresos, topRightActions }) => {
   const balance = totalIngresos - totalEgresos;
 
   return (
-    <Box sx={{ width: '100%', p: 2 }}>
+    <Box sx={{ width: '100%', px: 0, py: 2 }}>
       {/* Totales arriba */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={4}>
