@@ -17,7 +17,7 @@ export default function TablaDetalle({ year, ingresos, egresos }) {
   const balance = totalIngresos - totalEgresos;
 
   return (
-    <Box sx={{ width: '100%', p: 2 }}>
+    <Box sx={{ width: '100%' }}>
       {/* Totales (igual al reporte mensual) */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={4}>
