@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Typography, Box
+    TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Box
 } from '@mui/material';
 
 const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
@@ -49,7 +49,6 @@ const TablaDetalle = ({ year, ingresos, egresos, saldoInicial }) => {
 
     return (
         <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>Cashflow {year}</Typography>
             <TableContainer component={Paper}>
                 <Table
                     size="small"
