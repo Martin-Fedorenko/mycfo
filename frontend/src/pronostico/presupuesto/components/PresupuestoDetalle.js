@@ -508,14 +508,17 @@ export default function PresupuestoDetalle() {
           {/* KPIs con acciones rápidas */}
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white', position: 'relative' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white', position: 'relative', height: '100%' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
+                <Typography variant="body2" sx={{ display: 'block', color: 'rgba(255,255,255,0.9)' }}>
+                  Real acumulado
+                </Typography>
                 <Typography variant="h4" fontWeight="bold">
                   {formatCurrency(totalIngresoReal)}
                 </Typography>
-                <Typography variant="body2">
-                  {formatDiff(totalIngresoEst, totalIngresoReal)}
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  Estimado: {formatCurrency(totalIngresoEst)}
                 </Typography>
                 <Tooltip title="Ver meses con mayor desvío en ingresos">
                   <IconButton
@@ -530,14 +533,17 @@ export default function PresupuestoDetalle() {
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white', position: 'relative' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white', position: 'relative', height: '100%' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
+                <Typography variant="body2" sx={{ display: 'block', color: 'rgba(255,255,255,0.9)' }}>
+                  Real acumulado
+                </Typography>
                 <Typography variant="h4" fontWeight="bold">
                   {formatCurrency(totalEgresoReal)}
                 </Typography>
-                <Typography variant="body2">
-                  {formatDiff(totalEgresoEst, totalEgresoReal)}
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  Estimado: {formatCurrency(totalEgresoEst)}
                 </Typography>
                 <Tooltip title="Ver meses con mayor desvío en egresos">
                   <IconButton
@@ -558,7 +564,8 @@ export default function PresupuestoDetalle() {
                   textAlign: 'center',
                   bgcolor: resultadoReal >= 0 ? kpiColors.resultadoPos : kpiColors.resultadoNeg,
                   color: 'white',
-                  position: 'relative'
+                  position: 'relative',
+                  height: '100%'
                 }}
               >
                 <Avatar

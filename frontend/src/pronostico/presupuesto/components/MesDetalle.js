@@ -664,6 +664,8 @@ export default function MesDetalle() {
   const totalIngresos = ingresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
   const totalEgresosCalculado = egresos.reduce((acc, c) => acc + safeNumber(c.real), 0);
   const totalEgresos = Number.isFinite(totalRealMes) ? totalRealMes : totalEgresosCalculado;
+  const totalIngresoEst = ingresos.reduce((acc, c) => acc + safeNumber(c.montoEstimado), 0);
+  const totalEgresoEst = egresos.reduce((acc, c) => acc + safeNumber(c.montoEstimado), 0);
   const resultado = totalIngresos - totalEgresos;
 
   const estimadoTotal = lineasCompleto.reduce(
@@ -1054,26 +1056,37 @@ export default function MesDetalle() {
         <>
           <Grid container spacing={3} mb={2}>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.ingresos, color: 'white', height: '100%' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'success.main', mx: 'auto', mb: 1 }}>+</Avatar>
                 <Typography variant="h6">Ingresos</Typography>
+                <Typography variant="body2" sx={{ display: 'block', color: 'rgba(255,255,255,0.9)' }}>Real del mes</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(totalIngresos)}</Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  Estimado: {formatCurrency(totalIngresoEst)}
+                </Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: kpiColors.egresos, color: 'white', height: '100%' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: 'error.main', mx: 'auto', mb: 1 }}>-</Avatar>
                 <Typography variant="h6">Egresos</Typography>
+                <Typography variant="body2" sx={{ display: 'block', color: 'rgba(255,255,255,0.9)' }}>Real del mes</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(totalEgresos)}</Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  Estimado: {formatCurrency(totalEgresoEst)}
+                </Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? kpiColors.resultadoPos : kpiColors.resultadoNeg, color: 'white' }}>
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: resultado >= 0 ? kpiColors.resultadoPos : kpiColors.resultadoNeg, color: 'white', height: '100%' }}>
                 <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: resultado >= 0 ? 'info.main' : 'warning.main', mx: 'auto', mb: 1 }}>
                   {resultado >= 0 ? '✓' : '⚠'}
                 </Avatar>
                 <Typography variant="h6">Resultado</Typography>
                 <Typography variant="h4" fontWeight="bold">{formatCurrency(resultado)}</Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  {resultado >= 0 ? 'Superávit' : 'Déficit'}
+                </Typography>
               </Paper>
             </Grid>
           </Grid>
