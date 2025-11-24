@@ -251,7 +251,7 @@ export default function NotificationCenter() {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+              <Typography color="text.primary" gutterBottom>
                 Total
               </Typography>
               <Typography variant="h5">{items.length}</Typography>
@@ -261,7 +261,7 @@ export default function NotificationCenter() {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+              <Typography color="text.primary" gutterBottom>
                 Sin leer
               </Typography>
               <Typography variant="h5" color="error">
@@ -273,7 +273,7 @@ export default function NotificationCenter() {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+              <Typography color="text.primary" gutterBottom>
                 Filtradas
               </Typography>
               <Typography variant="h5">
@@ -285,7 +285,7 @@ export default function NotificationCenter() {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+              <Typography color="text.primary" gutterBottom>
                 Seleccionadas
               </Typography>
               <Typography variant="h5">
@@ -363,12 +363,12 @@ export default function NotificationCenter() {
                           </Box>
                           <Typography
                             variant="body2"
-                            color="text.secondary"
+                            color="text.primary"
                             sx={{ mb: 1 }}
                           >
                             {formatNumber(notification.body)}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.primary">
                             {formatDate(notification.date)}
                           </Typography>
                         </Box>
