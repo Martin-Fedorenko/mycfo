@@ -13,7 +13,7 @@ import Stack from "@mui/material/Stack";
 import MuiCard from "@mui/material/Card";
 import { styled } from "@mui/material/styles";
 import AppTheme from "../shared-theme/AppTheme";
-import ColorModeSelect from "../shared-theme/ColorModeSelect";
+import ColorModeIconDropdown from "../shared-theme/ColorModeIconDropdown";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
 import API_CONFIG from "../config/api-config";
@@ -51,12 +51,13 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
     position: "absolute",
     zIndex: -1,
     inset: 0,
+    backgroundColor: "#ffffff",
     backgroundImage:
-      "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))",
+      "radial-gradient(circle at 50% 50%, rgba(0, 132, 118, 0.9) 0%, rgba(0, 132, 118, 0.6) 20%, rgba(0, 132, 118, 0.3) 100%, rgba(0, 132, 118, 0) 500%)",
     backgroundRepeat: "no-repeat",
     ...theme.applyStyles("dark", {
       backgroundImage:
-        "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
+        "radial-gradient(at 50% 50%, #008476, hsl(220, 30%, 5%))",
     }),
   },
 }));
@@ -138,7 +139,7 @@ export default function SignUp(props) {
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
-      <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
+      <ColorModeIconDropdown sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
       <SignUpContainer direction="column" justifyContent="space-between">
         <Card variant="outlined">
           <Typography

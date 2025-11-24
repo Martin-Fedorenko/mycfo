@@ -19,7 +19,7 @@ import MuiCard from "@mui/material/Card";
 import { styled } from "@mui/material/styles";
 
 import AppTheme from "../shared-theme/AppTheme";
-import ColorModeSelect from "../shared-theme/ColorModeSelect";
+import ColorModeIconDropdown from "../shared-theme/ColorModeIconDropdown";
 import axios from "axios";
 import API_CONFIG from "../config/api-config";
 
@@ -44,6 +44,21 @@ const ConfirmContainer = styled(Stack)(({ theme }) => ({
   padding: theme.spacing(2),
   [theme.breakpoints.up("sm")]: {
     padding: theme.spacing(4),
+  },
+  "&::before": {
+    content: '""',
+    display: "block",
+    position: "absolute",
+    zIndex: -1,
+    inset: 0,
+    backgroundColor: "#ffffff",
+    backgroundImage:
+      "radial-gradient(circle at 50% 50%, rgba(0, 132, 118, 0.9) 0%, rgba(0, 132, 118, 0.6) 20%, rgba(0, 132, 118, 0.3) 100%, rgba(0, 132, 118, 0) 500%)",
+    backgroundRepeat: "no-repeat",
+    ...theme.applyStyles("dark", {
+      backgroundImage:
+        "radial-gradient(at 50% 50%, #008476, hsl(220, 30%, 5%))",
+    }),
   },
 }));
 
@@ -116,7 +131,7 @@ export default function ConfirmAccount(props) {
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
-      <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
+      <ColorModeIconDropdown sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
       <ConfirmContainer direction="column" justifyContent="center">
         <Card variant="outlined">
           <Typography
