@@ -16,6 +16,21 @@ const numberFormatter = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
 });
 
+const formatCurrency = (value) => {
+  if (value === null || value === undefined) {
+    return "--";
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "--";
+  }
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(numeric);
+};
+
 const percentFormatter = new Intl.NumberFormat("es-AR", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 1,
@@ -223,10 +238,23 @@ const ReconciliationWidget = ({
                           },
                         }}
                       />
-                      <Typography variant="caption" color="text.secondary">
-                        {numberFormatter.format(item?.conciliados ?? 0)} /{" "}
-                        {numberFormatter.format(item?.total ?? 0)} conciliados
-                      </Typography>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="caption" color="text.secondary">
+                          {numberFormatter.format(item?.conciliados ?? 0)} /{" "}
+                          {numberFormatter.format(item?.total ?? 0)} conciliados
+                        </Typography>
+                        {(item?.montoTotal !== undefined && item?.montoTotal !== null) && (
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={700}
+                            sx={{ 
+                              color: (item.tipo === "Egreso" || item.montoTotal < 0) ? "error.main" : "success.main" 
+                            }}
+                          >
+                            {formatCurrency(item.montoTotal)}
+                          </Typography>
+                        )}
+                      </Stack>
                     </Stack>
                   );
                 })

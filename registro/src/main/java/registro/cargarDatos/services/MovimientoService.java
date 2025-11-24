@@ -529,11 +529,31 @@ public class MovimientoService {
                     long totalTipo = item[1] != null ? ((Number) item[1]).longValue() : 0L;
                     long conciliadosTipo = item[2] != null ? ((Number) item[2]).longValue() : 0L;
                     long pendientesTipo = Math.max(totalTipo - conciliadosTipo, 0L);
+                    
+                    // Obtener montos (índices 3, 4, 5)
+                    Double montoTotal = item[3] != null ? ((Number) item[3]).doubleValue() : 0.0;
+                    Double montoConciliado = item[4] != null ? ((Number) item[4]).doubleValue() : 0.0;
+                    Double montoPendiente = item[5] != null ? ((Number) item[5]).doubleValue() : 0.0;
+                    
+                    // Calcular porcentaje
+                    double porcentajeTipo = totalTipo > 0 ? (conciliadosTipo * 100.0) / totalTipo : 0.0;
+                    
+                    // Si es Egreso, convertir a negativo (asegurar que sean valores negativos)
+                    if (tipo == TipoMovimiento.Egreso) {
+                        montoTotal = montoTotal != null ? -Math.abs(montoTotal) : 0.0;
+                        montoConciliado = montoConciliado != null ? -Math.abs(montoConciliado) : 0.0;
+                        montoPendiente = montoPendiente != null ? -Math.abs(montoPendiente) : 0.0;
+                    }
+                    
                     return ConciliacionTipoResumen.builder()
                             .tipo(tipo != null ? tipo.name() : "SIN_TIPO")
                             .total(totalTipo)
                             .conciliados(conciliadosTipo)
                             .pendientes(pendientesTipo)
+                            .porcentaje(porcentajeTipo)
+                            .montoTotal(montoTotal)
+                            .montoConciliado(montoConciliado)
+                            .montoPendiente(montoPendiente)
                             .build();
                 })
                 .toList();

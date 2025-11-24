@@ -25,11 +25,12 @@ export default function MovimientoCard({
   onDesvincular,
 }) {
   const formatMonto = (monto) => {
-    if (!monto) return "$0";
+    if (!monto && monto !== 0) return "$0";
+    // Mantener el signo original (no usar Math.abs)
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency: "ARS",
-    }).format(Math.abs(monto));
+    }).format(monto);
   };
 
   const formatFecha = (fecha) => {

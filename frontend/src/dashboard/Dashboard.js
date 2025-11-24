@@ -1118,10 +1118,10 @@ const Dashboard = React.memo(() => {
           container
           spacing={3}
           justifyContent="center"
-          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
+          sx={{ width: "100%", maxWidth: 1400, mx: "auto" }}
         >
           <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
               <SalesTrendWidget
                 data={
                   state.salesTrend.data ?? {
@@ -1139,7 +1139,7 @@ const Dashboard = React.memo(() => {
             </Box>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
               <SalesTrendWidget
                 data={
                   state.expensesTrend.data ?? {
@@ -1164,10 +1164,10 @@ const Dashboard = React.memo(() => {
           container
           spacing={3}
           justifyContent="center"
-          sx={{ width: "100%", maxWidth: 1600, mx: "auto", mt: 1 }}
+          sx={{ width: "100%", maxWidth: 1400, mx: "auto", mt: 1 }}
         >
           <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
               <SalesByCategoryWidget
                 data={state.salesByCategory.data ?? []}
                 loading={
@@ -1178,7 +1178,7 @@ const Dashboard = React.memo(() => {
             </Box>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
               <SalesByCategoryWidget
                 data={state.expensesByCategory.data ?? []}
                 loading={

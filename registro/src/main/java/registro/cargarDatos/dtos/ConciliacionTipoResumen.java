@@ -10,5 +10,9 @@ public class ConciliacionTipoResumen {
     long total;
     long conciliados;
     long pendientes;
+    Double porcentaje;
+    Double montoTotal;
+    Double montoConciliado;
+    Double montoPendiente;
 }
 

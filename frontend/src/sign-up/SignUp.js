@@ -15,7 +15,7 @@ import { styled } from "@mui/material/styles";
 import AppTheme from "../shared-theme/AppTheme";
 import ColorModeIconDropdown from "../shared-theme/ColorModeIconDropdown";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from "./components/CustomIcons";
+import { GoogleIcon, FacebookIcon } from "./components/CustomIcons";
 import API_CONFIG from "../config/api-config";
 import axios from "axios";
 

@@ -114,7 +114,10 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
             @Param("fin") LocalDateTime fin
     );
 
-    @Query("SELECT m.tipo, COUNT(m), SUM(CASE WHEN m.documentoComercial IS NOT NULL THEN 1 ELSE 0 END) " +
+    @Query("SELECT m.tipo, COUNT(m), SUM(CASE WHEN m.documentoComercial IS NOT NULL THEN 1 ELSE 0 END), " +
+            "SUM(m.montoTotal), " +
+            "SUM(CASE WHEN m.documentoComercial IS NOT NULL THEN m.montoTotal ELSE 0 END), " +
+            "SUM(CASE WHEN m.documentoComercial IS NULL THEN m.montoTotal ELSE 0 END) " +
             "FROM Movimiento m " +
             "WHERE (:organizacionId IS NULL OR m.organizacionId = :organizacionId) " +
             "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +

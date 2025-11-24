@@ -8,7 +8,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
-import { BarChart } from "@mui/x-charts/BarChart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useTheme, alpha } from "@mui/material/styles";
 import useResolvedColorTokens from "../useResolvedColorTokens";
 
@@ -37,38 +37,6 @@ const SalesByCategoryWidget = ({
 }) => {
   const theme = useTheme();
   const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
-  const chartContainerRef = React.useRef(null);
-  const [chartWidth, setChartWidth] = React.useState(0);
-
-  const effectiveWidth = React.useMemo(() => {
-    if (!chartWidth) {
-      return 820;
-    }
-    const MIN_WIDTH = 540;
-    return Math.max(chartWidth, MIN_WIDTH);
-  }, [chartWidth]);
-
-  React.useLayoutEffect(() => {
-    const element = chartContainerRef.current;
-    if (!element) return undefined;
-
-    const updateWidth = () => {
-      const width =
-        element.offsetWidth || element.getBoundingClientRect().width || 0;
-      setChartWidth(width);
-    };
-
-    updateWidth();
-
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(updateWidth);
-      observer.observe(element);
-      return () => observer.disconnect();
-    }
-
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
-  }, []);
 
   if (loading) {
     return (
@@ -98,51 +66,22 @@ const SalesByCategoryWidget = ({
 
   const hasData = Array.isArray(data) && data.length > 0;
   const safeData = hasData ? data : [];
-  const categories = safeData.map((item) => item.category ?? "Sin categoría");
-  const values = safeData.map((item) => Number(item.value) || 0);
-
-  // Ajustamos el eje Y para permitir valores negativos y dar margen vertical
-  // con un rango que tenga sentido visualmente.
-  const hasNegativeValues = values.some((v) => v < 0);
-  const hasPositiveValues = values.some((v) => v > 0);
-  const rawMin = hasData ? Math.min(...values) : 0;
-  const rawMax = hasData ? Math.max(...values) : 0;
-
-  let yMin = 0;
-  let yMax = 0;
-
-  if (hasPositiveValues && !hasNegativeValues) {
-    // Solo positivos: de 0 a un poco más del máximo
-    yMin = 0;
-    yMax = rawMax * 1.25 || 1;
-  } else if (!hasPositiveValues && hasNegativeValues) {
-    // Solo negativos: de un poco menos del mínimo a 0
-    yMin = rawMin * 1.25 || -1;
-    yMax = 0;
-  } else if (hasPositiveValues && hasNegativeValues) {
-    // Valores mixtos: rango simétrico alrededor de 0
-    const absMax = Math.max(Math.abs(rawMin), Math.abs(rawMax)) || 1;
-    const limit = absMax * 1.25;
-    yMin = -limit;
-    yMax = limit;
-  } else {
-    // Todo 0 o sin datos
-    yMin = -1;
-    yMax = 1;
-  }
+  const chartData = safeData.map((item) => ({
+    name: item.category ?? "Sin categoría",
+    value: Number(item.value) || 0,
+  }));
 
   let topCategory = null;
   let bottomCategory = null;
   let average = null;
 
   if (hasData) {
+    const values = chartData.map(d => d.value);
     const total = values.reduce((sum, value) => sum + value, 0);
     average = values.length > 0 ? total / values.length : null;
-    const sorted = [...safeData].sort(
-      (a, b) => (Number(b.value) || 0) - (Number(a.value) || 0)
-    );
-    topCategory = sorted[0] ?? null;
-    bottomCategory = sorted[sorted.length - 1] ?? null;
+    const sorted = [...chartData].sort((a, b) => b.value - a.value);
+    topCategory = sorted[0] ? { category: sorted[0].name, value: sorted[0].value } : null;
+    bottomCategory = sorted[sorted.length - 1] ? { category: sorted[sorted.length - 1].name, value: sorted[sorted.length - 1].value } : null;
   }
 
   return (
@@ -243,7 +182,7 @@ const SalesByCategoryWidget = ({
                   {formatCurrency(average)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                  {values.length} categorías
+                  {chartData.length} categorías
                 </Typography>
               </Stack>
             </Stack>
@@ -272,72 +211,51 @@ const SalesByCategoryWidget = ({
       >
         {hasData ? (
           <Box
-            ref={chartContainerRef}
             sx={{
               width: "100%",
-              display: "block",
+              height: 350,
               mt: { xs: 1, md: 2 },
-              px: 0,
             }}
           >
-            <BarChart
-              width={effectiveWidth}
-              height={360}
-              xAxis={[
-                {
-                  id: "categories",
-                  data: categories,
-                  scaleType: "band",
-                  valueFormatter: (value) => value,
-                  tickLabelStyle: {
-                    textTransform: "capitalize",
-                    fontSize: 12,
-                    whiteSpace: "nowrap",
-                  },
-                },
-              ]}
-              yAxis={[
-                {
-                  min: yMin,
-                  max: yMax,
-                  tickNumber: 5,
-                  valueFormatter: (value) => formatCurrency(value),
-                  tickLabelStyle: {
-                    fontSize: 11,
-                  },
-                },
-              ]}
-              series={[
-                {
-                  data: values,
-                  color: theme.palette.primary.main,
-                  valueFormatter: (value) => formatCurrency(value),
-                },
-              ]}
-              margin={{ left: 60, right: 100, top: 12, bottom: 56 }}
-              grid={{ vertical: true, horizontal: true }}
-              slotProps={{
-                legend: { hidden: true },
-                tooltip: {
-                  valueFormatter: (value) => formatCurrency(value),
-                },
-              }}
-              sx={{
-                "& .MuiChartsAxis-bottom .MuiTypography-root": {
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                  overflow: "visible",
-                },
-                "& .MuiChartsAxis-left .MuiTypography-root": {
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                  overflow: "visible",
-                },
-                "& .MuiBarElement-root": {
-                  fill: alpha(theme.palette.primary.main, 0.85),
-                },
-              }}
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={alpha(theme.palette.divider, 0.3)} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: primaryTextColor, fontSize: 9 }}
+                  angle={-40}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                />
+                <YAxis 
+                  tick={{ fill: primaryTextColor, fontSize: 9 }}
+                  tickFormatter={(value) => formatCurrency(value)}
+                  width={80}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 8,
+                  }}
+                  labelStyle={{ color: primaryTextColor }}
+                  formatter={(value) => [formatCurrency(value), "Valor"]}
+                />
+                <Bar 
+                  dataKey="value" 
+                  fill={theme.palette.primary.main}
+                  radius={[8, 8, 0, 0]}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={alpha(theme.palette.primary.main, 0.85)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </Box>
         ) : (
           <Box

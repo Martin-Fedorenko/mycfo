@@ -148,7 +148,7 @@ const InsightsWidget = () => {
           </Stack>
         ) : (
           <Typography variant="body2" color="text.secondary">
-            Activa "Usar DeepSeek" para el análisis del modelo o usa el resumen básico.
+            Activa "Usar IA" para un análisis con Inteligencia Artificial o usa el análisis tradicional.
           </Typography>
         )}
       </CardContent>
@@ -161,7 +161,7 @@ const InsightsWidget = () => {
               disabled={loading}
             />
           }
-          label="Usar DeepSeek"
+          label="Usar IA"
         />
         <Button variant="contained" onClick={handleRun} disabled={loading}>
           Interpretar situación

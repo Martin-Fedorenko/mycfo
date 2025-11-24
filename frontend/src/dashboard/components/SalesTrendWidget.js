@@ -8,7 +8,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
-import { LineChart } from "@mui/x-charts/LineChart";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { useTheme, alpha } from "@mui/material/styles";
 import useResolvedColorTokens from "../useResolvedColorTokens";
 
@@ -79,38 +79,6 @@ const monthLabel = (raw, index) => {
 const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage }) => {
   const theme = useTheme();
   const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
-  const chartContainerRef = React.useRef(null);
-  const [chartWidth, setChartWidth] = React.useState(0);
-
-  const effectiveWidth = React.useMemo(() => {
-    if (!chartWidth) {
-      return 820;
-    }
-    const MIN_WIDTH = 540;
-    return Math.max(chartWidth, MIN_WIDTH);
-  }, [chartWidth]);
-
-  React.useLayoutEffect(() => {
-    const element = chartContainerRef.current;
-    if (!element) return undefined;
-
-    const updateWidth = () => {
-      const width =
-        element.offsetWidth || element.getBoundingClientRect().width || 0;
-      setChartWidth(width);
-    };
-
-    updateWidth();
-
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(updateWidth);
-      observer.observe(element);
-      return () => observer.disconnect();
-    }
-
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
-  }, []);
 
   if (loading) {
     return (
@@ -140,40 +108,12 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
   }
 
   const points = data?.points ?? [];
-  const xAxis = points.map((item) => monthLabel(item.month, item.monthIndex));
-  const seriesValues = points.map((item) => item.value ?? 0);
+  const chartData = points.map((item, index) => ({
+    name: monthLabel(item.month, item.monthIndex),
+    value: item.value ?? 0,
+  }));
   const noDataMessage = emptyMessage ?? data?.emptyMessage ?? "No hay ingresos registrados en este período.";
-  const hasData = seriesValues.length > 0;
-
-  // Calculamos un rango de eje Y con padding para que la curva se vea "desde mas lejos"
-  // y el eje 0 quede como referencia clara.
-  const hasNegative = seriesValues.some((v) => v < 0);
-  const hasPositive = seriesValues.some((v) => v > 0);
-  const rawMin = hasData ? Math.min(...seriesValues) : 0;
-  const rawMax = hasData ? Math.max(...seriesValues) : 0;
-
-  let yMin = 0;
-  let yMax = 0;
-
-  if (hasPositive && !hasNegative) {
-    // Solo positivos: de 0 a un poco más del máximo
-    yMin = 0;
-    yMax = rawMax * 1.25 || 1;
-  } else if (!hasPositive && hasNegative) {
-    // Solo negativos: de un poco menos del mínimo a 0
-    yMin = rawMin * 1.25 || -1;
-    yMax = 0;
-  } else if (hasPositive && hasNegative) {
-    // Mezcla de positivos y negativos: rango simétrico alrededor de 0
-    const absMax = Math.max(Math.abs(rawMin), Math.abs(rawMax)) || 1;
-    const limit = absMax * 1.25;
-    yMin = -limit;
-    yMax = limit;
-  } else {
-    // Todo 0 o sin datos
-    yMin = -1;
-    yMax = 1;
-  }
+  const hasData = chartData.length > 0 && chartData.some(d => d.value !== 0);
 
   return (
     <Card
@@ -278,92 +218,62 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
         }}
       >
         <Box
-          ref={chartContainerRef}
           sx={{
             width: "100%",
-            display: "block",
+            height: 350,
             mt: { xs: 1, md: 2 },
-            px: 0,
           }}
         >
           {hasData ? (
-            <LineChart
-              width={effectiveWidth}
-              height={360}
-              series={[
-                {
-                  data: seriesValues,
-                  type: "line",
-                  area: true,
-                  // Usamos curva lineal para que los valores sean exactamente los devueltos por el backend
-                  // y evitar "monticulos" visuales entre meses con valor 0.
-                  curve: "linear",
-                  color: theme.palette.primary.main,
-                  areaStyle: { fill: alpha(theme.palette.primary.main, 0.22) },
-                  showMark: true,
-                  valueFormatter: (value) => numberFormatter.format(value ?? 0),
-                  lineStyle: { strokeWidth: 3 },
-                },
-              ]}
-              yAxis={[
-                {
-                  min: yMin,
-                  max: yMax,
-                  tickNumber: 5,
-                  valueFormatter: (value) => formatCurrency(value),
-                  tickLabelStyle: {
-                    fontSize: 11,
-                  },
-                },
-              ]}
-              xAxis={[
-                {
-                  id: "months",
-                  data: xAxis,
-                  scaleType: "point",
-                  tickLabelStyle: {
-                    textTransform: "capitalize",
-                    fontSize: 10.5,
-                    transform: "translateY(6px)",
-                    whiteSpace: "nowrap",
-                  },
-                  tickLabelSpacing: 0,
-                },
-              ]}
-              margin={{ left: 50, right: 90, top: 8, bottom: 40 }}
-              grid={{ vertical: true, horizontal: true }}
-              sx={{
-                "& .MuiChartsAxis-bottom .MuiTypography-root": {
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                  overflow: "visible",
-                },
-                "& .MuiChartsAxis-left .MuiTypography-root": {
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                  overflow: "visible",
-                },
-                "& .MuiChartsAxis-label": { fontWeight: 500 },
-                "& .MuiChartsGrid-line": { strokeDasharray: "4 4" },
-                "& .MuiMarkElement-root": {
-                  strokeWidth: 2,
-                  stroke: theme.palette.background.paper,
-                  r: 4,
-                },
-                "& .MuiAreaElement-root": { opacity: 0.24 },
-              }}
-              slotProps={{
-                legend: { hidden: true },
-                tooltip: {
-                  valueFormatter: (value) => formatCurrency(value),
-                },
-              }}
-              showTooltip
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+              >
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={alpha(theme.palette.divider, 0.3)} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: primaryTextColor, fontSize: 9 }}
+                  angle={-40}
+                  textAnchor="end"
+                  height={45}
+                  interval={0}
+                />
+                <YAxis 
+                  tick={{ fill: primaryTextColor, fontSize: 9 }}
+                  tickFormatter={(value) => formatCurrency(value)}
+                  width={80}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 8,
+                  }}
+                  labelStyle={{ color: primaryTextColor }}
+                  formatter={(value) => [formatCurrency(value), "Valor"]}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke={theme.palette.primary.main}
+                  strokeWidth={3}
+                  fill="url(#colorValue)"
+                  dot={{ fill: theme.palette.primary.main, r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           ) : (
             <Box
               sx={{
-                height: 360,
+                height: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
