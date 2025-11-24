@@ -54,14 +54,26 @@ export default function NavbarBreadcrumbs({ sx }) {
   const pathnames = location.pathname.split('/').filter((x) => x);
 
   const renderCrumbContent = (label, icon) => (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.5,
+        lineHeight: 1.2,
+        minHeight: 32,
+      }}
+    >
       {icon
         ? React.cloneElement(icon, {
             fontSize: 'small',
             sx: { color: 'text.secondary' },
           })
         : null}
-      <Typography component="span" variant="body1" sx={{ fontWeight: 600 }}>
+      <Typography
+        component="span"
+        variant="body1"
+        sx={{ fontWeight: 600, lineHeight: 1.2, display: 'inline-flex', alignItems: 'center' }}
+      >
         {label}
       </Typography>
     </Box>
@@ -82,13 +94,17 @@ export default function NavbarBreadcrumbs({ sx }) {
           color: 'text.primary',
           fontWeight: 600,
           textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          verticalAlign: 'middle',
+          lineHeight: 1.2,
           '&:hover': { textDecoration: 'none', color: 'text.primary' },
           '&:active': { textDecoration: 'none', color: 'text.primary' },
         }}
       >
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2 }}>
           <Logo size={48} />
-          <Typography component="span" variant="body1" sx={{ fontWeight: 600 }}>
+          <Typography component="span" variant="body1" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
             MyCFO
           </Typography>
         </Box>
@@ -129,7 +145,16 @@ export default function NavbarBreadcrumbs({ sx }) {
         }
 
         return isLast ? (
-          <Box key={to} sx={{ color: 'text.primary' }}>
+          <Box
+            key={to}
+            sx={{
+              color: 'text.primary',
+              display: 'inline-flex',
+              alignItems: 'center',
+              verticalAlign: 'middle',
+              lineHeight: 1.2,
+            }}
+          >
             {renderCrumbContent(label, icon)}
           </Box>
         ) : (
@@ -141,6 +166,10 @@ export default function NavbarBreadcrumbs({ sx }) {
               color: 'text.primary',
               fontWeight: 600,
               textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              verticalAlign: 'middle',
+              lineHeight: 1.2,
               '&:hover': { textDecoration: 'none', color: 'text.primary' },
               '&:active': { textDecoration: 'none', color: 'text.primary' },
             }}
