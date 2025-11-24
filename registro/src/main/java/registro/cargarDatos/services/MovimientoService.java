@@ -16,8 +16,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -209,6 +207,7 @@ public class MovimientoService {
 
     /**
      * Obtiene movimientos con filtros múltiples y paginación
+     * OPTIMIZADO: Usa query nativa en BD en lugar de findAll + filtros en memoria
      */
     public Page<Movimiento> obtenerMovimientos(
             Long organizacionId,
@@ -220,82 +219,25 @@ public class MovimientoService {
             String nombreRelacionado,
             Pageable pageable
     ) {
-        // Obtener todos los movimientos
-        List<Movimiento> todos = movimientoRepository.findAll();
-
-        // Aplicar filtros
-        List<Movimiento> filtrados = todos.stream()
-                .filter(r -> filtrarPorOrganizacion(r, organizacionId))
-                .filter(r -> filtrarPorUsuario(r, usuarioId))
-                .filter(r -> filtrarPorFecha(r, fechaDesde, fechaHasta))
-                .filter(r -> filtrarPorTipo(r, tipos))
-                .filter(r -> filtrarPorConciliacion(r, conciliado))
-                .filter(r -> filtrarPorNombreRelacionado(r, nombreRelacionado))
-                .collect(Collectors.toList());
-
-        // Ordenar según el Pageable (implementación simplificada)
-        // En producción, idealmente usar una query nativa con filtros
-
-        // Aplicar paginación manual
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), filtrados.size());
-
-        List<Movimiento> paginados = start < filtrados.size()
-                ? filtrados.subList(start, end)
-                : List.of();
-
-        return new PageImpl<>(paginados, pageable, filtrados.size());
+        LocalDateTime fechaDesdeTime = fechaDesde != null ? fechaDesde.atStartOfDay() : null;
+        LocalDateTime fechaHastaTime = fechaHasta != null ? fechaHasta.plusDays(1).atStartOfDay() : null;
+        
+        return movimientoRepository.findMovimientosConFiltros(
+                organizacionId,
+                usuarioId,
+                fechaDesdeTime,
+                fechaHastaTime,
+                tipos,
+                conciliado,
+                nombreRelacionado,
+                pageable
+        );
     }
 
-    private boolean filtrarPorOrganizacion(Movimiento r, Long organizacionId) {
-        if (organizacionId == null) return true;
-        return r.getOrganizacionId() != null && r.getOrganizacionId().equals(organizacionId);
-    }
-
-    private boolean filtrarPorUsuario(Movimiento r, String usuarioId) {
-        if (usuarioId == null || usuarioId.isEmpty()) return true;
-        return r.getUsuarioId() != null && r.getUsuarioId().equals(usuarioId);
-    }
-
-    private boolean filtrarPorFecha(Movimiento r, LocalDate desde, LocalDate hasta) {
-        if (desde == null && hasta == null) return true;
-        if (r.getFechaEmision() == null) return false;
-
-        LocalDate emisionDate = r.getFechaEmision().toLocalDate();
-
-        if (desde != null && emisionDate.isBefore(desde)) return false;
-        if (hasta != null && emisionDate.isAfter(hasta)) return false;
-
-        return true;
-    }
-
-    private boolean filtrarPorTipo(Movimiento r, List<TipoMovimiento> tipos) {
-        if (tipos == null || tipos.isEmpty()) return true;
-        return r.getTipo() != null && tipos.contains(r.getTipo());
-    }
-
-    private boolean filtrarPorConciliacion(Movimiento r, Boolean conciliado) {
-        if (conciliado == null) return true;
-        boolean estaConciliado = r.getDocumentoComercial() != null;
-        return estaConciliado == conciliado;
-    }
-
-    private boolean filtrarPorNombreRelacionado(Movimiento r, String nombre) {
-        if (nombre == null || nombre.isEmpty()) return true;
-        String nombreLower = nombre.toLowerCase();
-
-        // Verificar en campos comunes de Movimiento
-        if (r.getOrigenNombre() != null && r.getOrigenNombre().toLowerCase().contains(nombreLower)) return true;
-        if (r.getOrigenCuit() != null && r.getOrigenCuit().toLowerCase().contains(nombreLower)) return true;
-        if (r.getDestinoNombre() != null && r.getDestinoNombre().toLowerCase().contains(nombreLower)) return true;
-        if (r.getDestinoCuit() != null && r.getDestinoCuit().toLowerCase().contains(nombreLower)) return true;
-        if (r.getDescripcion() != null && r.getDescripcion().toLowerCase().contains(nombreLower)) return true;
-
-        return false;
-    }
     
     /**
      * Obtiene todos los movimientos sin paginación
+     * OPTIMIZADO: Usa query con filtros en BD
      */
     public List<Movimiento> obtenerTodosLosMovimientos(
             Long organizacionId,
@@ -306,18 +248,22 @@ public class MovimientoService {
             Boolean conciliado,
             String nombreRelacionado
     ) {
-        // Obtener todos los movimientos
-        List<Movimiento> todos = movimientoRepository.findAll();
-
-        // Aplicar filtros
-        return todos.stream()
-                .filter(r -> filtrarPorOrganizacion(r, organizacionId))
-                .filter(r -> filtrarPorUsuario(r, usuarioId))
-                .filter(r -> filtrarPorFecha(r, fechaDesde, fechaHasta))
-                .filter(r -> filtrarPorTipo(r, tipos))
-                .filter(r -> filtrarPorConciliacion(r, conciliado))
-                .filter(r -> filtrarPorNombreRelacionado(r, nombreRelacionado))
-                .collect(Collectors.toList());
+        LocalDateTime fechaDesdeTime = fechaDesde != null ? fechaDesde.atStartOfDay() : null;
+        LocalDateTime fechaHastaTime = fechaHasta != null ? fechaHasta.plusDays(1).atStartOfDay() : null;
+        
+        // Usar Pageable.unpaged() para obtener todos sin paginación
+        Page<Movimiento> page = movimientoRepository.findMovimientosConFiltros(
+                organizacionId,
+                usuarioId,
+                fechaDesdeTime,
+                fechaHastaTime,
+                tipos,
+                conciliado,
+                nombreRelacionado,
+                Pageable.unpaged()
+        );
+        
+        return page.getContent();
     }
     
     /**
@@ -477,7 +423,7 @@ public class MovimientoService {
             LocalDate fechaReferencia,
             TipoMovimiento tipo
     ) {
-        // Para los gráficos del dashboard, calculamos por categoría a nivel empresa.
+        // OPTIMIZADO: Usa GROUP BY en BD en lugar de traer todos y agrupar en memoria
         if (organizacionId == null) {
             throw new IllegalArgumentException("Organizacion es obligatoria para el resumen por categoria");
         }
@@ -487,32 +433,19 @@ public class MovimientoService {
         LocalDate inicio = LocalDate.of(targetYear, 1, 1);
         LocalDate fin = LocalDate.of(targetYear, 12, 31);
 
-        // Obtenemos todos los movimientos de la empresa y filtramos por tipo en memoria
-        List<Movimiento> registros = movimientoRepository
-                .findByOrganizacionIdAndFechaEmisionBetween(
-                        organizacionId,
-                        inicio.atStartOfDay(),
-                        fin.plusDays(1).atStartOfDay()
-                )
-                .stream()
-                .filter(mov -> mov.getTipo() == tipo)
-                .toList();
+        // Query optimizada con GROUP BY en BD
+        List<Object[]> resultados = movimientoRepository.sumMontosPorCategoria(
+                organizacionId,
+                tipo,
+                inicio.atStartOfDay(),
+                fin.plusDays(1).atStartOfDay()
+        );
 
-        Map<String, Double> acumulado = registros.stream()
-                .collect(Collectors.groupingBy(
-                        movimiento -> {
-                            String categoria = movimiento.getCategoria();
-                            return (categoria == null || categoria.isBlank()) ? "Sin categoria" : categoria;
-                        },
-                        LinkedHashMap::new,
-                        Collectors.summingDouble(mov -> mov.getMontoTotal() != null ? mov.getMontoTotal() : 0d)
-                ));
-
-        List<MontoPorCategoria> categorias = acumulado.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .map(entry -> MontoPorCategoria.builder()
-                        .categoria(entry.getKey())
-                        .total(entry.getValue())
+        // Mapear resultados (ya vienen ordenados por monto DESC desde la query)
+        List<MontoPorCategoria> categorias = resultados.stream()
+                .map(row -> MontoPorCategoria.builder()
+                        .categoria((String) row[0])
+                        .total(row[1] != null ? ((Number) row[1]).doubleValue() : 0d)
                         .build())
                 .toList();
 

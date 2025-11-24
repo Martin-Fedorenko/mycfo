@@ -126,4 +126,44 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
             @Param("inicio") LocalDateTime inicio,
             @Param("fin") LocalDateTime fin
     );
+
+    // Query optimizada para obtener movimientos con filtros (reemplaza findAll + filtros en memoria)
+    @Query("SELECT m FROM Movimiento m " +
+           "WHERE (:organizacionId IS NULL OR m.organizacionId = :organizacionId) " +
+           "AND (:usuarioId IS NULL OR m.usuarioId = :usuarioId) " +
+           "AND (:fechaDesde IS NULL OR m.fechaEmision >= :fechaDesde) " +
+           "AND (:fechaHasta IS NULL OR m.fechaEmision <= :fechaHasta) " +
+           "AND (:tipos IS NULL OR m.tipo IN :tipos) " +
+           "AND (:conciliado IS NULL OR " +
+           "     (CASE WHEN :conciliado = true THEN m.documentoComercial IS NOT NULL " +
+           "           ELSE m.documentoComercial IS NULL END)) " +
+           "AND (:nombreRelacionado IS NULL OR " +
+           "     LOWER(m.origenNombre) LIKE LOWER(CONCAT('%', :nombreRelacionado, '%')) OR " +
+           "     LOWER(m.destinoNombre) LIKE LOWER(CONCAT('%', :nombreRelacionado, '%')) OR " +
+           "     LOWER(m.descripcion) LIKE LOWER(CONCAT('%', :nombreRelacionado, '%')))")
+    org.springframework.data.domain.Page<Movimiento> findMovimientosConFiltros(
+            @Param("organizacionId") Long organizacionId,
+            @Param("usuarioId") String usuarioId,
+            @Param("fechaDesde") LocalDateTime fechaDesde,
+            @Param("fechaHasta") LocalDateTime fechaHasta,
+            @Param("tipos") List<TipoMovimiento> tipos,
+            @Param("conciliado") Boolean conciliado,
+            @Param("nombreRelacionado") String nombreRelacionado,
+            org.springframework.data.domain.Pageable pageable
+    );
+
+    // Query optimizada para sumar montos por categoría (reemplaza findAll + groupBy en memoria)
+    @Query("SELECT COALESCE(m.categoria, 'Sin categoria'), SUM(m.montoTotal) " +
+           "FROM Movimiento m " +
+           "WHERE m.organizacionId = :organizacionId " +
+           "AND m.tipo = :tipo " +
+           "AND m.fechaEmision BETWEEN :inicio AND :fin " +
+           "GROUP BY m.categoria " +
+           "ORDER BY SUM(m.montoTotal) DESC")
+    List<Object[]> sumMontosPorCategoria(
+            @Param("organizacionId") Long organizacionId,
+            @Param("tipo") TipoMovimiento tipo,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
+    );
 }

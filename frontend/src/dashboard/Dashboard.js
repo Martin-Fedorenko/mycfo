@@ -31,15 +31,7 @@ import SalesTrendWidget from "./components/SalesTrendWidget";
 import SalesByCategoryWidget from "./components/SalesByCategoryWidget";
 import InsightsWidget from "./components/InsightsWidget";
 // import BillingWidget from "./components/BillingWidget";
-import { fetchRecentMovements, fetchRecentInvoices } from "./services/movementsService";
-import { fetchMonthlySummary, fetchTotalBalance } from "./services/kpisService";
-import {
-  fetchMonthlyIncomes,
-  fetchMonthlyExpenses,
-  fetchIncomeByCategory,
-  fetchExpensesByCategory,
-  fetchReconciliationSummary,
-} from "./services/analyticsService";
+import { fetchDashboardSummary } from "./services/dashboardSummaryService";
 import useResolvedColorTokens from "./useResolvedColorTokens";
 import { formatCurrencyAR } from "../utils/formatters";
 
@@ -283,6 +275,8 @@ const mockBilling = {
   ],
 };
 
+const DASHBOARD_CACHE_KEY = "dashboard_summary_v1";
+
 const normalizeMovementsError = (error) => {
   if (!error) {
     return "No pudimos cargar los movimientos.";
@@ -294,6 +288,69 @@ const normalizeMovementsError = (error) => {
     return error.message;
   }
   return "No pudimos cargar los movimientos.";
+};
+
+const mapMovementFromBackend = (item, index) => {
+  if (!item) {
+    return {
+      id: `movement-${index}`,
+      tipo: "Movimiento",
+      montoTotal: 0,
+      moneda: "ARS",
+      fechaEmision: null,
+      categoria: null,
+    };
+  }
+
+  const toNumber = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  return {
+    id: item.id ?? item.uuid ?? `movement-${index}`,
+    tipo: item.tipo ?? item.tipoMovimiento ?? item.tipoOperacion ?? "Movimiento",
+    montoTotal: toNumber(item.montoTotal ?? item.monto ?? item.importe ?? 0),
+    moneda: item.moneda ?? item.monedaCodigo ?? "ARS",
+    fechaEmision: item.fechaEmision ?? item.fecha ?? item.fechaRegistro ?? null,
+    categoria:
+      item.categoria ??
+      item.categoriaNombre ??
+      item.categoriaDescripcion ??
+      item.area ??
+      null,
+  };
+};
+
+const mapInvoiceFromBackend = (item, index) => {
+  if (!item) {
+    return {
+      id: `invoice-${index}`,
+      tipoFactura: "Factura",
+      numeroDocumento: null,
+      montoTotal: 0,
+      moneda: "ARS",
+      fechaEmision: null,
+      compradorNombre: null,
+      vendedorNombre: null,
+    };
+  }
+
+  const toNumber = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  return {
+    id: item.id ?? item.idDocumento ?? `invoice-${index}`,
+    tipoFactura: item.tipoFactura ?? "Factura",
+    numeroDocumento: item.numeroDocumento ?? null,
+    montoTotal: toNumber(item.montoTotal ?? 0),
+    moneda: item.moneda ?? "ARS",
+    fechaEmision: item.fechaEmision ?? null,
+    compradorNombre: item.compradorNombre ?? null,
+    vendedorNombre: item.vendedorNombre ?? null,
+  };
 };
 
 const initialDashboardState = {
@@ -640,178 +697,156 @@ const Dashboard = React.memo(() => {
     };
 
     (async () => {
-      const [
-        movementsResult,
-        invoicesResult,
-        summaryResult,
-        totalBalanceResult,
-        incomesTrendResult,
-        incomesCategoryResult,
-        expensesTrendResult,
-        expensesCategoryResult,
-        reconciliationResult,
-      ] = await Promise.allSettled([
-        fetchRecentMovements({ limit: 6 }),
-        fetchRecentInvoices({ limit: 6 }),
-        fetchMonthlySummary({ period }),
-        fetchTotalBalance(),
-        fetchMonthlyIncomes({ period, months: 12 }),
-        fetchIncomeByCategory({ period }),
-        fetchMonthlyExpenses({ period, months: 12 }),
-        fetchExpensesByCategory({ period }),
-        fetchReconciliationSummary({ period }),
-      ]);
+      const applyCompositeResponse = (composite) => {
+        if (!composite) return;
 
-      const movementsState =
-        movementsResult.status === "fulfilled"
-          ? { loading: false, error: null, data: movementsResult.value }
-          : {
-              loading: false,
-              error: normalizeMovementsError(movementsResult.reason),
-              data: null,
-            };
+        const movimientosBackend = Array.isArray(composite.movimientosRecientes)
+          ? composite.movimientosRecientes
+          : [];
+        const facturasBackend = Array.isArray(composite.facturasRecientes)
+          ? composite.facturasRecientes
+          : [];
 
-      const invoicesState =
-        invoicesResult.status === "fulfilled"
-          ? { loading: false, error: null, data: invoicesResult.value }
-          : {
-              loading: false,
-              error: resolveErrorMessage(
-                invoicesResult.reason,
-                "No pudimos obtener las facturas recientes."
-              ),
-              data: null,
-            };
-
-      let kpisState = null;
-      if (summaryResult.status === "fulfilled") {
-        const summary = summaryResult.value;
-        kpisState = {
+        const movementsState = {
           loading: false,
           error: null,
-          data: {
-            totalIncomes: summary.totalIncomes,
-            totalExpenses: summary.totalExpenses,
-            netResult: summary.netResult,
-            period: summary.period,
-            periodLabel: summary.periodLabel,
-            movementsCount: summary.movementsCount,
-          },
+          data: movimientosBackend.map(mapMovementFromBackend),
         };
-        if (totalBalanceResult.status === "fulfilled") {
-          kpisState.data.totalBalance = totalBalanceResult.value.totalBalance;
-        }
-      } else {
-        const reason = summaryResult.reason;
-        const message =
-          (reason && (reason.message || reason.mensaje)) ||
-          "No pudimos obtener el resumen mensual.";
-        kpisState = {
-          loading: false,
-          error: message,
-          data: null,
-        };
-      }
 
-      const salesTrendState =
-        incomesTrendResult.status === "fulfilled"
+        const invoicesState = {
+          loading: false,
+          error: null,
+          data: facturasBackend.map(mapInvoiceFromBackend),
+        };
+
+        let kpisState = null;
+        const resumen = composite.resumenMensual;
+        const saldoTotal = composite.saldoTotal;
+        if (resumen) {
+          kpisState = {
+            loading: false,
+            error: null,
+            data: {
+              totalIncomes: resumen.ingresosTotales,
+              totalExpenses: resumen.egresosTotales,
+              netResult: resumen.resultadoNeto,
+              period: resumen.periodo,
+              periodLabel: resumen.periodo,
+              movementsCount: resumen.totalMovimientos,
+              totalBalance: saldoTotal?.saldoTotal ?? null,
+            },
+          };
+        }
+
+        const salesTrendState = composite.ingresosMensuales
           ? {
               loading: false,
               error: null,
-              data: mapTrendResponse(incomesTrendResult.value, {
+              data: mapTrendResponse(composite.ingresosMensuales, {
                 title: "Ingresos durante el periodo",
                 emptyMessage: "No hay ingresos registrados en este periodo.",
                 subheader:
                   "Serie mensual de ingresos registrados en los ultimos 12 meses.",
               }),
             }
-          : {
-              loading: false,
-              error: resolveErrorMessage(
-                incomesTrendResult.reason,
-                "No pudimos obtener la serie de ingresos."
-              ),
-              data: null,
-            };
+          : { loading: false, error: null, data: null };
 
-      const salesByCategoryState =
-        incomesCategoryResult.status === "fulfilled"
+        const expensesTrendState = composite.egresosMensuales
           ? {
               loading: false,
               error: null,
-              data: mapCategoryResponse(incomesCategoryResult.value),
-            }
-          : {
-              loading: false,
-              error: resolveErrorMessage(
-                incomesCategoryResult.reason,
-                "No pudimos obtener las ventas por categoria."
-              ),
-              data: null,
-            };
-
-      const expensesTrendState =
-        expensesTrendResult.status === "fulfilled"
-          ? {
-              loading: false,
-              error: null,
-              data: mapTrendResponse(expensesTrendResult.value, {
+              data: mapTrendResponse(composite.egresosMensuales, {
                 title: "Egresos durante el periodo",
                 emptyMessage: "No hay egresos registrados en este periodo.",
                 subheader:
                   "Serie mensual de egresos registrados en los ultimos 12 meses.",
               }),
             }
-          : {
-              loading: false,
-              error: resolveErrorMessage(
-                expensesTrendResult.reason,
-                "No pudimos obtener la serie de egresos."
-              ),
-              data: null,
-            };
+          : { loading: false, error: null, data: null };
 
-      const expensesByCategoryState =
-        expensesCategoryResult.status === "fulfilled"
+        const salesByCategoryState = composite.ingresosPorCategoria
           ? {
               loading: false,
               error: null,
-              data: mapCategoryResponse(expensesCategoryResult.value),
+              data: mapCategoryResponse(composite.ingresosPorCategoria),
             }
-          : {
-              loading: false,
-              error: resolveErrorMessage(
-                expensesCategoryResult.reason,
-                "No pudimos obtener los egresos por categoria."
-              ),
-              data: null,
-            };
+          : { loading: false, error: null, data: null };
 
-      const reconciliationState =
-        reconciliationResult.status === "fulfilled"
+        const expensesByCategoryState = composite.egresosPorCategoria
           ? {
               loading: false,
               error: null,
-              data: mapConciliationResponse(reconciliationResult.value),
+              data: mapCategoryResponse(composite.egresosPorCategoria),
             }
-          : {
-              loading: false,
-              error: resolveErrorMessage(
-                reconciliationResult.reason,
-                "No pudimos obtener el resumen de conciliacion."
-              ),
-              data: null,
-            };
+          : { loading: false, error: null, data: null };
 
-      applyResult({
-        movements: movementsState,
-        kpis: kpisState,
-        salesTrend: salesTrendState,
-        salesByCategory: salesByCategoryState,
-        expensesTrend: expensesTrendState,
-        expensesByCategory: expensesByCategoryState,
-        reconciliation: reconciliationState,
-      });
+        const reconciliationState = composite.conciliacion
+          ? {
+              loading: false,
+              error: null,
+              data: mapConciliationResponse(composite.conciliacion),
+            }
+          : { loading: false, error: null, data: null };
+
+        applyResult({
+          movements: movementsState,
+          invoices: invoicesState,
+          kpis: kpisState,
+          salesTrend: salesTrendState,
+          salesByCategory: salesByCategoryState,
+          expensesTrend: expensesTrendState,
+          expensesByCategory: expensesByCategoryState,
+          reconciliation: reconciliationState,
+        });
+      };
+
+      // 1) Mostrar primero lo que haya en cache (si existe)
+      if (typeof window !== "undefined") {
+        try {
+          const raw = window.sessionStorage.getItem(DASHBOARD_CACHE_KEY);
+          if (raw) {
+            const cached = JSON.parse(raw);
+            applyCompositeResponse(cached);
+          }
+        } catch (err) {
+          // ignoramos errores de parseo / storage
+        }
+      }
+
+      // 2) Hacer la llamada al endpoint compuesto
+      try {
+        const composite = await fetchDashboardSummary({
+          period,
+          months: 12,
+          limitMovements: 6,
+          limitInvoices: 6,
+        });
+
+        // guardar en cache la respuesta cruda del backend
+        if (typeof window !== "undefined") {
+          try {
+            window.sessionStorage.setItem(
+              DASHBOARD_CACHE_KEY,
+              JSON.stringify(composite)
+            );
+          } catch (err) {
+            // ignoramos errores de storage
+          }
+        }
+
+        applyCompositeResponse(composite);
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          kpis: {
+            ...prev.kpis,
+            loading: false,
+            error:
+              error?.message ||
+              "No pudimos actualizar el resumen de dashboard.",
+          },
+        }));
+      }
     })();
   }, [buildMockState, useMocks, period]);
 
