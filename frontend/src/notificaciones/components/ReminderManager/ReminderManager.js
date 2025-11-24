@@ -198,7 +198,16 @@ export default function ReminderManager() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: { sm: "100%", md: "1700px" },
+        mx: "auto",
+        px: 3,
+        pt: 1,
+        pb: 3,
+      }}
+    >
       {/* Header */}
       <Box
         sx={{
@@ -227,7 +236,7 @@ export default function ReminderManager() {
       </Box>
 
       {/* Lista de recordatorios */}
-      <Box sx={{ maxWidth: 1400, mx: "auto" }}>
+      <Box sx={{ width: "100%" }}>
         {remindersLoading ? (
           <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
             <Typography variant="body1" color="text.secondary">
@@ -239,24 +248,26 @@ export default function ReminderManager() {
             Error al cargar los recordatorios: {error.message}
           </Alert>
         ) : reminders.length === 0 ? (
-          <Paper sx={{ p: 4, textAlign: "center" }}>
-            <NotificationsIcon
-              sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
-            />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No tienes recordatorios configurados
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Crea tu primer recordatorio para no perderte nada importante
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-            >
-              Crear Recordatorio
-            </Button>
-          </Paper>
+          <Box sx={{ display: "flex", justifyContent: "center", px: 2 }}>
+            <Paper sx={{ p: 4, textAlign: "center", width: "100%", maxWidth: 520 }}>
+              <NotificationsIcon
+                sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
+              />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No tienes recordatorios configurados
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Crea tu primer recordatorio para no perderte nada importante
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+              >
+                Crear Recordatorio
+              </Button>
+            </Paper>
+          </Box>
         ) : (
           <Box
             sx={{

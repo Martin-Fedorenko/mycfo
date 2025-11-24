@@ -153,7 +153,7 @@ const Home = React.memo(function Home(props) {
                 width: "100%",
                 maxWidth: { sm: "100%", md: "1700px" },
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 justifyContent: "center",
               }}
             >
