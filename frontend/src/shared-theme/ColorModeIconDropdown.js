@@ -5,6 +5,7 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Tooltip from '@mui/material/Tooltip';
 import { useColorScheme } from '@mui/material/styles';
 
 export default function ColorModeIconDropdown(props) {
@@ -44,18 +45,31 @@ export default function ColorModeIconDropdown(props) {
   }[resolvedMode];
   return (
     <React.Fragment>
-      <IconButton
-        data-screenshot="toggle-mode"
-        onClick={handleClick}
-        disableRipple
-        size="small"
-        aria-controls={open ? 'color-scheme-menu' : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? 'true' : undefined}
-        {...props}
-      >
-        {icon}
-      </IconButton>
+      <Tooltip title="Tema">
+        <IconButton
+          data-screenshot="toggle-mode"
+          onClick={handleClick}
+          disableRipple
+          size="small"
+          aria-controls={open ? 'color-scheme-menu' : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? 'true' : undefined}
+          sx={(theme) => ({
+            color: (theme.vars || theme).palette.text.primary,
+            transition: 'color 0.2s, background-color 0.2s',
+            '&:hover': {
+              backgroundColor:
+                (theme.vars || theme).palette.mode === 'light'
+                  ? '#fff'
+                  : 'rgba(255,255,255,0.08)',
+              color: (theme.vars || theme).palette.text.primary,
+            },
+          })}
+          {...props}
+        >
+          {icon}
+        </IconButton>
+      </Tooltip>
       <Menu
         anchorEl={anchorEl}
         id="account-menu"

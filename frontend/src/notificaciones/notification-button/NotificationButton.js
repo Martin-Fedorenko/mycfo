@@ -177,6 +177,17 @@ export default function NotificationButton(props) {
             size="small"
             aria-label="Open notifications"
             disabled={loading}
+            sx={(theme) => ({
+              color: (theme.vars || theme).palette.text.primary,
+              transition: 'color 0.2s, background-color 0.2s',
+              '&:hover': {
+                backgroundColor:
+                  (theme.vars || theme).palette.mode === "light"
+                    ? "#fff"
+                    : "rgba(255,255,255,0.08)",
+                color: (theme.vars || theme).palette.text.primary,
+              },
+            })}
             {...props}
           >
             <Badge

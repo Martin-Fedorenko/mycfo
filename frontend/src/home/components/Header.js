@@ -75,10 +75,13 @@ const Header = React.memo(function Header({ onToggleSidebar }) {
                 color="primary"
                 sx={{
                   transition: 'color 0.2s, background-color 0.2s',
-                  color: 'text.secondary',
+                  color: 'text.primary',
                   '&:hover': {
-                    backgroundColor: 'rgba(0,131,117,0.12)',
-                    color: '#008375',
+                    backgroundColor:
+                      (theme.vars || theme).palette.mode === 'light'
+                        ? '#fff'
+                        : 'rgba(255,255,255,0.08)',
+                    color: 'text.primary',
                   },
                 }}
                 onClick={() => navigate('/perfil')}
@@ -92,10 +95,13 @@ const Header = React.memo(function Header({ onToggleSidebar }) {
                 color="primary"
                 sx={{
                   transition: 'color 0.2s, background-color 0.2s',
-                  color: 'text.secondary',
+                  color: 'text.primary',
                   '&:hover': {
-                    backgroundColor: 'rgba(0,131,117,0.12)',
-                    color: '#008375',
+                    backgroundColor:
+                      (theme.vars || theme).palette.mode === 'light'
+                        ? '#fff'
+                        : 'rgba(255,255,255,0.08)',
+                    color: 'text.primary',
                   },
                 }}
                 onClick={() => navigate('/organizacion')}
