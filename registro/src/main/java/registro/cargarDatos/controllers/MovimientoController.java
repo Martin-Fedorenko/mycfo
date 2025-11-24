@@ -10,12 +10,15 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import registro.cargarDatos.dtos.ConciliacionResumenResponse;
+import registro.cargarDatos.dtos.DashboardSummaryResponse;
 import registro.cargarDatos.dtos.MontosMensualesResponse;
 import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
 import registro.cargarDatos.dtos.ResumenMensualResponse;
 import registro.cargarDatos.dtos.SaldoTotalResponse;
+import registro.cargarDatos.models.Factura;
 import registro.cargarDatos.models.Movimiento;
 import registro.cargarDatos.models.TipoMovimiento;
+import registro.cargarDatos.services.FacturaService;
 import registro.cargarDatos.services.MovimientoService;
 import registro.services.AdministracionService;
 
@@ -30,6 +33,7 @@ import java.util.Map;
 public class MovimientoController {
 
     private final MovimientoService movimientoService;
+    private final FacturaService facturaService;
     private final AdministracionService administracionService;
 
     /**
@@ -297,6 +301,96 @@ public class MovimientoController {
             return ResponseEntity.ok(resumen);
         } catch (RuntimeException e) {
             log.error("Error al obtener resumen mensual: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/resumen/dashboard")
+    public ResponseEntity<DashboardSummaryResponse> obtenerResumenDashboard(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam(required = false, defaultValue = "12") Integer meses,
+            @RequestParam(required = false, defaultValue = "6") Integer limiteMovimientos,
+            @RequestParam(required = false, defaultValue = "6") Integer limiteFacturas
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+
+            LocalDate fechaBase = fecha != null ? fecha : LocalDate.now();
+            int mesesSeguros = meses != null ? meses : 12;
+            int limiteMovsSeguros = limiteMovimientos != null ? Math.max(limiteMovimientos, 1) : 6;
+            int limiteFactSeguros = limiteFacturas != null ? Math.max(limiteFacturas, 1) : 6;
+
+            ResumenMensualResponse resumenMensual = movimientoService.obtenerResumenMensual(empresaId, null, fechaBase);
+            MontosMensualesResponse ingresosMensuales = movimientoService.obtenerIngresosMensuales(
+                    empresaId,
+                    usuarioSub,
+                    fechaBase,
+                    mesesSeguros
+            );
+            MontosMensualesResponse egresosMensuales = movimientoService.obtenerEgresosMensuales(
+                    empresaId,
+                    usuarioSub,
+                    fechaBase,
+                    mesesSeguros
+            );
+            MontosPorCategoriaResponse ingresosPorCategoria = movimientoService.obtenerIngresosPorCategoria(
+                    empresaId,
+                    usuarioSub,
+                    fechaBase
+            );
+            MontosPorCategoriaResponse egresosPorCategoria = movimientoService.obtenerEgresosPorCategoria(
+                    empresaId,
+                    usuarioSub,
+                    fechaBase
+            );
+            ConciliacionResumenResponse conciliacion = movimientoService.obtenerResumenConciliacion(
+                    empresaId,
+                    usuarioSub,
+                    fechaBase
+            );
+
+            Double saldoTotalValor = movimientoService.obtenerSaldoTotalEmpresa(empresaId);
+            SaldoTotalResponse saldoTotal = SaldoTotalResponse.builder()
+                    .organizacionId(empresaId)
+                    .saldoTotal(saldoTotalValor)
+                    .build();
+
+            Pageable movimientosPageable = PageRequest.of(0, limiteMovsSeguros, Sort.by(Sort.Direction.DESC, "fechaEmision"));
+            Page<Movimiento> movimientosPage = movimientoService.obtenerMovimientos(
+                    empresaId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    movimientosPageable
+            );
+            List<Movimiento> movimientosRecientes = movimientosPage.getContent();
+
+            Pageable facturasPageable = PageRequest.of(0, limiteFactSeguros, Sort.by(Sort.Direction.DESC, "fechaEmision"));
+            org.springframework.data.domain.Page<Factura> facturasPage = facturaService.listarPaginadasPorOrganizacion(
+                    empresaId,
+                    facturasPageable
+            );
+            List<Factura> facturasRecientes = facturasPage.getContent();
+
+            DashboardSummaryResponse response = DashboardSummaryResponse.builder()
+                    .resumenMensual(resumenMensual)
+                    .saldoTotal(saldoTotal)
+                    .ingresosMensuales(ingresosMensuales)
+                    .egresosMensuales(egresosMensuales)
+                    .ingresosPorCategoria(ingresosPorCategoria)
+                    .egresosPorCategoria(egresosPorCategoria)
+                    .conciliacion(conciliacion)
+                    .movimientosRecientes(movimientosRecientes)
+                    .facturasRecientes(facturasRecientes)
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener resumen de dashboard: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
