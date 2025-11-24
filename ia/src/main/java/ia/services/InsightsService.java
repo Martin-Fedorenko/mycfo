@@ -33,13 +33,10 @@ public class InsightsService {
     @Value("${deepseek.base.url:https://api.deepseek.com}")
     private String deepseekBaseUrl;
 
-    @Value("${ia.insights.mode:basic}")
-    private String insightsMode;
-
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Map<String, Object> generarInsights(String userSub, Integer anio, Integer mes, String modo) {
+    public Map<String, Object> generarInsights(String userSub, Integer anio, Integer mes) {
         LocalDate now = LocalDate.now();
         int year = (anio != null) ? anio : now.getYear();
         int month = (mes != null) ? mes : now.getMonthValue();
@@ -89,9 +86,7 @@ public class InsightsService {
             Map<String, Object> compact = compactarDatos(year, month, analysisYear, analysisMonth, pyl, cash, resumen);
             payload.put("datos", compact);
 
-            String modoEfectivo = (modo != null && !modo.isBlank()) ? modo : insightsMode;
-            boolean usarLlm = "llm".equalsIgnoreCase(modoEfectivo);
-            Map<String, Object> ai = usarLlm ? llamarDeepSeek(compact) : construirInsightBasico(compact);
+            Map<String, Object> ai = llamarDeepSeek(compact);
             payload.put("ai", ai);
             return ai;
         } catch (Exception e) {
@@ -316,8 +311,7 @@ public class InsightsService {
 
     private Map<String, Object> llamarDeepSeek(Map<String, Object> compact) throws Exception {
         if (deepseekApiKey == null || deepseekApiKey.isBlank()) {
-            // Sin API key, devolvemos resumen básico
-            return construirInsightBasico(compact);
+            throw new IllegalStateException("No se configuró la propiedad deepseek.api.key.");
         }
 
         String url = deepseekBaseUrl + "/chat/completions";

@@ -8,15 +8,12 @@ import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
-import Switch from "@mui/material/Switch";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import API_CONFIG from "../../config/api-config";
 
 const InsightsWidget = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [data, setData] = React.useState(null);
-  const [useDeepSeek, setUseDeepSeek] = React.useState(false);
   const summaryLines =
     data && typeof data.diagnostico_corto === "string"
       ? data.diagnostico_corto
@@ -58,7 +55,6 @@ const InsightsWidget = () => {
       const token = sessionStorage.getItem('accessToken');
       if (sub) headers['X-Usuario-Sub'] = sub;
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      params.set("modo", useDeepSeek ? "llm" : "basic");
       const res = await fetch(`${baseUrl}/ia/insights?${params.toString()}`, {
         method: 'POST',
         headers,
@@ -148,21 +144,11 @@ const InsightsWidget = () => {
           </Stack>
         ) : (
           <Typography variant="body2" color="text.secondary">
-            Activa "Usar IA" para un análisis con Inteligencia Artificial o usa el análisis tradicional.
+            Presiona "Interpretar situación" para obtener el análisis con IA.
           </Typography>
         )}
       </CardContent>
-      <CardActions sx={{ px: 2, pb: 2, justifyContent: "space-between", alignItems: "center" }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={useDeepSeek}
-              onChange={(e) => setUseDeepSeek(e.target.checked)}
-              disabled={loading}
-            />
-          }
-          label="Usar IA"
-        />
+      <CardActions sx={{ px: 2, pb: 2, justifyContent: "flex-end", alignItems: "center" }}>
         <Button variant="contained" onClick={handleRun} disabled={loading}>
           Interpretar situación
         </Button>
