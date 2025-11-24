@@ -318,7 +318,7 @@ export default function ReminderManager() {
                     {/* Mensaje del recordatorio */}
                     <Typography
                       variant="body2"
-                      color="text.secondary"
+                      color="text.primary"
                       sx={{
                         mb: 2,
                         lineHeight: 1.5,
@@ -383,7 +383,7 @@ export default function ReminderManager() {
                       <ScheduleIcon fontSize="small" color="action" />
                       <Typography
                         variant="caption"
-                        color="text.secondary"
+                        color="text.primary"
                         sx={{
                           fontWeight: 500,
                           fontSize: "0.8rem",
