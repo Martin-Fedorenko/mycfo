@@ -1010,7 +1010,7 @@ export default function PresupuestoNuevo() {
                         <Chip
                           size="small"
                           label={cat.tipo}
-                          color={cat.tipo === 'Ingreso' ? 'success' : 'default'}
+                          color={cat.tipo === 'Ingreso' ? 'success' : 'error'}
                         />
                       </Stack>
                     </TableCell>
