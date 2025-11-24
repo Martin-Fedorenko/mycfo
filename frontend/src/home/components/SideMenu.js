@@ -10,6 +10,7 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuContent from './MenuContent';
 import LogoutButton from './LogoutButton';
 import { Link as RouterLink } from 'react-router-dom';
+import { LayoutPanelLeft } from 'lucide-react';
 
 const expandedWidth = 320;
 export const collapsedWidth = 76;
@@ -47,6 +48,16 @@ const LogoImage = styled(Box)(({ theme }) => ({
   transition: 'transform 0.2s ease, opacity 0.2s ease',
   objectFit: 'contain',
   overflow: 'hidden',
+}));
+
+const IconOverlay = styled(Box)(() => ({
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  pointerEvents: 'none',
+  transition: 'opacity 0.2s ease',
 }));
 
 const SideMenu = React.memo(function SideMenu({
@@ -123,7 +134,9 @@ const SideMenu = React.memo(function SideMenu({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              p: 1,
+              position: 'relative',
+              width: '2.4rem',
+              height: '2.4rem',
               borderRadius: 2,
               transition: 'background-color 0.2s ease',
               '&:hover': {
@@ -133,21 +146,13 @@ const SideMenu = React.memo(function SideMenu({
           >
             <LogoImage
               component="img"
-              src={
-                logoHovered
-                  ? `${process.env.PUBLIC_URL}/sidebar-toggle-icon.svg`
-                  : `${process.env.PUBLIC_URL}/logo192.png`
-              }
+              src={`${process.env.PUBLIC_URL}/logo192.png`}
               alt="Logo MyCFO"
-              onError={(e) => {
-                // Evita mostrar íconos genéricos si falla el recurso
-                if (logoHovered) {
-                  e.target.src = `${process.env.PUBLIC_URL}/sidebar-toggle-icon.svg`;
-                } else {
-                  e.target.src = `${process.env.PUBLIC_URL}/logo192.png`;
-                }
-              }}
+              sx={{ opacity: logoHovered ? 0 : 1 }}
             />
+            <IconOverlay sx={{ opacity: logoHovered ? 1 : 0 }}>
+              <LayoutPanelLeft size={20} />
+            </IconOverlay>
           </Box>
         </Tooltip>
         {expanded && (
