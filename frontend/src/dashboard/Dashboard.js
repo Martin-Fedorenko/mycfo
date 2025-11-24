@@ -25,14 +25,13 @@ import BudgetWidget from "./components/BudgetWidget";
 import CashflowWidget from "./components/CashflowWidget";
 import LiquidityGapWidget from "./components/LiquidityGapWidget";
 import RecentMovementsWidget from "./components/RecentMovementsWidget";
-import RecentInvoicesWidget from "./components/RecentInvoicesWidget";
 import ReconciliationWidget from "./components/ReconciliationWidget";
 import SalesTrendWidget from "./components/SalesTrendWidget";
 import SalesByCategoryWidget from "./components/SalesByCategoryWidget";
 import InsightsWidget from "./components/InsightsWidget";
 // import BillingWidget from "./components/BillingWidget";
-import { fetchRecentMovements, fetchRecentInvoices } from "./services/movementsService";
-import { fetchMonthlySummary, fetchTotalBalance } from "./services/kpisService";
+import { fetchRecentMovements } from "./services/movementsService";
+import { fetchMonthlySummary } from "./services/kpisService";
 import {
   fetchMonthlyIncomes,
   fetchMonthlyExpenses,
@@ -303,7 +302,6 @@ const initialDashboardState = {
   dueDates: { loading: true, error: null, data: null },
   tasks: { loading: true, error: null, data: null },
   movements: { loading: true, error: null, data: null },
-  invoices: { loading: true, error: null, data: null },
   reconciliation: { loading: true, error: null, data: null },
   billing: { loading: true, error: null, data: null },
   salesTrend: { loading: true, error: null, data: null },
@@ -349,7 +347,6 @@ const Dashboard = React.memo(() => {
       dueDates: { loading: false, error: null, data: mockDueDates },
       tasks: { loading: false, error: null, data: mockTasks },
       movements: { loading: false, error: null, data: mockMovements },
-      invoices: { loading: false, error: null, data: [] },
       reconciliation: { loading: false, error: null, data: mockReconciliation },
       billing: { loading: false, error: null, data: mockBilling },
       salesTrend: { loading: false, error: null, data: mockSalesTrend },
@@ -406,6 +403,19 @@ const Dashboard = React.memo(() => {
 
     clearTimeout(fetchTimeoutRef.current);
 
+    // Carga inmediata sin timeout artificial para navegación instantánea
+    setState((prev) => ({
+      ...prev,
+      kpis: { loading: false, error: null, data: mockKpis },
+      budget: { loading: false, error: null, data: mockBudget },
+      cashflow: { loading: false, error: null, data: mockCashflow },
+      dueDates: { loading: false, error: null, data: mockDueDates },
+      tasks: { loading: false, error: null, data: mockTasks },
+      movements: { loading: false, error: null, data: mockMovements },
+      reconciliation: { loading: false, error: null, data: mockReconciliation },
+      billing: { loading: false, error: null, data: mockBilling },
+    }));
+
     if (useMocks) {
       fetchTimeoutRef.current = setTimeout(() => {
         setState(buildMockState());
@@ -420,7 +430,6 @@ const Dashboard = React.memo(() => {
 
     const applyResult = ({
       movements: movementsState,
-      invoices: invoicesState,
       kpis: kpisState,
       salesTrend: salesTrendState,
       salesByCategory: salesByCategoryState,
@@ -433,9 +442,6 @@ const Dashboard = React.memo(() => {
       }
       const mockState = buildMockState();
       mockState.movements = movementsState ?? mockState.movements;
-      if (invoicesState) {
-        mockState.invoices = invoicesState;
-      }
       if (kpisState) {
         mockState.kpis = kpisState;
       }
@@ -519,13 +525,9 @@ const Dashboard = React.memo(() => {
       });
 
       const values = pointsDetailed.map((point) => point.value);
-
-      // Promedio solo sobre los meses con movimiento distinto de cero,
-      // para que no se "licúe" cuando solo hubo pocos meses con actividad.
-      const nonZeroValues = values.filter((val) => val !== 0);
       const average =
-        nonZeroValues.length > 0
-          ? nonZeroValues.reduce((acc, val) => acc + val, 0) / nonZeroValues.length
+        values.length > 0
+          ? values.reduce((acc, val) => acc + val, 0) / values.length
           : 0;
       const maxValue = values.length > 0 ? Math.max(...values) : 0;
       const minValue = values.length > 0 ? Math.min(...values) : 0;
@@ -642,9 +644,7 @@ const Dashboard = React.memo(() => {
     (async () => {
       const [
         movementsResult,
-        invoicesResult,
         summaryResult,
-        totalBalanceResult,
         incomesTrendResult,
         incomesCategoryResult,
         expensesTrendResult,
@@ -652,9 +652,7 @@ const Dashboard = React.memo(() => {
         reconciliationResult,
       ] = await Promise.allSettled([
         fetchRecentMovements({ limit: 6 }),
-        fetchRecentInvoices({ limit: 6 }),
         fetchMonthlySummary({ period }),
-        fetchTotalBalance(),
         fetchMonthlyIncomes({ period, months: 12 }),
         fetchIncomeByCategory({ period }),
         fetchMonthlyExpenses({ period, months: 12 }),
@@ -668,18 +666,6 @@ const Dashboard = React.memo(() => {
           : {
               loading: false,
               error: normalizeMovementsError(movementsResult.reason),
-              data: null,
-            };
-
-      const invoicesState =
-        invoicesResult.status === "fulfilled"
-          ? { loading: false, error: null, data: invoicesResult.value }
-          : {
-              loading: false,
-              error: resolveErrorMessage(
-                invoicesResult.reason,
-                "No pudimos obtener las facturas recientes."
-              ),
               data: null,
             };
 
@@ -698,9 +684,6 @@ const Dashboard = React.memo(() => {
             movementsCount: summary.movementsCount,
           },
         };
-        if (totalBalanceResult.status === "fulfilled") {
-          kpisState.data.totalBalance = totalBalanceResult.value.totalBalance;
-        }
       } else {
         const reason = summaryResult.reason;
         const message =
@@ -932,13 +915,6 @@ const Dashboard = React.memo(() => {
         formatter: formatCurrencyAR,
         trend: [],
       },
-      {
-        id: "totalBalance",
-        title: "Dinero Total",
-        value: data?.totalBalance ?? null,
-        formatter: formatCurrencyAR,
-        trend: [],
-      },
       // {
       //   id: "cashBalance",
       //   title: "Saldo de caja",
@@ -1085,8 +1061,8 @@ const Dashboard = React.memo(() => {
           justifyContent="center"
           sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
         >
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesTrendWidget
                 data={
                   state.salesTrend.data ?? {
@@ -1103,8 +1079,27 @@ const Dashboard = React.memo(() => {
               />
             </Box>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
+              <SalesByCategoryWidget
+                data={state.salesByCategory.data ?? []}
+                loading={
+                  state.salesByCategory.loading && !state.salesByCategory.data
+                }
+                error={state.salesByCategory.error}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+
+        <Grid
+          container
+          spacing={3}
+          justifyContent="center"
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
+        >
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesTrendWidget
                 data={
                   state.expensesTrend.data ?? {
@@ -1123,27 +1118,8 @@ const Dashboard = React.memo(() => {
               />
             </Box>
           </Grid>
-        </Grid>
-
-        <Grid
-          container
-          spacing={3}
-          justifyContent="center"
-          sx={{ width: "100%", maxWidth: 1600, mx: "auto", mt: 1 }}
-        >
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
-              <SalesByCategoryWidget
-                data={state.salesByCategory.data ?? []}
-                loading={
-                  state.salesByCategory.loading && !state.salesByCategory.data
-                }
-                error={state.salesByCategory.error}
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesByCategoryWidget
                 data={state.expensesByCategory.data ?? []}
                 loading={
@@ -1158,14 +1134,13 @@ const Dashboard = React.memo(() => {
             </Box>
           </Grid>
         </Grid>
-
         <Grid
           container
           spacing={2}
           justifyContent="center"
-          sx={{ mt: 1, width: "100%", maxWidth: 1600, mx: "auto" }}
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
         >
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} lg={4}>
             <BudgetWidget
               companyId={company}
               period={period}
@@ -1175,11 +1150,28 @@ const Dashboard = React.memo(() => {
               onRetry={loadDashboardData}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} lg={4}>
             {/* Sección comparativa Caja vs Devengado del último mes */}
             <LiquidityGapWidget />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} lg={4}>
+            <RecentMovementsWidget
+              data={state.movements.data}
+              loading={state.movements.loading && !state.movements.data}
+              error={state.movements.error}
+              onRetry={loadDashboardData}
+              onNavigate={() => handleNavigate("/ver-movimientos")}
+            />
+          </Grid>
+        </Grid>
+
+        <Grid
+          container
+          spacing={2}
+          justifyContent="center"
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
+        >
+          <Grid item xs={12} md={6} xl={4}>
             <ReconciliationWidget
               data={state.reconciliation.data}
               loading={
@@ -1195,46 +1187,20 @@ const Dashboard = React.memo(() => {
               }
             />
           </Grid>
-        </Grid>
-
-        {/* Bloque de IA / insights a lo ancho al final */}
-        <Grid
-          container
-          spacing={2}
-          justifyContent="center"
-          sx={{ mt: 1, width: "100%", maxWidth: 1600, mx: "auto" }}
-        >
-          <Grid item xs={12} md={6}>
-            <RecentMovementsWidget
-              data={state.movements.data}
-              loading={state.movements.loading && !state.movements.data}
-              error={state.movements.error}
+          <Grid item xs={12} md={6} xl={4}>
+            <InsightsWidget />
+          </Grid>
+          {/*
+          <Grid item xs={12} md={6} xl={4}>
+            <BillingWidget
+              data={state.billing.data}
+              loading={state.billing.loading && !state.billing.data}
+              error={state.billing.error}
               onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/ver-movimientos")}
+              onNavigate={() => handleNavigate("/carga/factura")}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
-            <RecentInvoicesWidget
-              data={state.invoices?.data ?? null}
-              loading={state.invoices?.loading && !state.invoices?.data}
-              error={state.invoices?.error ?? null}
-              onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/facturas")}
-            />
-          </Grid>
-        </Grid>
-
-        <Grid
-          container
-          spacing={2}
-          justifyContent="center"
-          sx={{ mt: 1, width: "100%", maxWidth: 1600, mx: "auto" }}
-        >
-          <Grid item xs={12} md={10}>
-            <Box sx={{ width: "100%", mx: "auto" }}>
-              <InsightsWidget />
-            </Box>
-          </Grid>
+          */}
         </Grid>
 
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>

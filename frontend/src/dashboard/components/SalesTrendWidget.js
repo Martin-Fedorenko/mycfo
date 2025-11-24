@@ -141,39 +141,9 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
 
   const points = data?.points ?? [];
   const xAxis = points.map((item) => monthLabel(item.month, item.monthIndex));
-  const seriesValues = points.map((item) => item.value ?? 0);
+  const seriesValues = points.map((item) => item.value);
   const noDataMessage = emptyMessage ?? data?.emptyMessage ?? "No hay ingresos registrados en este período.";
   const hasData = seriesValues.length > 0;
-
-  // Calculamos un rango de eje Y con padding para que la curva se vea "desde mas lejos"
-  // y el eje 0 quede como referencia clara.
-  const hasNegative = seriesValues.some((v) => v < 0);
-  const hasPositive = seriesValues.some((v) => v > 0);
-  const rawMin = hasData ? Math.min(...seriesValues) : 0;
-  const rawMax = hasData ? Math.max(...seriesValues) : 0;
-
-  let yMin = 0;
-  let yMax = 0;
-
-  if (hasPositive && !hasNegative) {
-    // Solo positivos: de 0 a un poco más del máximo
-    yMin = 0;
-    yMax = rawMax * 1.25 || 1;
-  } else if (!hasPositive && hasNegative) {
-    // Solo negativos: de un poco menos del mínimo a 0
-    yMin = rawMin * 1.25 || -1;
-    yMax = 0;
-  } else if (hasPositive && hasNegative) {
-    // Mezcla de positivos y negativos: rango simétrico alrededor de 0
-    const absMax = Math.max(Math.abs(rawMin), Math.abs(rawMax)) || 1;
-    const limit = absMax * 1.25;
-    yMin = -limit;
-    yMax = limit;
-  } else {
-    // Todo 0 o sin datos
-    yMin = -1;
-    yMax = 1;
-  }
 
   return (
     <Card
@@ -295,9 +265,7 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
                   data: seriesValues,
                   type: "line",
                   area: true,
-                  // Usamos curva lineal para que los valores sean exactamente los devueltos por el backend
-                  // y evitar "monticulos" visuales entre meses con valor 0.
-                  curve: "linear",
+                  curve: "natural",
                   color: theme.palette.primary.main,
                   areaStyle: { fill: alpha(theme.palette.primary.main, 0.22) },
                   showMark: true,
@@ -307,13 +275,9 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
               ]}
               yAxis={[
                 {
-                  min: yMin,
-                  max: yMax,
-                  tickNumber: 5,
-                  valueFormatter: (value) => formatCurrency(value),
-                  tickLabelStyle: {
-                    fontSize: 11,
-                  },
+                  tickInterval: "auto",
+                  valueFormatter: () => "",
+                  tickLabelStyle: { display: "none" },
                 },
               ]}
               xAxis={[
@@ -384,7 +348,6 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
 };
 
 export default SalesTrendWidget;
-
 
 
 
