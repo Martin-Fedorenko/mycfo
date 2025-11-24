@@ -12,7 +12,6 @@ import Tooltip from '@mui/material/Tooltip';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { CustomIcon as AppLogoIcon } from './AppNavbar';
 
 const Header = React.memo(function Header({ onToggleSidebar }) {
   const navigate = useNavigate();
@@ -34,22 +33,6 @@ const Header = React.memo(function Header({ onToggleSidebar }) {
     >
       {/* Columna izquierda */}
       <Stack direction="row" spacing={1} alignItems="center">
-        {/* Mobile: logo que lleva al home */}
-        <Stack
-          component={RouterLink}
-          to="/"
-          sx={{
-            display: { xs: 'flex', md: 'none' },
-            textDecoration: 'none',
-            color: 'inherit',
-            minWidth: 0,
-            lineHeight: 0,
-            ml: 1,
-          }}
-          aria-label="Ir al inicio"
-        >
-          <AppLogoIcon />
-        </Stack>
         {/* Desktop: breadcrumbs */}
         <NavbarBreadcrumbs sx={{ display: { xs: 'none', md: 'flex' } }} />
       </Stack>

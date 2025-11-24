@@ -74,7 +74,6 @@ function SideMenuMobile({ open, toggleDrawer }) {
             spacing={1}
             sx={{ justifyContent: 'center', alignItems: 'center', mr: 'auto' }}
           >
-            <CustomIcon />
             <Typography variant="h4" component="h1" sx={{ color: 'text.primary' }}>
               MyCFO
             </Typography>
@@ -154,25 +153,3 @@ SideMenuMobile.propTypes = {
 };
 
 export default SideMenuMobile;
-
-// Logo de la app
-function CustomIcon() {
-  return (
-    <Box
-      component="img"
-      src={`${process.env.PUBLIC_URL}/logo512.png`}
-      alt="Logo MyCFO"
-      sx={{
-        width: '1.5rem',
-        height: '1.5rem',
-        objectFit: 'cover',
-      }}
-      onError={(e) => {
-        console.error('Error al cargar logo:', e.target.src);
-        e.target.style.backgroundColor = 'lightcoral';
-        e.target.style.opacity = 0.5;
-        e.target.style.objectFit = 'unset';
-      }}
-    />
-  );
-}

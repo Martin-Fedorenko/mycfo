@@ -8,6 +8,9 @@ import {
   ListItemText,
   Collapse,
   Box,
+  Popper,
+  Paper,
+  ClickAwayListener,
 } from '@mui/material';
 import { listItemTextClasses } from '@mui/material/ListItemText';
 import { typographyClasses } from '@mui/material/Typography';
@@ -31,8 +34,8 @@ const fadeIn = keyframes`
 `;
 
 const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
-  padding: theme.spacing(1, 2),
-  marginBottom: theme.spacing(0.5),
+  padding: theme.spacing(0.75, 2),
+  marginBottom: theme.spacing(0.25),
   borderRadius: theme.shape.borderRadius,
   transition: 'background-color 0.3s, color 0.3s',
   color: '#000',
@@ -97,9 +100,11 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
     : {}),
 }));
 
-export default function MenuContent({ onNavigate }) {
+export default function MenuContent({ onNavigate, collapsed = false }) {
   const theme = useTheme();
   const [openMenus, setOpenMenus] = React.useState({});
+  const [collapsedMenuAnchor, setCollapsedMenuAnchor] = React.useState(null);
+  const [collapsedMenuItems, setCollapsedMenuItems] = React.useState([]);
   const navigate = useNavigate();
   const location = useLocation();
   const getMenuTextSx = React.useCallback(
@@ -138,12 +143,59 @@ export default function MenuContent({ onNavigate }) {
     }));
   };
 
+  React.useEffect(() => {
+    if (collapsed) {
+      setOpenMenus({});
+    } else {
+      setCollapsedMenuAnchor(null);
+      setCollapsedMenuItems([]);
+    }
+  }, [collapsed]);
+
+  const closeCollapsedMenu = () => {
+    setCollapsedMenuAnchor(null);
+    setCollapsedMenuItems([]);
+  };
+
+  const handleItemClick = (event, item) => {
+    if (collapsed) {
+      if (item.children) {
+        const isSameAnchor = collapsedMenuAnchor === event.currentTarget;
+        setCollapsedMenuAnchor(isSameAnchor ? null : event.currentTarget);
+        setCollapsedMenuItems(isSameAnchor ? [] : item.children);
+        return;
+      }
+      closeCollapsedMenu();
+      handleNavigate(item.path);
+      return;
+    }
+
+    closeCollapsedMenu();
+
+    if (item.children) {
+      handleToggle(item.label);
+      return;
+    }
+
+    handleNavigate(item.path);
+  };
+
   const isActive = (path) => location.pathname === path;
 
   return (
-    <Stack sx={{ flexGrow: 1, p: 1, justifyContent: 'space-between' }}>
+    <Stack sx={{ flexGrow: 1, p: collapsed ? 0.25 : 1, justifyContent: 'space-between' }}>
       <Box sx={{ animation: `${fadeIn} 0.5s ease-out` }}>
-        <List dense>
+        <List
+          dense
+          sx={{
+            py: collapsed ? 0.25 : 0.5,
+            px: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: collapsed ? 'center' : 'stretch',
+            width: '100%',
+          }}
+        >
           {routeConfig
             .filter((item) => !item.hidden)
             .map((item, index) => {
@@ -153,21 +205,51 @@ export default function MenuContent({ onNavigate }) {
 
               return (
                 <React.Fragment key={index}>
-                  <ListItem disablePadding sx={{ display: 'block' }}>
+                  <ListItem
+                    disablePadding
+                    sx={{
+                      display: 'flex',
+                      justifyContent: collapsed ? 'center' : 'flex-start',
+                      width: '100%',
+                    }}
+                  >
                     <StyledListItemButton
-                      onClick={
-                        item.children
-                          ? () => handleToggle(item.label)
-                          : () => handleNavigate(item.path)
-                      }
+                      onClick={(event) => handleItemClick(event, item)}
                       selected={isParentActive}
+                      sx={{
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        textAlign: collapsed ? 'center' : 'left',
+                        minHeight: collapsed ? 34 : 42,
+                        px: collapsed ? 0.75 : 1.5,
+                        py: collapsed ? 0.5 : 0.75,
+                        mb: collapsed ? 0.1 : 0.35,
+                        width: collapsed ? '92%' : '100%',
+                        mx: collapsed ? 'auto' : 0,
+                        '& .MuiListItemIcon-root': {
+                          marginRight: collapsed ? 0 : undefined,
+                        },
+                      }}
                     >
-                      <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText
-                        primary={item.label}
-                        primaryTypographyProps={{ sx: getMenuTextSx(item.label) }}
-                      />
-                      {item.children ? (
+                      <ListItemIcon
+                        sx={{
+                          minWidth: collapsed ? 0 : undefined,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: collapsed ? 0 : undefined,
+                          ml: collapsed ? 0 : undefined,
+                          width: collapsed ? 'auto' : 'auto',
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      {!collapsed && (
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{ sx: getMenuTextSx(item.label) }}
+                        />
+                      )}
+                      {!collapsed && item.children ? (
                         openMenus[item.label] ? (
                           <ExpandLess />
                         ) : (
@@ -177,7 +259,7 @@ export default function MenuContent({ onNavigate }) {
                     </StyledListItemButton>
                   </ListItem>
 
-                  {item.children && (
+                  {item.children && !collapsed && (
                     <Collapse
                       in={openMenus[item.label]}
                       timeout="auto"
@@ -211,6 +293,49 @@ export default function MenuContent({ onNavigate }) {
             })}
         </List>
       </Box>
+      {collapsed && (
+        <Popper
+          open={Boolean(collapsedMenuAnchor)}
+          anchorEl={collapsedMenuAnchor}
+          placement="right"
+          modifiers={[
+            { name: 'offset', options: { offset: [8, 0] } },
+            { name: 'preventOverflow', options: { padding: 8 } },
+          ]}
+          sx={{ zIndex: (theme) => theme.zIndex.tooltip + 1 }}
+        >
+          <ClickAwayListener onClickAway={closeCollapsedMenu}>
+            <Paper
+              elevation={3}
+              sx={{
+                minWidth: 200,
+                py: 0.5,
+                transformOrigin: 'left center',
+              }}
+            >
+              <List dense sx={{ py: 0.25 }}>
+                {collapsedMenuItems.map((child, idx) => (
+                  <ListItem key={idx} disablePadding>
+                    <ListItemButton
+                      onClick={() => {
+                        handleNavigate(child.path);
+                        closeCollapsedMenu();
+                      }}
+                      selected={isActive(child.path)}
+                    >
+                      <ListItemIcon>{child.icon}</ListItemIcon>
+                      <ListItemText
+                        primary={child.label}
+                        primaryTypographyProps={{ sx: getMenuTextSx(child.label) }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          </ClickAwayListener>
+        </Popper>
+      )}
     </Stack>
   );
 }
