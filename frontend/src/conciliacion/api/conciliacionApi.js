@@ -10,7 +10,7 @@ export const conciliacionApi = {
   /**
    * Obtiene movimientos sin conciliar con paginación
    */
-  obtenerMovimientosSinConciliar: async (page = 0, size = 20, sortBy = 'fechaEmision', sortDir = 'desc') => {
+  obtenerMovimientosSinConciliar: async (page = 0, size = 10, sortBy = 'fechaEmision', sortDir = 'desc') => {
     const response = await axios.get(
       `${API_BASE_URL}/movimientos/sin-conciliar`,
       {
@@ -23,7 +23,7 @@ export const conciliacionApi = {
   /**
    * Obtiene todos los movimientos (conciliados y sin conciliar) con paginación
    */
-  obtenerTodosLosMovimientos: async (page = 0, size = 20, sortBy = 'fechaEmision', sortDir = 'desc') => {
+  obtenerTodosLosMovimientos: async (page = 0, size = 10, sortBy = 'fechaEmision', sortDir = 'desc') => {
     const response = await axios.get(`${API_BASE_URL}/movimientos`, {
       params: { page, size, sortBy, sortDir }
     });

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Box, Typography, Chip, IconButton, Dialog, DialogTitle, DialogContent, 
-  DialogActions, Button, Grid, TextField, Alert, FormLabel, FormHelperText, OutlinedInput, Snackbar
+  DialogActions, Button, Grid, TextField, Alert, FormLabel, FormHelperText, OutlinedInput, Snackbar, LinearProgress
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import EditIcon from "@mui/icons-material/Edit";
@@ -32,6 +32,11 @@ import SuccessSnackbar from "../../shared-components/SuccessSnackbar";
 export default function TablaRegistrosV2() {
   const [movimientos, setMovimientos] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // Paginación del servidor
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
+  
   const [usuarioRol, setUsuarioRol] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState("view"); // "view" o "edit"
@@ -94,18 +99,6 @@ export default function TablaRegistrosV2() {
     Acreencia: ["montoTotal", "moneda", "fechaEmision"],
   };
 
-  const initializedRef = useRef(false);
-
-  useEffect(() => {
-    if (initializedRef.current) {
-      return;
-    }
-    initializedRef.current = true;
-    cargarMovimientos();
-    cargarRolUsuario();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const cargarRolUsuario = () => {
     const sub = sessionStorage.getItem("sub");
     if (sub) {
@@ -118,7 +111,7 @@ export default function TablaRegistrosV2() {
     }
   };
 
-  const cargarMovimientos = async () => {
+  const cargarMovimientos = useCallback(async () => {
     setLoading(true);
     try {
       const usuarioSub = sessionStorage.getItem("sub");
@@ -131,25 +124,56 @@ export default function TablaRegistrosV2() {
 
       const headers = { "X-Usuario-Sub": usuarioSub };
       const params = {
-        page: 0,
-        size: 1000,
+        page: paginationModel.page,
+        size: paginationModel.pageSize,
         sortBy: "fechaEmision",
         sortDir: "desc"
       };
 
-      console.log("📡 Obteniendo movimientos para usuario:", usuarioSub);
+      console.log("📡 Obteniendo movimientos para usuario:", usuarioSub, "página:", paginationModel.page, "tamaño:", paginationModel.pageSize);
       
       const response = await axios.get(`${API_BASE}/movimientos`, { headers, params });
       
       console.log("📊 Datos recibidos del backend:", response.data);
-      setMovimientos(response.data.content || []);
+      
+      // Manejar respuesta paginada del backend
+      if (response.data && typeof response.data === 'object' && 'content' in response.data) {
+        setMovimientos(response.data.content || []);
+        setRowCount(response.data.totalElements || 0);
+      } else {
+        // Compatibilidad con respuesta directa
+        const data = Array.isArray(response.data) ? response.data : [];
+        setMovimientos(data);
+        setRowCount(data.length);
+      }
     } catch (error) {
       console.error("Error cargando movimientos:", error);
       alert("Error al cargar movimientos: " + (error.response?.data?.mensaje || error.message));
+      setMovimientos([]);
+      setRowCount(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel]);
+
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
+    cargarMovimientos();
+    cargarRolUsuario();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recargar cuando cambie la paginación
+  useEffect(() => {
+    if (initializedRef.current) {
+      cargarMovimientos();
+    }
+  }, [cargarMovimientos]);
 
   // Abrir dialog para VER movimiento
   const handleVerMovimiento = (movimiento) => {
@@ -682,7 +706,7 @@ export default function TablaRegistrosV2() {
 
   return (
     <Box sx={{ width: "100%", p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>
         Movimientos Financieros
       </Typography>
 
@@ -691,9 +715,15 @@ export default function TablaRegistrosV2() {
           rows={movimientos}
           columns={columns}
           loading={loading}
+          
+          // Paginación del servidor
+          paginationMode="server"
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          rowCount={rowCount}
           pageSizeOptions={[10, 25, 50, 100]}
+          
           initialState={{
-            pagination: { paginationModel: { pageSize: 25 } },
             sorting: { sortModel: [{ field: "fechaEmision", sort: "desc" }] },
             columns: {
               columnVisibilityModel: {
@@ -701,7 +731,22 @@ export default function TablaRegistrosV2() {
               },
             },
           }}
-          slots={{ toolbar: GridToolbar }}
+          slots={{ 
+            toolbar: GridToolbar,
+            loadingOverlay: () => (
+              <LinearProgress 
+                sx={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 1,
+                  height: 4,
+                  borderRadius: 0
+                }} 
+              />
+            )
+          }}
           slotProps={{
             toolbar: {
               showQuickFilter: true,

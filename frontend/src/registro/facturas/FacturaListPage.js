@@ -11,6 +11,7 @@ import {
   Button,
   Alert,
   Snackbar,
+  LinearProgress,
 } from "@mui/material";
 import {
   DataGrid,
@@ -30,12 +31,17 @@ import { formatCurrencyAR } from "../../utils/formatters";
 import SuccessSnackbar from "../../shared-components/SuccessSnackbar";
 import API_CONFIG from "../../config/api-config";
 
-const FACTURA_PAGE_SIZE = 250;
+const FACTURA_PAGE_SIZE = 10;
 
 const FacturaListPage = () => {
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
+  
+  // Paginación del servidor
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState("view"); // view | edit
   const [selectedFactura, setSelectedFactura] = useState(null);
@@ -122,30 +128,37 @@ const FacturaListPage = () => {
   const loadFacturas = useCallback(async () => {
     setLoading(true);
     try {
-      console.debug("[FacturaListPage] Fetching facturas with filters:", filters);
-      const data = await fetchFacturas({
-        page: 0,
-        size: FACTURA_PAGE_SIZE,
+      console.debug("[FacturaListPage] Fetching facturas with filters:", filters, "pagination:", paginationModel);
+      const response = await fetchFacturas({
+        page: paginationModel.page,
+        size: paginationModel.pageSize,
         ...filters,
       });
-      console.debug("[FacturaListPage] Respuesta facturas:", data);
-      setFacturas(
-        (data.content ?? []).map((f) => ({
-          ...f,
-          fechaEmision: parseFechaEmision(f.fechaEmision),
-        }))
-      );
+      console.debug("[FacturaListPage] Facturas response:", response);
+      
+      // Si la respuesta es un objeto Page del backend
+      if (response && typeof response === 'object' && 'content' in response) {
+        setFacturas(Array.isArray(response.content) ? response.content : []);
+        setRowCount(response.totalElements || 0);
+      } else {
+        // Si es un array directo (compatibilidad)
+        const data = Array.isArray(response) ? response : [];
+        setFacturas(data);
+        setRowCount(data.length);
+      }
     } catch (error) {
-      console.error("Error cargando facturas", error);
+      console.error("[FacturaListPage] Error fetching facturas:", error);
       setSnackbar({
         open: true,
+        message: "Error al cargar las facturas",
         severity: "error",
-        message: error?.response?.data?.mensaje || error?.message || "No pudimos cargar las facturas.",
       });
+      setFacturas([]);
+      setRowCount(0);
     } finally {
       setLoading(false);
     }
-  }, [filters, parseFechaEmision]);
+  }, [filters, paginationModel]);
 
   const cargarRolUsuario = useCallback(() => {
     const sub = sessionStorage.getItem("sub");
@@ -443,12 +456,12 @@ const FacturaListPage = () => {
         variant="h4"
         component="h1"
         gutterBottom
-        sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}
+        sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}
       >
         Facturas
       </Typography>
 
-      <Box sx={{ height: 700, width: "100%", mt: 2 }}>
+      <Box sx={{ height: 700, width: "100%", mt: 0 }}>
         <DataGrid
           rows={facturas}
           columns={columns}
@@ -456,9 +469,15 @@ const FacturaListPage = () => {
           getRowId={(row) =>
             row.id ?? row.idDocumento ?? `${row.numeroDocumento}-${row.fechaEmision}`
           }
-          pageSizeOptions={[25, 50, 100, 250]}
+          
+          // Paginación del servidor
+          paginationMode="server"
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          rowCount={rowCount}
+          pageSizeOptions={[10, 25, 50, 100]}
+          
           initialState={{
-            pagination: { paginationModel: { pageSize: 25 } },
             sorting: { sortModel: [{ field: "fechaEmision", sort: "desc" }] },
             columns: {
               columnVisibilityModel: {
@@ -466,7 +485,22 @@ const FacturaListPage = () => {
               },
             },
           }}
-          slots={{ toolbar: GridToolbar }}
+          slots={{ 
+            toolbar: GridToolbar,
+            loadingOverlay: () => (
+              <LinearProgress 
+                sx={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 1,
+                  height: 4,
+                  borderRadius: 0
+                }} 
+              />
+            )
+          }}
           slotProps={{
             toolbar: {
               showQuickFilter: true,

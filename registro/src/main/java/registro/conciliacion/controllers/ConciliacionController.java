@@ -30,7 +30,7 @@ public class ConciliacionController {
     @GetMapping("/movimientos/sin-conciliar")
     public ResponseEntity<Page<MovimientoDTO>> obtenerMovimientosSinConciliar(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "fechaEmision") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         
@@ -47,7 +47,7 @@ public class ConciliacionController {
     @GetMapping("/movimientos")
     public ResponseEntity<Page<MovimientoDTO>> obtenerTodosLosMovimientos(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "fechaEmision") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         

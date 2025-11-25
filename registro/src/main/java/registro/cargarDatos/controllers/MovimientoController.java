@@ -153,7 +153,7 @@ public class MovimientoController {
             @RequestParam(required = false) Boolean conciliado,
             @RequestParam(required = false) String nombreRelacionado,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "fechaEmision") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         

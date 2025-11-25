@@ -18,7 +18,7 @@ const withUserHeaders = () => {
 
 export const fetchFacturas = async ({
   page = 0,
-  size = 20,
+  size = 10,
   sortBy = "fechaEmision",
   sortDir = "desc",
   fechaDesde,
