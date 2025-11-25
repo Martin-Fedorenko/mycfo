@@ -19,14 +19,11 @@ import {
   Business as BusinessIcon,
   AdminPanelSettings as AdminIcon
 } from "@mui/icons-material";
-import axios from "axios";
 import CampoEditable from "../../shared-components/CustomButton";
 import { sessionService } from "../../shared-services/sessionService";
 import { organizacionService } from "../../shared-services/organizacionService";
 import InvitarColaboradores from "../invitaciones/InvitarColaboradores";
 import API_CONFIG from "../../config/api-config";
-
-const API_URL = API_CONFIG.ADMINISTRACION;
 
 export default function Organizacion() {
   const [empresa, setEmpresa] = useState(null);
@@ -50,31 +47,27 @@ export default function Organizacion() {
   const cargarDatosEmpresaYEmpleados = async () => {
     setLoading(true);
     try {
-      console.log('Cargando datos de organización...');
+      console.log('Cargando datos completos de organización...');
       console.log('Sub del usuario:', sub);
-      
-      // Cargar datos del perfil del usuario para saber su rol
-      const perfilResponse = await axios.get(`${API_URL}/api/usuarios/perfil`, {
-        headers: { "X-Usuario-Sub": sub }
-      });
-      console.log('Perfil del usuario:', perfilResponse.data);
-      console.log('EmpresaId del usuario:', perfilResponse.data.empresaId);
-      console.log('EmpresaNombre del usuario:', perfilResponse.data.empresaNombre);
-      setUsuarioRol(perfilResponse.data.rol);
 
-      // Cargar datos de la organización usando el servicio
-      console.log('Obteniendo datos de la organización...');
-      const organizacionData = await organizacionService.obtenerOrganizacionUsuario();
-      console.log('Datos de organización obtenidos:', organizacionData);
-      if (organizacionData) {
-        setEmpresa(organizacionData);
+      const info = await organizacionService.obtenerInfoCompletaOrganizacion();
+      console.log('Info completa de organización:', info);
+
+      if (info?.perfil) {
+        setUsuarioRol(info.perfil.rol);
       }
 
-      // Cargar empleados de la organización usando el servicio
-      console.log('Obteniendo empleados de la organización...');
-      const empleadosData = await organizacionService.obtenerEmpleadosOrganizacion();
-      console.log('Empleados obtenidos:', empleadosData);
-      setEmpleados(empleadosData);
+      if (info?.empresa) {
+        setEmpresa(info.empresa);
+      } else {
+        setEmpresa(null);
+      }
+
+      if (Array.isArray(info?.empleados)) {
+        setEmpleados(info.empleados);
+      } else {
+        setEmpleados([]);
+      }
     } catch (error) {
       console.error("Error cargando datos:", error);
       setMensaje({ tipo: 'error', texto: 'Error al cargar los datos de la organización' });

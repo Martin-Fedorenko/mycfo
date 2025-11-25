@@ -5,6 +5,27 @@ import API_CONFIG from '../config/api-config';
 const API_BASE_URL = API_CONFIG.ADMINISTRACION;
 
 export const organizacionService = {
+  // Obtener perfil, empresa y empleados en una sola llamada
+  async obtenerInfoCompletaOrganizacion() {
+    try {
+      const sub = sessionStorage.getItem('sub');
+      if (!sub) {
+        throw new Error('No hay usuario autenticado');
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/api/organizacion/info-completa`, {
+        headers: {
+          'X-Usuario-Sub': sub,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener info completa de organización:', error);
+      throw error;
+    }
+  },
+
   // Obtener datos de la organización del usuario actual
   async obtenerOrganizacionUsuario() {
     try {
