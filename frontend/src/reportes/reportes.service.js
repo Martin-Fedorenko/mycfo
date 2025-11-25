@@ -37,3 +37,20 @@ export async function getMovimientosPorRango({ fechaDesde, fechaHasta, tipos }) 
   return data;
 }
 
+/**
+ * Obtiene movimientos agrupados mensualmente para presupuestos (OPTIMIZADO).
+ * Reemplaza las múltiples llamadas individuales por mes con una sola llamada.
+ * - fechaDesde/fechaHasta: YYYY-MM-DD
+ * - Devuelve datos agrupados por mes con totales y categorías
+ * - Incluye caché en el servidor para mejor performance
+ */
+export async function getMovimientosParaPresupuesto({ fechaDesde, fechaHasta }) {
+  const params = new URLSearchParams();
+  if (fechaDesde) params.set('fechaDesde', fechaDesde);
+  if (fechaHasta) params.set('fechaHasta', fechaHasta);
+
+  const url = `${URL_REGISTRO}/movimientos/presupuesto/datos-completos?${params.toString()}`;
+  const { data } = await axios.get(url, { headers: getUsuarioHeaders() });
+  return data;
+}
+

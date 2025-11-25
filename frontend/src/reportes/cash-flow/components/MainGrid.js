@@ -11,11 +11,13 @@ import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
 import API_CONFIG from '../../../config/api-config';
+import LoadingSpinner from '../../../shared-components/LoadingSpinner';
 
 export default function MainGrid() {
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
     const [registros, setRegistros] = React.useState([]);
     const chartRef = React.useRef(null);
+    const [loading, setLoading] = React.useState(false);
 
     // Formateo de moneda para tooltips y ejes
     const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
@@ -32,16 +34,20 @@ export default function MainGrid() {
         if (sub) headers['X-Usuario-Sub'] = sub;
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
+        setLoading(true);
         fetch(`${baseUrl}/cashflow?anio=${selectedYear}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const json = await r.json();
-                // El backend ya filtra por aÃ±o, tipos y medios vÃ¡lidos
+                // El backend ya filtra por aÃ±o, tipos y medios válidos
                 setRegistros(Array.isArray(json) ? json : []);
             })
             .catch((error) => {
                 console.error('Error al obtener cashflow:', error);
                 setRegistros([]);
+            })
+            .finally(() => {
+                setLoading(false);
             });
     }, [selectedYear]);
 
@@ -185,6 +191,14 @@ export default function MainGrid() {
 
     const ingresosTabla = registros.filter(r => r.tipo === 'Ingreso').map(r => ({ id: r.id, categoria: r.categoria, monto: r.montoTotal, fecha: r.fechaEmision }));
     const egresosTabla = registros.filter(r => r.tipo === 'Egreso').map(r => ({ id: r.id, categoria: r.categoria, monto: r.montoTotal, fecha: r.fechaEmision }));
+
+    if (loading) {
+        return (
+            <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
+                <LoadingSpinner message={`Cargando flujo de caja ${selectedYear}...`} />
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>

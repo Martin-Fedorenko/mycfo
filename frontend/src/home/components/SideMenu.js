@@ -124,7 +124,7 @@ const SideMenu = React.memo(function SideMenu({
           gap: expanded ? 1 : 0,
         }}
       >
-        <Tooltip title="Abrir menú" placement="right">
+        <Tooltip  placement="right">
           <Box
             onMouseEnter={() => setLogoHovered(true)}
             onMouseLeave={() => setLogoHovered(false)}
