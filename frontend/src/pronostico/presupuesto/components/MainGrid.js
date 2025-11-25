@@ -36,6 +36,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import API_CONFIG from "../../../config/api-config";
+import LoadingSpinner from "../../../shared-components/LoadingSpinner";
 
 
 
@@ -791,22 +792,7 @@ export default function MainGrid() {
             })}
           >
             {loadingSearch ? (
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell
-                      colSpan={columnsCount}
-                      sx={(theme) => ({
-                        ...tableCellStyle(theme),
-                        textAlign: "center",
-                        py: 3,
-                      })}
-                    >
-                      Cargando presupuestos...
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              <LoadingSpinner message="Cargando presupuestos..." />
             ) : searchPage &&
               Array.isArray(searchPage.content) &&
               searchPage.content.length > 0 ? (
@@ -934,110 +920,114 @@ export default function MainGrid() {
         </Alert>
       )}
       <Paper sx={{ width: "100%", overflowX: "auto" }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={tableRowStyle}>
-              <TableCell
-                sx={(theme) => ({
-                  ...headerCellStyle(theme),
-                  ...getColumnWidth(statusFilter).nombre,
-                })}
-                align="left"
-              >
-                <HeaderLabelAligned label="Nombre" ghost={headerGhostMain.nombre} />
-              </TableCell>
-              <TableCell
-                sx={(theme) => ({
-                  ...headerCellStyle(theme),
-                  ...getColumnWidth(statusFilter).desde,
-                })}
-                align="left"
-              >
-                <HeaderLabelAligned label="Desde" ghost={headerGhostMain.desde} />
-              </TableCell>
-              <TableCell
-                sx={(theme) => ({
-                  ...headerCellStyle(theme),
-                  ...getColumnWidth(statusFilter).hasta,
-                })}
-                align="left"
-              >
-                <HeaderLabelAligned label="Hasta" ghost={headerGhostMain.hasta} />
-              </TableCell>
-              {statusFilter === "deleted" && (
+        {loadingAll ? (
+          <LoadingSpinner message="Cargando presupuestos..." />
+        ) : (
+          <Table>
+            <TableHead>
+              <TableRow sx={tableRowStyle}>
                 <TableCell
                   sx={(theme) => ({
                     ...headerCellStyle(theme),
-                    ...getColumnWidth(statusFilter).eliminado,
+                    ...getColumnWidth(statusFilter).nombre,
                   })}
                   align="left"
                 >
-                  <HeaderLabelAligned label="Eliminados" ghost={headerGhostMain.eliminado} />
+                  <HeaderLabelAligned label="Nombre" ghost={headerGhostMain.nombre} />
                 </TableCell>
-              )}
-              <TableCell
-                sx={(theme) => ({
-                  ...headerCellStyle(theme),
-                  ...getColumnWidth(statusFilter).acciones,
-                })}
-                align="right"
-              >
-                {/* Wrapper que replica el ancho del bloque de acciones */}
-                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                  {/* Contenido “fantasma” para medir ancho del bloque real */}
-                  <Box
-                    aria-hidden
-                    sx={{
-                      visibility: 'hidden',
-                      pointerEvents: 'none',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 1,
-                    }}
+                <TableCell
+                  sx={(theme) => ({
+                    ...headerCellStyle(theme),
+                    ...getColumnWidth(statusFilter).desde,
+                  })}
+                  align="left"
+                >
+                  <HeaderLabelAligned label="Desde" ghost={headerGhostMain.desde} />
+                </TableCell>
+                <TableCell
+                  sx={(theme) => ({
+                    ...headerCellStyle(theme),
+                    ...getColumnWidth(statusFilter).hasta,
+                  })}
+                  align="left"
+                >
+                  <HeaderLabelAligned label="Hasta" ghost={headerGhostMain.hasta} />
+                </TableCell>
+                {statusFilter === "deleted" && (
+                  <TableCell
+                    sx={(theme) => ({
+                      ...headerCellStyle(theme),
+                      ...getColumnWidth(statusFilter).eliminado,
+                    })}
+                    align="left"
                   >
-                    <Button variant="outlined" size="small" sx={darkActionButtonSx}>Ver detalle</Button>
-                    <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
-                  </Box>
-                  {/* Texto centrado exactamente sobre ese ancho */}
-                  <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
-                    Acciones
-                  </Box>
-                </Box>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {visiblePresupuestos.length > 0 && renderRows(visiblePresupuestos)}
-            {visiblePresupuestos.length === 0 && !loadingAll && !listError && (
-              <TableRow>
+                    <HeaderLabelAligned label="Eliminados" ghost={headerGhostMain.eliminado} />
+                  </TableCell>
+                )}
                 <TableCell
-                  colSpan={columnsCount}
                   sx={(theme) => ({
-                    ...tableCellStyle(theme),
-                    textAlign: "center",
-                    py: 3,
+                    ...headerCellStyle(theme),
+                    ...getColumnWidth(statusFilter).acciones,
                   })}
+                  align="right"
                 >
-                  No hay presupuestos para mostrar.
+                  {/* Wrapper que replica el ancho del bloque de acciones */}
+                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                    {/* Contenido “fantasma” para medir ancho del bloque real */}
+                    <Box
+                      aria-hidden
+                      sx={{
+                        visibility: 'hidden',
+                        pointerEvents: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <Button variant="outlined" size="small" sx={darkActionButtonSx}>Ver detalle</Button>
+                      <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
+                    </Box>
+                    {/* Texto centrado exactamente sobre ese ancho */}
+                    <Box sx={{ position:'absolute', inset:0, display:'grid', placeItems:'center', whiteSpace:'nowrap', fontWeight: 600 }}>
+                      Acciones
+                    </Box>
+                  </Box>
                 </TableCell>
               </TableRow>
-            )}
-            {loadingAll && (
-              <TableRow>
-                <TableCell
-                  colSpan={columnsCount}
-                  sx={(theme) => ({
-                    ...tableCellStyle(theme),
-                    textAlign: "center",
-                    py: 3,
-                  })}
-                >
-                  Cargando presupuestos...
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {visiblePresupuestos.length > 0 && renderRows(visiblePresupuestos)}
+              {visiblePresupuestos.length === 0 && !listError && (
+                <TableRow>
+                  <TableCell
+                    colSpan={columnsCount}
+                    sx={(theme) => ({
+                      ...tableCellStyle(theme),
+                      textAlign: "center",
+                      py: 3,
+                    })}
+                  >
+                    No hay presupuestos para mostrar.
+                  </TableCell>
+                </TableRow>
+              )}
+              {listError && (
+                <TableRow>
+                  <TableCell
+                    colSpan={columnsCount}
+                    sx={(theme) => ({
+                      ...tableCellStyle(theme),
+                      textAlign: "center",
+                      py: 3,
+                    })}
+                  >
+                    <Alert severity="error">{listError}</Alert>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </Paper>
       {mainTotalPages > 1 && (
         <Box mt={2} display="flex" justifyContent="center">

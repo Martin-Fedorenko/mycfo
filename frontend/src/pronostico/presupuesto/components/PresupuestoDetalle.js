@@ -23,6 +23,7 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import API_CONFIG from '../../../config/api-config';
+import LoadingSpinner from '../../../shared-components/LoadingSpinner';
 
 // Helper seguro para números
 const safeNumber = (v) =>
@@ -456,6 +457,14 @@ export default function PresupuestoDetalle() {
   const openMenu = Boolean(anchorFiltros);
   const handleOpenMenu = (e) => setAnchorFiltros(e.currentTarget);
   const handleCloseMenu = () => setAnchorFiltros(null);
+
+  if (loading) {
+    return (
+      <Box sx={{ width: '100%', p: 3 }}>
+        <LoadingSpinner message="Cargando presupuesto..." />
+      </Box>
+    );
+  }
 
   return (
     <Box id="presupuesto-detalle-content" sx={{ width: '100%', p: 3 }}>

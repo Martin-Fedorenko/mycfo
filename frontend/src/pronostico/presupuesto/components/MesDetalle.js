@@ -31,6 +31,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { TODAS_LAS_CATEGORIAS } from '../../../shared-components/categorias';
 import API_CONFIG from '../../../config/api-config';
+import LoadingSpinner from '../../../shared-components/LoadingSpinner';
 
 // ===== Helpers =====
 const safeNumber = (v) =>
@@ -200,6 +201,7 @@ export default function MesDetalle() {
   const [bulkCfg, setBulkCfg] = React.useState({ accion: 'replicar', desde: '', hasta: '' });
   const [deletePrompt, setDeletePrompt] = React.useState({ open: false, id: null, categoria: '', tipo: '' });
   const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
+  const [loading, setLoading] = React.useState(true);
 
   const categoriasPronosticadas = React.useMemo(() => {
     const ocupadas = new Set();
@@ -432,6 +434,7 @@ export default function MesDetalle() {
   React.useEffect(() => {
     const cargar = async () => {
       try {
+        setLoading(true);
         // 1) buscar presupuesto por nombre
         const resPres = await http.get(`${baseURL}/api/presupuestos`);
         const listaPayload = resPres?.data;
@@ -479,6 +482,8 @@ export default function MesDetalle() {
         setYm(null);
         setNombreMes('Mes desconocido');
         setSnack({ open: true, message: err?.message || 'Error cargando mes', severity: 'error' });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -488,12 +493,15 @@ export default function MesDetalle() {
   const handleCambiarMes = React.useCallback(async (targetYm) => {
     if (!targetYm || !presupuestoId) return;
     try {
+      setLoading(true);
       await cargarLineasConReales(presupuestoId, targetYm);
       setYm(targetYm);
       setNombreMes(formatearMes(targetYm));
     } catch (err) {
       console.error('Error cambiando de mes', err);
       setSnack({ open: true, message: 'No se pudieron cargar los datos del mes seleccionado.', severity: 'error' });
+    } finally {
+      setLoading(false);
     }
   }, [presupuestoId, cargarLineasConReales, setSnack]);
 
@@ -648,7 +656,14 @@ export default function MesDetalle() {
   );
 
   const reloadMes = React.useCallback(async () => {
-    if (presupuestoId && ym) await cargarLineasConReales(presupuestoId, ym);
+    if (presupuestoId && ym) {
+      setLoading(true);
+      try {
+        await cargarLineasConReales(presupuestoId, ym);
+      } finally {
+        setLoading(false);
+      }
+    }
   }, [presupuestoId, ym, cargarLineasConReales]);
 
   // ===== Derivados =====
@@ -957,6 +972,14 @@ export default function MesDetalle() {
     }
   };
   // ===== Render =====
+  if (loading) {
+    return (
+      <Box sx={{ width: '100%', p: 3 }}>
+        <LoadingSpinner message="Cargando detalle del mes..." />
+      </Box>
+    );
+  }
+
   return (
     <Box id="mes-detalle-content" sx={{ width: '100%', p: 3 }}>
       <Box
