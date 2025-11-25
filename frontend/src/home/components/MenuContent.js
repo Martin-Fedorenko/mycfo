@@ -11,6 +11,7 @@ import {
   Popper,
   Paper,
   ClickAwayListener,
+  Tooltip,
 } from '@mui/material';
 import { listItemTextClasses } from '@mui/material/ListItemText';
 import { typographyClasses } from '@mui/material/Typography';
@@ -203,6 +204,53 @@ export default function MenuContent({ onNavigate, collapsed = false }) {
                 (item.path && isActive(item.path)) ||
                 item.children?.some((child) => isActive(child.path));
 
+              const menuButton = (
+                <StyledListItemButton
+                  onClick={(event) => handleItemClick(event, item)}
+                  selected={isParentActive}
+                  sx={{
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    textAlign: collapsed ? 'center' : 'left',
+                    minHeight: collapsed ? 34 : 42,
+                    px: collapsed ? 0.75 : 1.5,
+                    py: collapsed ? 0.5 : 0.75,
+                    mb: collapsed ? 0.1 : 0.35,
+                    width: collapsed ? '92%' : '100%',
+                    mx: collapsed ? 'auto' : 0,
+                    '& .MuiListItemIcon-root': {
+                      marginRight: collapsed ? 0 : undefined,
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: collapsed ? 0 : undefined,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mr: collapsed ? 0 : undefined,
+                      ml: collapsed ? 0 : undefined,
+                      width: collapsed ? 'auto' : 'auto',
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  {!collapsed && (
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{ sx: getMenuTextSx(item.label) }}
+                    />
+                  )}
+                  {!collapsed && item.children ? (
+                    openMenus[item.label] ? (
+                      <ExpandLess />
+                    ) : (
+                      <ExpandMore />
+                    )
+                  ) : null}
+                </StyledListItemButton>
+              );
+
               return (
                 <React.Fragment key={index}>
                   <ListItem
@@ -213,50 +261,13 @@ export default function MenuContent({ onNavigate, collapsed = false }) {
                       width: '100%',
                     }}
                   >
-                    <StyledListItemButton
-                      onClick={(event) => handleItemClick(event, item)}
-                      selected={isParentActive}
-                      sx={{
-                        justifyContent: collapsed ? 'center' : 'flex-start',
-                        textAlign: collapsed ? 'center' : 'left',
-                        minHeight: collapsed ? 34 : 42,
-                        px: collapsed ? 0.75 : 1.5,
-                        py: collapsed ? 0.5 : 0.75,
-                        mb: collapsed ? 0.1 : 0.35,
-                        width: collapsed ? '92%' : '100%',
-                        mx: collapsed ? 'auto' : 0,
-                        '& .MuiListItemIcon-root': {
-                          marginRight: collapsed ? 0 : undefined,
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          minWidth: collapsed ? 0 : undefined,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mr: collapsed ? 0 : undefined,
-                          ml: collapsed ? 0 : undefined,
-                          width: collapsed ? 'auto' : 'auto',
-                        }}
-                      >
-                        {item.icon}
-                      </ListItemIcon>
-                      {!collapsed && (
-                        <ListItemText
-                          primary={item.label}
-                          primaryTypographyProps={{ sx: getMenuTextSx(item.label) }}
-                        />
-                      )}
-                      {!collapsed && item.children ? (
-                        openMenus[item.label] ? (
-                          <ExpandLess />
-                        ) : (
-                          <ExpandMore />
-                        )
-                      ) : null}
-                    </StyledListItemButton>
+                    {collapsed ? (
+                      <Tooltip title={item.label} placement="right" arrow>
+                        {menuButton}
+                      </Tooltip>
+                    ) : (
+                      menuButton
+                    )}
                   </ListItem>
 
                   {item.children && !collapsed && (
