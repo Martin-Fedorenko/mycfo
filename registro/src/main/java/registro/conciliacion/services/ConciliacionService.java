@@ -1,13 +1,15 @@
 package registro.conciliacion.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import registro.cargarDatos.models.*;
 import registro.cargarDatos.repositories.FacturaRepository;
+import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.cargarDatos.repositories.PagareRepository;
 import registro.cargarDatos.repositories.ReciboRepository;
-import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.conciliacion.dtos.DocumentoSugeridoDTO;
 import registro.conciliacion.dtos.MovimientoDTO;
 
@@ -27,20 +29,41 @@ public class ConciliacionService {
     private final ReciboRepository reciboRepository;
 
     /**
-     * Obtiene todos los movimientos sin conciliar
+     * Obtiene movimientos sin conciliar con paginación
      */
+    @Transactional(readOnly = true)
+    public Page<MovimientoDTO> obtenerMovimientosSinConciliar(Pageable pageable) {
+        Page<Movimiento> registros = movimientoRepository.findByDocumentoComercialIsNull(pageable);
+        
+        return registros.map(this::convertirAMovimientoDTO);
+    }
+
+    /**
+     * Obtiene todos los movimientos (conciliados y sin conciliar) con paginación
+     */
+    @Transactional(readOnly = true)
+    public Page<MovimientoDTO> obtenerTodosLosMovimientos(Pageable pageable) {
+        Page<Movimiento> registros = movimientoRepository.findAll(pageable);
+        
+        return registros.map(this::convertirAMovimientoDTO);
+    }
+
+    /**
+     * Obtiene todos los movimientos sin conciliar (sin paginación) - para compatibilidad
+     */
+    @Transactional(readOnly = true)
     public List<MovimientoDTO> obtenerMovimientosSinConciliar() {
-        List<Movimiento> registros = movimientoRepository.findAll();
+        List<Movimiento> registros = movimientoRepository.findByDocumentoComercialIsNull();
         
         return registros.stream()
-                .filter(r -> r.getDocumentoComercial() == null)
                 .map(this::convertirAMovimientoDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Obtiene todos los movimientos (conciliados y sin conciliar)
+     * Obtiene todos los movimientos (conciliados y sin conciliar) - para compatibilidad
      */
+    @Transactional(readOnly = true)
     public List<MovimientoDTO> obtenerTodosLosMovimientos() {
         List<Movimiento> registros = movimientoRepository.findAll();
         
@@ -50,48 +73,283 @@ public class ConciliacionService {
     }
 
     /**
-     * Sugiere documentos para un movimiento específico usando algoritmo de matching
+     * Sugiere documentos para un movimiento específico usando algoritmo de matching optimizado
+     * PASO 1: Filtra documentos por tipo Y (monto O fecha O descripción)
+     * PASO 2: Aplica reglas de scoring solo sobre documentos filtrados
      */
+    @Transactional(readOnly = true)
     public List<DocumentoSugeridoDTO> sugerirDocumentos(Long movimientoId) {
         Movimiento movimiento = movimientoRepository.findById(movimientoId)
                 .orElseThrow(() -> new RuntimeException("Movimiento no encontrado"));
 
+        System.out.println("\n========== INICIANDO BÚSQUEDA DE SUGERENCIAS ==========");
+        System.out.println("Movimiento ID: " + movimientoId);
+        System.out.println("Tipo: " + movimiento.getTipo());
+        System.out.println("Monto: " + movimiento.getMontoTotal());
+        System.out.println("Fecha: " + movimiento.getFechaEmision());
+        System.out.println("Origen: " + movimiento.getOrigenNombre());
+        System.out.println("Destino: " + movimiento.getDestinoNombre());
+        System.out.println("Descripción: " + movimiento.getDescripcion());
+
         List<DocumentoSugeridoDTO> sugerencias = new ArrayList<>();
-
-        // Buscar en facturas
-        List<Factura> facturas = facturaRepository.findAll();
-        for (Factura factura : facturas) {
-            int score = calcularScore(movimiento, factura);
+        
+        // PASO 1: Filtrar documentos candidatos por tipo Y (monto O fecha O descripción)
+        List<DocumentoComercial> candidatos = filtrarDocumentosCandidatos(movimiento);
+        
+        System.out.println("\n--- CANDIDATOS ENCONTRADOS: " + candidatos.size() + " ---");
+        
+        // PASO 2: Aplicar algoritmo de scoring solo sobre candidatos filtrados
+        for (DocumentoComercial documento : candidatos) {
+            int score = calcularScore(movimiento, documento);
+            
+            System.out.println("\nCandidato: " + documento.getTipoDocumento() + " #" + documento.getNumeroDocumento());
+            System.out.println("  Monto: " + documento.getMontoTotal());
+            System.out.println("  Fecha: " + documento.getFechaEmision());
+            System.out.println("  Score: " + score);
+            
             if (score >= 30) { // Solo sugerir si hay al menos 30% de coincidencia
-                sugerencias.add(crearSugerenciaDesdeFactura(factura, score));
-            }
-        }
-
-        // Buscar en pagarés
-        List<Pagare> pagares = pagareRepository.findAll();
-        for (Pagare pagare : pagares) {
-            int score = calcularScore(movimiento, pagare);
-            if (score >= 30) {
-                sugerencias.add(crearSugerenciaDesdePagare(pagare, score));
-            }
-        }
-
-        // Buscar en recibos
-        List<Recibo> recibos = reciboRepository.findAll();
-        for (Recibo recibo : recibos) {
-            int score = calcularScore(movimiento, recibo);
-            if (score >= 30) {
-                sugerencias.add(crearSugerenciaDesdeRecibo(recibo, score));
+                DocumentoSugeridoDTO sugerencia = crearSugerenciaDesdeDocumento(documento, score);
+                sugerencias.add(sugerencia);
+                System.out.println("  ✓ AGREGADO A SUGERENCIAS");
+            } else {
+                System.out.println("  ✗ DESCARTADO (score < 30)");
             }
         }
 
         // Ordenar por score descendente
         sugerencias.sort(Comparator.comparingInt(DocumentoSugeridoDTO::getScoreCoincidencia).reversed());
 
+        System.out.println("\n--- SUGERENCIAS FINALES: " + sugerencias.size() + " ---");
+        for (DocumentoSugeridoDTO sug : sugerencias) {
+            System.out.println("  " + sug.getTipoDocumento() + " #" + sug.getNumeroDocumento() + " - Score: " + sug.getScoreCoincidencia());
+        }
+        System.out.println("========== FIN BÚSQUEDA ==========\n");
+
         // Limitar a top 10 sugerencias
         return sugerencias.stream().limit(10).collect(Collectors.toList());
     }
-
+    
+    /**
+     * Filtra documentos candidatos que coincidan en tipo Y (monto O fecha O descripción O todos)
+     * Esto reduce significativamente el espacio de búsqueda antes de aplicar scoring
+     * Carga EAGER de todos los datos para evitar lazy loading
+     */
+    private List<DocumentoComercial> filtrarDocumentosCandidatos(Movimiento movimiento) {
+        List<DocumentoComercial> candidatos = new ArrayList<>();
+        
+        // Determinar el tipo de movimiento (INGRESO/EGRESO)
+        TipoMovimiento tipoMovimiento = movimiento.getTipo();
+        
+        // Obtener todos los documentos de la base de datos
+        // findAll() carga todos los registros de forma eager
+        List<Factura> facturas = facturaRepository.findAll();
+        List<Pagare> pagares = pagareRepository.findAll();
+        List<Recibo> recibos = reciboRepository.findAll();
+        
+        System.out.println("\n--- INICIANDO FILTRADO DE CANDIDATOS ---");
+        System.out.println("Total facturas en BD: " + (facturas != null ? facturas.size() : 0));
+        System.out.println("Total pagarés en BD: " + (pagares != null ? pagares.size() : 0));
+        System.out.println("Total recibos en BD: " + (recibos != null ? recibos.size() : 0));
+        
+        // Forzar la inicialización de las colecciones para evitar lazy loading
+        // Esto asegura que todos los datos estén disponibles
+        if (facturas != null) {
+            facturas.size(); // Fuerza la carga completa
+        }
+        if (pagares != null) {
+            pagares.size(); // Fuerza la carga completa
+        }
+        if (recibos != null) {
+            recibos.size(); // Fuerza la carga completa
+        }
+        
+        int facturasAnalizadas = 0;
+        int facturasAprobadas = 0;
+        
+        // Filtrar facturas - recorrer TODAS las facturas sin excepción
+        if (facturas != null && !facturas.isEmpty()) {
+            System.out.println("\n--- ANALIZANDO FACTURAS ---");
+            for (Factura factura : facturas) {
+                try {
+                    facturasAnalizadas++;
+                    // Forzar acceso a propiedades para asegurar carga completa
+                    factura.getMontoTotal();
+                    factura.getFechaEmision();
+                    factura.getCategoria();
+                    
+                    boolean cumple = cumpleCriteriosFiltrado(movimiento, factura, tipoMovimiento);
+                    
+                    System.out.println("Factura #" + factura.getNumeroDocumento() + 
+                                     " | Monto: " + factura.getMontoTotal() + 
+                                     " | Fecha: " + factura.getFechaEmision() + 
+                                     " | Cumple: " + (cumple ? "SÍ" : "NO"));
+                    
+                    if (cumple) {
+                        candidatos.add(factura);
+                        facturasAprobadas++;
+                    }
+                } catch (Exception e) {
+                    // Si hay error en alguna factura, continuar con la siguiente
+                    System.err.println("Error procesando factura ID: " + factura.getIdDocumento() + " - " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("Facturas analizadas: " + facturasAnalizadas + " | Aprobadas: " + facturasAprobadas);
+        }
+        
+        // Filtrar pagarés - recorrer TODOS los pagarés
+        if (pagares != null && !pagares.isEmpty()) {
+            for (Pagare pagare : pagares) {
+                try {
+                    // Forzar acceso a propiedades
+                    pagare.getMontoTotal();
+                    pagare.getFechaEmision();
+                    pagare.getCategoria();
+                    
+                    if (cumpleCriteriosFiltrado(movimiento, pagare, tipoMovimiento)) {
+                        candidatos.add(pagare);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error procesando pagaré ID: " + pagare.getIdDocumento() + " - " + e.getMessage());
+                }
+            }
+        }
+        
+        // Filtrar recibos - recorrer TODOS los recibos
+        if (recibos != null && !recibos.isEmpty()) {
+            for (Recibo recibo : recibos) {
+                try {
+                    // Forzar acceso a propiedades
+                    recibo.getMontoTotal();
+                    recibo.getFechaEmision();
+                    recibo.getCategoria();
+                    
+                    if (cumpleCriteriosFiltrado(movimiento, recibo, tipoMovimiento)) {
+                        candidatos.add(recibo);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error procesando recibo ID: " + recibo.getIdDocumento() + " - " + e.getMessage());
+                }
+            }
+        }
+        
+        return candidatos;
+    }
+    
+    /**
+     * Verifica si un documento cumple los criterios de filtrado:
+     * - Mismo tipo (INGRESO/EGRESO)
+     * - Y al menos uno de: monto similar O fecha cercana O descripción relacionada
+     */
+    private boolean cumpleCriteriosFiltrado(Movimiento movimiento, DocumentoComercial documento, TipoMovimiento tipoMovimiento) {
+        // Criterio 1: Verificar tipo de movimiento
+        boolean tipoCoincide = verificarTipoCoincide(documento, tipoMovimiento);
+        if (!tipoCoincide) {
+            return false; // Si el tipo no coincide, descartar inmediatamente
+        }
+        
+        // Criterio 2: Al menos uno de estos debe cumplirse
+        boolean montoSimilar = verificarMontoSimilar(movimiento, documento);
+        boolean fechaCercana = verificarFechaCercana(movimiento, documento);
+        boolean descripcionRelacionada = verificarDescripcionRelacionada(movimiento, documento);
+        
+        // Retornar true si cumple tipo Y (monto O fecha O descripción)
+        return montoSimilar || fechaCercana || descripcionRelacionada;
+    }
+    
+    /**
+     * Verifica si el tipo de documento coincide con el tipo de movimiento
+     */
+    private boolean verificarTipoCoincide(DocumentoComercial documento, TipoMovimiento tipoMovimiento) {
+        // Para facturas: EGRESO si somos compradores, INGRESO si somos vendedores
+        if (documento instanceof Factura) {
+            Factura factura = (Factura) documento;
+            // Simplificación: considerar todas las facturas (ajustar según lógica de negocio)
+            return true;
+        }
+        
+        // Para pagarés y recibos: considerar todos (ajustar según lógica de negocio)
+        return true;
+    }
+    
+    /**
+     * Verifica si el monto es similar (dentro del 15% de diferencia en valor absoluto)
+     */
+    private boolean verificarMontoSimilar(Movimiento movimiento, DocumentoComercial documento) {
+        if (movimiento.getMontoTotal() == null || documento.getMontoTotal() == null) {
+            return false;
+        }
+        
+        double montoMov = Math.abs(movimiento.getMontoTotal());
+        double montoDoc = Math.abs(documento.getMontoTotal());
+        
+        if (montoDoc == 0) {
+            return false;
+        }
+        
+        double diferenciaPorcentual = Math.abs(montoMov - montoDoc) / montoDoc;
+        
+        // Considerar similar si la diferencia es menor al 15%
+        return diferenciaPorcentual <= 0.15;
+    }
+    
+    /**
+     * Verifica si la fecha es cercana (dentro de 30 días)
+     */
+    private boolean verificarFechaCercana(Movimiento movimiento, DocumentoComercial documento) {
+        if (movimiento.getFechaEmision() == null || documento.getFechaEmision() == null) {
+            return false;
+        }
+        
+        long diferenciaDias = Math.abs(ChronoUnit.DAYS.between(
+                movimiento.getFechaEmision(), documento.getFechaEmision()));
+        
+        // Considerar cercana si está dentro de 30 días
+        return diferenciaDias <= 30;
+    }
+    
+    /**
+     * Verifica si hay relación en la descripción/nombres
+     */
+    private boolean verificarDescripcionRelacionada(Movimiento movimiento, DocumentoComercial documento) {
+        String origenNombre = movimiento.getOrigenNombre() != null ? movimiento.getOrigenNombre().toLowerCase() : "";
+        String destinoNombre = movimiento.getDestinoNombre() != null ? movimiento.getDestinoNombre().toLowerCase() : "";
+        String descripcion = movimiento.getDescripcion() != null ? movimiento.getDescripcion().toLowerCase() : "";
+        
+        List<String> nombresDocumento = obtenerNombresDelDocumento(documento);
+        
+        for (String nombre : nombresDocumento) {
+            if (nombre == null || nombre.trim().isEmpty()) {
+                continue;
+            }
+            
+            String nombreLower = nombre.toLowerCase();
+            
+            // Verificar si hay alguna coincidencia de texto
+            if (origenNombre.contains(nombreLower) || nombreLower.contains(origenNombre) ||
+                destinoNombre.contains(nombreLower) || nombreLower.contains(destinoNombre) ||
+                descripcion.contains(nombreLower) || nombreLower.contains(descripcion)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Crea una sugerencia desde cualquier tipo de documento
+     */
+    private DocumentoSugeridoDTO crearSugerenciaDesdeDocumento(DocumentoComercial documento, int score) {
+        if (documento instanceof Factura) {
+            return crearSugerenciaDesdeFactura((Factura) documento, score);
+        } else if (documento instanceof Pagare) {
+            return crearSugerenciaDesdePagare((Pagare) documento, score);
+        } else if (documento instanceof Recibo) {
+            return crearSugerenciaDesdeRecibo((Recibo) documento, score);
+        }
+        return null;
+    }
+    
     /**
      * Vincula un movimiento con un documento
      */
@@ -140,55 +398,161 @@ public class ConciliacionService {
 
     /**
      * Algoritmo de scoring para calcular coincidencia entre movimiento y documento
+     * Distribución de puntos: Monto (50), Fecha (30), Texto (15), Categoría (5)
      */
     private int calcularScore(Movimiento movimiento, DocumentoComercial documento) {
         int score = 0;
 
-        // 1. Coincidencia de fecha (40 puntos)
+        // 1. Coincidencia de monto (50 puntos) - PRIORIDAD MÁXIMA
+        if (movimiento.getMontoTotal() != null && documento.getMontoTotal() != null) {
+            score += calcularScoreMonto(movimiento.getMontoTotal(), documento.getMontoTotal());
+        }
+
+        // 2. Coincidencia de fecha (30 puntos)
         if (movimiento.getFechaEmision() != null && documento.getFechaEmision() != null) {
-            long diferenciaDias = Math.abs(ChronoUnit.DAYS.between(
-                    movimiento.getFechaEmision(), documento.getFechaEmision()));
-            
-            if (diferenciaDias == 0) {
-                score += 40;
-            } else if (diferenciaDias <= 3) {
-                score += 30;
-            } else if (diferenciaDias <= 7) {
-                score += 15;
-            } else if (diferenciaDias <= 15) {
+            score += calcularScoreFecha(movimiento.getFechaEmision(), documento.getFechaEmision());
+        }
+
+        // 3. Coincidencia de origen/destino con nombres en el documento (15 puntos)
+        int similitudTexto = calcularSimilitudTexto(movimiento, documento);
+        score += similitudTexto;
+
+        // 4. Coincidencia de categoría (5 puntos)
+        if (movimiento.getCategoria() != null && documento.getCategoria() != null) {
+            if (movimiento.getCategoria().equalsIgnoreCase(documento.getCategoria())) {
                 score += 5;
             }
         }
 
-        // 2. Coincidencia de monto (30 puntos)
-        if (movimiento.getMontoTotal() != null && documento.getMontoTotal() != null) {
-            double montoMov = Math.abs(movimiento.getMontoTotal());
-            double montoDoc = Math.abs(documento.getMontoTotal());
-            double diferenciaMonto = Math.abs(montoMov - montoDoc) / montoDoc;
-            
-            if (diferenciaMonto == 0) {
-                score += 30;
-            } else if (diferenciaMonto <= 0.01) { // ±1%
-                score += 28;
-            } else if (diferenciaMonto <= 0.05) { // ±5%
-                score += 20;
-            } else if (diferenciaMonto <= 0.10) { // ±10%
-                score += 10;
-            }
-        }
-
-        // 3. Coincidencia de origen/destino con nombres en el documento (20 puntos)
-        int similitudTexto = calcularSimilitudTexto(movimiento, documento);
-        score += similitudTexto;
-
-        // 4. Coincidencia de categoría (10 puntos)
-        if (movimiento.getCategoria() != null && documento.getCategoria() != null) {
-            if (movimiento.getCategoria().equalsIgnoreCase(documento.getCategoria())) {
-                score += 10;
-            }
-        }
-
         return score;
+    }
+
+    /**
+     * Calcula el score de coincidencia de monto con alta precisión
+     * Usa epsilon para comparación de doubles y múltiples niveles de tolerancia
+     */
+    private int calcularScoreMonto(Double montoMovimiento, Double montoDocumento) {
+        // Trabajar siempre con valores absolutos
+        double montoMov = Math.abs(montoMovimiento);
+        double montoDoc = Math.abs(montoDocumento);
+        
+        // Epsilon para comparación de doubles (considera errores de punto flotante)
+        final double EPSILON = 0.001; // 0.1 centavo de tolerancia
+        
+        // Calcular diferencia absoluta
+        double diferencia = Math.abs(montoMov - montoDoc);
+        
+        // 1. Coincidencia exacta o casi exacta (diferencia menor a 1 centavo)
+        if (diferencia < EPSILON) {
+            return 50; // Máxima puntuación
+        }
+        
+        // 2. Diferencia absoluta muy pequeña (menos de 1 peso/dólar)
+        if (diferencia < 1.0) {
+            return 48; // Casi perfecto
+        }
+        
+        // 3. Para diferencias mayores, usar porcentaje
+        // Evitar división por cero
+        if (montoDoc < EPSILON) {
+            return 0;
+        }
+        
+        double diferenciaPorcentual = diferencia / montoDoc;
+        
+        // Escala de scoring basada en porcentaje de diferencia
+        if (diferenciaPorcentual <= 0.001) { // 0.1%
+            return 47;
+        } else if (diferenciaPorcentual <= 0.005) { // 0.5%
+            return 45;
+        } else if (diferenciaPorcentual <= 0.01) { // 1%
+            return 40;
+        } else if (diferenciaPorcentual <= 0.02) { // 2%
+            return 32;
+        } else if (diferenciaPorcentual <= 0.03) { // 3%
+            return 28;
+        } else if (diferenciaPorcentual <= 0.05) { // 5%
+            return 22;
+        } else if (diferenciaPorcentual <= 0.08) { // 8%
+            return 15;
+        } else if (diferenciaPorcentual <= 0.10) { // 10%
+            return 10;
+        } else if (diferenciaPorcentual <= 0.15) { // 15%
+            return 5;
+        }
+        
+        return 0; // Diferencia demasiado grande
+    }
+
+    /**
+     * Calcula el score de coincidencia de fecha considerando días hábiles y fin de semana
+     */
+    private int calcularScoreFecha(java.time.LocalDateTime fechaMovimiento, java.time.LocalDateTime fechaDocumento) {
+        // Convertir a LocalDate para comparación
+        java.time.LocalDate fechaMov = fechaMovimiento.toLocalDate();
+        java.time.LocalDate fechaDoc = fechaDocumento.toLocalDate();
+        
+        // Calcular diferencia en días calendario
+        long diferenciaDias = Math.abs(ChronoUnit.DAYS.between(fechaMov, fechaDoc));
+        
+        // 1. Mismo día - coincidencia perfecta
+        if (diferenciaDias == 0) {
+            return 30;
+        }
+        
+        // 2. Calcular días hábiles de diferencia (más preciso para transacciones bancarias)
+        int diasHabiles = contarDiasHabiles(fechaMov, fechaDoc);
+        
+        // Priorizar días hábiles sobre días calendario
+        // Si la diferencia es solo por fin de semana, dar más puntos
+        if (diferenciaDias <= 3 && diasHabiles <= 1) {
+            return 28; // Ej: viernes vs lunes
+        }
+        
+        // 3. Escala basada en días calendario
+        if (diferenciaDias == 1) {
+            return 28; // Un día de diferencia
+        } else if (diferenciaDias == 2) {
+            return 26;
+        } else if (diferenciaDias == 3) {
+            return 23;
+        } else if (diferenciaDias <= 5) {
+            return 20;
+        } else if (diferenciaDias <= 7) {
+            return 16;
+        } else if (diferenciaDias <= 10) {
+            return 12;
+        } else if (diferenciaDias <= 15) {
+            return 8;
+        } else if (diferenciaDias <= 20) {
+            return 5;
+        } else if (diferenciaDias <= 30) {
+            return 3;
+        }
+        
+        return 0; // Más de 30 días de diferencia
+    }
+
+    /**
+     * Cuenta los días hábiles entre dos fechas (excluyendo sábados y domingos)
+     */
+    private int contarDiasHabiles(java.time.LocalDate inicio, java.time.LocalDate fin) {
+        java.time.LocalDate fechaInicio = inicio.isBefore(fin) ? inicio : fin;
+        java.time.LocalDate fechaFin = inicio.isBefore(fin) ? fin : inicio;
+        
+        int diasHabiles = 0;
+        java.time.LocalDate fecha = fechaInicio;
+        
+        while (!fecha.isAfter(fechaFin)) {
+            java.time.DayOfWeek diaSemana = fecha.getDayOfWeek();
+            // Contar solo de lunes a viernes
+            if (diaSemana != java.time.DayOfWeek.SATURDAY && diaSemana != java.time.DayOfWeek.SUNDAY) {
+                diasHabiles++;
+            }
+            fecha = fecha.plusDays(1);
+        }
+        
+        return Math.abs(diasHabiles);
     }
 
     /**
@@ -218,7 +582,7 @@ public class ConciliacionService {
             }
         }
 
-        return Math.min(score, 20); // Máximo 20 puntos
+        return Math.min(score, 15); // Máximo 15 puntos
     }
 
     /**
@@ -283,12 +647,15 @@ public class ConciliacionService {
         // Determinar la fuente de origen basado en los datos disponibles
         dto.setFuenteOrigen(determinarFuenteOrigen(registro));
 
-        // Información de conciliación
-        if (registro.getDocumentoComercial() != null) {
+        // Información de conciliación - usar documentoId para evitar lazy loading
+        if (registro.getDocumentoId() != null) {
             dto.setConciliado(true);
-            dto.setIdDocumentoConciliado(registro.getDocumentoComercial().getIdDocumento());
-            dto.setNumeroDocumentoConciliado(registro.getDocumentoComercial().getNumeroDocumento());
-            dto.setTipoDocumentoConciliado(registro.getDocumentoComercial().getTipoDocumento());
+            dto.setIdDocumentoConciliado(registro.getDocumentoId());
+            // Solo cargar detalles del documento si es necesario
+            if (registro.getDocumentoComercial() != null) {
+                dto.setNumeroDocumentoConciliado(registro.getDocumentoComercial().getNumeroDocumento());
+                dto.setTipoDocumentoConciliado(registro.getDocumentoComercial().getTipoDocumento());
+            }
         } else {
             dto.setConciliado(false);
         }

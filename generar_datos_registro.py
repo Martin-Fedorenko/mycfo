@@ -9,10 +9,12 @@ from datetime import datetime, timedelta
 import random
 import os
 
-# Configuración
+# Configuración - CAMBIAR AQUÍ PARA TODOS LOS INSERTS
 ORGANIZACION_ID = 2
 USUARIO_ID = 'a3bcba1a-f001-70eb-15ba-6a851dfe22ce'
 
+# Set global para evitar números repetidos
+FACTURAS_GENERADAS = set()
 
 # Factores estacionales (multiplicadores por mes)
 # Temporada ALTA: Nov-Dic-Ene (verano argentino) 1.3-1.4
@@ -56,7 +58,7 @@ CRECIMIENTO_ANUAL = 1.20
 # Alquiler mensual base (se ajusta cada 6 meses)
 ALQUILER_BASE_2023 = 150000
 
-def generar_fechas_mes(year, month, cantidad=15):
+def generar_fechas_aleatorias(year, month, cantidad=15):
     """Genera N fechas aleatorias dentro de un mes"""
     if month == 2:
         ultimo_dia = 28 if year % 4 != 0 else 29
@@ -126,43 +128,162 @@ def calcular_monto(base, year, month, index, tipo):
     
     return int(monto)
 
-def generar_numero_factura(contador):
-    """Genera un número de factura secuencial con formato 000100000XXX"""
-    return f"00010000{contador:04d}"
+def generar_numero_factura():
+    """
+    Genera un número de factura aleatorio de 10 dígitos, 
+    garantizando que no se repita dentro de la ejecución completa.
+    """
+    while True:
+        numero = random.randint(1000000000, 9999999999)  # 10 dígitos
+        if numero not in FACTURAS_GENERADAS:
+            FACTURAS_GENERADAS.add(numero)
+            return str(numero)
 
-def generar_mes(year, month, base_ingreso, base_egreso, contador_factura_inicial):
-    """Genera los registros de un mes completo con sus facturas"""
-    mes_nombre = [
-        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-    ][month - 1]
+
+MESES = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+]
+
+def generar_item_vinculado(tipo, monto, fecha, categoria, origen_nombre, origen_cuit, 
+                           destino_nombre, destino_cuit, descripcion, medio_pago,
+                           vendedor_nombre, vendedor_cuit, comprador_nombre, comprador_cuit):
+    """Genera SQL para documento_comercial + factura + registro vinculados"""
+    numero_factura = generar_numero_factura()
+
+    monto_doc = abs(monto)
     
-    # Generar 15 ingresos y 12 egresos variables
-    fechas_ingresos = generar_fechas_mes(year, month, 15)
-    fechas_egresos = generar_fechas_mes(year, month, 12)
+    sql = (
+        f"-- Documento + Registro vinculado\n"
+        f"INSERT INTO documento_comercial (\n"
+        f"    tipo_documento, numero_documento,\n"
+        f"    fecha_emision, monto_total, moneda, categoria,\n"
+        f"    version_documento, fecha_creacion, fecha_actualizacion,\n"
+        f"    usuario_id, organizacion_id\n"
+        f") VALUES (\n"
+        f"    'FACTURA', '{numero_factura}',\n"
+        f"    '{fecha[:10]}', {monto_doc}, 'ARS', '{categoria}',\n"
+        f"    'Original', '{fecha[:10]}', '{fecha[:10]}',\n"
+        f"    @USUARIO_ID, @ORGANIZACION_ID\n"
+        f");\n"
+        f"SET @DOCUMENTO_ID = LAST_INSERT_ID();\n"
+        f"INSERT INTO factura (\n"
+        f"    id_documento, tipo_factura,\n"
+        f"    vendedor_nombre, vendedor_cuit, vendedor_condicioniva, vendedor_domicilio,\n"
+        f"    comprador_nombre, comprador_cuit, comprador_condicioniva, comprador_domicilio,\n"
+        f"    estado_pago\n"
+        f") VALUES (\n"
+        f"    @DOCUMENTO_ID, 'A',\n"
+        f"    '{vendedor_nombre}', '{vendedor_cuit}', 'Responsable Inscripto', 'Direccion Vendedor',\n"
+        f"    '{comprador_nombre}', '{comprador_cuit}', 'Responsable Inscripto', 'Direccion Comprador',\n"
+        f"    'PAGADO'\n"
+        f");\n"
+        f"INSERT INTO registro_db.registro (\n"
+        f"    tipo, monto_total, fecha_emision, categoria,\n"
+        f"    origen_nombre, origen_cuit, destino_nombre, destino_cuit,\n"
+        f"    descripcion, fecha_creacion, fecha_actualizacion,\n"
+        f"    usuario_id, organizacion_id, medio_pago, moneda,\n"
+        f"    fecha_vencimiento, monto_pagado, cantidad_cuotas,\n"
+        f"    cuotas_pagadas, monto_cuota, tasa_interes, periodicidad,\n"
+        f"    estado, id_documento\n"
+        f") VALUES (\n"
+        f"    '{tipo}', {monto}, '{fecha}', '{categoria}',\n"
+        f"    '{origen_nombre}', '{origen_cuit}', '{destino_nombre}', '{destino_cuit}',\n"
+        f"    '{descripcion}', '{fecha[:10]}', '{fecha[:10]}',\n"
+        f"    @USUARIO_ID, @ORGANIZACION_ID, '{medio_pago}', 'ARS',\n"
+        f"    NULL, NULL, NULL, NULL, NULL, NULL, NULL,\n"
+        f"    'PAGADO', @DOCUMENTO_ID\n"
+        f");\n"
+    )
+    return sql
+
+def generar_item_sin_vincular(tipo, monto, fecha, categoria, origen_nombre, origen_cuit,
+                               destino_nombre, destino_cuit, descripcion, medio_pago):
+    """Genera SQL solo para registro sin vincular"""
+    sql = (
+        f"-- Registro sin vincular\n"
+        f"INSERT INTO registro_db.registro (\n"
+        f"    tipo, monto_total, fecha_emision, categoria,\n"
+        f"    origen_nombre, origen_cuit, destino_nombre, destino_cuit,\n"
+        f"    descripcion, fecha_creacion, fecha_actualizacion,\n"
+        f"    usuario_id, organizacion_id, medio_pago, moneda,\n"
+        f"    fecha_vencimiento, monto_pagado, cantidad_cuotas,\n"
+        f"    cuotas_pagadas, monto_cuota, tasa_interes, periodicidad,\n"
+        f"    estado, id_documento\n"
+        f") VALUES (\n"
+        f"    '{tipo}', {monto}, '{fecha}', '{categoria}',\n"
+        f"    '{origen_nombre}', '{origen_cuit}', '{destino_nombre}', '{destino_cuit}',\n"
+        f"    '{descripcion}', '{fecha[:10]}', '{fecha[:10]}',\n"
+        f"    @USUARIO_ID, @ORGANIZACION_ID, '{medio_pago}', 'ARS',\n"
+        f"    NULL, NULL, NULL, NULL, NULL, NULL, NULL,\n"
+        f"    'PAGADO', NULL\n"
+        f");\n"
+    )
+    return sql
+
+def generar_factura_sin_vincular(monto, fecha, categoria, vendedor_nombre, vendedor_cuit,
+                                  comprador_nombre, comprador_cuit):
+    """Genera SQL para factura sin vincular a registro"""
+    numero_factura = generar_numero_factura()
+
+    monto_doc = abs(monto)
     
-    registros = []
-    facturas = []
-    contador_factura = contador_factura_inicial
+    sql = (
+        f"-- Factura sin vincular\n"
+        f"INSERT INTO documento_comercial (\n"
+        f"    tipo_documento, numero_documento,\n"
+        f"    fecha_emision, monto_total, moneda, categoria,\n"
+        f"    version_documento, fecha_creacion, fecha_actualizacion,\n"
+        f"    usuario_id, organizacion_id\n"
+        f") VALUES (\n"
+        f"    'FACTURA', '{numero_factura}',\n"
+        f"    '{fecha[:10]}', {monto_doc}, 'ARS', '{categoria}',\n"
+        f"    'Original', '{fecha[:10]}', '{fecha[:10]}',\n"
+        f"    @USUARIO_ID, @ORGANIZACION_ID\n"
+        f");\n"
+        f"SET @DOCUMENTO_ID = LAST_INSERT_ID();\n"
+        f"INSERT INTO factura (\n"
+        f"    id_documento, tipo_factura,\n"
+        f"    vendedor_nombre, vendedor_cuit, vendedor_condicioniva, vendedor_domicilio,\n"
+        f"    comprador_nombre, comprador_cuit, comprador_condicioniva, comprador_domicilio,\n"
+        f"    estado_pago\n"
+        f") VALUES (\n"
+        f"    @DOCUMENTO_ID, 'A',\n"
+        f"    '{vendedor_nombre}', '{vendedor_cuit}', 'Responsable Inscripto', 'Direccion Vendedor',\n"
+        f"    '{comprador_nombre}', '{comprador_cuit}', 'Responsable Inscripto', 'Direccion Comprador',\n"
+        f"    'PAGADO'\n"
+        f");\n"
+    )
+    return sql
+
+def generar_mes_intercalado(year, month, base_ingreso, base_egreso, es_noviembre_2025=False):
+    """Genera SQL intercalado: documento + factura + registro juntos"""
+    items_sql = []
+    facturas_sin_vincular_sql = []
     
-    # Comentario de mes
+    mes_nombre = MESES[month - 1]
+    num_ingresos = 15
+    num_egresos = 12
+    ingresos_sin_vincular = [13, 14] if es_noviembre_2025 else []
+    egresos_sin_vincular = [11] if es_noviembre_2025 else []
+    
+    fechas_ingresos = generar_fechas_aleatorias(year, month, num_ingresos)
+    fechas_egresos = generar_fechas_aleatorias(year, month, num_egresos)
+    
     estacion = ""
     if month in [11, 12, 1]:
         estacion = " (TEMPORADA ALTA - Verano)"
     elif month in [6, 7]:
         estacion = " (TEMPORADA BAJA - Invierno)"
     
-    registros.append(f"\n-- {mes_nombre.upper()} {year}{estacion}")
+    items_sql.append(f"\n-- {mes_nombre.upper()} {year}{estacion}\n")
     
-    # Generar ingresos con categorías variadas y sus facturas
-    total_ingresos_mes = 0
-    for i in range(15):
+    # Generar ingresos
+    for i in range(num_ingresos):
         monto = calcular_monto(base_ingreso, year, month, i, 'Ingreso')
-        total_ingresos_mes += monto
         fecha = fechas_ingresos[i]
         categoria = seleccionar_categoria(CATEGORIAS_INGRESO)
         
-        # Determinar origen según categoría
         if categoria == 'Prestación de Servicios':
             origen_nombre = 'Cliente Corporativo SA'
             origen_cuit = '30-42998817-4'
@@ -173,35 +294,36 @@ def generar_mes(year, month, base_ingreso, base_egreso, contador_factura_inicial
             origen_nombre = 'Otros'
             origen_cuit = '30-42998817-4'
         
-        # Generar factura para este ingreso
-        numero_factura = generar_numero_factura(contador_factura)
-        factura_doc = (
-            f"\nSET @DOCUMENTO_ID = @DOCUMENTO_ID + 1;\n"
-            f"INSERT INTO documento_comercial (id_documento, tipo_documento, numero_documento, fecha_emision, monto_total, moneda, categoria, version_documento, fecha_creacion, fecha_actualizacion, usuario_id, organizacion_id)\n"
-            f"VALUES (@DOCUMENTO_ID, 'FACTURA', '{numero_factura}', '{fecha[:10]}', {monto}, 'ARS', '{categoria}', 'Original', '{fecha[:10]}', '{fecha[:10]}', @USUARIO_ID, @ORGANIZACION_ID);\n"
-            f"INSERT INTO factura (id_documento, tipo_factura, vendedor_nombre, vendedor_cuit, vendedor_condicioniva, vendedor_domicilio, comprador_nombre, comprador_cuit, comprador_condicioniva, comprador_domicilio, estado_pago)\n"
-            f"VALUES (@DOCUMENTO_ID, 'A', 'MyCFO SRL', '30-99999999-7', 'Responsable Inscripto', 'Av. Libertador 1234, CABA', '{origen_nombre}', '{origen_cuit}', 'Responsable Inscripto', 'Calle Comercial 123, CABA', 'PAGADO');"
-        )
-        facturas.append(factura_doc)
+        descripcion = f"{categoria} {mes_nombre} {year} #{i+1}"
+        sin_vincular = i in ingresos_sin_vincular
         
-        # Generar registro vinculado a la factura
-        registro = (
-            f"('Ingreso', {monto},'{fecha}','{categoria}',"
-            f"'{origen_nombre}','{origen_cuit}','MyCFO SRL','30-99999999-7',"
-            f"'{categoria} {mes_nombre} {year} #{i+1}','{fecha[:10]}','{fecha[:10]}',"
-            f"@USUARIO_ID,@ORGANIZACION_ID,'Transferencia','ARS',"
-            f"NULL,NULL,NULL,NULL,NULL,NULL,NULL,'PAGADO',@DOCUMENTO_ID)"
-        )
-        registros.append(registro)
-        contador_factura += 1
+        if not sin_vincular:
+            sql = generar_item_vinculado(
+                'Ingreso', monto, fecha, categoria,
+                origen_nombre, origen_cuit, 'MyCFO SRL', '30-99999999-7',
+                descripcion, 'Transferencia',
+                'MyCFO SRL', '30-99999999-7', origen_nombre, origen_cuit
+            )
+            items_sql.append(sql)
+        else:
+            sql = generar_item_sin_vincular(
+                'Ingreso', monto, fecha, categoria,
+                origen_nombre, origen_cuit, 'MyCFO SRL', '30-99999999-7',
+                descripcion, 'Transferencia'
+            )
+            items_sql.append(sql)
+            factura_sql = generar_factura_sin_vincular(
+                monto, fecha, categoria,
+                'MyCFO SRL', '30-99999999-7', origen_nombre, origen_cuit
+            )
+            facturas_sin_vincular_sql.append(factura_sql)
     
-    # Generar egresos variables con categorías y sus facturas
-    for i in range(12):
+    # Generar egresos
+    for i in range(num_egresos):
         monto = calcular_monto(base_egreso, year, month, i, 'Egreso')
         fecha = fechas_egresos[i]
         categoria = seleccionar_categoria(CATEGORIAS_EGRESO)
         
-        # Determinar destino según categoría
         if categoria == 'Compras de Negocio':
             destino_nombre = 'Proveedor Mayorista SRL'
             destino_cuit = '30-19837465-3'
@@ -209,166 +331,102 @@ def generar_mes(year, month, base_ingreso, base_egreso, contador_factura_inicial
             destino_nombre = 'Gastos Varios'
             destino_cuit = '30-19837465-3'
         
-        # Generar factura para este egreso
-        numero_factura = generar_numero_factura(contador_factura)
-        factura_doc = (
-            f"\nSET @DOCUMENTO_ID = @DOCUMENTO_ID + 1;\n"
-            f"INSERT INTO documento_comercial (id_documento, tipo_documento, numero_documento, fecha_emision, monto_total, moneda, categoria, version_documento, fecha_creacion, fecha_actualizacion, usuario_id, organizacion_id)\n"
-            f"VALUES (@DOCUMENTO_ID, 'FACTURA', '{numero_factura}', '{fecha[:10]}', {abs(monto)}, 'ARS', '{categoria}', 'Original', '{fecha[:10]}', '{fecha[:10]}', @USUARIO_ID, @ORGANIZACION_ID);\n"
-            f"INSERT INTO factura (id_documento, tipo_factura, vendedor_nombre, vendedor_cuit, vendedor_condicioniva, vendedor_domicilio, comprador_nombre, comprador_cuit, comprador_condicioniva, comprador_domicilio, estado_pago)\n"
-            f"VALUES (@DOCUMENTO_ID, 'A', '{destino_nombre}', '{destino_cuit}', 'Responsable Inscripto', 'Calle Proveedor 456, CABA', 'MyCFO SRL', '30-99999999-7', 'Responsable Inscripto', 'Av. Libertador 1234, CABA', 'PAGADO');"
-        )
-        facturas.append(factura_doc)
+        descripcion = f"{categoria} {mes_nombre} {year} #{i+1}"
+        sin_vincular = i in egresos_sin_vincular
         
-        # Generar registro vinculado a la factura
-        registro = (
-            f"('Egreso', {monto},'{fecha}','{categoria}',"
-            f"'MyCFO SRL','30-99999999-7','{destino_nombre}','{destino_cuit}',"
-            f"'{categoria} {mes_nombre} {year} #{i+1}','{fecha[:10]}','{fecha[:10]}',"
-            f"@USUARIO_ID,@ORGANIZACION_ID,'Efectivo','ARS',"
-            f"NULL,NULL,NULL,NULL,NULL,NULL,NULL,'PAGADO',@DOCUMENTO_ID)"
-        )
-        registros.append(registro)
-        contador_factura += 1
+        if not sin_vincular:
+            sql = generar_item_vinculado(
+                'Egreso', monto, fecha, categoria,
+                'MyCFO SRL', '30-99999999-7', destino_nombre, destino_cuit,
+                descripcion, 'Efectivo',
+                destino_nombre, destino_cuit, 'MyCFO SRL', '30-99999999-7'
+            )
+            items_sql.append(sql)
+        else:
+            sql = generar_item_sin_vincular(
+                'Egreso', monto, fecha, categoria,
+                'MyCFO SRL', '30-99999999-7', destino_nombre, destino_cuit,
+                descripcion, 'Efectivo'
+            )
+            items_sql.append(sql)
+            factura_sql = generar_factura_sin_vincular(
+                monto, fecha, categoria,
+                destino_nombre, destino_cuit, 'MyCFO SRL', '30-99999999-7'
+            )
+            facturas_sin_vincular_sql.append(factura_sql)
     
-    # Agregar ALQUILER FIJO mensual (Vivienda) con factura
+    # Alquiler mensual
     alquiler = calcular_alquiler(year, month)
     fecha_alquiler = f"{year}-{month:02d}-05 10:00:00"
-    
-    numero_factura = generar_numero_factura(contador_factura)
-    factura_alquiler = (
-        f"\nSET @DOCUMENTO_ID = @DOCUMENTO_ID + 1;\n"
-        f"INSERT INTO documento_comercial (id_documento, tipo_documento, numero_documento, fecha_emision, monto_total, moneda, categoria, version_documento, fecha_creacion, fecha_actualizacion, usuario_id, organizacion_id)\n"
-        f"VALUES (@DOCUMENTO_ID, 'FACTURA', '{numero_factura}', '{fecha_alquiler[:10]}', {abs(alquiler)}, 'ARS', 'Vivienda', 'Original', '{fecha_alquiler[:10]}', '{fecha_alquiler[:10]}', @USUARIO_ID, @ORGANIZACION_ID);\n"
-        f"INSERT INTO factura (id_documento, tipo_factura, vendedor_nombre, vendedor_cuit, vendedor_condicioniva, vendedor_domicilio, comprador_nombre, comprador_cuit, comprador_condicioniva, comprador_domicilio, estado_pago)\n"
-        f"VALUES (@DOCUMENTO_ID, 'A', 'Inmobiliaria Central', '30-12345678-9', 'Responsable Inscripto', 'Av. Inmobiliaria 789, CABA', 'MyCFO SRL', '30-99999999-7', 'Responsable Inscripto', 'Av. Libertador 1234, CABA', 'PAGADO');"
+    sql = generar_item_vinculado(
+        'Egreso', alquiler, fecha_alquiler, 'Vivienda',
+        'MyCFO SRL', '30-99999999-7', 'Inmobiliaria Central', '30-12345678-9',
+        f'Alquiler local comercial {mes_nombre} {year}', 'Transferencia',
+        'Inmobiliaria Central', '30-12345678-9', 'MyCFO SRL', '30-99999999-7'
     )
-    facturas.append(factura_alquiler)
+    items_sql.append(sql)
     
-    registro_alquiler = (
-        f"('Egreso', {alquiler},'{fecha_alquiler}','Vivienda',"
-        f"'MyCFO SRL','30-99999999-7','Inmobiliaria Central','30-12345678-9',"
-        f"'Alquiler local comercial {mes_nombre} {year}','{fecha_alquiler[:10]}','{fecha_alquiler[:10]}',"
-        f"@USUARIO_ID,@ORGANIZACION_ID,'Transferencia','ARS',"
-        f"NULL,NULL,NULL,NULL,NULL,NULL,NULL,'PAGADO',@DOCUMENTO_ID)"
-    )
-    registros.append(registro_alquiler)
-    contador_factura += 1
-    
-    # Agregar IMPUESTOS (21% IVA sobre ingresos) - CON COMPROBANTE (no factura)
-    impuesto = -round((total_ingresos_mes * 0.21) / 1000) * 1000
-    fecha_impuesto = f"{year}-{month:02d}-20 14:30:00"
-    
-    # Generar comprobante para el impuesto
-    numero_comprobante = f"IVA-{year}{month:02d}"
-    comprobante_impuesto = (
-        f"\nSET @DOCUMENTO_ID = @DOCUMENTO_ID + 1;\n"
-        f"INSERT INTO documento_comercial (id_documento, tipo_documento, numero_documento, fecha_emision, monto_total, moneda, categoria, version_documento, fecha_creacion, fecha_actualizacion, usuario_id, organizacion_id)\n"
-        f"VALUES (@DOCUMENTO_ID, 'COMPROBANTE', '{numero_comprobante}', '{fecha_impuesto[:10]}', {abs(impuesto)}, 'ARS', 'Impuestos y Tasas', 'Original', '{fecha_impuesto[:10]}', '{fecha_impuesto[:10]}', @USUARIO_ID, @ORGANIZACION_ID);"
-    )
-    facturas.append(comprobante_impuesto)
-    
-    registro_impuesto = (
-        f"('Egreso', {impuesto},'{fecha_impuesto}','Impuestos y Tasas',"
-        f"'MyCFO SRL','30-99999999-7','AFIP','30-99999999-0',"
-        f"'IVA {mes_nombre} {year}','{fecha_impuesto[:10]}','{fecha_impuesto[:10]}',"
-        f"@USUARIO_ID,@ORGANIZACION_ID,'Transferencia','ARS',"
-        f"NULL,NULL,NULL,NULL,NULL,NULL,NULL,'PAGADO',@DOCUMENTO_ID)"
-    )
-    registros.append(registro_impuesto)
-    
-    return registros, facturas, contador_factura
+    return items_sql, facturas_sin_vincular_sql
 
 def generar_sql_completo():
-    """Genera el archivo SQL completo con facturas"""
+    """Genera el archivo SQL completo con inserts intercalados"""
     output = []
     
-    # Header con inicialización de variables
-    header = """
-SET @ORGANIZACION_ID := 2;
-SET @USUARIO_ID   := 'a3bcba1a-f001-70eb-15ba-6a851dfe22ce';
-SET @DOCUMENTO_ID = 0;
+    header = f"""
+-- ========================================
+-- CONFIGURACIÓN
+-- ========================================
+SET @ORGANIZACION_ID = {ORGANIZACION_ID};
+SET @USUARIO_ID = '{USUARIO_ID}';
 
-
+-- ========================================
+-- DATOS INTERCALADOS (documento + factura + registro)
+-- Los IDs se generan automáticamente por la base de datos
+-- Cada registro se vincula inmediatamente con su documento usando LAST_INSERT_ID()
+-- ========================================
 """
     output.append(header)
     
-    # Primero generamos todas las facturas
-    todas_facturas = []
-    contador_factura = 1
+    todas_facturas_sin_vincular = []
     
-    # 2023 completo (12 meses)
+    # 2023
     for month in range(1, 13):
-        _, facturas, contador_factura = generar_mes(2023, month, BASE_INGRESO_2023, BASE_EGRESO_2023, contador_factura)
-        todas_facturas.extend(facturas)
+        items, facturas_sv = generar_mes_intercalado(2023, month, BASE_INGRESO_2023, BASE_EGRESO_2023, False)
+        output.extend(items)
     
-    # 2024 completo (12 meses)
+    # 2024
     base_ingreso_2024 = BASE_INGRESO_2023 * CRECIMIENTO_ANUAL
     base_egreso_2024 = BASE_EGRESO_2023 * CRECIMIENTO_ANUAL
     for month in range(1, 13):
-        _, facturas, contador_factura = generar_mes(2024, month, base_ingreso_2024, base_egreso_2024, contador_factura)
-        todas_facturas.extend(facturas)
+        items, facturas_sv = generar_mes_intercalado(2024, month, base_ingreso_2024, base_egreso_2024, False)
+        output.extend(items)
     
-    # 2025 hasta noviembre (11 meses)
+    # 2025 hasta noviembre
     base_ingreso_2025 = base_ingreso_2024 * CRECIMIENTO_ANUAL
     base_egreso_2025 = base_egreso_2024 * CRECIMIENTO_ANUAL
-    for month in range(1, 12):  # Hasta noviembre
-        _, facturas, contador_factura = generar_mes(2025, month, base_ingreso_2025, base_egreso_2025, contador_factura)
-        todas_facturas.extend(facturas)
+    for month in range(1, 12):
+        es_nov_2025 = (month == 11)
+        items, facturas_sv = generar_mes_intercalado(2025, month, base_ingreso_2025, base_egreso_2025, es_nov_2025)
+        output.extend(items)
+        if es_nov_2025:
+            todas_facturas_sin_vincular.extend(facturas_sv)
     
-    # Agregar todas las facturas al output
+    # Facturas sin vincular
+    if todas_facturas_sin_vincular:
+        output.append("\n-- ========================================")
+        output.append("-- FACTURAS SIN VINCULAR (Noviembre 2025)")
+        output.append("-- Para conciliar manualmente")
+        output.append("-- ========================================\n")
+        output.extend(todas_facturas_sin_vincular)
+    
+    # Información final
     output.append("\n-- ========================================")
-    output.append("-- FACTURAS")
+    output.append("-- INFORMACIÓN")
     output.append("-- ========================================")
-    for factura in todas_facturas:
-        output.append(factura)
-    
-    # Ahora generamos los registros
-    output.append("\n\n-- ========================================")
-    output.append("-- REGISTROS")
-    output.append("-- ========================================")
-    output.append("\nINSERT INTO registro_db.registro (")
-    output.append("    tipo, monto_total, fecha_emision, categoria,")
-    output.append("    origen_nombre, origen_cuit, destino_nombre, destino_cuit,")
-    output.append("    descripcion, fecha_creacion, fecha_actualizacion,")
-    output.append("    usuario_id, organizacion_id, medio_pago, moneda,")
-    output.append("    fecha_vencimiento, monto_pagado, cantidad_cuotas,")
-    output.append("    cuotas_pagadas, monto_cuota, tasa_interes, periodicidad,")
-    output.append("    estado, id_documento")
-    output.append(") VALUES")
-    
-    todos_registros = []
-    contador_factura = 1
-    
-    # 2023 completo (12 meses)
-    for month in range(1, 13):
-        registros, _, contador_factura = generar_mes(2023, month, BASE_INGRESO_2023, BASE_EGRESO_2023, contador_factura)
-        todos_registros.extend(registros)
-    
-    # 2024 completo (12 meses)
-    for month in range(1, 13):
-        registros, _, contador_factura = generar_mes(2024, month, base_ingreso_2024, base_egreso_2024, contador_factura)
-        todos_registros.extend(registros)
-    
-    # 2025 hasta noviembre (11 meses)
-    for month in range(1, 12):  # Hasta noviembre
-        registros, _, contador_factura = generar_mes(2025, month, base_ingreso_2025, base_egreso_2025, contador_factura)
-        todos_registros.extend(registros)
-    
-    # Unir todos los registros con comas
-    for i, registro in enumerate(todos_registros):
-        if registro.startswith('\n--'):
-            # Es un comentario
-            output.append(registro)
-        else:
-            # Es un registro
-            if i < len(todos_registros) - 1 and not todos_registros[i + 1].startswith('\n--'):
-                output.append(registro + ',')
-            else:
-                output.append(registro + (','))
-    
-    # Remover la última coma y agregar punto y coma
-    output[-1] = output[-1].rstrip(',') + ';'
+    output.append("-- Los IDs de documento_comercial se generaron automáticamente")
+    output.append("-- La secuencia de Hibernate se sincronizará automáticamente")
+    output.append("SELECT COUNT(*) AS total_documentos_insertados FROM documento_comercial;")
+    output.append("SELECT COUNT(*) AS total_registros_insertados FROM registro_db.registro;")
     
     return '\n'.join(output)
 
@@ -384,21 +442,22 @@ if __name__ == '__main__':
     
     print("✅ Archivo 'init registro - completo.sql' generado exitosamente!")
     print(f"📁 Ubicación: {output_file}")
-    print(f"📊 Total de registros: {35 * 29} (35 meses × 29 registros/mes)")
-    print("   - 15 ingresos variables por mes")
+    print(f"📊 Total de registros: {35 * 28} (35 meses × 28 registros/mes)")
+    print("   - 15 ingresos por mes")
     print("   - 12 egresos variables por mes")
-    print("   - 1 alquiler fijo mensual (Vivienda)")
-    print("   - 1 impuesto mensual (21% IVA)")
-    print(f"📄 Total de documentos: {35 * 29} (35 meses × 29 documentos/mes)")
-    print("   - 28 facturas por mes (ingresos, egresos y alquiler)")
-    print("   - 1 comprobante por mes (impuestos)")
-    print("   - Todos vinculados mediante id_documento")
+    print("   - 1 alquiler fijo mensual")
+    print(f"📄 Total de documentos comerciales: {35 * 28} (35 meses × 28 facturas/mes)")
+    print("")
+    print("🔗 FORMATO INTERCALADO:")
+    print("   - Cada documento_comercial + factura + registro se insertan JUNTOS")
+    print("   - Los IDs se generan AUTOMÁTICAMENTE por la base de datos")
+    print("   - @DOCUMENTO_ID = LAST_INSERT_ID() después de cada INSERT en documento_comercial")
+    print("   - El registro usa @DOCUMENTO_ID para vincularse correctamente")
+    print("   - NO usa secuencia manual, la base de datos maneja los IDs automáticamente")
+    print("")
+    print("🔗 Noviembre 2025 - Datos para conciliación manual:")
+    print("   - 2 ingresos SIN vincular (id_documento = NULL)")
+    print("   - 1 egreso SIN vincular (id_documento = NULL)")
+    print("   - 3 facturas SIN vincular (para machear manualmente)")
+    print("")
     print("📅 Período: Enero 2023 - Noviembre 2025")
-    print("📈 Incluye:")
-    print("   - Temporada ALTA: Nov-Dic-Ene (verano)")
-    print("   - Crecimiento anual: 20%")
-    print("   - Categorías realistas de negocio")
-    print("   - Alquiler con ajuste semestral")
-    print("   - IVA calculado sobre ingresos")
-    print("   - Facturas: documento_comercial + factura")
-    print("   - Comprobantes: documento_comercial (impuestos)")

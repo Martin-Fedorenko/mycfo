@@ -1,6 +1,10 @@
 package registro.conciliacion.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import registro.conciliacion.dtos.ConciliacionRequestDTO;
@@ -21,20 +25,36 @@ public class ConciliacionController {
     private final ConciliacionService conciliacionService;
 
     /**
-     * Obtiene todos los movimientos sin conciliar
+     * Obtiene movimientos sin conciliar con paginación
      */
     @GetMapping("/movimientos/sin-conciliar")
-    public ResponseEntity<List<MovimientoDTO>> obtenerMovimientosSinConciliar() {
-        List<MovimientoDTO> movimientos = conciliacionService.obtenerMovimientosSinConciliar();
+    public ResponseEntity<Page<MovimientoDTO>> obtenerMovimientosSinConciliar(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fechaEmision") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<MovimientoDTO> movimientos = conciliacionService.obtenerMovimientosSinConciliar(pageable);
         return ResponseEntity.ok(movimientos);
     }
 
     /**
-     * Obtiene todos los movimientos (conciliados y sin conciliar)
+     * Obtiene todos los movimientos (conciliados y sin conciliar) con paginación
      */
     @GetMapping("/movimientos")
-    public ResponseEntity<List<MovimientoDTO>> obtenerTodosLosMovimientos() {
-        List<MovimientoDTO> movimientos = conciliacionService.obtenerTodosLosMovimientos();
+    public ResponseEntity<Page<MovimientoDTO>> obtenerTodosLosMovimientos(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fechaEmision") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<MovimientoDTO> movimientos = conciliacionService.obtenerTodosLosMovimientos(pageable);
         return ResponseEntity.ok(movimientos);
     }
 

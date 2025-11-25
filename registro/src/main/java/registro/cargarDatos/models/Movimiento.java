@@ -1,6 +1,9 @@
 package registro.cargarDatos.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -51,9 +54,32 @@ public class Movimiento {
     @Enumerated(EnumType.STRING)
     private TipoMoneda moneda;           //obligatorio
 
-    @ManyToOne
-    @JoinColumn(name = "id_documento")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_documento", insertable = false, updatable = false)
+    @JsonIgnore
+    @Setter(AccessLevel.NONE) // Prevenir que Lombok genere setter, usar el método manual
     private DocumentoComercial documentoComercial;
+
+    // Campo para almacenar el ID del documento sin cargar la relación (para performance)
+    @Column(name = "id_documento")
+    private Long documentoId;
+
+    /**
+     * Indica si el movimiento está conciliado (tiene documento vinculado)
+     */
+    @JsonProperty("conciliado")
+    public boolean isConciliado() {
+        return documentoId != null;
+    }
+
+    /**
+     * Vincula con un documento comercial
+     */
+    @JsonIgnore
+    public void setDocumentoComercial(DocumentoComercial documento) {
+        this.documentoComercial = documento;
+        this.documentoId = documento != null ? documento.getIdDocumento() : null;
+    }
 
     // ========================================
     // CAMPOS ESPECÍFICOS DE CADA TIPO

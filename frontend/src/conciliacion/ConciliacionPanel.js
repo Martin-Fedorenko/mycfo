@@ -40,35 +40,54 @@ export default function ConciliacionPanel() {
   const [estadisticas, setEstadisticas] = useState(null);
   const [error, setError] = useState(null);
 
+  // Paginación real del backend
+  const [paginaActual, setPaginaActual] = useState(0); // Backend usa 0-based
+  const [totalPaginas, setTotalPaginas] = useState(0);
+  const [totalElementos, setTotalElementos] = useState(0);
+  const [tamanioPagina] = useState(20);
+
   // Filtros
   const [filtroEstado, setFiltroEstado] = useState("sin-conciliar"); // 'todos', 'sin-conciliar', 'conciliados'
   const [filtroTipo, setFiltroTipo] = useState("todos"); // 'todos', 'Ingreso', 'Egreso'
   const [filtroBusqueda, setFiltroBusqueda] = useState("");
-  const [paginaMovimientos, setPaginaMovimientos] = useState(1);
   const [paginaSugerencias, setPaginaSugerencias] = useState(1);
 
   useEffect(() => {
-    setPaginaMovimientos(1);
+    setPaginaActual(0);
   }, [filtroEstado, filtroTipo, filtroBusqueda]);
 
   const cargarMovimientos = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      let data;
+      let response;
       if (filtroEstado === "sin-conciliar") {
-        data = await conciliacionApi.obtenerMovimientosSinConciliar();
+        response = await conciliacionApi.obtenerMovimientosSinConciliar(
+          paginaActual, 
+          tamanioPagina, 
+          'fechaEmision', 
+          'desc'
+        );
       } else {
-        data = await conciliacionApi.obtenerTodosLosMovimientos();
+        response = await conciliacionApi.obtenerTodosLosMovimientos(
+          paginaActual, 
+          tamanioPagina, 
+          'fechaEmision', 
+          'desc'
+        );
       }
-      setMovimientos(data);
+      
+      // El backend devuelve un objeto Page con content, totalPages, totalElements, etc.
+      setMovimientos(response.content || []);
+      setTotalPaginas(response.totalPages || 0);
+      setTotalElementos(response.totalElements || 0);
     } catch (err) {
       console.error("Error cargando movimientos:", err);
       setError("Error al cargar los movimientos");
     } finally {
       setLoading(false);
     }
-  }, [filtroEstado]);
+  }, [filtroEstado, paginaActual, tamanioPagina]);
 
   const cargarEstadisticas = useCallback(async () => {
     try {
@@ -172,50 +191,11 @@ export default function ConciliacionPanel() {
     }
   };
 
-  // Filtrar movimientos
-  const movimientosFiltrados = movimientos.filter((mov) => {
-    // Filtro de estado
-    if (filtroEstado === "sin-conciliar" && mov.conciliado) return false;
-    if (filtroEstado === "conciliados" && !mov.conciliado) return false;
-
-    // Filtro de tipo
-    if (filtroTipo !== "todos" && mov.tipo !== filtroTipo) return false;
-
-    // Filtro de búsqueda
-    if (filtroBusqueda) {
-      const busqueda = filtroBusqueda.toLowerCase();
-      const descripcion = (mov.descripcion || "").toLowerCase();
-      const origen = (mov.origen || "").toLowerCase();
-      const destino = (mov.destino || "").toLowerCase();
-      const categoria = (mov.categoria || "").toLowerCase();
-
-      if (
-        !descripcion.includes(busqueda) &&
-        !origen.includes(busqueda) &&
-        !destino.includes(busqueda) &&
-        !categoria.includes(busqueda)
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  const totalPaginasMovimientos = Math.max(
-    1,
-    Math.ceil(movimientosFiltrados.length / MOVIMIENTOS_POR_PAGINA)
-  );
+  // Paginación de sugerencias (solo local, ya que son pocas)
   const totalPaginasSugerencias = Math.max(
     1,
     Math.ceil(sugerencias.length / DOCUMENTOS_POR_PAGINA)
   );
-
-  useEffect(() => {
-    if (paginaMovimientos > totalPaginasMovimientos) {
-      setPaginaMovimientos(totalPaginasMovimientos || 1);
-    }
-  }, [paginaMovimientos, totalPaginasMovimientos]);
 
   useEffect(() => {
     if (paginaSugerencias > totalPaginasSugerencias) {
@@ -223,24 +203,20 @@ export default function ConciliacionPanel() {
     }
   }, [paginaSugerencias, totalPaginasSugerencias]);
 
-  const paginaMovimientosActiva = Math.min(
-    paginaMovimientos,
-    totalPaginasMovimientos
-  );
   const paginaSugerenciasActiva = Math.min(
     paginaSugerencias,
     totalPaginasSugerencias
-  );
-
-  const movimientosPaginados = movimientosFiltrados.slice(
-    (paginaMovimientosActiva - 1) * MOVIMIENTOS_POR_PAGINA,
-    paginaMovimientosActiva * MOVIMIENTOS_POR_PAGINA
   );
 
   const sugerenciasPaginadas = sugerencias.slice(
     (paginaSugerenciasActiva - 1) * DOCUMENTOS_POR_PAGINA,
     paginaSugerenciasActiva * DOCUMENTOS_POR_PAGINA
   );
+
+  // Handler para cambio de página
+  const handleCambioPagina = (event, nuevaPagina) => {
+    setPaginaActual(nuevaPagina - 1); // Convertir a 0-based para el backend
+  };
 
   return (
     <Box
@@ -413,9 +389,9 @@ export default function ConciliacionPanel() {
         {/* Contador de resultados */}
         <Box sx={{ mt: 1 }}>
           <Typography variant="caption" color="text.primary">
-            Mostrando {movimientosPaginados.length} de{" "}
-            {movimientosFiltrados.length} movimientos filtrados (pagina{" "}
-            {paginaMovimientosActiva}/{totalPaginasMovimientos})
+            Mostrando {movimientos.length} de{" "}
+            {totalElementos} movimientos (página{" "}
+            {paginaActual + 1}/{totalPaginas})
           </Typography>
         </Box>
       </Paper>
@@ -457,7 +433,7 @@ export default function ConciliacionPanel() {
                 >
                   <CircularProgress />
                 </Box>
-              ) : movimientosFiltrados.length === 0 ? (
+              ) : movimientos.length === 0 ? (
                 <Box sx={{ textAlign: "center", py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
                     No hay movimientos que coincidan con los filtros
@@ -466,7 +442,7 @@ export default function ConciliacionPanel() {
               ) : (
                 <>
                   <Box sx={{ flex: 1, overflow: "auto", pr: 1 }}>
-                    {movimientosPaginados.map((mov) => (
+                    {movimientos.map((mov) => (
                       <MovimientoCard
                         key={mov.id}
                         movimiento={mov}
@@ -476,7 +452,7 @@ export default function ConciliacionPanel() {
                       />
                     ))}
                   </Box>
-                  {totalPaginasMovimientos > 1 && (
+                  {totalPaginas > 1 && (
                     <Box
                       sx={{
                         display: "flex",
@@ -485,9 +461,9 @@ export default function ConciliacionPanel() {
                       }}
                     >
                       <Pagination
-                        count={totalPaginasMovimientos}
-                        page={paginaMovimientosActiva}
-                        onChange={(_, value) => setPaginaMovimientos(value)}
+                        count={totalPaginas}
+                        page={paginaActual + 1}
+                        onChange={handleCambioPagina}
                         color="primary"
                         size="small"
                       />

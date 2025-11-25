@@ -8,20 +8,25 @@ const API_BASE_URL = `${API_CONFIG.REGISTRO}/api/conciliacion`;
  */
 export const conciliacionApi = {
   /**
-   * Obtiene todos los movimientos sin conciliar
+   * Obtiene movimientos sin conciliar con paginación
    */
-  obtenerMovimientosSinConciliar: async () => {
+  obtenerMovimientosSinConciliar: async (page = 0, size = 20, sortBy = 'fechaEmision', sortDir = 'desc') => {
     const response = await axios.get(
-      `${API_BASE_URL}/movimientos/sin-conciliar`
+      `${API_BASE_URL}/movimientos/sin-conciliar`,
+      {
+        params: { page, size, sortBy, sortDir }
+      }
     );
     return response.data;
   },
 
   /**
-   * Obtiene todos los movimientos (conciliados y sin conciliar)
+   * Obtiene todos los movimientos (conciliados y sin conciliar) con paginación
    */
-  obtenerTodosLosMovimientos: async () => {
-    const response = await axios.get(`${API_BASE_URL}/movimientos`);
+  obtenerTodosLosMovimientos: async (page = 0, size = 20, sortBy = 'fechaEmision', sortDir = 'desc') => {
+    const response = await axios.get(`${API_BASE_URL}/movimientos`, {
+      params: { page, size, sortBy, sortDir }
+    });
     return response.data;
   },
 

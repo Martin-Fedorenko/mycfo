@@ -14,7 +14,7 @@ import java.util.UUID;
 public abstract class DocumentoComercial {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idDocumento;
 
     private String tipoDocumento;

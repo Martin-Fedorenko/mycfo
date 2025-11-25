@@ -1,5 +1,7 @@
 package registro.cargarDatos.repositories;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -169,4 +171,11 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, J
             @Param("inicio") LocalDateTime inicio,
             @Param("fin") LocalDateTime fin
     );
+
+    // Métodos para conciliación con paginación
+    List<Movimiento> findByDocumentoComercialIsNull();
+    Page<Movimiento> findByDocumentoComercialIsNull(Pageable pageable);
+    
+    List<Movimiento> findByDocumentoComercialIsNotNull();
+    Page<Movimiento> findByDocumentoComercialIsNotNull(Pageable pageable);
 }
