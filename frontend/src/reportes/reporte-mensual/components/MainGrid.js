@@ -11,6 +11,7 @@ import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
 import API_CONFIG from '../../../config/api-config';
+import LoadingSpinner from '../../../shared-components/LoadingSpinner';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1919', '#19C9FF'];
 
@@ -21,6 +22,7 @@ export default function MainGrid() {
     const [data, setData] = React.useState({ detalleIngresos: [], detalleEgresos: [] });
     const chartRefIngresos = React.useRef(null);
     const chartRefEgresos = React.useRef(null);
+    const [loading, setLoading] = React.useState(false);
 
     // Formateo de moneda para tooltips de tortas
     const currency = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v) || 0);
@@ -43,6 +45,7 @@ export default function MainGrid() {
         if (sub) headers['X-Usuario-Sub'] = sub;
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
+        setLoading(true);
         fetch(`${baseUrl}/resumen?${params.toString()}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -52,6 +55,9 @@ export default function MainGrid() {
             .catch((error) => {
                 console.error('Error al obtener los datos del backend:', error);
                 setData({ detalleIngresos: [], detalleEgresos: [] });
+            })
+            .finally(() => {
+                setLoading(false);
             });
     }, [selectedYear, selectedMonth, selectedCategoria]);
 
@@ -183,6 +189,14 @@ export default function MainGrid() {
     const totalEgresosPie = dataEgresosPie.reduce((sum, d) => sum + (d.value || 0), 0);
     const ingresosDisplayData = totalIngresosPie > 0 ? dataIngresosPie : [{ name: 'Sin datos', value: 1 }];
     const egresosDisplayData = totalEgresosPie > 0 ? dataEgresosPie : [{ name: 'Sin datos', value: 1 }];
+
+    if (loading) {
+        return (
+            <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>
+                <LoadingSpinner message={`Cargando resumen mensual ${getNombreMes(selectedMonth)} ${selectedYear}...`} />
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, p: 3 }}>

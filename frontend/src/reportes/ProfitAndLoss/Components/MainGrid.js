@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {
-    Box, Typography, Paper, Container, CssBaseline
+    Box, Typography, Paper, Container, CssBaseline, CircularProgress
 } from '@mui/material';
 import Filtros from './Filtros';
 import TablaDetalle from './TablaDetalle';
@@ -11,6 +11,7 @@ import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { exportToExcel } from '../../../utils/exportExcelUtils'; // Importando la utilidad de Excel
 import API_CONFIG from '../../../config/api-config';
+import LoadingSpinner from '../../../shared-components/LoadingSpinner';
 
 export default function MainGrid() {
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
@@ -20,6 +21,7 @@ export default function MainGrid() {
         detalleIngresos: [],
         detalleEgresos: [],
     });
+    const [loading, setLoading] = React.useState(false);
     const chartRef = React.useRef(null);
 
     // Formateador de moneda para tooltips del gráfico
@@ -40,6 +42,7 @@ export default function MainGrid() {
         if (sub) headers['X-Usuario-Sub'] = sub;
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
+        setLoading(true);
         fetch(`${baseUrl}/pyl?${params.toString()}`, { headers })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -54,6 +57,9 @@ export default function MainGrid() {
             .catch((error) => {
                 console.error('Error al obtener los datos del backend P&L:', error);
                 setData({ ingresosMensuales: Array(12).fill(0), egresosMensuales: Array(12).fill(0), detalleIngresos: [], detalleEgresos: [] });
+            })
+            .finally(() => {
+                setLoading(false);
             });
     }, [selectedYear]);
 
@@ -139,6 +145,14 @@ export default function MainGrid() {
 
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const dataGrafico = meses.map((mes, i) => ({ mes, Ingresos: data.ingresosMensuales[i], Egresos: data.egresosMensuales[i] }));
+
+    if (loading) {
+        return (
+            <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' }, mx: 'auto', p: 3 }}>
+                <LoadingSpinner message={`Cargando estado de resultados ${selectedYear}...`} />
+            </Box>
+        );
+    }
 
     return (
         <React.Fragment>
