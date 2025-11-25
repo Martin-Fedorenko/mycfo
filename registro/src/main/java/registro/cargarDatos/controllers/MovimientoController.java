@@ -13,6 +13,7 @@ import registro.cargarDatos.dtos.ConciliacionResumenResponse;
 import registro.cargarDatos.dtos.DashboardSummaryResponse;
 import registro.cargarDatos.dtos.MontosMensualesResponse;
 import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
+import registro.cargarDatos.dtos.MovimientosPresupuestoResponse;
 import registro.cargarDatos.dtos.ResumenMensualResponse;
 import registro.cargarDatos.dtos.SaldoTotalResponse;
 import registro.cargarDatos.models.Factura;
@@ -508,6 +509,32 @@ public class MovimientoController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error al obtener saldo total de la empresa: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Obtener movimientos agrupados mensualmente para presupuestos
+     * Reemplaza las múltiples llamadas individuales por mes
+     */
+    @GetMapping("/presupuesto/datos-completos")
+    public ResponseEntity<MovimientosPresupuestoResponse> obtenerMovimientosParaPresupuesto(
+            @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta
+    ) {
+        try {
+            Long empresaId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
+            
+            log.info("Obteniendo movimientos para presupuesto - Empresa: {}, Desde: {}, Hasta: {}", 
+                    empresaId, fechaDesde, fechaHasta);
+            
+            MovimientosPresupuestoResponse response = movimientoService.obtenerMovimientosParaPresupuesto(
+                    empresaId, fechaDesde, fechaHasta);
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Error al obtener movimientos para presupuesto: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

@@ -12,6 +12,8 @@ import registro.cargarDatos.models.TipoMovimiento;
 import registro.cargarDatos.repositories.MovimientoRepository;
 import registro.cargarDatos.services.MovimientoEventService;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -20,12 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.Cacheable;
 
 import registro.cargarDatos.dtos.ConciliacionResumenResponse;
 import registro.cargarDatos.dtos.ConciliacionTipoResumen;
 import registro.cargarDatos.dtos.MontoPorCategoria;
 import registro.cargarDatos.dtos.MontosMensualesResponse;
 import registro.cargarDatos.dtos.MontosPorCategoriaResponse;
+import registro.cargarDatos.dtos.MovimientosPresupuestoResponse;
 import registro.cargarDatos.dtos.PuntoMontoMensual;
 import registro.cargarDatos.dtos.ResumenMensualResponse;
 
@@ -638,6 +642,163 @@ public class MovimientoService {
 
         // Egresos ya son negativos, devolvemos la suma algebraica
         return totalIngresos + totalEgresos;
+    }
+
+    /**
+     * Obtiene movimientos agrupados mensualmente para presupuestos con caché
+     * Reemplaza las múltiples llamadas individuales por mes
+     */
+    @Cacheable(value = "movimientosPresupuesto", key = "#organizacionId + '_' + #fechaDesde + '_' + #fechaHasta")
+    public MovimientosPresupuestoResponse obtenerMovimientosParaPresupuesto(
+            Long organizacionId, LocalDate fechaDesde, LocalDate fechaHasta) {
+        
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("Se requiere organizacionId");
+        }
+        if (fechaDesde == null || fechaHasta == null) {
+            throw new IllegalArgumentException("Se requieren fechaDesde y fechaHasta");
+        }
+
+        LocalDateTime inicioDateTime = fechaDesde.atStartOfDay();
+        LocalDateTime finDateTime = fechaHasta.atTime(23, 59, 59);
+
+        // Obtener todos los movimientos del rango
+        List<Movimiento> movimientos = movimientoRepository.findByOrganizacionIdAndFechaEmisionBetween(
+                organizacionId, inicioDateTime, finDateTime);
+
+        // Agrupar por mes
+        Map<String, List<Movimiento>> movimientosPorMes = movimientos.stream()
+                .collect(Collectors.groupingBy(m -> {
+                    if (m.getFechaEmision() != null) {
+                        return YearMonth.from(m.getFechaEmision()).toString(); // "YYYY-MM"
+                    }
+                    return "sin-fecha";
+                }));
+
+        // Procesar cada mes
+        List<MovimientosPresupuestoResponse.MovimientosMensuales> datosMensuales = new ArrayList<>();
+        
+        // Generar todos los meses en el rango
+        YearMonth inicio = YearMonth.from(fechaDesde);
+        YearMonth fin = YearMonth.from(fechaHasta);
+        
+        for (YearMonth mes = inicio; !mes.isAfter(fin); mes = mes.plusMonths(1)) {
+            String mesKey = mes.toString();
+            List<Movimiento> movimientosMes = movimientosPorMes.getOrDefault(mesKey, new ArrayList<>());
+            
+            MovimientosPresupuestoResponse.MovimientosMensuales datosMes = procesarMovimientosMes(mesKey, movimientosMes);
+            datosMensuales.add(datosMes);
+        }
+
+        // Calcular resumen total
+        MovimientosPresupuestoResponse.ResumenTotal resumenTotal = calcularResumenTotal(datosMensuales);
+
+        return MovimientosPresupuestoResponse.builder()
+                .organizacionId(organizacionId)
+                .fechaDesde(fechaDesde.toString())
+                .fechaHasta(fechaHasta.toString())
+                .datosMensuales(datosMensuales)
+                .resumenTotal(resumenTotal)
+                .build();
+    }
+
+    private MovimientosPresupuestoResponse.MovimientosMensuales procesarMovimientosMes(
+            String mes, List<Movimiento> movimientos) {
+        
+        // Separar por tipo
+        List<Movimiento> ingresos = movimientos.stream()
+                .filter(m -> TipoMovimiento.Ingreso.equals(m.getTipo()))
+                .collect(Collectors.toList());
+                
+        List<Movimiento> egresos = movimientos.stream()
+                .filter(m -> TipoMovimiento.Egreso.equals(m.getTipo()))
+                .collect(Collectors.toList());
+
+        // Calcular totales
+        BigDecimal totalIngresos = ingresos.stream()
+                .map(m -> BigDecimal.valueOf(Math.abs(m.getMontoTotal() != null ? m.getMontoTotal() : 0.0)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                
+        BigDecimal totalEgresos = egresos.stream()
+                .map(m -> BigDecimal.valueOf(Math.abs(m.getMontoTotal() != null ? m.getMontoTotal() : 0.0)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Agrupar por categoría
+        List<MovimientosPresupuestoResponse.MovimientoPorCategoria> ingresosPorCategoria = 
+                agruparPorCategoria(ingresos, totalIngresos);
+                
+        List<MovimientosPresupuestoResponse.MovimientoPorCategoria> egresosPorCategoria = 
+                agruparPorCategoria(egresos, totalEgresos);
+
+        return MovimientosPresupuestoResponse.MovimientosMensuales.builder()
+                .mes(mes)
+                .totalIngresos(totalIngresos)
+                .totalEgresos(totalEgresos)
+                .saldoMensual(totalIngresos.subtract(totalEgresos))
+                .cantidadIngresos(ingresos.size())
+                .cantidadEgresos(egresos.size())
+                .ingresosPorCategoria(ingresosPorCategoria)
+                .egresosPorCategoria(egresosPorCategoria)
+                .build();
+    }
+
+    private List<MovimientosPresupuestoResponse.MovimientoPorCategoria> agruparPorCategoria(
+            List<Movimiento> movimientos, BigDecimal totalTipo) {
+        
+        Map<String, List<Movimiento>> porCategoria = movimientos.stream()
+                .collect(Collectors.groupingBy(m -> 
+                    m.getCategoria() != null ? m.getCategoria() : "Sin categoría"));
+
+        return porCategoria.entrySet().stream()
+                .map(entry -> {
+                    String categoria = entry.getKey();
+                    List<Movimiento> movimientosCategoria = entry.getValue();
+                    
+                    BigDecimal montoCategoria = movimientosCategoria.stream()
+                            .map(m -> BigDecimal.valueOf(Math.abs(m.getMontoTotal() != null ? m.getMontoTotal() : 0.0)))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    
+                    BigDecimal porcentaje = totalTipo.compareTo(BigDecimal.ZERO) > 0 
+                            ? montoCategoria.multiply(BigDecimal.valueOf(100)).divide(totalTipo, 2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO;
+                    
+                    return MovimientosPresupuestoResponse.MovimientoPorCategoria.builder()
+                            .categoria(categoria)
+                            .monto(montoCategoria)
+                            .cantidad(movimientosCategoria.size())
+                            .porcentaje(porcentaje)
+                            .build();
+                })
+                .sorted((a, b) -> b.getMonto().compareTo(a.getMonto())) // Ordenar por monto desc
+                .collect(Collectors.toList());
+    }
+
+    private MovimientosPresupuestoResponse.ResumenTotal calcularResumenTotal(
+            List<MovimientosPresupuestoResponse.MovimientosMensuales> datosMensuales) {
+        
+        BigDecimal totalIngresos = datosMensuales.stream()
+                .map(MovimientosPresupuestoResponse.MovimientosMensuales::getTotalIngresos)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                
+        BigDecimal totalEgresos = datosMensuales.stream()
+                .map(MovimientosPresupuestoResponse.MovimientosMensuales::getTotalEgresos)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                
+        Integer totalMovimientos = datosMensuales.stream()
+                .mapToInt(m -> m.getCantidadIngresos() + m.getCantidadEgresos())
+                .sum();
+                
+        Integer mesesConDatos = (int) datosMensuales.stream()
+                .filter(m -> m.getCantidadIngresos() > 0 || m.getCantidadEgresos() > 0)
+                .count();
+
+        return MovimientosPresupuestoResponse.ResumenTotal.builder()
+                .totalIngresos(totalIngresos)
+                .totalEgresos(totalEgresos)
+                .saldoTotal(totalIngresos.subtract(totalEgresos))
+                .totalMovimientos(totalMovimientos)
+                .mesesConDatos(mesesConDatos)
+                .build();
     }
 }
 

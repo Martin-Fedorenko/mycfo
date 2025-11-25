@@ -10,7 +10,7 @@ import ExportadorSimple from '../../../shared-components/ExportadorSimple';
 import http from '../../../api/http';
 import { formatCurrency } from '../../../utils/currency';
 import { eachMonthOfInterval, startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
-import { getMovimientosPorRango } from '../../../reportes/reportes.service';
+import { getMovimientosPorRango, getMovimientosParaPresupuesto } from '../../../reportes/reportes.service';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, Legend,
   LineChart, Line, Area, ReferenceLine
@@ -232,17 +232,33 @@ export default function PresupuestoDetalle() {
             const maxTime = Math.max(...fechasDisponibles.map((d) => d.getTime()));
             const rangoInicioDate = startOfMonth(new Date(minTime));
             const rangoFinDate = endOfMonth(new Date(maxTime));
-            const meses = eachMonthOfInterval({ start: rangoInicioDate, end: rangoFinDate });
 
-            const [egresosPorMes, ingresosPorMes] = await Promise.all([
-              getRealPorMes(meses, 'Egreso'),
-              getRealPorMes(meses, 'Ingreso'),
-            ]);
-            realesEgresoPorMes = egresosPorMes;
-            realesIngresoPorMes = ingresosPorMes;
+            // 🚀 OPTIMIZACIÓN: Una sola llamada en lugar de 24+
+            console.log('🚀 Usando endpoint optimizado para obtener movimientos del presupuesto');
+            const fechaDesde = formatDate(rangoInicioDate, 'yyyy-MM-dd');
+            const fechaHasta = formatDate(rangoFinDate, 'yyyy-MM-dd');
+            
+            const movimientosData = await getMovimientosParaPresupuesto({ 
+              fechaDesde, 
+              fechaHasta 
+            });
+
+            // Convertir la respuesta optimizada al formato esperado
+            if (movimientosData?.datosMensuales) {
+              movimientosData.datosMensuales.forEach(mesDatos => {
+                const mesKey = mesDatos.mes; // "YYYY-MM"
+                realesIngresoPorMes[mesKey] = Number(mesDatos.totalIngresos || 0);
+                realesEgresoPorMes[mesKey] = Number(mesDatos.totalEgresos || 0);
+              });
+              console.log('✅ Datos obtenidos con endpoint optimizado:', {
+                meses: Object.keys(realesIngresoPorMes).length,
+                totalIngresos: movimientosData.resumenTotal?.totalIngresos,
+                totalEgresos: movimientosData.resumenTotal?.totalEgresos
+              });
+            }
           }
         } catch (movError) {
-          console.error('Error al obtener datos reales del presupuesto:', movError);
+          console.error('❌ Error al obtener datos reales del presupuesto:', movError);
           setError((prev) => prev ?? 'No se pudieron cargar los datos reales del presupuesto.');
         }
 
