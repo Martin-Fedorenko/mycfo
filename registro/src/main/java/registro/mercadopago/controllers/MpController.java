@@ -101,7 +101,8 @@ public class MpController {
 
     @GetMapping("/oauth/callback")
     public ResponseEntity<Void> callback(@RequestParam String code, @RequestParam String state) {
-        String base = Optional.ofNullable(mpProps.getFrontendUrl()).orElse("http://localhost:3000");
+        String base = Optional.ofNullable(mpProps.getFrontendUrl())
+                .orElseThrow(() -> new IllegalStateException("mercadopago.frontend-url no está configurado"));
         if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
         try {
             auth.handleCallback(code, state, currentUserId());
