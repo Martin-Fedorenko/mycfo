@@ -71,6 +71,7 @@ const Home = React.memo(function Home(props) {
 
         <Box
           component="main"
+          onClick={desktopMenuExpanded ? handleCollapseDesktopMenu : undefined}
           sx={(theme) => ({
             position: "relative",
             zIndex: 0,
