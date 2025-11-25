@@ -404,7 +404,15 @@ export default function ConciliacionPanel() {
       )}
 
       {/* Panel de dos columnas */}
-      <Box sx={{ flex: 1, overflow: "hidden" }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "hidden",
+          maxWidth: 1200,
+          width: "100%",
+          mx: "auto",
+        }}
+      >
         <Grid container spacing={2} sx={{ height: "100%" }}>
           {/* Columna izquierda: Movimientos */}
           <Grid item xs={12} md={6} sx={{ height: "100%" }}>
