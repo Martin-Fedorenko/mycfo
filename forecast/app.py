@@ -27,7 +27,7 @@ logging.getLogger("prophet").disabled = True
 INTERVAL_WIDTH = 0.95
 PERIODS_ADELANTE = 12          # meses a proyectar (por defecto)
 FREQ = "MS"                    # frecuencia mensual
-DEFAULT_INCLUIR_GRAFICO = False  # 🔧 controlar si se devuelve el gráfico
+DEFAULT_INCLUIR_GRAFICO = True  # 🔧 controlar si se devuelve el gráfico
 
 
 # ==============================================================
@@ -78,44 +78,64 @@ def convertir_tipos(obj):
 # ==============================================================
 
 def entrenar_modelo(df_prophet, tipo="balance"):
-    """Entrena un modelo Prophet que mantiene tendencia y estacionalidad reales."""
+    """
+    Entrena un Prophet optimizado para series MENSUALES.
+    Detecta mejor estacionalidad anual, evita rectas y mejora sensibilidad.
+    """
+
     y = df_prophet["y"].values
     n = len(y)
+
     if n < 6:
         raise ValueError(f"No hay suficientes datos para predecir {tipo}.")
 
-    # --- Tendencia lineal (detecta pendiente global) ---
+    # ================================================
+    # 🔹 1. Detección de tendencia — pero menos estricta
+    # ================================================
     X = np.arange(n).reshape(-1, 1)
     reg = LinearRegression().fit(X, y)
     pendiente = reg.coef_[0]
-    tendencia_estable = abs(pendiente) < 0.002 * np.mean(np.abs(y))
+    media = np.mean(np.abs(y))
 
-    # --- Detección de estacionalidad (autocorrelación anual) ---
-    acf_vals = acf(y, nlags=min(24, n - 1), fft=False)
+    tendencia_estable = abs(pendiente) < 0.001 * media
+
+    # ================================================
+    # 🔹 2. Detección de estacionalidad anual
+    # ================================================
+    acf_vals = acf(y, nlags=min(18, n - 1), fft=False)
     autocorr_anual = acf_vals[12] if len(acf_vals) > 12 else 0
-    hay_estacionalidad = abs(autocorr_anual) > 0.3
+    hay_estacionalidad = abs(autocorr_anual) > 0.15
 
-    # --- Volatilidad para ajustar sensibilidad del modelo ---
-    coef_var = np.std(y) / max(np.mean(np.abs(y)), 1)
-    changepoint_scale = 0.05 if tendencia_estable else (0.2 if coef_var > 0.15 else 0.1)
-    seasonality_scale = 10.0 if hay_estacionalidad else 0.5
-    fourier = 8 if hay_estacionalidad else 4
+    # ================================================
+    # 🔹 3. Parámetros Prophet (VERSIÓN OPTIMIZADA)
+    # ================================================
+    # Mayor sensibilidad para evitar rectas
+    changepoint_scale = 0.15 if tendencia_estable else 0.25
 
-    # --- Configuración Prophet ---
+    # Estacionalidad reforzada
+    seasonality_scale = 5.0 if hay_estacionalidad else 10.0
+
+    # Fourier según años de datos
+    years = max(1, n // 12)
+    fourier = min(10, 4 + years * 2)
+
     m = Prophet(
         growth="linear",
         interval_width=INTERVAL_WIDTH,
         changepoint_prior_scale=changepoint_scale,
         seasonality_prior_scale=seasonality_scale,
-        seasonality_mode="multiplicative",
-        yearly_seasonality=False,
+        yearly_seasonality=False,  # lo activamos manualmente
         weekly_seasonality=False,
         daily_seasonality=False,
+        seasonality_mode="additive"  # mensual funciona mejor aditivo
     )
 
-    # Añadir estacionalidad explícita solo si se detecta
-    if hay_estacionalidad:
-        m.add_seasonality(name="anual", period=365.25, fourier_order=fourier)
+    # Forzar estacionalidad anual SIEMPRE para datos mensuales
+    m.add_seasonality(
+        name="anual",
+        period=365.25,
+        fourier_order=fourier
+    )
 
     m.fit(df_prophet)
 
@@ -123,12 +143,14 @@ def entrenar_modelo(df_prophet, tipo="balance"):
         "tipo": tipo,
         "pendiente": float(pendiente),
         "tendencia_estable": tendencia_estable,
-        "coef_var": float(coef_var),
+        "media_abs": float(media),
         "autocorr_anual": float(autocorr_anual),
         "hay_estacionalidad": hay_estacionalidad,
         "changepoint_prior_scale": changepoint_scale,
         "seasonality_prior_scale": seasonality_scale,
+        "fourier": fourier
     }
+
 
 
 def entrenar_y_predecir(df, df_ing, df_egr, periodos_adelante):
