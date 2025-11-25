@@ -234,8 +234,24 @@ export default function SignUp(props) {
               />
             </FormControl>
 
-            {errors.global && <Typography color="error">{errors.global}</Typography>}
-            {successMsg && <Typography color="primary">{successMsg}</Typography>}
+            {(errors.global || successMsg) && (
+              <Box
+                sx={{
+                  mt: 1,
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  bgcolor: "#FFF8E1",
+                  border: "1px solid #FFE082",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{ textAlign: "center", color: "text.primary" }}
+                >
+                  {errors.global || successMsg}
+                </Typography>
+              </Box>
+            )}
 
             <Button type="submit" fullWidth variant="contained" disabled={loading}>
               {loading ? "Creando cuenta..." : "Crear cuenta"}

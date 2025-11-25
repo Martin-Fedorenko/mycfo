@@ -28,6 +28,34 @@ import {
   AuthenticationDetails,
 } from "amazon-cognito-identity-js";
 
+const mapCognitoErrorToMessage = (err) => {
+  const code = err?.code || "";
+  const message = err?.message || "";
+
+  switch (code) {
+    case "NotAuthorizedException":
+      // Usuario o contraseña incorrectos
+      return "Correo o contraseña incorrectos. Verificá tus datos e intentá nuevamente.";
+    case "UserNotFoundException":
+      return "No encontramos un usuario con ese correo. Verificá el correo o registrate.";
+    case "UserNotConfirmedException":
+      return "Tu cuenta todavía no está confirmada. Revisá tu correo para completar la confirmación.";
+    case "PasswordResetRequiredException":
+      return "Necesitás restablecer tu contraseña antes de poder iniciar sesión.";
+    case "TooManyFailedAttemptsException":
+    case "TooManyRequestsException":
+      return "Demasiados intentos fallidos. Esperá unos minutos y volvé a intentar.";
+    case "InvalidPasswordException":
+      return "La contraseña no cumple con los requisitos de seguridad. Usá al menos 8 caracteres y combiná mayúsculas, minúsculas, números y un símbolo.";
+    default:
+      if (message && typeof message === "string") {
+        // Para otros errores menos comunes, evitar mostrar texto crudo de Cognito
+        return "No pudimos iniciar sesión. Intentá nuevamente en unos segundos.";
+      }
+      return "No pudimos iniciar sesión. Intentá nuevamente en unos segundos.";
+  }
+};
+
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
@@ -80,6 +108,7 @@ export default function SignIn(props) {
   const [errors, setErrors] = React.useState({});
   const [loading, setLoading] = React.useState(false);
   const [globalMsg, setGlobalMsg] = React.useState("");
+  const [globalType, setGlobalType] = React.useState(null); // 'success' | 'error' | null
   const [open, setOpen] = React.useState(false);
 
   const URL_ADMINISTRACION = API_CONFIG.ADMINISTRACION;
@@ -108,6 +137,7 @@ export default function SignIn(props) {
 
     setLoading(true);
     setGlobalMsg("");
+    setGlobalType(null);
 
     const authenticationDetails = new AuthenticationDetails({
       Username: formValues.email,
@@ -158,6 +188,7 @@ export default function SignIn(props) {
 
           window.dispatchEvent(new Event("userDataUpdated"));
 
+          setGlobalType("success");
           setGlobalMsg("Inicio de sesión correcto.");
           setLoading(false);
 
@@ -172,7 +203,9 @@ export default function SignIn(props) {
       onFailure: (err) => {
         setLoading(false);
         console.error("Login error", err);
-        setGlobalMsg(err.message || JSON.stringify(err));
+        const friendly = mapCognitoErrorToMessage(err);
+        setGlobalType("error");
+        setGlobalMsg(friendly);
       },
     });
   };
@@ -246,12 +279,22 @@ export default function SignIn(props) {
             />
 
             {globalMsg && (
-              <Typography
-                sx={{ textAlign: "center" }}
-                color={globalMsg.includes("success") ? "primary" : "error"}
+              <Box
+                sx={{
+                  mt: 1,
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  bgcolor: "#FFF8E1",
+                  border: "1px solid #FFE082",
+                }}
               >
-                {globalMsg}
-              </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ textAlign: "center", color: "text.primary" }}
+                >
+                  {globalMsg}
+                </Typography>
+              </Box>
             )}
 
             <ForgotPassword open={open} handleClose={handleClose} />

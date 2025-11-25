@@ -92,9 +92,50 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
+            String rawMessage = e.getMessage() != null ? e.getMessage() : "";
+            String friendly = mapCognitoRegistrationError(rawMessage);
+            error.put("error", friendly);
             return ResponseEntity.badRequest().body(error);
         }
+    }
+
+    /**
+     * Normaliza los mensajes técnicos de Cognito en el registro a textos claros en español.
+     *
+     * Nota: se basa en fragmentos del mensaje original, pero siempre devuelve algo
+     * entendible para el usuario final y sin IDs ni detalles internos.
+     */
+    private String mapCognitoRegistrationError(String raw) {
+        if (raw == null) {
+            return "No pudimos crear la cuenta. Intentá nuevamente en unos segundos.";
+        }
+
+        String msg = raw;
+
+        // Reglas típicas de contraseña de Cognito
+        if (msg.contains("Password did not conform with policy") || msg.contains("Password not long enough")) {
+            return "La contraseña no cumple con los requisitos de seguridad. Usá al menos 8 caracteres y combiná mayúsculas, minúsculas, números y un símbolo.";
+        }
+        if (msg.contains("must have uppercase characters")) {
+            return "La contraseña debe incluir al menos una letra mayúscula.";
+        }
+        if (msg.contains("must have lowercase characters")) {
+            return "La contraseña debe incluir al menos una letra minúscula.";
+        }
+        if (msg.contains("must have numeric characters")) {
+            return "La contraseña debe incluir al menos un número.";
+        }
+        if (msg.contains("must have symbol characters") || msg.contains("symbol characters")) {
+            return "La contraseña debe incluir al menos un símbolo (por ejemplo: !, ?, #, @).";
+        }
+
+        // Usuario ya existente en Cognito (fallback por si no se capturó antes)
+        if (msg.contains("UsernameExistsException") || msg.toLowerCase().contains("already exists")) {
+            return "Este correo electrónico ya está registrado en el sistema. Iniciá sesión o usá otro correo.";
+        }
+
+        // Fallback genérico
+        return "No pudimos crear la cuenta. Revisá los datos e intentá nuevamente.";
     }
 
     /**

@@ -71,15 +71,43 @@ const KpiCard = ({
 
   return (
     <Card variant="outlined" sx={{ height: "100%" }}>
-      <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, px: 2.5, py: 2 }}>
+      <CardContent
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          justifyContent: "space-between",
+          gap: 1,
+          px: 2.0,
+          py: 1.5,
+        }}
+      >
         <Typography
           variant="subtitle2"
-          sx={{ flexShrink: 0, whiteSpace: "nowrap", color: primaryTextColor }}
+          sx={{
+            color: primaryTextColor,
+            fontSize: { xs: "0.8rem", sm: "0.85rem", md: "0.9rem" },
+          }}
         >
           {title}
         </Typography>
-        <Box sx={{ textAlign: "right", flexGrow: 1 }}>
-          <Typography variant="h5" fontWeight={600} sx={{ color: primaryTextColor }}>
+        <Box
+          sx={{
+            textAlign: "right",
+            flexGrow: 1,
+            minWidth: 0,
+          }}
+        >
+          <Typography
+            variant="h5"
+            fontWeight={600}
+            sx={{
+              color: primaryTextColor,
+              fontSize: { xs: "1.3rem", sm: "1.6rem", md: "1.9rem" },
+              lineHeight: 1.1,
+              wordBreak: "break-word",
+            }}
+          >
             {formatter(value)}
           </Typography>
           {secondaryLabel ? (

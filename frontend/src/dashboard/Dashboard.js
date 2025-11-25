@@ -1105,7 +1105,7 @@ const Dashboard = React.memo(() => {
           sx={{ maxWidth: { xs: "100%", md: 1600 }, mx: "auto" }}
         >
           {kpiCards.map((card) => (
-            <Grid item xs={12} sm={4} key={card.id}>
+            <Grid item xs={12} sm={12} md={3} key={card.id}>
               <KpiCard
                 title={card.title}
                 value={card.value}
