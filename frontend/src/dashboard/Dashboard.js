@@ -1118,10 +1118,10 @@ const Dashboard = React.memo(() => {
           container
           spacing={3}
           justifyContent="center"
-          sx={{ width: "100%", maxWidth: 1400, mx: "auto" }}
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
         >
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesTrendWidget
                 data={
                   state.salesTrend.data ?? {
@@ -1138,8 +1138,27 @@ const Dashboard = React.memo(() => {
               />
             </Box>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
+              <SalesByCategoryWidget
+                data={state.salesByCategory.data ?? []}
+                loading={
+                  state.salesByCategory.loading && !state.salesByCategory.data
+                }
+                error={state.salesByCategory.error}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+
+        <Grid
+          container
+          spacing={3}
+          justifyContent="center"
+          sx={{ width: "100%", maxWidth: 1600, mx: "auto" }}
+        >
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesTrendWidget
                 data={
                   state.expensesTrend.data ?? {
@@ -1158,27 +1177,8 @@ const Dashboard = React.memo(() => {
               />
             </Box>
           </Grid>
-        </Grid>
-
-        <Grid
-          container
-          spacing={3}
-          justifyContent="center"
-          sx={{ width: "100%", maxWidth: 1400, mx: "auto", mt: 1 }}
-        >
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
-              <SalesByCategoryWidget
-                data={state.salesByCategory.data ?? []}
-                loading={
-                  state.salesByCategory.loading && !state.salesByCategory.data
-                }
-                error={state.salesByCategory.error}
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: "100%", maxWidth: 650, mx: "auto" }}>
+          <Grid item>
+            <Box sx={{ width: { xs: "100%", md: 720 } }}>
               <SalesByCategoryWidget
                 data={state.expensesByCategory.data ?? []}
                 loading={
