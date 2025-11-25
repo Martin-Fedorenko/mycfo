@@ -1,4 +1,5 @@
 import React from "react";
+import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
@@ -74,6 +75,11 @@ const cargaModoMeta = {
 };
 
 const routeConfig = [
+  {
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: <DashboardRoundedIcon />,
+  },
   {
     label: "Carga de datos",
     path: "/carga",
