@@ -44,7 +44,7 @@ export default function ConciliacionPanel() {
   const [paginaActual, setPaginaActual] = useState(0); // Backend usa 0-based
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [totalElementos, setTotalElementos] = useState(0);
-  const [tamanioPagina] = useState(20);
+  const [tamanioPagina] = useState(10);
 
   // Filtros
   const [filtroEstado, setFiltroEstado] = useState("sin-conciliar"); // 'todos', 'sin-conciliar', 'conciliados'

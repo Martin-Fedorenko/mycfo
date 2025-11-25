@@ -393,6 +393,7 @@ const Dashboard = React.memo(() => {
     useResolvedColorTokens();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [state, setState] = React.useState(initialDashboardState);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const fetchTimeoutRef = React.useRef();
   const activeRequestRef = React.useRef(0);
   const useMocks = React.useRef(
@@ -453,6 +454,8 @@ const Dashboard = React.memo(() => {
   }, []);
 
   const loadDashboardData = React.useCallback(() => {
+    console.log("🔄 Recargando datos del dashboard...");
+    setIsRefreshing(true);
     setState((prev) => {
       const next = {};
       Object.entries(prev).forEach(([key, value]) => {
@@ -466,6 +469,8 @@ const Dashboard = React.memo(() => {
     if (useMocks) {
       fetchTimeoutRef.current = setTimeout(() => {
         setState(buildMockState());
+        setIsRefreshing(false);
+        console.log("✅ Datos del dashboard recargados (modo mock)");
       }, 700);
       return;
     }
@@ -512,6 +517,8 @@ const Dashboard = React.memo(() => {
         mockState.reconciliation = reconciliationState;
       }
       setState(mockState);
+      setIsRefreshing(false);
+      console.log("✅ Datos del dashboard recargados");
     };
 
     const resolveErrorMessage = (reason, fallback) => {
@@ -836,6 +843,8 @@ const Dashboard = React.memo(() => {
 
         applyCompositeResponse(composite);
       } catch (error) {
+        console.error("❌ Error recargando dashboard:", error);
+        setIsRefreshing(false);
         setState((prev) => ({
           ...prev,
           kpis: {
@@ -1254,7 +1263,7 @@ const Dashboard = React.memo(() => {
               loading={state.invoices?.loading && !state.invoices?.data}
               error={state.invoices?.error ?? null}
               onRetry={loadDashboardData}
-              onNavigate={() => handleNavigate("/facturas")}
+              onNavigate={() => handleNavigate("/ver-facturas")}
             />
           </Grid>
         </Grid>
@@ -1273,8 +1282,13 @@ const Dashboard = React.memo(() => {
         </Grid>
 
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button variant="text" size="small" onClick={loadDashboardData}>
-            Recargar datos de Dashboard
+          <Button 
+            variant="text" 
+            size="small" 
+            onClick={loadDashboardData}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? "Recargando..." : "Recargar datos de Dashboard"}
           </Button>
         </Box>
       </Stack>

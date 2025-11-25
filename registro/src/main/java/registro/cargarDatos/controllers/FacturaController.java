@@ -123,7 +123,7 @@ public class FacturaController {
     public ResponseEntity<org.springframework.data.domain.Page<Factura>> listarFacturasPaginadas(
             @RequestHeader(value = "X-Usuario-Sub") String usuarioSub,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "fechaEmision") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
@@ -151,7 +151,7 @@ public class FacturaController {
             @RequestParam(required = false) String tipoFactura,
             @RequestParam(required = false) registro.cargarDatos.models.EstadoPago estadoPago,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "fechaEmision") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
