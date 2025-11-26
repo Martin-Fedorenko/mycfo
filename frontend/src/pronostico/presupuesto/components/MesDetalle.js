@@ -202,6 +202,7 @@ export default function MesDetalle() {
   const [deletePrompt, setDeletePrompt] = React.useState({ open: false, id: null, categoria: '', tipo: '' });
   const [categoriasOptions, setCategoriasOptions] = React.useState(TODAS_LAS_CATEGORIAS);
   const [loading, setLoading] = React.useState(true);
+  const [usuarioRol, setUsuarioRol] = React.useState(null);
 
   const categoriasPronosticadas = React.useMemo(() => {
     const ocupadas = new Set();
@@ -263,6 +264,31 @@ export default function MesDetalle() {
       activo = false;
     };
   }, []);
+
+  React.useEffect(() => {
+    const cargarRolUsuario = async () => {
+      try {
+        const sub = sessionStorage.getItem('sub');
+        if (!sub) return;
+        const res = await fetch(`${API_CONFIG.ADMINISTRACION}/api/usuarios/perfil`, {
+          headers: { 'X-Usuario-Sub': sub },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.rol) {
+          setUsuarioRol(data.rol);
+        }
+      } catch (err) {
+        console.error('Error cargando rol de usuario para presupuesto:', err);
+      }
+    };
+    cargarRolUsuario();
+  }, []);
+
+  const esAdmin = React.useMemo(
+    () => (usuarioRol || '').toUpperCase().includes('ADMIN'),
+    [usuarioRol]
+  );
 
   // ===== Carga de datos =====
   const fetchMes = React.useCallback(async (pid, ymStr, { skipStateUpdate = false } = {}) => {
@@ -767,6 +793,14 @@ export default function MesDetalle() {
 
   const patchLinea = async (l) => {
     try {
+      if (!esAdmin) {
+        setSnack({
+          open: true,
+          message: 'No tenés permisos para editar este presupuesto. Solo los administradores pueden editar datos brutos.',
+          severity: 'warning',
+        });
+        return;
+      }
       if (!presupuestoId || !ym || !l?.id) return;
 
       const urls = [
@@ -808,7 +842,7 @@ export default function MesDetalle() {
                 lastErr = e2;
               }
             }
-            // si 404/405 seguimos probando con otra URL o mÃ©todo
+            // si 404/405 seguimos probando con otra URL o método
           }
         }
       }
@@ -827,7 +861,6 @@ export default function MesDetalle() {
     }
   };
 
-
   const openDeletePrompt = (item) => {
     setDeletePrompt({ open: true, id: item.id, categoria: item.categoria, tipo: item.tipo });
   };
@@ -836,9 +869,16 @@ export default function MesDetalle() {
     setDeletePrompt((prev) => ({ ...prev, open: false }));
   };
 
-
   const deleteLinea = async (lineaId) => {
     try {
+      if (!esAdmin) {
+        setSnack({
+          open: true,
+          message: 'No tenés permisos para editar este presupuesto. Solo los administradores pueden editar datos brutos.',
+          severity: 'warning',
+        });
+        return;
+      }
       if (!presupuestoId || !ym || !lineaId) return;
       await http.delete(`${baseURL}/api/presupuestos/${presupuestoId}/mes/${ym}/lineas/${lineaId}`);
       await reloadMes();
@@ -848,6 +888,7 @@ export default function MesDetalle() {
       setSnack({ open: true, message: 'Error al eliminar', severity: 'error' });
     }
   };
+
   const confirmDeletePrompt = async () => {
     const targetId = deletePrompt.id;
     setDeletePrompt({ open: false, id: null, categoria: '', tipo: '' });
@@ -856,10 +897,16 @@ export default function MesDetalle() {
     }
   };
 
-
-
   const addLinea = async () => {
     try {
+      if (!esAdmin) {
+        setSnack({
+          open: true,
+          message: 'No tenés permisos para editar este presupuesto. Solo los administradores pueden editar datos brutos.',
+          severity: 'warning',
+        });
+        return;
+      }
       if (!presupuestoId || !ym) return;
       if (!nueva.categoria || !nueva.tipo) {
         setSnack({ open: true, message: 'Completá Categoría y tipo', severity: 'warning' });
@@ -875,14 +922,22 @@ export default function MesDetalle() {
       setAgregando(false);
       await reloadMes();
       setSnack({ open: true, message: 'Línea agregada', severity: 'success' });
-  } catch (e) {
-    console.error(e);
-    setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
-  }
-};
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, message: 'Error al agregar', severity: 'error' });
+    }
+  };
 
   const crearLineaDesdeReal = async (l) => {
     try {
+      if (!esAdmin) {
+        setSnack({
+          open: true,
+          message: 'No tenés permisos para editar este presupuesto. Solo los administradores pueden editar datos brutos.',
+          severity: 'warning',
+        });
+        return;
+      }
       if (!presupuestoId || !ym) return;
       const payload = {
         categoria: l.categoria,
@@ -911,6 +966,14 @@ export default function MesDetalle() {
 
   const ejecutarBulk = async () => {
     try {
+      if (!esAdmin) {
+        setSnack({
+          open: true,
+          message: 'No tenés permisos para editar este presupuesto. Solo los administradores pueden editar datos brutos.',
+          severity: 'warning',
+        });
+        return;
+      }
       if (rowMenuIdx == null) return;
       const l = lineas[rowMenuIdx];
       if (!l || !presupuestoId) return;
@@ -1291,6 +1354,7 @@ export default function MesDetalle() {
       {tab === 1 && (
         <Paper sx={{ p: 2 }}>
           {/* Agregar nueva lÃ­nea */}
+          {esAdmin && (
           <Box sx={{ mb: 2 }}>
             {!agregando ? (
               <Button startIcon={<AddCircleOutlineIcon />} variant="contained" onClick={() => setAgregando(true)}>
@@ -1388,6 +1452,7 @@ export default function MesDetalle() {
               </Grid>
             )}
           </Box>
+          )}
 
           <Divider sx={{ my: 2 }} />
 
@@ -1400,7 +1465,7 @@ export default function MesDetalle() {
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Estimado</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Real</th>
                   <th style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)' }}>Desvío</th>
-                  <th style={{ padding: 12 }}>Acciones</th>
+                  {esAdmin && <th style={{ padding: 12 }}>Acciones</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1441,7 +1506,7 @@ export default function MesDetalle() {
                       <tr key={item.id} style={{ borderBottom: '1px solid var(--mui-palette-divider)' }}>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 215 }}>
                           <Box display="flex" alignItems="center" gap={1}>
-                            {manualEnabled ? (
+                            {esAdmin && manualEnabled ? (
                               (() => {
                                 // Oculta las categorías ya asignadas a otras líneas del mismo mes.
                                 const categoriaActual = e.categoria || '';
@@ -1528,15 +1593,15 @@ export default function MesDetalle() {
                           </Box>
                         </td>
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', minWidth: 100 }}>
-                          <FormControl size="small" fullWidth disabled={!manualEnabled} sx={buildTipoSelectSx(e.tipo)}>
+                          <FormControl size="small" fullWidth disabled={!manualEnabled || !esAdmin} sx={buildTipoSelectSx(e.tipo)}>
                             <Select
                               value={e.tipo}
                               onChange={(ev) => {
-                                if (!manualEnabled) return;
+                                if (!manualEnabled || !esAdmin) return;
                                 updateField('tipo', ev.target.value);
                               }}
                               size="small"
-                              disabled={!manualEnabled}
+                              disabled={!manualEnabled || !esAdmin}
                             >
                               <MenuItem value="Ingreso">INGRESO</MenuItem>
                               <MenuItem value="Egreso">EGRESO</MenuItem>
@@ -1554,21 +1619,23 @@ export default function MesDetalle() {
                                 if (!manualEnabled) return;
                                 updateField('montoEstimado', parseCurrency(ev.target.value));
                               }}
-                              InputProps={{ readOnly: !manualEnabled }}
+                              InputProps={{ readOnly: !manualEnabled || !esAdmin }}
                               inputProps={{ inputMode: 'numeric' }}
                             />
-                            {manualEnabled ? (
-                              <Tooltip title="Deshabilitar edición manual">
-                                <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
-                                  <EditOffOutlinedIcon fontSize="small" color="warning" />
-                                </IconButton>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip title="Editar (categoría, tipo y estimado)">
-                                <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
-                                  <EditOutlinedIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+                            {esAdmin && (
+                              manualEnabled ? (
+                                <Tooltip title="Deshabilitar edición manual">
+                                  <IconButton size="small" onClick={() => toggleManualGuard(item.id, 'categoria', false)}>
+                                    <EditOffOutlinedIcon fontSize="small" color="warning" />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip title="Editar (categoría, tipo y estimado)">
+                                  <IconButton size="small" onClick={() => requestManualUnlock(item.id, 'categoria')}>
+                                    <EditOutlinedIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )
                             )}
                           </Box>
                         </td>
@@ -1592,6 +1659,7 @@ export default function MesDetalle() {
                         <td style={{ padding: 12, borderRight: '1px solid var(--mui-palette-divider)', color: desvio >= 0 ? '#66bb6a' : '#ef5350' , minWidth: 100 }}>
                           {desvio >= 0 ? '+' : '-'}{formatCurrency(Math.abs(desvio))}
                         </td>
+                        {esAdmin && (
                         <td style={{ padding: 12, whiteSpace: 'nowrap', textAlign: 'center' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
                             <Tooltip title={esSoloReal ? 'Crear linea de presupuesto con este movimiento' : 'Guardar cambios'}>
@@ -1637,12 +1705,13 @@ export default function MesDetalle() {
                             )}
                           </Box>
                         </td>
+                        )}
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: 20, color: 'var(--mui-palette-text-secondary)' }}>
+                    <td colSpan={esAdmin ? 6 : 5} style={{ textAlign: 'center', padding: 20, color: 'var(--mui-palette-text-secondary)' }}>
                       No hay datos disponibles.
                     </td>
                   </tr>

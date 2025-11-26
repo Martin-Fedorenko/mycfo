@@ -73,10 +73,12 @@ export default function PronosticoFijo() {
   });
   const [saving, setSaving] = React.useState(false);
   const [generatingForecastId, setGeneratingForecastId] = React.useState(null);
+  const [usuarioRol, setUsuarioRol] = React.useState(null);
   const navigate = useNavigate();
 
   React.useEffect(() => {
     cargarDatos();
+    cargarRolUsuario();
   }, []);
 
   const cargarDatos = async () => {
@@ -94,6 +96,21 @@ export default function PronosticoFijo() {
       setError(err.response?.data?.message || 'Error al cargar los datos. Por favor intenta nuevamente.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const cargarRolUsuario = async () => {
+    try {
+      const sub = sessionStorage.getItem('sub');
+      if (!sub) return;
+      const res = await fetch(`${API_CONFIG.ADMINISTRACION}/api/usuarios/perfil`, {
+        headers: { 'X-Usuario-Sub': sub },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setUsuarioRol(data.rol || null);
+    } catch (e) {
+      console.error('Error cargando rol de usuario:', e);
     }
   };
 
@@ -260,16 +277,25 @@ export default function PronosticoFijo() {
   };
 
   const formatearNombre = (nombre, createdAt) => {
-    if (createdAt) {
-      const fecha = new Date(createdAt);
-      const fechaFormateada = fecha.toLocaleDateString('es-AR', {
-        year: 'numeric',
-        month: 'long'
-      });
-      return `Pronóstico mensual de ${fechaFormateada}`;
+    if (nombre && nombre.trim() !== '') {
+      return nombre;
     }
-    return nombre || 'Pronóstico sin nombre';
+    if (createdAt) {
+      try {
+        const fecha = new Date(createdAt);
+        const fechaFormateada = fecha.toLocaleDateString('es-AR', {
+          year: 'numeric',
+          month: 'long',
+        });
+        return `Pronóstico de ${fechaFormateada}`;
+      } catch (e) {
+        // ignore parse error and fallback below
+      }
+    }
+    return 'Pronóstico sin nombre';
   };
+
+  const esAdmin = (usuarioRol || '').toUpperCase().includes('ADMIN');
 
   if (loading) {
     return <LoadingSpinner />;
@@ -550,15 +576,17 @@ export default function PronosticoFijo() {
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Eliminar">
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDeleteForecastClick(forecast)}
-                          size="small"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {esAdmin && (
+                        <Tooltip title="Eliminar">
+                          <IconButton
+                            color="error"
+                            onClick={() => handleDeleteForecastClick(forecast)}
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

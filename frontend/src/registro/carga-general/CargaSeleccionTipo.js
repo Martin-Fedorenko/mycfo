@@ -19,11 +19,6 @@ export default function CargaSeleccionTipo() {
     { key: "Deuda", label: "Deuda", icon: <AccountBalance fontSize="large" /> },
     { key: "Acreencia", label: "Acreencia", icon: <Wallet fontSize="large" /> },
     { key: "Factura", label: "Factura", icon: <Receipt fontSize="large" /> },
-    {
-      key: "Movimientos",
-      label: "Movimientos bancarios",
-      icon: <Handshake fontSize="large" />,
-    },
   ];
 
   return (

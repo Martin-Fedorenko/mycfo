@@ -3,6 +3,10 @@ package pronostico.services;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -47,6 +51,36 @@ public class AdministracionService {
         } catch (Exception e) {
             log.error("Error al obtener empresa del usuario {}: {}", usuarioSub, e.getMessage());
             throw new RuntimeException("Error al comunicarse con el servicio de administración", e);
+        }
+    }
+
+    /**
+     * Verifica si el usuario indicado es administrador según el microservicio de administración.
+     */
+    public boolean esAdministrador(String usuarioSub) {
+        try {
+            String url = administracionUrl + "/api/usuarios/perfil";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Usuario-Sub", usuarioSub);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<java.util.Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    java.util.Map.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                return false;
+            }
+
+            Object rol = response.getBody().get("rol");
+            return rol != null && "ADMINISTRADOR".equalsIgnoreCase(rol.toString());
+        } catch (Exception e) {
+            log.error("Error verificando rol de administrador para usuario {}: {}", usuarioSub, e.getMessage());
+            return false;
         }
     }
 }

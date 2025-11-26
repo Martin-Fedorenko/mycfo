@@ -243,12 +243,10 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
                p.deletedAt = :deletedAt,
                p.deletedBy = :deletedBy
         where p.id = :id
-          and p.ownerSub = :ownerSub
           and p.organizacionId = :organizacionId
           and p.deleted = false
         """)
     int markDeletedIfActive(@Param("id") Long id,
-                            @Param("ownerSub") String ownerSub,
                             @Param("organizacionId") Long organizacionId,
                             @Param("deletedAt") LocalDateTime deletedAt,
                             @Param("deletedBy") String deletedBy);
