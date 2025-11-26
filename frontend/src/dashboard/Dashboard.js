@@ -57,7 +57,7 @@ const mockKpiTrends = {
 };
 
 const mockSalesTrend = {
-  title: "Ingresos durante el periodo",
+  title: "Ingresos durante el período",
   average: 185000,
   max: { value: 215000, label: "abr 2025" },
   min: { value: 142000, label: "ene 2025" },
@@ -78,7 +78,7 @@ const mockSalesTrend = {
 };
 
 const mockExpensesTrend = {
-  title: "Egresos durante el periodo",
+  title: "Egresos durante el período",
   average: 142000,
   max: { value: 168000, label: "mar 2025" },
   min: { value: 118000, label: "ene 2025" },
@@ -182,7 +182,7 @@ const mockTasks = [
   {
     id: "task-3",
     title: "categoriar movimientos",
-    description: "3 ingresos sin categoria asignada.",
+    description: "3 ingresos sin categoría asignada.",
     severity: "low",
   },
 ];
@@ -750,7 +750,7 @@ const Dashboard = React.memo(() => {
               loading: false,
               error: null,
               data: mapTrendResponse(composite.ingresosMensuales, {
-                title: "Ingresos durante el periodo",
+                title: "Ingresos durante el período",
                 emptyMessage: "No hay ingresos registrados en este periodo.",
                 subheader:
                   "Serie mensual de ingresos registrados en los ultimos 12 meses.",
@@ -763,7 +763,7 @@ const Dashboard = React.memo(() => {
               loading: false,
               error: null,
               data: mapTrendResponse(composite.egresosMensuales, {
-                title: "Egresos durante el periodo",
+                title: "Egresos durante el período",
                 emptyMessage: "No hay egresos registrados en este periodo.",
                 subheader:
                   "Serie mensual de egresos registrados en los ultimos 12 meses.",
@@ -1134,7 +1134,7 @@ const Dashboard = React.memo(() => {
               <SalesTrendWidget
                 data={
                   state.salesTrend.data ?? {
-                    title: "Ingresos durante el periodo",
+                    title: "Ingresos durante el período",
                     points: [],
                     average: 0,
                     max: { value: 0, label: "--" },
@@ -1171,7 +1171,7 @@ const Dashboard = React.memo(() => {
               <SalesTrendWidget
                 data={
                   state.expensesTrend.data ?? {
-                    title: "Egresos durante el periodo",
+                    title: "Egresos durante el período",
                     points: [],
                     average: 0,
                     max: { value: 0, label: "--" },
