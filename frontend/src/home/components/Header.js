@@ -9,6 +9,7 @@ import MenuButton from './MenuButton';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import Logo from '../../shared-components/Logo';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -33,6 +34,22 @@ const Header = React.memo(function Header({ onToggleSidebar }) {
     >
       {/* Columna izquierda */}
       <Stack direction="row" spacing={1} alignItems="center">
+        {isMobile && (
+          <Stack
+            component={RouterLink}
+            to="/dashboard"
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{
+              display: { xs: 'inline-flex', md: 'none' },
+              textDecoration: 'none',
+              color: 'inherit',
+            }}
+          >
+            <Logo size={52} mobile />
+          </Stack>
+        )}
         {/* Desktop: breadcrumbs */}
         <NavbarBreadcrumbs sx={{ display: { xs: 'none', md: 'flex' } }} />
       </Stack>

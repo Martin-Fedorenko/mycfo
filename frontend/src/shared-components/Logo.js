@@ -3,22 +3,22 @@ import React from "react";
 import { Box } from "@mui/material";
 
 export default function Logo({ size = 32, mobile = false }) {
-  const logoSrc = mobile
-    ? `${process.env.PUBLIC_URL}/logo-mobile.png` // tu logo para móvil
-    : `${process.env.PUBLIC_URL}/logo192.png`;    // logo para desktop
+  const defaultLogo = `${process.env.PUBLIC_URL}/logo192.png`;
+  const logoSrc = mobile ? defaultLogo : defaultLogo;
 
   return (
     <Box
       sx={{
         width: size,
         height: size,
-        borderRadius: "50%",
-        overflow: "hidden",
+        borderRadius: 0,
+        overflow: "visible",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         border: "none",
         boxShadow: "none",
+        backgroundColor: "transparent",
       }}
     >
       <img
@@ -27,12 +27,14 @@ export default function Logo({ size = 32, mobile = false }) {
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit: "contain",
+          backgroundColor: "transparent",
+          display: "block",
         }}
         onError={(e) => {
-          console.error("Error al cargar logo:", e.target.src);
-          e.target.style.backgroundColor = "lightcoral";
-          e.target.style.opacity = 0.5;
+          if (e?.target?.src !== defaultLogo) {
+            e.target.src = defaultLogo; // fallback a logo existente
+          }
         }}
       />
     </Box>

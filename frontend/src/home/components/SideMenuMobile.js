@@ -15,6 +15,7 @@ import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { Box } from '@mui/material';
 import LogoutButton from './LogoutButton';
 import { useNavigate } from 'react-router-dom';
+import Logo from '../../shared-components/Logo';
 
 function SideMenuMobile({ open, toggleDrawer }) {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function SideMenuMobile({ open, toggleDrawer }) {
             spacing={1}
             sx={{ justifyContent: 'center', alignItems: 'center', mr: 'auto' }}
           >
+            <Logo size={52} mobile />
             <Typography variant="h4" component="h1" sx={{ color: 'text.primary' }}>
               MyCFO
             </Typography>
