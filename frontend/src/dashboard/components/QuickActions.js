@@ -5,10 +5,14 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const QuickActions = ({ actions = [], loading = false, onAction }) => {
   const { resolvedMode, primaryTextColor } = useResolvedColorTokens();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDarkMode = resolvedMode === "dark";
 
   if (loading) {
@@ -53,16 +57,13 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
         <Box
           sx={{
             display: "flex",
-            flexWrap: { xs: "nowrap", md: "wrap" },
-            overflowX: { xs: "auto", md: "visible" },
+            flexWrap: { xs: "wrap", md: "wrap" },
+            overflowX: "visible",
             gap: 1,
             pb: { xs: 0.5, md: 0 },
-            justifyContent: { xs: "flex-start", md: "center" },
+            justifyContent: { xs: "center", md: "center" },
             alignItems: "center",
             width: "100%",
-            "&::-webkit-scrollbar": {
-              display: "none",
-            },
           }}
         >
           {actions.map((action) => (
@@ -70,20 +71,24 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
               key={action.id}
               variant="outlined"
               color="primary"
-              startIcon={action.icon}
+              startIcon={!isMobile ? action.icon : undefined}
               onClick={() => onAction?.(action)}
               sx={{
                 flexShrink: 0,
                 borderRadius: 2,
-                px: 2,
-                py: 1,
+                px: isMobile ? 1 : 2,
+                py: isMobile ? 0.75 : 1,
                 textTransform: "none",
-                minWidth: { xs: 140, md: 150 },
+                minWidth: { xs: 56, md: 150 },
+                minHeight: { xs: 56, md: 40 },
                 fontWeight: 600,
+                justifyContent: "center",
+                "& .MuiButton-startIcon": { margin: isMobile ? 0 : undefined },
                 ...(isDarkMode && { color: "#42897f" }),
               }}
+              aria-label={action.label}
             >
-              {action.label}
+              {isMobile ? action.icon : action.label}
             </Button>
           ))}
         </Box>
