@@ -6,6 +6,7 @@ import {
   Paper,
   TextField,
   InputAdornment,
+  useTheme,
   FormControl,
   InputLabel,
   Select,
@@ -19,6 +20,7 @@ import {
   Divider,
   LinearProgress,
   Pagination,
+  useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -28,10 +30,10 @@ import MovimientoCard from "./components/MovimientoCard";
 import DocumentoCard from "./components/DocumentoCard";
 import conciliacionApi from "./api/conciliacionApi";
 
-const MOVIMIENTOS_POR_PAGINA = 5;
-const DOCUMENTOS_POR_PAGINA = 5;
-
 export default function ConciliacionPanel() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [movimientos, setMovimientos] = useState([]);
   const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
   const [sugerencias, setSugerencias] = useState([]);
@@ -44,17 +46,24 @@ export default function ConciliacionPanel() {
   const [paginaActual, setPaginaActual] = useState(0); // Backend usa 0-based
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [totalElementos, setTotalElementos] = useState(0);
-  const [tamanioPagina] = useState(10);
+  const [tamanioPagina, setTamanioPagina] = useState(isMobile ? 1 : 10);
 
   // Filtros
   const [filtroEstado, setFiltroEstado] = useState("sin-conciliar"); // 'todos', 'sin-conciliar', 'conciliados'
   const [filtroTipo, setFiltroTipo] = useState("todos"); // 'todos', 'Ingreso', 'Egreso'
   const [filtroBusqueda, setFiltroBusqueda] = useState("");
   const [paginaSugerencias, setPaginaSugerencias] = useState(1);
+  const documentosPorPagina = isMobile ? 1 : 5;
 
   useEffect(() => {
     setPaginaActual(0);
   }, [filtroEstado, filtroTipo, filtroBusqueda]);
+
+  useEffect(() => {
+    const nuevoTamanio = isMobile ? 1 : 10;
+    setTamanioPagina(nuevoTamanio);
+    setPaginaActual(0);
+  }, [isMobile]);
 
   const cargarMovimientos = useCallback(async () => {
     setLoading(true);
@@ -194,7 +203,7 @@ export default function ConciliacionPanel() {
   // Paginación de sugerencias (solo local, ya que son pocas)
   const totalPaginasSugerencias = Math.max(
     1,
-    Math.ceil(sugerencias.length / DOCUMENTOS_POR_PAGINA)
+    Math.ceil(sugerencias.length / documentosPorPagina)
   );
 
   useEffect(() => {
@@ -203,14 +212,18 @@ export default function ConciliacionPanel() {
     }
   }, [paginaSugerencias, totalPaginasSugerencias]);
 
+  useEffect(() => {
+    setPaginaSugerencias(1);
+  }, [documentosPorPagina]);
+
   const paginaSugerenciasActiva = Math.min(
     paginaSugerencias,
     totalPaginasSugerencias
   );
 
   const sugerenciasPaginadas = sugerencias.slice(
-    (paginaSugerenciasActiva - 1) * DOCUMENTOS_POR_PAGINA,
-    paginaSugerenciasActiva * DOCUMENTOS_POR_PAGINA
+    (paginaSugerenciasActiva - 1) * documentosPorPagina,
+    paginaSugerenciasActiva * documentosPorPagina
   );
 
   // Handler para cambio de página
@@ -413,9 +426,27 @@ export default function ConciliacionPanel() {
           mx: "auto",
         }}
       >
-        <Grid container spacing={2} sx={{ height: "100%" }}>
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            height: "100%",
+            flexWrap: { xs: "wrap", md: "nowrap" }, // evita que la columna de sugeridos baje en escritorio
+            alignItems: "stretch",
+          }}
+        >
           {/* Columna izquierda: Movimientos */}
-          <Grid item xs={12} md={6} sx={{ height: "100%" }}>
+          <Grid
+            item
+            xs={12}
+            md={6}
+            sx={{
+              height: "100%",
+              minWidth: 0,
+              flexBasis: { md: "50%" },
+              maxWidth: { md: "50%" },
+            }}
+          >
             <Paper
               sx={{
                 p: 2,
@@ -423,6 +454,7 @@ export default function ConciliacionPanel() {
                 minHeight: { xs: 160, sm: 180, md: 210 },
                 display: "flex",
                 flexDirection: "column",
+                minWidth: 0,
               }}
             >
               <Typography variant="h6" gutterBottom>
@@ -483,7 +515,17 @@ export default function ConciliacionPanel() {
           </Grid>
 
           {/* Columna derecha: Sugerencias */}
-          <Grid item xs={12} md={6} sx={{ height: "100%" }}>
+          <Grid
+            item
+            xs={12}
+            md={6}
+            sx={{
+              height: "100%",
+              minWidth: 0,
+              flexBasis: { md: "50%" },
+              maxWidth: { md: "50%" },
+            }}
+          >
             <Paper
               sx={{
                 p: 2,
@@ -491,6 +533,7 @@ export default function ConciliacionPanel() {
                 minHeight: { xs: 160, sm: 180, md: 210 },
                 display: "flex",
                 flexDirection: "column",
+                minWidth: 0,
               }}
             >
               <Typography variant="h6" gutterBottom>
