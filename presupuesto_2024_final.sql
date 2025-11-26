@@ -7,7 +7,7 @@ USE pronostico_db;
 INSERT INTO presupuesto (id, nombre, desde, hasta, created_at, deleted, deleted_at, deleted_by, owner_sub, organizacion_id)
 VALUES
 (2, 'Presupuesto 2025', '2025-01-01', '2025-12-31', NOW(), false, NULL, NULL,
- 'c30cfafa-f0b1-7079-e8a3-8ac9fb0aa691', 2)
+ '136cda9a-e0d1-7005-14e6-27a2f765e0be', 1)
 AS new_values
 ON DUPLICATE KEY UPDATE
   nombre = new_values.nombre,
