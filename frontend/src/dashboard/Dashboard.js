@@ -1223,7 +1223,7 @@ const Dashboard = React.memo(() => {
             {/* Sección comparativa Caja vs Devengado del último mes */}
             <LiquidityGapWidget />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={4} sx={{ display: { xs: "none", md: "block" } }}>
             <ReconciliationWidget
               data={state.reconciliation.data}
               loading={
@@ -1246,7 +1246,13 @@ const Dashboard = React.memo(() => {
           container
           spacing={2}
           justifyContent="center"
-          sx={{ mt: 1, width: "100%", maxWidth: 1600, mx: "auto" }}
+          sx={{
+            mt: 1,
+            width: "100%",
+            maxWidth: 1600,
+            mx: "auto",
+            display: { xs: "none", md: "flex" },
+          }}
         >
           <Grid item xs={12} md={6}>
             <RecentMovementsWidget
