@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   Box, Typography, Chip, IconButton, Dialog, DialogTitle, DialogContent, 
   DialogActions, Button, Grid, TextField, Alert, FormLabel, FormHelperText, OutlinedInput, Snackbar, LinearProgress
 } from "@mui/material";
+import { useTheme, useMediaQuery } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -32,6 +33,8 @@ import SuccessSnackbar from "../../shared-components/SuccessSnackbar";
 export default function TablaRegistrosV2() {
   const [movimientos, setMovimientos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   
   // Paginación del servidor
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -509,8 +512,8 @@ export default function TablaRegistrosV2() {
   };
 
   // Definir columnas para DataGrid
-  const columns = [
-    {
+  const columns = useMemo(() => {
+    const tipoColumn = {
       field: "tipo",
       headerName: "Tipo",
       flex: 0.8,
@@ -536,8 +539,9 @@ export default function TablaRegistrosV2() {
           />
         );
       },
-    },
-    {
+    };
+
+    const montoColumn = {
       field: "montoTotal",
       headerName: "Monto",
       flex: 0.8,
@@ -574,8 +578,9 @@ export default function TablaRegistrosV2() {
           </Typography>
         );
       },
-    },
-    {
+    };
+
+    const fechaColumn = {
       field: "fechaEmision",
       headerName: "Fecha",
       flex: 0.7,
@@ -587,8 +592,9 @@ export default function TablaRegistrosV2() {
           </Typography>
         );
       },
-    },
-    {
+    };
+
+    const estadoColumn = {
       field: "estado",
       headerName: "Estado",
       flex: 0.8,
@@ -622,8 +628,9 @@ export default function TablaRegistrosV2() {
           />
         );
       },
-    },
-    {
+    };
+
+    const categoriaColumn = {
       field: "categoria",
       headerName: "Categoría",
       flex: 1,
@@ -640,8 +647,9 @@ export default function TablaRegistrosV2() {
           />
         );
       },
-    },
-    {
+    };
+
+    const origenColumn = {
       field: "origenNombre",
       headerName: "Origen",
       flex: 1,
@@ -649,8 +657,9 @@ export default function TablaRegistrosV2() {
       renderCell: (params) => {
         return <Typography variant="body2" sx={{ lineHeight: "24px" }}>{params.value || "-"}</Typography>;
       },
-    },
-    {
+    };
+
+    const destinoColumn = {
       field: "destinoNombre",
       headerName: "Destino",
       flex: 1,
@@ -658,8 +667,19 @@ export default function TablaRegistrosV2() {
       renderCell: (params) => {
         return <Typography variant="body2" sx={{ lineHeight: "24px" }}>{params.value || "-"}</Typography>;
       },
-    },
-    {
+    };
+
+    const descripcionColumn = {
+      field: "descripcion",
+      headerName: "Descripción",
+      flex: 1.2,
+      minWidth: 150,
+      renderCell: (params) => {
+        return <Typography variant="body2" sx={{ lineHeight: "24px" }}>{params.value || "-"}</Typography>;
+      },
+    };
+
+    const accionesColumn = {
       field: "acciones",
       headerName: "Acciones",
       flex: 1,
@@ -701,8 +721,24 @@ export default function TablaRegistrosV2() {
           </Box>
         );
       },
-    },
-  ];
+    };
+
+    if (isMobile) {
+      return [tipoColumn, montoColumn, accionesColumn];
+    }
+
+    return [
+      tipoColumn,
+      montoColumn,
+      fechaColumn,
+      estadoColumn,
+      categoriaColumn,
+      origenColumn,
+      destinoColumn,
+      descripcionColumn,
+      accionesColumn,
+    ];
+  }, [isMobile, usuarioRol]);
 
   return (
     <Box sx={{ width: "100%", p: 3 }}>
