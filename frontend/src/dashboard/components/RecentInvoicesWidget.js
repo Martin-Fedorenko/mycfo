@@ -15,6 +15,8 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const typeStyles = {
@@ -72,6 +74,8 @@ const RecentInvoicesWidget = ({
   onNavigate,
 }) => {
   const { resolvedMode, primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDarkMode = resolvedMode === "dark";
   const cardHeaderTypography = React.useMemo(
     () => ({
@@ -148,10 +152,10 @@ const RecentInvoicesWidget = ({
               <TableHead>
                 <TableRow>
                   <TableCell>Tipo</TableCell>
-                  <TableCell>Número</TableCell>
+                  {!isMobile ? <TableCell>Número</TableCell> : null}
                   <TableCell align="right">Monto</TableCell>
                   <TableCell>Fecha</TableCell>
-                  <TableCell>Cliente</TableCell>
+                  {!isMobile ? <TableCell>Cliente</TableCell> : null}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -178,22 +182,24 @@ const RecentInvoicesWidget = ({
                           }}
                         />
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{numero}</Typography>
-                      </TableCell>
+                      {!isMobile ? (
+                        <TableCell>
+                          <Typography variant="body2">{numero}</Typography>
+                        </TableCell>
+                      ) : null}
                       <TableCell align="right" sx={{ color: amountColor, fontWeight: 600 }}>
                         {formatAmount(invoice.montoTotal, invoice.moneda)}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
-                          {formatDate(invoice.fechaEmision)}
-                        </Typography>
+                        <Typography variant="body2">{formatDate(invoice.fechaEmision)}</Typography>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: secondaryTextColor }}>
-                          {cliente}
-                        </Typography>
-                      </TableCell>
+                      {!isMobile ? (
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: secondaryTextColor }}>
+                            {cliente}
+                          </Typography>
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   );
                 })}
