@@ -75,12 +75,15 @@ const QuickActions = ({ actions = [], loading = false, onAction }) => {
               onClick={() => onAction?.(action)}
               sx={{
                 flexShrink: 0,
+                flex: isMobile ? "1 0 calc(25% - 12px)" : "0 0 auto",
+                maxWidth: isMobile ? "25%" : "none",
                 borderRadius: 2,
                 px: isMobile ? 1 : 2,
                 py: isMobile ? 0.75 : 1,
                 textTransform: "none",
-                minWidth: { xs: 56, md: 150 },
+                minWidth: { xs: 80, md: 150 },
                 minHeight: { xs: 56, md: 40 },
+                width: isMobile ? "100%" : "auto",
                 fontWeight: 600,
                 justifyContent: "center",
                 "& .MuiButton-startIcon": { margin: isMobile ? 0 : undefined },
