@@ -32,6 +32,7 @@ export default function CargaVistaFinal() {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [dialogData, setDialogData] = useState(null);
   const [dialogEndpoint, setDialogEndpoint] = useState("");
+  const [dialogMessage, setDialogMessage] = useState("");
 
   const API_BASE = API_CONFIG.REGISTRO;
 
@@ -109,6 +110,25 @@ export default function CargaVistaFinal() {
     }
   };
 
+  const abrirDialogoFormulario = ({ datos = {}, vistaPrevia = null, mensaje = "" } = {}) => {
+    setFormData(datos);
+    setDialogData(vistaPrevia);
+    setDialogEndpoint(endpointMap[tipo]?.formulario || "");
+    setDialogMessage(mensaje);
+    setErrors({});
+    setFormDialogOpen(true);
+  };
+
+  const handleFallbackManual = (info) => {
+    abrirDialogoFormulario({
+      datos: {},
+      vistaPrevia: null,
+      mensaje:
+        info?.mensaje ||
+        "No pudimos procesar el archivo. Completa los datos manualmente.",
+    });
+  };
+
   const handleResultadoAudio = (respuesta) => {
     if (!respuesta) return;
     console.group("Resultado de audio");
@@ -128,8 +148,6 @@ export default function CargaVistaFinal() {
     });
     normalizados.moneda = "ARS";
     const merged = { ...formData, ...normalizados };
-    setFormData(merged);
-    setErrors({});
 
     const transcript =
       respuesta.transcript ||
@@ -157,11 +175,10 @@ export default function CargaVistaFinal() {
       console.warn(
         "Autocompletado por audio: no se detectaron campos para completar."
       );
-      alert(
-        "No se detectaron datos válidos en el audio. Grabá un nuevo audio con más detalle."
-      );
-      setDialogData(null);
-      setFormDialogOpen(false);
+      handleFallbackManual({
+        mensaje:
+          "No pudimos interpretar el audio. Completa los datos manualmente.",
+      });
       console.groupEnd();
       return;
     }
@@ -175,9 +192,10 @@ export default function CargaVistaFinal() {
     console.groupEnd();
 
     const vistaPrevia = prepararVistaPrevia(merged);
-    setDialogData(vistaPrevia);
-    setDialogEndpoint(endpointMap[tipo]?.formulario || "");
-    setFormDialogOpen(true);
+    abrirDialogoFormulario({
+      datos: merged,
+      vistaPrevia,
+    });
   };
 
   const renderContenido = () => {
@@ -217,7 +235,11 @@ export default function CargaVistaFinal() {
       case "foto":
         return (
           <Suspense fallback={<LoadingFallback />}>
-            <CargaImagen tipoDoc={tipo} endpoint={endpoint} />
+            <CargaImagen
+              tipoDoc={tipo}
+              endpoint={endpoint}
+              onFallback={handleFallbackManual}
+            />
           </Suspense>
         );
       case "audio":
@@ -227,6 +249,7 @@ export default function CargaVistaFinal() {
               tipoDoc={tipo}
               endpoint={endpoint}
               onResultado={handleResultadoAudio}
+              onFallback={handleFallbackManual}
             />
           </Suspense>
         );
@@ -250,26 +273,35 @@ export default function CargaVistaFinal() {
       </Typography>
       {renderContenido()}
       <Dialog
-        open={formDialogOpen && !!dialogData}
+        open={formDialogOpen}
         onClose={() => {
           setFormDialogOpen(false);
           setDialogData(null);
+          setDialogMessage("");
         }}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 600 }}>
-          Revisá y completá la información detectada
+          {dialogData
+            ? "Revisá y completá la información detectada"
+            : "Completá los datos manualmente"}
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
-          {dialogData && (
-            <Suspense
-              fallback={
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                  <CircularProgress />
-                </Box>
-              }
-            >
+          <Suspense
+            fallback={
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress />
+              </Box>
+            }
+          >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {dialogData && renderVistaPrevia()}
+              {dialogMessage && (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {dialogMessage}
+                </Typography>
+              )}
               <CargaFormulario
                 tipoDoc={tipo}
                 endpoint={dialogEndpoint}
@@ -278,14 +310,15 @@ export default function CargaVistaFinal() {
                 errors={errors}
                 setErrors={setErrors}
               />
-            </Suspense>
-          )}
+            </Box>
+          </Suspense>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button
             onClick={() => {
               setFormDialogOpen(false);
               setDialogData(null);
+              setDialogMessage("");
             }}
             variant="outlined"
           >

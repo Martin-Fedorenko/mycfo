@@ -39,6 +39,7 @@ export default function CargaGeneral() {
   const [dialogTipoDoc, setDialogTipoDoc] = useState("");
   const [dialogEndpoint, setDialogEndpoint] = useState("");
   const [dialogData, setDialogData] = useState(null);
+  const [dialogMessage, setDialogMessage] = useState("");
 
   const prepararVistaPrevia = (datos) => {
     if (!datos) return null;
@@ -140,6 +141,29 @@ export default function CargaGeneral() {
     { key: "audio", label: "Audio", icon: <Mic fontSize="large" /> },
   ];
 
+  const abrirDialogoFormulario = ({ datos = {}, vistaPrevia = null, mensaje = "" } = {}) => {
+    const tipoDocLower = (tipoDoc || "").toLowerCase();
+    setDialogTipoDoc(tipoDocLower);
+    const formularioEndpoint = endpointMap[tipoDoc]?.formulario;
+    setDialogEndpoint(formularioEndpoint || "");
+    setFormData(datos);
+    setDialogData(vistaPrevia);
+    setDialogMessage(mensaje);
+    setErrors({});
+    setFormDialogOpen(true);
+  };
+
+  const handleFallbackManual = (info) => {
+    const mensaje =
+      info?.mensaje ||
+      "No pudimos procesar el archivo. Completa los datos manualmente.";
+    abrirDialogoFormulario({
+      datos: {},
+      vistaPrevia: null,
+      mensaje,
+    });
+  };
+
   const handleResultadoAudio = (respuesta) => {
     if (!respuesta) return;
     console.group("Resultado de audio");
@@ -159,8 +183,6 @@ export default function CargaGeneral() {
     });
     normalizados.moneda = "ARS";
     const merged = { ...formData, ...normalizados };
-    setFormData(merged);
-    setErrors({});
     const transcript =
       respuesta.transcript ||
       respuesta.texto ||
@@ -193,22 +215,20 @@ export default function CargaGeneral() {
       console.warn(
         "Autocompletado por audio: no se detectaron campos para completar."
       );
-      alert(
-        "No se detectaron datos válidos en el audio. Por favor, grabalo nuevamente."
-      );
-      setDialogData(null);
-      setFormDialogOpen(false);
+      handleFallbackManual({
+        mensaje:
+          "No pudimos interpretar el audio. Completa los datos manualmente.",
+      });
       console.groupEnd();
       return;
     }
     console.groupEnd();
-    const tipoDocLower = (tipoDoc || "").toLowerCase();
-    setDialogTipoDoc(tipoDocLower);
-    const formularioEndpoint = endpointMap[tipoDoc]?.formulario;
-    setDialogEndpoint(formularioEndpoint || "");
     const vistaPrevia = prepararVistaPrevia(merged);
-    setDialogData(vistaPrevia);
-    setFormDialogOpen(true);
+    abrirDialogoFormulario({
+      datos: merged,
+      vistaPrevia,
+      mensaje: "",
+    });
   };
 
   const renderContenido = () => {
@@ -235,13 +255,20 @@ export default function CargaGeneral() {
       case "documento":
         return <CargaDocumento tipoDoc={tipoDoc} endpoint={endpoint} />;
       case "foto":
-        return <CargaImagen tipoDoc={tipoDoc} endpoint={endpoint} />;
+        return (
+          <CargaImagen
+            tipoDoc={tipoDoc}
+            endpoint={endpoint}
+            onFallback={handleFallbackManual}
+          />
+        );
       case "audio":
         return (
           <CargaAudio
             tipoDoc={tipoDoc}
             endpoint={endpoint}
             onResultado={handleResultadoAudio}
+            onFallback={handleFallbackManual}
           />
         );
 
@@ -281,6 +308,8 @@ export default function CargaGeneral() {
                     setFormDialogOpen(false);
                     setDialogTipoDoc("");
                     setDialogEndpoint("");
+                    setDialogData(null);
+                    setDialogMessage("");
                   }}
                   sx={{
                     flexDirection: "column",
@@ -322,6 +351,8 @@ export default function CargaGeneral() {
                       setModoCarga(m.key);
                       setErrors({});
                       setFormDialogOpen(false);
+                      setDialogData(null);
+                      setDialogMessage("");
                     }}
                     sx={{
                       flexDirection: "column",
@@ -360,6 +391,8 @@ export default function CargaGeneral() {
                   setFormData({});
                   setErrors({});
                   setFormDialogOpen(false);
+                  setDialogData(null);
+                  setDialogMessage("");
                 }}
                 sx={{
                   p: 1,
@@ -379,6 +412,8 @@ export default function CargaGeneral() {
                   setFormDialogOpen(false);
                   setDialogTipoDoc("");
                   setDialogEndpoint("");
+                  setDialogData(null);
+                  setDialogMessage("");
                 }}
                 sx={{
                   p: 1,
@@ -395,40 +430,49 @@ export default function CargaGeneral() {
         )}
       </Box>
       <Dialog
-        open={formDialogOpen && !!dialogData}
+        open={formDialogOpen}
         onClose={() => {
           setFormDialogOpen(false);
           setDialogData(null);
+          setDialogMessage("");
         }}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 600 }}>
-          Revisá y completá la información detectada
+          {dialogData
+            ? "Revisá y completá la información detectada"
+            : "Completá los datos manualmente"}
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
-          {dialogData && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              {renderVistaPrevia()}
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Podés editar los datos antes de guardar
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {dialogData && renderVistaPrevia()}
+            {dialogMessage && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {dialogMessage}
               </Typography>
-              <CargaFormulario
-                tipoDoc={dialogTipoDoc || (tipoDoc || "").toLowerCase()}
-                endpoint={dialogEndpoint || endpointMap[tipoDoc]?.formulario}
-                formData={formData}
-                setFormData={setFormData}
-                errors={errors}
-                setErrors={setErrors}
-              />
-            </Box>
-          )}
+            )}
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              {dialogData
+                ? "Podés editar los datos antes de guardar"
+                : "Cargá los datos y enviá el registro"}
+            </Typography>
+            <CargaFormulario
+              tipoDoc={dialogTipoDoc || (tipoDoc || "").toLowerCase()}
+              endpoint={dialogEndpoint || endpointMap[tipoDoc]?.formulario}
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+              setErrors={setErrors}
+            />
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button
             onClick={() => {
               setFormDialogOpen(false);
               setDialogData(null);
+              setDialogMessage("");
             }}
             variant="outlined"
           >

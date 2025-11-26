@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Alert,
 } from "@mui/material";
 import { CameraAlt, Check, Close, Delete } from "@mui/icons-material";
 import Webcam from "react-webcam";
@@ -14,12 +15,13 @@ import CustomButton from "../../../shared-components/CustomButton";
 import ImageIcon from "@mui/icons-material/Image";
 import axios from "axios";
 
-export default function CargaImagen({ tipoDoc, endpointMap }) {
+export default function CargaImagen({ tipoDoc, endpoint, onFallback }) {
   const webcamRef = useRef(null);
   const [capturando, setCapturando] = useState(true);
   const [fotoTemporal, setFotoTemporal] = useState(null);
   const [fotos, setFotos] = useState([]);
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
+  const [error, setError] = useState(null);
 
   const tomarFoto = () => {
     const img = webcamRef.current.getScreenshot();
@@ -55,7 +57,16 @@ export default function CargaImagen({ tipoDoc, endpointMap }) {
 
   const handleSubmit = async () => {
     if (fotos.length === 0) return;
-    const endpoint = endpointMap[tipoDoc].foto;
+    if (!endpoint) {
+      setError("No se encontró el endpoint para subir las fotos.");
+      if (onFallback) {
+        onFallback({
+          origen: "foto",
+          mensaje: "No se encontró el endpoint para subir las fotos. Carga los datos manualmente.",
+        });
+      }
+      return;
+    }
     try {
       const fd = new FormData();
       fotos.forEach((f, idx) => {
@@ -65,8 +76,19 @@ export default function CargaImagen({ tipoDoc, endpointMap }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       alert("✅ Fotos enviadas!");
+      setFotos([]);
+      setError(null);
     } catch (err) {
-      console.error("❌ Error en envío:", err);
+      console.error("❌ Error en envío de foto:", err);
+      const mensaje = err.response?.data?.message || err.message || "Error al procesar las fotos.";
+      setError(mensaje);
+      if (onFallback) {
+        onFallback({
+          origen: "foto",
+          mensaje,
+          detalle: err,
+        });
+      }
     }
   };
 
@@ -165,6 +187,11 @@ export default function CargaImagen({ tipoDoc, endpointMap }) {
             sx={{ mt: 2 }}
             onClick={handleSubmit}
           />
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
         </>
       )}
 

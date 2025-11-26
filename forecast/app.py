@@ -27,7 +27,7 @@ logging.getLogger("prophet").disabled = True
 INTERVAL_WIDTH = 0.95
 PERIODS_ADELANTE = 12          # meses a proyectar (por defecto)
 FREQ = "MS"                    # frecuencia mensual
-DEFAULT_INCLUIR_GRAFICO = True  # 🔧 controlar si se devuelve el gráfico
+DEFAULT_INCLUIR_GRAFICO = False  # 🔧 controlar si se devuelve el gráfico
 
 
 # ==============================================================

@@ -29,7 +29,7 @@ const tipoMovimientoMap = {
   Factura: "Factura",
 };
 
-export default function CargaAudio({ tipoDoc, endpoint, onResultado }) {
+export default function CargaAudio({ tipoDoc, endpoint, onResultado, onFallback }) {
   const [grabando, setGrabando] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -118,11 +118,19 @@ export default function CargaAudio({ tipoDoc, endpoint, onResultado }) {
       });
 
       if (!camposDetectados) {
-        setParseWarning({
+        const warningPayload = {
           message: "No se pudo interpretar el audio. Por favor grabalo nuevamente procurando mayor claridad.",
           transcript: transcript || "Sin transcripción disponible.",
-        });
+        };
+        setParseWarning(warningPayload);
         console.warn("Procesamiento de audio sin campos detectados.", { transcript, warnings });
+        if (onFallback) {
+          onFallback({
+            origen: "audio",
+            mensaje: "No pudimos interpretar el audio. Completa los datos manualmente.",
+            detalle: warningPayload,
+          });
+        }
         return;
       }
 
@@ -133,6 +141,13 @@ export default function CargaAudio({ tipoDoc, endpoint, onResultado }) {
       console.error("❌ Error en envío:", err);
       const mensaje = err.response?.data?.message || err.message || "Error desconocido al procesar el audio.";
       setError(mensaje);
+      if (onFallback) {
+        onFallback({
+          origen: "audio",
+          mensaje,
+          detalle: err,
+        });
+      }
     } finally {
       setCargando(false);
     }
