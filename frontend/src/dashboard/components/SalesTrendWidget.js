@@ -8,6 +8,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { useTheme, alpha } from "@mui/material/styles";
 import useResolvedColorTokens from "../useResolvedColorTokens";
@@ -78,6 +79,7 @@ const monthLabel = (raw, index) => {
 
 const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage }) => {
   const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
 
   if (loading) {
@@ -138,63 +140,82 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
           sx: { color: primaryTextColor },
         }}
         action={
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="flex-start"
+          <Box
             sx={{
-              pr: 2.5,
-              pt: 0.5,
-              flexWrap: "wrap",
-              rowGap: 1,
-              justifyContent: "flex-end",
-              "& .MuiTypography-overline": { letterSpacing: 0.6 },
+              width: { xs: "100%", sm: "auto" },
+              pr: { xs: 0, sm: 2.5 },
+              pt: { xs: 1, sm: 0.5 },
+              ml: { xs: 10, sm: 5 },
             }}
           >
-            <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" sx={{ color: primaryTextColor }}>
-                Maximo
-              </Typography>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
-                {formatCurrency(data?.max?.value)}
-              </Typography>
-              <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                {data?.max?.label ?? "--"}
-              </Typography>
-            </Stack>
-            <Divider
-              flexItem
-              orientation="vertical"
-              sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
-            />
-            <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" sx={{ color: primaryTextColor }}>
-                Minimo
-              </Typography>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
-                {formatCurrency(data?.min?.value)}
-              </Typography>
-              <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                {data?.min?.label ?? "--"}
-              </Typography>
-            </Stack>
-            <Divider
-              flexItem
-              orientation="vertical"
-              sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
-            />
-            <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-              <Typography variant="overline" sx={{ color: primaryTextColor }}>
-                Promedio
-              </Typography>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
-                {formatCurrency(data?.average)}
-              </Typography>
-                <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                  Últimos 12 meses
+            <Stack
+              direction={isSmall ? "column" : "row"}
+              spacing={isSmall ? 1.25 : 2}
+              alignItems={isSmall ? "flex-start" : "flex-start"}
+              justifyContent={isSmall ? "flex-start" : "flex-end"}
+              divider={
+                <Divider
+                  flexItem={!isSmall}
+                  orientation={isSmall ? "horizontal" : "vertical"}
+                  sx={{
+                    borderColor: "divider",
+                    mx: isSmall ? 0 : 0.5,
+                    my: isSmall ? 0.75 : 0,
+                  }}
+                />
+              }
+              sx={{
+                width: "100%",
+                "& .MuiTypography-overline": { letterSpacing: 0.6 },
+              }}
+            >
+              <Stack
+                spacing={0.5}
+                alignItems={isSmall ? "flex-start" : "flex-end"}
+                sx={{ minWidth: 120, width: isSmall ? "100%" : "auto" }}
+              >
+                <Typography variant="overline" sx={{ color: primaryTextColor }}>
+                  Maximo
                 </Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
+                  {formatCurrency(data?.max?.value)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: primaryTextColor }}>
+                  {data?.max?.label ?? "--"}
+                </Typography>
+              </Stack>
+              <Stack
+                spacing={0.5}
+                alignItems={isSmall ? "flex-start" : "flex-end"}
+                sx={{ minWidth: 120, width: isSmall ? "100%" : "auto" }}
+              >
+                <Typography variant="overline" sx={{ color: primaryTextColor }}>
+                  Minimo
+                </Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
+                  {formatCurrency(data?.min?.value)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: primaryTextColor }}>
+                  {data?.min?.label ?? "--"}
+                </Typography>
+              </Stack>
+              <Stack
+                spacing={0.5}
+                alignItems={isSmall ? "flex-start" : "flex-end"}
+                sx={{ minWidth: 120, width: isSmall ? "100%" : "auto" }}
+              >
+                <Typography variant="overline" sx={{ color: primaryTextColor }}>
+                  Promedio
+                </Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ color: primaryTextColor }}>
+                  {formatCurrency(data?.average)}
+                </Typography>
+                  <Typography variant="caption" sx={{ color: primaryTextColor }}>
+                    Últimos 12 meses
+                  </Typography>
+              </Stack>
             </Stack>
-          </Stack>
+          </Box>
         }
         sx={{
           py: 2,
@@ -204,6 +225,8 @@ const SalesTrendWidget = ({ data, loading = false, error = null, emptyMessage })
           },
           "& .MuiCardHeader-action": {
             mt: 0,
+            width: { xs: "100%", sm: "auto" },
+            alignSelf: { xs: "stretch", sm: "flex-start" },
           },
         }}
       />
