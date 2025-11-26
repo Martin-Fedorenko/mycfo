@@ -166,6 +166,7 @@ export default function MainGrid() {
   });
   const searchParamsRef = React.useRef("");
   const lastDeletedRef = React.useRef(null);
+  const [usuarioRol, setUsuarioRol] = React.useState(null);
   const monthName = React.useCallback((ym) => {
     if (!ym) return "";
     const [anio, mes] = ym.split("-");
@@ -173,6 +174,21 @@ export default function MainGrid() {
     return idx >= 0 && idx < monthLabels.length
       ? `${monthLabels[idx]} ${anio}`
       : ym;
+  }, []);
+
+  const cargarRolUsuario = React.useCallback(() => {
+    const sub = sessionStorage.getItem('sub');
+    if (!sub) return;
+    fetch(`${API_CONFIG.ADMINISTRACION}/api/usuarios/perfil`, {
+      headers: { 'X-Usuario-Sub': sub },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.rol) {
+          setUsuarioRol(data.rol);
+        }
+      })
+      .catch((err) => console.error('Error cargando rol de usuario:', err));
   }, []);
   const mergeYearOptions = React.useCallback((items) => {
     if (!Array.isArray(items) || items.length === 0) {
@@ -298,7 +314,8 @@ export default function MainGrid() {
   );
   React.useEffect(() => {
     fetchPresupuestos(statusFilter, pageIndex);
-  }, [fetchPresupuestos, statusFilter, pageIndex]);
+    cargarRolUsuario();
+  }, [fetchPresupuestos, statusFilter, pageIndex, cargarRolUsuario]);
   const handleStatusChange = (event, newValue) => {
     if (newValue === statusFilter) return;
     setStatusFilter(newValue);
@@ -561,6 +578,7 @@ export default function MainGrid() {
         menuState.presupuesto.id === p.id;
       const menuId = isMenuOpenForRow ? "presupuesto-actions-menu" : undefined;
       const buttonId = `acciones-presupuesto-${p.id}`;
+      const esAdmin = (usuarioRol || '').toUpperCase().includes('ADMIN');
       return (
         <TableRow key={p.id} sx={tableRowStyle}>
           <TableCell sx={(theme) => ({ ...tableCellStyle(theme), ...getColumnWidth(statusFilter).nombre })}>
@@ -600,19 +618,21 @@ export default function MainGrid() {
                 >
                   Ver detalle
                 </Button>
-                <Tooltip title="Más acciones">
-                  <IconButton
-                    size="small"
-                    aria-label="Más acciones"
-                    aria-controls={menuId}
-                    aria-haspopup="true"
-                    aria-expanded={isMenuOpenForRow ? "true" : undefined}
-                    id={buttonId}
-                    onClick={(event) => openActionsMenu(event, p)}
-                  >
-                    <MoreVertIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                {esAdmin && (
+                  <Tooltip title="Más acciones">
+                    <IconButton
+                      size="small"
+                      aria-label="Más acciones"
+                      aria-controls={menuId}
+                      aria-haspopup="true"
+                      aria-expanded={isMenuOpenForRow ? "true" : undefined}
+                      id={buttonId}
+                      onClick={(event) => openActionsMenu(event, p)}
+                    >
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
             )}
           </TableCell>

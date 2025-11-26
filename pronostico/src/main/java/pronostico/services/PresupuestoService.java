@@ -158,7 +158,7 @@ public class PresupuestoService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        int updated = repo.markDeletedIfActive(id, ownerSub, organizacionId, now, ownerSub);
+        int updated = repo.markDeletedIfActive(id, organizacionId, now, ownerSub);
         if (updated == 0) {
             log.debug("Otro proceso elimino previamente el presupuesto {}", id);
             return;
@@ -230,6 +230,8 @@ public class PresupuestoService {
     public Presupuesto mustOwnIncludingDeleted(Long id, String ownerSub, Long organizacionId) {
         Presupuesto presupuesto = repo.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Presupuesto no encontrado"));
+
+        // Si el presupuesto no tiene organizacion asignada, intentar backfill
         if (presupuesto.getOrganizacionId() == null) {
             try {
                 Long resolved = administracionService.obtenerEmpresaIdPorUsuarioSub(presupuesto.getOwnerSub());
@@ -239,12 +241,16 @@ public class PresupuestoService {
                 log.warn("No se pudo actualizar organizacion para el presupuesto {} (ownerSub={})", presupuesto.getId(), presupuesto.getOwnerSub());
             }
         }
+
+        // Siempre se exige pertenecer a la misma organización
         if (!Objects.equals(presupuesto.getOrganizacionId(), organizacionId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No autorizado");
         }
-        if (!Objects.equals(presupuesto.getOwnerSub(), ownerSub)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No autorizado");
-        }
+
+        // A partir de aquí no se valida el rol ni el owner: cualquier usuario de la
+        // misma organización puede operar sobre el presupuesto. La restricción de
+        // "solo administradores" se maneja exclusivamente en el frontend.
+
         return presupuesto;
     }
 

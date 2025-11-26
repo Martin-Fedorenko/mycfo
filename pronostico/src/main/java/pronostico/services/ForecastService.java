@@ -19,6 +19,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.util.Locale;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,6 +42,7 @@ public class ForecastService {
 
     private static final DateTimeFormatter ISO_DATE_TIME = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     private static final DateTimeFormatter YEAR_MONTH = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final Locale LOCALE_ES_AR = new Locale("es", "AR");
 
     /**
      * Genera un nuevo forecast basado en la configuración
@@ -273,12 +276,15 @@ public class ForecastService {
         YearMonth ahora = YearMonth.now();
         YearMonth inicio = ahora.plusMonths(1); // El siguiente mes
         YearMonth fin = ahora.plusMonths(config.getHorizonteMeses());
-        
+
+        String nombreBase = construirNombreForecast(config, ahora);
+        String nombreFinal = generarNombreUnico(config.getOrganizacionId(), nombreBase);
+
         // Crear forecast
         Forecast forecast = Forecast.builder()
                 .organizacionId(config.getOrganizacionId())
                 .forecastConfigId(config.getId())
-                .nombre("Forecast " + ahora.format(YEAR_MONTH))
+                .nombre(nombreFinal)
                 .mesesFrecuencia(config.getMesesFrecuencia())
                 .horizonteMeses(config.getHorizonteMeses())
                 .periodosAnalizados(periodosAnalizados)
@@ -338,6 +344,67 @@ public class ForecastService {
         return toDto(forecast);
     }
 
+    private String construirNombreForecast(pronostico.models.ForecastConfig config, YearMonth ahora) {
+        String frecuenciaLabel;
+        Integer mesesFrecuencia = config.getMesesFrecuencia();
+        if (mesesFrecuencia == null || mesesFrecuencia <= 0) {
+            frecuenciaLabel = "";
+        } else if (mesesFrecuencia == 1) {
+            frecuenciaLabel = "mensual";
+        } else if (mesesFrecuencia == 2) {
+            frecuenciaLabel = "bimestral";
+        } else if (mesesFrecuencia == 6) {
+            frecuenciaLabel = "semestral";
+        } else if (mesesFrecuencia == 12) {
+            frecuenciaLabel = "anual";
+        } else {
+            frecuenciaLabel = "cada " + mesesFrecuencia + " meses";
+        }
+
+        String mesNombre = ahora.getMonth().getDisplayName(TextStyle.FULL, LOCALE_ES_AR);
+        if (mesNombre != null && !mesNombre.isEmpty()) {
+            mesNombre = mesNombre.substring(0, 1).toLowerCase(LOCALE_ES_AR) + mesNombre.substring(1);
+        }
+
+        if (frecuenciaLabel.isEmpty()) {
+            return String.format("Pronóstico de %s de %d", mesNombre, ahora.getYear());
+        }
+
+        return String.format("Pronóstico %s de %s de %d", frecuenciaLabel, mesNombre, ahora.getYear());
+    }
+
+    private String generarNombreUnico(Long organizacionId, String nombreBase) {
+        List<Forecast> existentes = forecastRepository.findByOrganizacionIdAndEliminado(organizacionId, false);
+        int maxIndice = 0;
+        boolean existeBase = false;
+
+        for (Forecast f : existentes) {
+            String n = f.getNombre();
+            if (nombreBase.equals(n)) {
+                existeBase = true;
+                maxIndice = Math.max(maxIndice, 1);
+            } else if (n != null && n.startsWith(nombreBase + " ") && n.endsWith("")) {
+                int idxParentesis = n.lastIndexOf('(');
+                int idxCierre = n.lastIndexOf(')');
+                if (idxParentesis > nombreBase.length() && idxCierre > idxParentesis) {
+                    try {
+                        int num = Integer.parseInt(n.substring(idxParentesis + 1, idxCierre));
+                        if (num > maxIndice) {
+                            maxIndice = num;
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+
+        if (!existeBase) {
+            return nombreBase;
+        }
+
+        return nombreBase + " (" + (maxIndice + 1) + ")";
+    }
+
     /**
      * Obtiene todos los forecasts de una empresa
      */
@@ -365,26 +432,19 @@ public class ForecastService {
     }
 
     /**
-     * Elimina un forecast (soft delete)
+     * Elimina (soft delete) un forecast.
      */
     @Transactional
     public void eliminarForecast(Long id, String usuarioSub) {
         Forecast forecast = forecastRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, 
+                .orElseThrow(() -> new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,
                         "Forecast no encontrado"));
-        
-        // Verificar permisos
-        Long organizacionId = administracionService.obtenerEmpresaIdPorUsuarioSub(usuarioSub);
-        if (!forecast.getOrganizacionId().equals(organizacionId)) {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, 
-                    "No tiene permisos para eliminar este forecast");
-        }
-        
+
         forecast.setEliminado(true);
         forecast.setEliminadoAt(LocalDateTime.now());
         forecast.setEliminadoPor(usuarioSub);
         forecastRepository.save(forecast);
-        
+
         log.info("Forecast eliminado: ID={}", id);
     }
 
