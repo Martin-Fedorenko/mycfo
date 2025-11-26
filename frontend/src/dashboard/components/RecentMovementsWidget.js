@@ -15,6 +15,8 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import useResolvedColorTokens from "../useResolvedColorTokens";
 
 const typeStyles = {
@@ -75,6 +77,8 @@ const RecentMovementsWidget = ({
   onNavigate,
 }) => {
   const { resolvedMode, primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDarkMode = resolvedMode === "dark";
   const cardHeaderTypography = React.useMemo(
     () => ({
@@ -153,7 +157,7 @@ const RecentMovementsWidget = ({
                   <TableCell>Tipo</TableCell>
                   <TableCell align="right">Monto</TableCell>
                   <TableCell>Fecha</TableCell>
-                  <TableCell>Categoría</TableCell>
+                  {!isMobile ? <TableCell>Categoría</TableCell> : null}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -183,11 +187,13 @@ const RecentMovementsWidget = ({
                       <TableCell>
                         <Typography variant="body2">{formatDate(movement.fechaEmision)}</Typography>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: secondaryTextColor }}>
-                          {categoria}
-                        </Typography>
-                      </TableCell>
+                      {!isMobile ? (
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: secondaryTextColor }}>
+                            {categoria}
+                          </Typography>
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   );
                 })}
