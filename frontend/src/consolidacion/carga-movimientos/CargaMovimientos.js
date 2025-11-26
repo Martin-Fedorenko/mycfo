@@ -25,6 +25,14 @@ export default function CargaMovimientos({ onCargaCompletada }) {
   const [fileName, setFileName] = React.useState("");
   const obtenerUsuarioSub = () => sessionStorage.getItem("sub");
 
+  const handleTipoOrigenChange = (event) => {
+    const value = event.target.value;
+    // Mostrar opciones pero ignorar selección para las bloqueadas
+    const bloqueados = ["santander", "modo", "galicia"];
+    if (bloqueados.includes(value)) return;
+    setTipoOrigen(value);
+  };
+
   const handleFileSelected = (archivo) => {
     setFile(archivo);
     setFileName(archivo.name);
@@ -123,12 +131,14 @@ export default function CargaMovimientos({ onCargaCompletada }) {
           id="tipo-origen"
           value={tipoOrigen}
           label="Tipo de archivo"
-          onChange={(e) => setTipoOrigen(e.target.value)}
+          onChange={handleTipoOrigenChange}
         >
           <MenuItem value="">Seleccione una opción</MenuItem>
           <MenuItem value="mycfo">MyCFO (plantilla genérica)</MenuItem>
           <MenuItem value="mercado-pago">Mercado Pago</MenuItem>
-          {/*<MenuItem value="santander">Banco Santander</MenuItem>*/}
+          <MenuItem value="modo">MODO</MenuItem>
+          <MenuItem value="santander">Banco Santander</MenuItem>
+          <MenuItem value="galicia">Banco Galicia</MenuItem>
         </Select>
       </FormControl>
       <DropzoneUploader
