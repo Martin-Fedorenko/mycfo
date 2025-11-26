@@ -12,6 +12,8 @@ import {
   Alert,
   Snackbar,
   LinearProgress,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   DataGrid,
@@ -37,6 +39,8 @@ const FacturaListPage = () => {
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   
   // Paginación del servidor
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -302,8 +306,107 @@ const FacturaListPage = () => {
     setSuccessSnackbar({ open: false, message: "" });
   };
 
-  const columns = useMemo(
-    () => [
+  const columns = useMemo(() => {
+    const accionesColumn = {
+      field: "acciones",
+      headerName: "Acciones",
+      flex: 0.9,
+      minWidth: 140,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        const isAdmin = (usuarioRol || "").toUpperCase().includes("ADMIN");
+        return (
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            <IconButton
+              size="small"
+              color="info"
+              onClick={() => handleVerFactura(params.row)}
+              title="Ver detalles"
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+            {isAdmin && (
+              <>
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => handleEditarFactura(params.row)}
+                  title="Editar"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => {
+                    setFacturaToDelete(params.row);
+                    setDeleteConfirmOpen(true);
+                  }}
+                  title="Eliminar"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </>
+            )}
+          </Box>
+        );
+      },
+    };
+
+    const fechaColumn = {
+      field: "fechaEmision",
+      headerName: isMobile ? "Fecha" : "Fecha emisión",
+      flex: isMobile ? 0.7 : 0.8,
+      minWidth: isMobile ? 120 : 160,
+      renderCell: (params) => (
+        <Typography variant="body2">
+          {formatFechaEmision(params?.row?.fechaEmision)}
+        </Typography>
+      ),
+      sortComparator: (a, b, cellParamsA, cellParamsB) => {
+        const aDate = parseFechaEmision(cellParamsA?.row?.fechaEmision);
+        const bDate = parseFechaEmision(cellParamsB?.row?.fechaEmision);
+        const aValue = aDate ? aDate.valueOf() : -Infinity;
+        const bValue = bDate ? bDate.valueOf() : -Infinity;
+        return aValue - bValue;
+      },
+    };
+
+    if (isMobile) {
+      return [
+        {
+          field: "numeroDocumento",
+          headerName: "Número",
+          flex: 0.9,
+          minWidth: 120,
+          renderCell: (params) => {
+            const value =
+              params?.row?.numeroDocumento ??
+              params?.row?.id ??
+              params?.row?.idDocumento ??
+              "-";
+            return (
+              <Typography
+                variant="body2"
+                sx={{
+                  whiteSpace: "normal",
+                  wordBreak: "break-all",
+                  overflowWrap: "anywhere",
+                  lineHeight: 1.2,
+                }}
+              >
+                {value}
+              </Typography>
+            );
+          },
+        },
+        fechaColumn,
+        accionesColumn,
+      ];
+    }
+
+    return [
       {
         field: "numeroDocumento",
         headerName: "Número",
@@ -324,24 +427,7 @@ const FacturaListPage = () => {
           />
         ),
       },
-      {
-        field: "fechaEmision",
-        headerName: "Fecha emisión",
-        flex: 0.7,
-        minWidth: 160,
-        renderCell: (params) => (
-          <Typography variant="body2">
-            {formatFechaEmision(params?.row?.fechaEmision)}
-          </Typography>
-        ),
-        sortComparator: (a, b, cellParamsA, cellParamsB) => {
-          const aDate = parseFechaEmision(cellParamsA?.row?.fechaEmision);
-          const bDate = parseFechaEmision(cellParamsB?.row?.fechaEmision);
-          const aValue = aDate ? aDate.valueOf() : -Infinity;
-          const bValue = bDate ? bDate.valueOf() : -Infinity;
-          return aValue - bValue;
-        },
-      },
+      fechaColumn,
       {
         field: "montoTotal",
         headerName: "Monto",
@@ -400,55 +486,9 @@ const FacturaListPage = () => {
           </Box>
         ),
       },
-      {
-        field: "acciones",
-        headerName: "Acciones",
-        flex: 0.7,
-        minWidth: 140,
-        sortable: false,
-        filterable: false,
-        renderCell: (params) => {
-          const isAdmin = (usuarioRol || "").toUpperCase().includes("ADMIN");
-          return (
-            <Box sx={{ display: "flex", gap: 0.5 }}>
-              <IconButton
-                size="small"
-                color="info"
-                onClick={() => handleVerFactura(params.row)}
-                title="Ver detalles"
-              >
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-              {isAdmin && (
-                <>
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => handleEditarFactura(params.row)}
-                    title="Editar"
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => {
-                      setFacturaToDelete(params.row);
-                      setDeleteConfirmOpen(true);
-                    }}
-                    title="Eliminar"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </>
-              )}
-            </Box>
-          );
-        },
-      },
-    ],
-    [usuarioRol, formatFechaEmision, parseFechaEmision]
-  );
+      accionesColumn,
+    ];
+  }, [isMobile, usuarioRol, formatFechaEmision, parseFechaEmision]);
 
   return (
     <Box sx={{ width: "100%", p: 3 }}>
