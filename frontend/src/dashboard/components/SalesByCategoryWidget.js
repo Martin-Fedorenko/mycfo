@@ -8,6 +8,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useTheme, alpha } from "@mui/material/styles";
 import useResolvedColorTokens from "../useResolvedColorTokens";
@@ -36,6 +37,7 @@ const SalesByCategoryWidget = ({
   subtitle = "Distribución anual por segmento",
 }) => {
   const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const { primaryTextColor, secondaryTextColor } = useResolvedColorTokens();
 
   if (loading) {
@@ -108,84 +110,103 @@ const SalesByCategoryWidget = ({
         }}
         action={
           hasData ? (
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="flex-start"
+            <Box
               sx={{
-                pr: 2.5,
-                pt: 0.5,
-                flexWrap: "wrap",
-                rowGap: 1,
-                justifyContent: "flex-end",
-                "& .MuiTypography-overline": { letterSpacing: 0.6 },
+                width: { xs: "100%", sm: "auto" },
+                pr: { xs: 0, sm: 2.5 },
+                pt: { xs: 1, sm: 0.5 },
+                ml: { xs: 5, sm: 2.5 },
               }}
             >
-              <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-                <Typography
-                  variant="overline"
-                  sx={{ color: primaryTextColor }}
+              <Stack
+                direction={isSmall ? "column" : "row"}
+                spacing={isSmall ? 1.25 : 2}
+                alignItems={isSmall ? "flex-start" : "flex-start"}
+                justifyContent={isSmall ? "flex-start" : "flex-end"}
+                divider={
+                  <Divider
+                    flexItem={!isSmall}
+                    orientation={isSmall ? "horizontal" : "vertical"}
+                    sx={{
+                      borderColor: "divider",
+                      mx: isSmall ? 0 : 0.5,
+                      my: isSmall ? 0.75 : 0,
+                    }}
+                  />
+                }
+                sx={{
+                  width: "100%",
+                  "& .MuiTypography-overline": { letterSpacing: 0.6 },
+                }}
+              >
+                <Stack
+                  spacing={0.5}
+                  alignItems={isSmall ? "flex-start" : "flex-end"}
+                  sx={{ minWidth: 120, width: isSmall ? "100%" : "auto" }}
                 >
-                  Categoría superior
-                </Typography>
-                <Typography
-                  variant="subtitle2"
-                  fontWeight={600}
-                  sx={{ color: primaryTextColor }}
+                  <Typography
+                    variant="overline"
+                    sx={{ color: primaryTextColor }}
+                  >
+                    Categoría superior
+                  </Typography>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    sx={{ color: primaryTextColor }}
+                  >
+                    {formatCurrency(topCategory?.value)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: primaryTextColor }}>
+                    {topCategory?.category ?? "--"}
+                  </Typography>
+                </Stack>
+                <Stack
+                  spacing={0.5}
+                  alignItems={isSmall ? "flex-start" : "flex-end"}
+                  sx={{ minWidth: 120, width: isSmall ? "100%" : "auto" }}
                 >
-                  {formatCurrency(topCategory?.value)}
-                </Typography>
-                <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                  {topCategory?.category ?? "--"}
-                </Typography>
+                  <Typography
+                    variant="overline"
+                    sx={{ color: primaryTextColor }}
+                  >
+                    Categoría menor
+                  </Typography>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    sx={{ color: primaryTextColor }}
+                  >
+                    {formatCurrency(bottomCategory?.value)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: primaryTextColor }}>
+                    {bottomCategory?.category ?? "--"}
+                  </Typography>
+                </Stack>
+                <Stack
+                  spacing={0.5}
+                  alignItems={isSmall ? "flex-start" : "flex-end"}
+                  sx={{ minWidth: 120, width: isSmall ? "100%" : "auto" }}
+                >
+                  <Typography
+                    variant="overline"
+                    sx={{ color: primaryTextColor }}
+                  >
+                    Promedio
+                  </Typography>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    sx={{ color: primaryTextColor }}
+                  >
+                    {formatCurrency(average)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: primaryTextColor }}>
+                    {chartData.length} categorías
+                  </Typography>
+                </Stack>
               </Stack>
-              <Divider
-                flexItem
-                orientation="vertical"
-                sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
-              />
-              <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-                <Typography
-                  variant="overline"
-                  sx={{ color: primaryTextColor }}
-                >
-                  Categoría menor
-                </Typography>
-                <Typography
-                  variant="subtitle2"
-                  fontWeight={600}
-                  sx={{ color: primaryTextColor }}
-                >
-                  {formatCurrency(bottomCategory?.value)}
-                </Typography>
-                <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                  {bottomCategory?.category ?? "--"}
-                </Typography>
-              </Stack>
-              <Divider
-                flexItem
-                orientation="vertical"
-                sx={{ alignSelf: "stretch", borderColor: "divider", mx: 0.5 }}
-              />
-              <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 120 }}>
-                <Typography
-                  variant="overline"
-                  sx={{ color: primaryTextColor }}
-                >
-                  Promedio
-                </Typography>
-                <Typography
-                  variant="subtitle2"
-                  fontWeight={600}
-                  sx={{ color: primaryTextColor }}
-                >
-                  {formatCurrency(average)}
-                </Typography>
-                <Typography variant="caption" sx={{ color: primaryTextColor }}>
-                  {chartData.length} categorías
-                </Typography>
-              </Stack>
-            </Stack>
+            </Box>
           ) : null
         }
         sx={{
@@ -196,6 +217,8 @@ const SalesByCategoryWidget = ({
           },
           "& .MuiCardHeader-action": {
             mt: 0,
+            width: { xs: "100%", sm: "auto" },
+            alignSelf: { xs: "stretch", sm: "flex-start" },
           },
         }}
       />
